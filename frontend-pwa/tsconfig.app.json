@@ -19,6 +19,7 @@
     "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
+    "ignoreDeprecations": "6.0",
     /* Strict mode — bật toàn bộ, không tắt lẻ */
     "strict": true,
     "strictNullChecks": true,
