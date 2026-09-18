@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: booking-api
+  
+  datasource:
+    url: jdbc:postgresql://localhost:5432/booking_db
+    username: postgres
+    password: password
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+app:
+  feature-flags:
+    enable-online-payment: true
+    enable-redirect-booking: true
+    enable-carpool: false
+  
+gemini:
+  api-key: ${GEMINI_API_KEY:your_default_key}
