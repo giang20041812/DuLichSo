@@ -1,27 +1,23 @@
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { Button } from "../ui/button"
-import { Phone, ShieldCheck, Globe, Heart, Zap, User, Compass, Menu, UserCircle, X, Download, HelpCircle, BadgeInfo, Building } from "lucide-react"
+import { Phone, ShieldCheck, Globe, Heart, User, Compass, Menu, UserCircle, X, Download, HelpCircle, BadgeInfo, Building } from "lucide-react"
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [drawerMounted, setDrawerMounted] = useState(false);
-  const [drawerAnimating, setDrawerAnimating] = useState(false);
 
   // Handle drawer animation delay
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
     if (mobileMenuOpen) {
       setDrawerMounted(true);
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setDrawerAnimating(true);
-        });
-      });
     } else {
-      setDrawerAnimating(false);
-      const timer = setTimeout(() => setDrawerMounted(false), 300);
-      return () => clearTimeout(timer);
+      timer = setTimeout(() => setDrawerMounted(false), 300);
     }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [mobileMenuOpen]);
 
   return (
@@ -58,33 +54,47 @@ export default function Header() {
         <div className="hidden lg:flex h-24 items-center px-8">
           <div className="max-w-[1280px] mx-auto w-full flex justify-between items-center gap-4">
             
-            {/* Left Side: Logo + Navigation */}
-            <div className="flex items-center gap-10 xl:gap-14">
-              <Link to="/" className="flex items-center gap-3">
-                <div className="bg-[#0f5a70] text-white p-2.5 rounded-2xl shadow-sm">
-                  <Compass className="w-7 h-7" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[22px] font-bold font-display text-[#16709a] leading-none tracking-tight">
-                    VietJourney
-                  </span>
-                  <span className="text-[10px] font-bold text-[#3f7656] tracking-widest uppercase mt-1.5">
-                    Khám Phá Việt Nam
-                  </span>
-                </div>
+            {/* Left Side: Logo */}
+            <Link to="/" className="flex items-center gap-3 shrink-0">
+              <div className="bg-[#0f5a70] text-white p-2.5 rounded-2xl shadow-sm">
+                <Compass className="w-7 h-7" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[22px] font-bold font-display text-[#16709a] leading-none tracking-tight">
+                  VietJourney
+                </span>
+                <span className="text-[10px] font-bold text-[#3f7656] tracking-widest uppercase mt-1.5">
+                  Khám Phá Việt Nam
+                </span>
+              </div>
+            </Link>
+            
+            {/* Center: Navigation - Balanced with consistent gaps and vertically centered */}
+            <nav className="flex items-center gap-6 xl:gap-8 text-[14px] font-semibold text-[#4a5568]">
+              <Link to="/destinations" className="flex flex-col items-center justify-center text-center leading-tight hover:text-[#16709a] transition-colors px-1 py-1">
+                <span>Điểm</span>
+                <span>đến</span>
               </Link>
-              
-              <nav className="flex gap-8 items-start text-[14px] font-semibold text-[#4a5568] leading-snug">
-                <Link to="/destinations" className="hover:text-[#16709a] transition-colors">Điểm<br/>đến</Link>
-                <Link to="/tours" className="hover:text-[#16709a] transition-colors">Tour & Trải<br/>nghiệm</Link>
-                <Link to="/homestays" className="hover:text-[#16709a] transition-colors">Homestay &<br/>Khách sạn</Link>
-                <Link to="/food" className="hover:text-[#16709a] transition-colors">Ẩm thực &<br/>Đặc sản</Link>
-                <Link to="/guide" className="hover:text-[#16709a] transition-colors">Cẩm nang<br/>du lịch</Link>
-              </nav>
-            </div>
+              <Link to="/tours" className="flex flex-col items-center justify-center text-center leading-tight hover:text-[#16709a] transition-colors px-1 py-1">
+                <span>Tour & Trải</span>
+                <span>nghiệm</span>
+              </Link>
+              <Link to="/homestays" className="flex flex-col items-center justify-center text-center leading-tight hover:text-[#16709a] transition-colors px-1 py-1">
+                <span>Homestay &</span>
+                <span>Khách sạn</span>
+              </Link>
+              <Link to="/food" className="flex flex-col items-center justify-center text-center leading-tight hover:text-[#16709a] transition-colors px-1 py-1">
+                <span>Ẩm thực &</span>
+                <span>Đặc sản</span>
+              </Link>
+              <Link to="/guide" className="flex flex-col items-center justify-center text-center leading-tight hover:text-[#16709a] transition-colors px-1 py-1">
+                <span>Cẩm nang</span>
+                <span>du lịch</span>
+              </Link>
+            </nav>
 
-            {/* Right Side: Auth + CTA */}
-            <div className="flex items-center gap-5">
+            {/* Right Side: Auth + User Profile */}
+            <div className="flex items-center gap-4 xl:gap-5 shrink-0">
               <div className="flex items-center gap-1.5">
                 <Link to="/register" className="text-[14px] font-bold text-[#16709a] hover:underline transition-all">
                   Đăng nhập
@@ -94,11 +104,6 @@ export default function Header() {
                   Đăng ký
                 </Link>
               </div>
-              
-              <Button className="bg-[#9e6d23] hover:bg-[#7a5316] text-white font-bold rounded-xl px-5 h-10 flex items-center gap-1.5 shadow-sm ml-2">
-                <Zap className="w-4 h-4" fill="currentColor" />
-                Đặt tour nhanh
-              </Button>
               
               <Button size="icon" className="rounded-full bg-[#0f5a70] hover:bg-[#0b4353] text-white h-10 w-10 shadow-sm shrink-0">
                 <User className="w-4 h-4" />

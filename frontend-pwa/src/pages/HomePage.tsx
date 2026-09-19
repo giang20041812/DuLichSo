@@ -1,8 +1,161 @@
+import { useState, useRef, useEffect } from "react"
 import { Badge } from "../components/ui/badge"
 import SearchHub from "../components/layout/SearchHub"
-import { MapPin, Heart, Star, Check, ArrowRight, Handshake, Tag, Headphones, ShieldCheck, Mountain, Sailboat, Landmark, Tent, Utensils, Building2, Ticket, CheckCircle2, Lock } from "lucide-react"
+import { MapPin, Heart, Star, Check, ArrowRight, Handshake, Tag, Headphones, ShieldCheck, Mountain, Sailboat, Landmark, Tent, Utensils, Building2, Ticket, CheckCircle2, Lock, ChevronLeft, ChevronRight } from "lucide-react"
+
+interface StoryItem {
+  id: string;
+  region: 'Bắc' | 'Trung' | 'Nam';
+  category: string;
+  title: string;
+  excerpt: string;
+  author: string;
+  date: string;
+  readTime: string;
+  image: string;
+  tagColor: string;
+}
+
+const REGION_STORIES: StoryItem[] = [
+  {
+    id: 'bac-1',
+    region: 'Bắc',
+    category: 'Phóng sự văn hóa',
+    title: 'Nghệ Nhân Dệt Thổ Cẩm Vùng Cao Sa Pa — Hồn Cốt Giữa Mây Ngàn',
+    excerpt: 'Gặp gỡ nghệ nhân làng dệt thổ cẩm vùng cao Tây Bắc, nơi từng sợi lanh nhuộm chàm thô mộc biến thành bức tranh sống động mang tinh hoa bản địa ngàn năm.',
+    author: 'VietJourney Văn Hóa',
+    date: '12 Tháng 9, 2026',
+    readTime: '5 phút đọc',
+    image: 'https://images.unsplash.com/photo-1542159040-3b03f0b2f059?q=80&w=800&auto=format&fit=crop',
+    tagColor: 'bg-[#daf0e2] text-[#2e7d5b]'
+  },
+  {
+    id: 'bac-2',
+    region: 'Bắc',
+    category: 'Ẩm thực truyền thống',
+    title: 'Bí Quyết Nước Dùng Trong Veo Của Phở Gia Truyền Hà Nội Cổ',
+    excerpt: 'Hành trình lần theo hương hồi quế qua những con ngõ nhỏ phố cổ Hà Nội, khám phá triết lý ẩm thực đằng sau bát phở thanh trong nức tiếng kinh kỳ.',
+    author: 'Ẩm Thực 36 Phố',
+    date: '10 Tháng 9, 2026',
+    readTime: '4 phút đọc',
+    image: 'https://images.unsplash.com/photo-1583561917173-0498a44d7072?q=80&w=800&auto=format&fit=crop',
+    tagColor: 'bg-[#fce5e6] text-[#d04648]'
+  },
+  {
+    id: 'trung-1',
+    region: 'Trung',
+    category: 'Di sản & Cung đình',
+    title: 'Dấu Ấn Cố Đô Huế — Hương Vị Cung Đình Bên Dòng Sông Hương',
+    excerpt: 'Dưới bóng kinh thành rêu phong, lắng nghe nhã nhạc cung đình và tìm hiểu nghệ thuật ẩm thực tinh tế được bảo tồn qua bao thế hệ con người xứ Huế.',
+    author: 'Di Sản Miền Trung',
+    date: '8 Tháng 9, 2026',
+    readTime: '6 phút đọc',
+    image: 'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?q=80&w=800&auto=format&fit=crop',
+    tagColor: 'bg-[#f8ebd0] text-[#c28a33]'
+  },
+  {
+    id: 'trung-2',
+    region: 'Trung',
+    category: 'Lễ hội & Đêm phố',
+    title: 'Đêm Phố Cổ Hội An — Khi Hàng Ngàn Ngọn Đèn Hoa Đăng Tỏa Sáng',
+    excerpt: 'Trải nghiệm chèo thuyền trên sông Hoài trong đêm rằm, thả chiếc đèn hoa đăng mang theo ước nguyện bình an giữa không gian lung linh huyền ảo.',
+    author: 'Hội An Hoài Niệm',
+    date: '6 Tháng 9, 2026',
+    readTime: '4 phút đọc',
+    image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=800&auto=format&fit=crop',
+    tagColor: 'bg-[#dceff0] text-[#16709a]'
+  },
+  {
+    id: 'nam-1',
+    region: 'Nam',
+    category: 'Sông nước bản địa',
+    title: 'Nhịp Sống Chợ Nổi Cái Răng — Sắc Màu Sông Nước Nam Bộ Lúc Bình Minh',
+    excerpt: 'Tiếng ghe máy rộn rã, những cây bẹo treo lủng lẳng hoa trái đầu cành mở ra bức tranh đời sống thương hồ phóng khoáng đặc trưng của miền Tây sông nước.',
+    author: 'Ký Sự Phương Nam',
+    date: '4 Tháng 9, 2026',
+    readTime: '5 phút đọc',
+    image: 'https://images.unsplash.com/photo-1610450949065-2e22528e08d6?q=80&w=800&auto=format&fit=crop',
+    tagColor: 'bg-[#daf0e2] text-[#2e7d5b]'
+  },
+  {
+    id: 'nam-2',
+    region: 'Nam',
+    category: 'Lifestyle & Ký ức',
+    title: 'Văn Hóa Cà Phê Vợt Sài Gòn — Nhịp Sống Chậm Giữa Đô Hội Hối Hả',
+    excerpt: 'Bên chiếc siêu đất đun củi và chiếc vợt vải ngả màu thời gian, thưởng thức ly cà phê sữa đá đậm đà lưu giữ ký ức cả thế kỷ của người Sài Gòn.',
+    author: 'Sài Gòn Góc Phố',
+    date: '2 Tháng 9, 2026',
+    readTime: '3 phút đọc',
+    image: 'https://images.unsplash.com/photo-1629828450148-52fb58fce4be?q=80&w=800&auto=format&fit=crop',
+    tagColor: 'bg-[#fce5e6] text-[#d04648]'
+  }
+];
 
 export default function HomePage() {
+  const [selectedRegion, setSelectedRegion] = useState<'Tất cả' | 'Bắc' | 'Trung' | 'Nam'>('Tất cả');
+  const [isHovered, setIsHovered] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const startXRef = useRef(0);
+  const scrollLeftRef = useRef(0);
+
+  const filteredStories = selectedRegion === 'Tất cả' 
+    ? REGION_STORIES 
+    : REGION_STORIES.filter(s => s.region === selectedRegion);
+
+  // Tính năng 1: Tự động cuộn ngang (Auto-scroll) theo chu kỳ, dừng khi hover hoặc kéo
+  useEffect(() => {
+    if (isHovered || isDragging) return;
+    
+    const interval = setInterval(() => {
+      if (!scrollRef.current) return;
+      const el = scrollRef.current;
+      const maxScroll = el.scrollWidth - el.clientWidth;
+      
+      // Nếu đã cuộn gần hết, quay lại đầu
+      if (el.scrollLeft >= maxScroll - 10) {
+        el.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        el.scrollBy({ left: 360, behavior: 'smooth' });
+      }
+    }, 3800);
+
+    return () => clearInterval(interval);
+  }, [isHovered, isDragging]);
+
+  // Tính năng 2: Người sử dụng tự kéo chuột sang (Mouse Drag to scroll)
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!scrollRef.current) return;
+    setIsDragging(true);
+    startXRef.current = e.pageX - scrollRef.current.offsetLeft;
+    scrollLeftRef.current = scrollRef.current.scrollLeft;
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDragging || !scrollRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollRef.current.offsetLeft;
+    const walk = (x - startXRef.current) * 1.5;
+    scrollRef.current.scrollLeft = scrollLeftRef.current - walk;
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleMouseLeave = () => {
+    setIsDragging(false);
+    setIsHovered(false);
+  };
+
+  const scrollPrev = () => {
+    scrollRef.current?.scrollBy({ left: -360, behavior: 'smooth' });
+  };
+
+  const scrollNext = () => {
+    scrollRef.current?.scrollBy({ left: 360, behavior: 'smooth' });
+  };
+
   return (
     <div className="w-full flex flex-col">
       {/* Hero Section */}
@@ -13,17 +166,21 @@ export default function HomePage() {
           style={{ backgroundImage: `url('https://images.unsplash.com/photo-1528127269322-539801943592?q=80&w=2000&auto=format&fit=crop')` }}
         >
           {/* Overlay gradient */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0f2d3c]/70 via-[#0f2d3c]/40 to-transparent"></div>
-          {/* Bottom white glow to blend with background */}
-          <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-white via-white/80 to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0f2d3c]/70 via-[#0f2d3c]/35 to-transparent"></div>
+          {/* Bottom white glow - Giảm độ trắng xuống, làm phần giao trong hơn */}
+          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-white/30 via-white/10 to-transparent pointer-events-none"></div>
         </div>
 
         <div className="relative z-10 flex flex-col items-center text-center px-4 max-w-4xl -mt-20">
           <Badge className="bg-white/20 hover:bg-white/30 text-white border-none backdrop-blur-md mb-6 rounded-full px-4 py-1.5 text-xs font-medium">
             Nền tảng 12 hành trình sinh thái & trải nghiệm bản địa cao cấp hàng đầu
           </Badge>
-          <h1 className="text-4xl md:text-5xl lg:text-[56px] font-bold font-display text-white leading-tight mb-6 tracking-tight">
-            Khám Phá Việt Nam — Từ Những Đỉnh Núi Đến Bờ Biển Xanh
+          {/* Tiêu đề chia thành 2 dòng, bỏ dấu gạch ngang */}
+          <h1 className="text-4xl md:text-5xl lg:text-[56px] font-bold font-display text-white leading-tight mb-6 tracking-tight flex flex-col items-center">
+            <span>Khám Phá Việt Nam</span>
+            <span className="text-2xl md:text-3xl lg:text-4xl font-medium text-white/95 mt-2 tracking-normal">
+              Từ Những Đỉnh Núi Đến Bờ Biển Xanh
+            </span>
           </h1>
           <p className="text-white/90 text-lg md:text-xl font-body max-w-2xl mx-auto">
             Hành trình trải nghiệm văn hóa bản địa, ẩm thực truyền thống và cảnh sắc thiên nhiên hùng vĩ trên khắp dải đất hình chữ S.
@@ -646,97 +803,128 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Culture & Heritage Section */}
+      {/* Culture & Heritage Section - Tổng hợp câu chuyện của 3 miền, tự động cuộn ngang và kéo chuột */}
       <section className="max-w-[1280px] mx-auto w-full px-4 md:px-8 py-16">
-        <div className="flex flex-col items-center text-center mb-10 gap-3">
-          <Badge className="bg-[#fce5e6] text-[#d04648] hover:bg-[#f6cdcf] font-medium px-3 py-1 text-xs uppercase tracking-wider">
-            Chuyện người bản địa
-          </Badge>
-          <h2 className="text-3xl lg:text-4xl font-bold font-display text-[#0f2d3c]">
-            Hương Vị & Văn Hóa Xứ Sở
-          </h2>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
+          <div className="flex flex-col items-start gap-3">
+            <Badge className="bg-[#fce5e6] text-[#d04648] hover:bg-[#f6cdcf] font-medium px-3 py-1 text-xs uppercase tracking-wider">
+              Chuyện người bản địa
+            </Badge>
+            <h2 className="text-3xl lg:text-4xl font-bold font-display text-[#0f2d3c]">
+              Hương Vị & Văn Hóa Xứ Sở — Câu Chuyện 3 Miền
+            </h2>
+            <p className="text-[#66716c] text-base">
+              Lắng nghe những lát cắt mộc mạc và câu chuyện truyền cảm hứng từ Bắc, Trung đến Nam
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
+            {/* Bộ lọc vùng miền */}
+            <div className="flex bg-[#f8f9fa] p-1 rounded-xl border border-[#66716c]/10 shadow-sm">
+              {(['Tất cả', 'Bắc', 'Trung', 'Nam'] as const).map((region) => (
+                <button
+                  key={region}
+                  onClick={() => setSelectedRegion(region)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    selectedRegion === region
+                      ? 'bg-[#16709a] text-white shadow-sm'
+                      : 'text-[#66716c] hover:text-[#0f2d3c]'
+                  }`}
+                >
+                  {region === 'Tất cả' ? 'Tất cả 3 Miền' : `Miền ${region}`}
+                </button>
+              ))}
+            </div>
+
+            {/* Nút cuộn thủ công */}
+            <div className="hidden sm:flex items-center gap-2">
+              <button
+                onClick={scrollPrev}
+                aria-label="Cuộn sang trái"
+                className="w-9 h-9 rounded-full bg-white border border-[#66716c]/20 hover:border-[#16709a] text-[#0f2d3c] hover:text-[#16709a] flex items-center justify-center shadow-sm transition-all"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                onClick={scrollNext}
+                aria-label="Cuộn sang phải"
+                className="w-9 h-9 rounded-full bg-white border border-[#66716c]/20 hover:border-[#16709a] text-[#0f2d3c] hover:text-[#16709a] flex items-center justify-center shadow-sm transition-all"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-4 pb-4 lg:grid lg:grid-cols-12 lg:gap-6 -mx-4 px-4 lg:mx-0 lg:px-0">
-          {/* Featured Article (Left - 7 cols) */}
-          <div className="lg:col-span-7 bg-white rounded-2xl overflow-hidden border border-[#66716c]/10 shadow-sm hover:shadow-md transition-shadow group cursor-pointer flex flex-col w-[85vw] max-w-[320px] shrink-0 snap-start lg:w-auto lg:max-w-none">
-            <div className="relative h-[300px] overflow-hidden">
-              <img src="https://images.unsplash.com/photo-1542159040-3b03f0b2f059?q=80&w=1200&auto=format&fit=crop" alt="Văn hóa vùng cao" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-              <div className="absolute top-4 left-4">
-                <Badge className="bg-[#202327]/60 text-white backdrop-blur-sm border-none hover:bg-[#202327]/80 font-semibold text-xs px-3 py-1">Phóng sự văn hóa</Badge>
+        {/* Carousel Container: Hỗ trợ tự động cuộn ngang + Người dùng tự bấm giữ kéo chuột / vuốt tay */}
+        <div 
+          ref={scrollRef}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
+          onMouseEnter={() => setIsHovered(true)}
+          className={`flex gap-6 overflow-x-auto scrollbar-hide py-2 px-1 select-none ${
+            isDragging ? 'cursor-grabbing' : 'cursor-grab'
+          }`}
+          style={{ scrollBehavior: isDragging ? 'auto' : 'smooth' }}
+        >
+          {filteredStories.map((story) => (
+            <div
+              key={story.id}
+              className="w-[320px] md:w-[380px] shrink-0 bg-white rounded-2xl overflow-hidden border border-[#66716c]/10 shadow-sm hover:shadow-lg transition-all duration-300 group flex flex-col"
+            >
+              <div className="relative aspect-[16/10] overflow-hidden bg-[#e8eaf6]">
+                <img
+                  src={story.image}
+                  alt={story.title}
+                  draggable={false}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none"
+                />
+                <div className="absolute top-3 left-3 flex items-center gap-2">
+                  <Badge className={`${story.tagColor} border-none font-bold text-xs shadow-sm px-2.5 py-0.5`}>
+                    Miền {story.region}
+                  </Badge>
+                  <span className="bg-[#0f2d3c]/75 backdrop-blur-sm text-white text-[10px] font-semibold px-2 py-0.5 rounded">
+                    {story.category}
+                  </span>
+                </div>
               </div>
-            </div>
-            <div className="p-6 md:p-8 flex flex-col flex-1">
-              <div className="flex items-center gap-2 text-xs text-[#66716c] font-medium mb-3">
-                <span className="text-[#16709a] font-bold">VietJourney</span>
-                <span className="w-1 h-1 rounded-full bg-[#66716c]/30"></span>
-                <span>12 Tháng 9, 2026</span>
-                <span className="w-1 h-1 rounded-full bg-[#66716c]/30"></span>
-                <span>5 phút đọc</span>
-              </div>
-              <h3 className="text-2xl font-bold text-[#0f2d3c] leading-tight mb-4 group-hover:text-[#16709a] transition-colors">Những Con Người Làm Nên Vẻ Đẹp Việt Nam — Chuyện Làng Nghề Dệt Thổ Cẩm</h3>
-              <p className="text-[#66716c] text-sm md:text-base leading-relaxed mb-6 flex-1">
-                Gặp gỡ các nghệ nhân làng dệt thổ cẩm vùng cao Tây Bắc, nơi những sợi lanh thô mộc qua bàn tay khéo léo biến thành bức tranh sống động mang hồn cốt dân tộc. Mỗi họa tiết là một câu chuyện về cuộc sống, niềm tin và sự trân trọng tự nhiên.
-              </p>
-              <a href="#" className="inline-flex items-center gap-1.5 text-[#16709a] font-bold hover:underline self-start">
-                Đọc toàn bộ ký sự <ArrowRight className="w-4 h-4" />
-              </a>
-            </div>
-          </div>
 
-          {/* Small Articles (Right - 5 cols) */}
-          <div className="contents lg:flex lg:flex-col lg:gap-6 lg:col-span-5">
-            {/* Small Article 1 */}
-            <div className="bg-white rounded-2xl overflow-hidden border border-[#66716c]/10 shadow-sm hover:shadow-md transition-shadow group cursor-pointer flex flex-col sm:flex-row w-[85vw] max-w-[320px] shrink-0 snap-start lg:w-auto lg:max-w-none">
-              <div className="relative sm:w-2/5 aspect-[4/3] sm:aspect-auto sm:h-full overflow-hidden shrink-0">
-                <img src="https://images.unsplash.com/photo-1583561917173-0498a44d7072?q=80&w=600&auto=format&fit=crop" alt="Phở Hà Nội" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                <Badge className="absolute top-3 left-3 sm:hidden bg-[#d04648]/90 text-white backdrop-blur border-none font-semibold text-[10px] px-2 py-0.5">Ẩm thực</Badge>
-              </div>
-              <div className="p-5 flex flex-col justify-center flex-1">
-                <Badge className="hidden sm:inline-flex self-start bg-[#fce5e6] text-[#d04648] hover:bg-[#f6cdcf] border-none font-semibold text-[10px] px-2 py-0.5 mb-2">Ẩm thực</Badge>
-                <h4 className="text-base font-bold text-[#0f2d3c] leading-tight mb-2 group-hover:text-[#16709a] transition-colors">Bí quyết nước dùng trong veo của phở gia truyền Hà Nội cổ</h4>
-                <div className="flex items-center gap-2 text-[11px] text-[#66716c] font-medium mt-auto">
-                  <span>9 Tháng 9, 2026</span>
-                  <span className="w-1 h-1 rounded-full bg-[#66716c]/30"></span>
-                  <span>3 phút đọc</span>
+              <div className="p-6 flex flex-col flex-1 justify-between">
+                <div>
+                  <div className="flex items-center gap-2 text-xs text-[#66716c] font-medium mb-3">
+                    <span className="text-[#16709a] font-bold">{story.author}</span>
+                    <span className="w-1 h-1 rounded-full bg-[#66716c]/30"></span>
+                    <span>{story.date}</span>
+                    <span className="w-1 h-1 rounded-full bg-[#66716c]/30"></span>
+                    <span>{story.readTime}</span>
+                  </div>
+                  <h3 className="text-lg font-bold text-[#0f2d3c] leading-snug mb-3 group-hover:text-[#16709a] transition-colors line-clamp-2">
+                    {story.title}
+                  </h3>
+                  <p className="text-[#66716c] text-sm leading-relaxed line-clamp-3 mb-4">
+                    {story.excerpt}
+                  </p>
                 </div>
-              </div>
-            </div>
 
-            {/* Small Article 2 */}
-            <div className="bg-white rounded-2xl overflow-hidden border border-[#66716c]/10 shadow-sm hover:shadow-md transition-shadow group cursor-pointer flex flex-col sm:flex-row w-[85vw] max-w-[320px] shrink-0 snap-start lg:w-auto lg:max-w-none">
-              <div className="relative sm:w-2/5 aspect-[4/3] sm:aspect-auto sm:h-full overflow-hidden shrink-0">
-                <img src="https://images.unsplash.com/photo-1545084968-3e4b780f2d65?q=80&w=600&auto=format&fit=crop" alt="Làng Lụa" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                <Badge className="absolute top-3 left-3 sm:hidden bg-[#c28a33]/90 text-white backdrop-blur border-none font-semibold text-[10px] px-2 py-0.5">Di sản</Badge>
-              </div>
-              <div className="p-5 flex flex-col justify-center flex-1">
-                <Badge className="hidden sm:inline-flex self-start bg-[#f8ebd0] text-[#c28a33] hover:bg-[#f3e1ba] border-none font-semibold text-[10px] px-2 py-0.5 mb-2">Di sản</Badge>
-                <h4 className="text-base font-bold text-[#0f2d3c] leading-tight mb-2 group-hover:text-[#16709a] transition-colors">Khám phá ngôi làng lụa tơ tằm cổ kính bên bờ sông Nhuệ</h4>
-                <div className="flex items-center gap-2 text-[11px] text-[#66716c] font-medium mt-auto">
-                  <span>5 Tháng 9, 2026</span>
-                  <span className="w-1 h-1 rounded-full bg-[#66716c]/30"></span>
-                  <span>4 phút đọc</span>
+                <div className="flex items-center justify-between pt-4 border-t border-[#66716c]/10 mt-auto">
+                  <span className="text-xs font-semibold text-[#16709a] group-hover:underline flex items-center gap-1">
+                    Đọc câu chuyện <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                  </span>
+                  <span className="text-[11px] text-[#66716c]/80 italic">Kéo để xem tiếp &rarr;</span>
                 </div>
               </div>
             </div>
-            
-            {/* Small Article 3 */}
-            <div className="bg-white rounded-2xl overflow-hidden border border-[#66716c]/10 shadow-sm hover:shadow-md transition-shadow group cursor-pointer flex flex-col sm:flex-row w-[85vw] max-w-[320px] shrink-0 snap-start lg:w-auto lg:max-w-none">
-              <div className="relative sm:w-2/5 aspect-[4/3] sm:aspect-auto sm:h-full overflow-hidden shrink-0">
-                <img src="https://images.unsplash.com/photo-1629828450148-52fb58fce4be?q=80&w=600&auto=format&fit=crop" alt="Cà phê" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                <Badge className="absolute top-3 left-3 sm:hidden bg-[#16709a]/90 text-white backdrop-blur border-none font-semibold text-[10px] px-2 py-0.5">Lifestyle</Badge>
-              </div>
-              <div className="p-5 flex flex-col justify-center flex-1">
-                <Badge className="hidden sm:inline-flex self-start bg-[#dceff0] text-[#16709a] hover:bg-[#cbe7e8] border-none font-semibold text-[10px] px-2 py-0.5 mb-2">Lifestyle</Badge>
-                <h4 className="text-base font-bold text-[#0f2d3c] leading-tight mb-2 group-hover:text-[#16709a] transition-colors">Văn hóa cà phê bệt và nhịp sống chậm rãi giữa Sài Gòn hối hả</h4>
-                <div className="flex items-center gap-2 text-[11px] text-[#66716c] font-medium mt-auto">
-                  <span>2 Tháng 9, 2026</span>
-                  <span className="w-1 h-1 rounded-full bg-[#66716c]/30"></span>
-                  <span>3 phút đọc</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          ))}
+        </div>
+
+        {/* Thanh trạng thái tương tác */}
+        <div className="flex items-center justify-center gap-2 mt-6">
+          <span className="text-xs text-[#66716c] flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-[#2e7d5b] animate-pulse"></span>
+            Tự động cuộn &bull; Bấm giữ kéo hoặc vuốt tay sang 3 miền
+          </span>
         </div>
       </section>
 
@@ -807,14 +995,14 @@ export default function HomePage() {
               </p>
             </div>
             
-            <div className="w-full md:w-[420px] shrink-0 relative z-10 flex flex-col">
-              <div className="flex flex-col sm:flex-row p-1 sm:p-1.5 bg-transparent sm:bg-white rounded-lg sm:shadow-lg mb-3 gap-2 sm:gap-0">
+            <div className="w-full md:w-[440px] shrink-0 relative z-10 flex flex-col">
+              <div className="flex flex-col sm:flex-row items-center p-1.5 bg-white rounded-2xl sm:rounded-full shadow-xl mb-3 gap-2 sm:gap-0 border border-white/30 transition-all focus-within:ring-2 focus-within:ring-[#e5a33d]">
                 <input 
                   type="email" 
-                  placeholder="Nhập email..." 
-                  className="w-full flex-1 min-w-0 px-4 py-3.5 sm:py-3 outline-none text-[#0f2d3c] text-sm rounded-lg sm:rounded-r-none placeholder:text-[#66716c] bg-white shadow-sm sm:shadow-none"
+                  placeholder="Nhập email của bạn..." 
+                  className="w-full flex-1 min-w-0 px-4 sm:px-5 py-3 outline-none text-[#0f2d3c] text-sm rounded-xl sm:rounded-full placeholder:text-[#66716c] bg-transparent"
                 />
-                <button className="w-full sm:w-auto bg-[#9e6d23] hover:bg-[#7a5316] text-white px-5 py-3.5 sm:py-3 rounded-lg sm:rounded-l-none font-bold text-sm shadow-sm transition-colors whitespace-nowrap">
+                <button className="w-full sm:w-auto bg-[#9e6d23] hover:bg-[#7a5316] text-white px-6 py-3 rounded-xl sm:rounded-full font-bold text-sm shadow-md transition-all whitespace-nowrap shrink-0 flex items-center justify-center">
                   Nhận Mã Giảm
                 </button>
               </div>
