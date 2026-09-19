@@ -10,7 +10,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: true
     properties:
       hibernate:
@@ -21,6 +21,9 @@ spring:
     redis:
       host: localhost
       port: 6379
+
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.xml
 
 app:
   feature-flags:
