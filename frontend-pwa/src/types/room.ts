@@ -27,3 +27,30 @@ export interface RoomTypeItem {
   features?: string[];
   unitNote?: string; // e.g. "/ đêm" or "/ người"
 }
+
+export interface NightPriceDetail {
+  nightIndex: number;
+  dateStr: string;
+  priceLabel: string;
+  price: number;
+  isSpecialRate?: boolean;
+}
+
+export type AvailabilityStatus = 'AVAILABLE' | 'NOT_ENOUGH_ROOMS' | 'ONLINE_BOOKING_PAUSED';
+
+export interface RoomAvailabilityItem extends RoomTypeItem {
+  availabilityStatus: AvailabilityStatus;
+  statusBadgeText: string;
+  nightlyPrices?: NightPriceDetail[];
+  totalPrice?: number;
+  unavailabilityReason?: string;
+  pausedNotice?: string;
+  imagesCount?: number;
+}
+
+export interface AvailabilityFilterParams {
+  checkInDate: string; // e.g. "2026-10-15"
+  checkOutDate: string; // e.g. "2026-10-17"
+  guestsCount: number;
+  roomsCount: number;
+}

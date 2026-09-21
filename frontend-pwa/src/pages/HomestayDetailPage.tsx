@@ -45,8 +45,8 @@ export default function HomestayDetailPage() {
     };
   }, [slug]);
 
-  const handleScrollToRooms = () => {
-    roomSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const handleCheckAvailability = () => {
+    navigate(`/homestay/${slug}/availability`);
   };
 
   if (loading || !place) {
@@ -151,7 +151,7 @@ export default function HomestayDetailPage() {
           verifiedGpsText={place.verifiedGpsText}
           priceRefMin={place.priceRefMin}
           priceUnitNote={place.priceUnitNote}
-          onCheckAvailability={handleScrollToRooms}
+          onCheckAvailability={handleCheckAvailability}
         />
 
         <hr className="border-slate-200/70" />
@@ -168,7 +168,7 @@ export default function HomestayDetailPage() {
 
         {/* Room Types Section */}
         <div ref={roomSectionRef}>
-          <HomestayRoomSection rooms={rooms} onSelectRoom={handleScrollToRooms} />
+          <HomestayRoomSection rooms={rooms} onSelectRoom={handleCheckAvailability} />
         </div>
 
         <hr className="border-slate-200/70" />
@@ -197,7 +197,7 @@ export default function HomestayDetailPage() {
       <HomestayStickyBar
         price={place.priceRefMin}
         unitNote={place.priceUnitNote}
-        onCheckAvailability={handleScrollToRooms}
+        onCheckAvailability={handleCheckAvailability}
       />
     </div>
   );
