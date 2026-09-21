@@ -29,4 +29,6 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
             @Param("visibility") PlaceVisibility visibility,
             @Param("kinds") List<CategoryKind> kinds,
             Pageable pageable);
+
+    java.util.Optional<Place> findBySlugAndIsDeletedFalse(String slug);
 }

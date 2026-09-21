@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react"
+import { Link } from "react-router-dom"
 import { Badge } from "../components/ui/badge"
 import SearchHub from "../components/layout/SearchHub"
 import { MapPin, Heart, Star, Check, ArrowRight, Handshake, Tag, Headphones, ShieldCheck, Mountain, Sailboat, Landmark, Tent, Utensils, Building2, Ticket, CheckCircle2, Lock, ChevronLeft, ChevronRight } from "lucide-react"
@@ -371,7 +372,12 @@ export default function HomePage() {
                     <div className="text-[10px] text-[#66716c] mb-0.5">Giá mỗi đêm</div>
                     <div className="text-[#16709a] font-bold text-[19px] leading-none">{hs.priceRefMin?.toLocaleString()}đ<span className="text-xs text-[#66716c] font-normal"> / phòng</span></div>
                   </div>
-                  <button className="bg-[#16709a] text-white rounded-lg hover:bg-[#125a7a] px-5 py-2 font-bold text-xs shadow-sm transition-colors">Xem phòng</button>
+                  <Link 
+                    to={`/homestay/${hs.slug || 'ban-lim-mong-eco-lodge'}`}
+                    className="bg-[#16709a] text-white rounded-lg hover:bg-[#125a7a] px-5 py-2 font-bold text-xs shadow-sm transition-colors inline-block text-center"
+                  >
+                    Xem phòng
+                  </Link>
                 </div>
               </div>
             </div>
