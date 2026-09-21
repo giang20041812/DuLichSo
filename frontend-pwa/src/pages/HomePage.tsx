@@ -205,7 +205,7 @@ export default function HomePage() {
   return (
     <div className="w-full flex flex-col">
       {/* Hero Section */}
-      <section className="relative w-full h-[800px] flex items-center justify-center pt-24">
+      <section className="relative w-full h-[800px] flex items-start justify-center pt-[180px] md:pt-[200px]">
         <div 
           className="absolute inset-0 z-0 bg-cover bg-center"
           style={{ backgroundImage: `url('https://images.unsplash.com/photo-1528127269322-539801943592?q=80&w=2000&auto=format&fit=crop')` }}
