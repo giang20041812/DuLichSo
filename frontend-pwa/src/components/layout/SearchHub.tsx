@@ -7,7 +7,6 @@ import { MapPin, Calendar, Users, ChevronDown, Search, History, ChevronLeft, Che
 export default function SearchHub() {
   const [activeTab, setActiveTab] = useState<'destination' | 'dates' | 'occupancy' | null>(null);
   const [mountedTab, setMountedTab] = useState<'destination' | 'dates' | 'occupancy' | null>(null);
-  const [animatingTab, setAnimatingTab] = useState<'destination' | 'dates' | 'occupancy' | null>(null);
   
   // Use a ref to detect click outside
   const searchRef = useRef<HTMLDivElement>(null);
@@ -29,18 +28,15 @@ export default function SearchHub() {
 
   // Handle animation delay
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
     if (activeTab) {
       setMountedTab(activeTab);
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setAnimatingTab(activeTab);
-        });
-      });
     } else {
-      setAnimatingTab(null);
-      const timer = setTimeout(() => setMountedTab(null), 300);
-      return () => clearTimeout(timer);
+      timer = setTimeout(() => setMountedTab(null), 300);
     }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [activeTab]);
 
   const closeModal = (e?: React.MouseEvent) => {
@@ -131,17 +127,17 @@ export default function SearchHub() {
   );
 
   return (
-    <div ref={searchRef} className="w-full relative flex flex-col md:flex-row items-center gap-2 md:gap-4 p-4 rounded-2xl bg-[var(--color-surface)] shadow-sm border border-[var(--color-muted)]/10">
+    <div ref={searchRef} className="w-full relative flex flex-col md:flex-row items-center gap-2.5 md:gap-3 p-3 md:p-3.5 rounded-2xl bg-white/85 backdrop-blur-md shadow-xl border border-white/50 transition-all">
       
       {/* ---------------- DESTINATION ---------------- */}
       <div 
-        className={`flex-1 w-full bg-white rounded-xl shadow-sm border p-3 flex items-center gap-3 cursor-pointer transition-colors relative z-20 ${activeTab === 'destination' ? 'border-[#e5a33d] ring-2 ring-[#e5a33d]/20' : 'border-[var(--color-muted)]/20 hover:border-[#16709a]'}`}
+        className={`flex-1 w-full bg-white rounded-xl shadow-sm border px-3.5 h-[58px] flex items-center gap-3 cursor-pointer transition-colors relative z-20 ${activeTab === 'destination' ? 'border-[#e5a33d] ring-2 ring-[#e5a33d]/20' : 'border-[var(--color-muted)]/20 hover:border-[#16709a]'}`}
         onClick={() => setActiveTab('destination')}
       >
-        <MapPin className="text-[var(--color-muted)] w-5 h-5 ml-1" />
-        <div className="flex flex-col flex-1">
+        <MapPin className="text-[var(--color-muted)] w-5 h-5 ml-0.5 shrink-0" />
+        <div className="flex flex-col justify-center flex-1 min-w-0">
           <span className="text-[10px] font-bold text-[var(--color-muted)] uppercase tracking-wider mb-0.5">Điểm đến</span>
-          <span className="text-sm font-medium text-[var(--color-ink)]">Bạn muốn đi đâu?</span>
+          <span className="text-sm font-medium text-[var(--color-ink)] truncate">Bạn muốn đi đâu?</span>
         </div>
         
         {/* Desktop Destination Dropdown */}
@@ -192,13 +188,13 @@ export default function SearchHub() {
       
       {/* ---------------- DATES ---------------- */}
       <div 
-        className={`flex-1 w-full bg-white rounded-xl shadow-sm border p-3 flex items-center gap-3 cursor-pointer transition-colors relative z-20 ${activeTab === 'dates' ? 'border-[#e5a33d] ring-2 ring-[#e5a33d]/20' : 'border-[var(--color-muted)]/20 hover:border-[#16709a]'}`}
+        className={`flex-1 w-full bg-white rounded-xl shadow-sm border px-3.5 h-[58px] flex items-center gap-3 cursor-pointer transition-colors relative z-20 ${activeTab === 'dates' ? 'border-[#e5a33d] ring-2 ring-[#e5a33d]/20' : 'border-[var(--color-muted)]/20 hover:border-[#16709a]'}`}
         onClick={() => setActiveTab('dates')}
       >
-        <Calendar className="text-[var(--color-muted)] w-5 h-5 ml-1" />
-        <div className="flex flex-col flex-1">
+        <Calendar className="text-[var(--color-muted)] w-5 h-5 ml-0.5 shrink-0" />
+        <div className="flex flex-col justify-center flex-1 min-w-0">
           <span className="text-[10px] font-bold text-[var(--color-muted)] uppercase tracking-wider mb-0.5">Ngày đi</span>
-          <span className="text-sm font-medium text-[var(--color-ink)]">Thứ 6, 18 Th9 &mdash; CN, 20 Th9</span>
+          <span className="text-sm font-medium text-[var(--color-ink)] truncate">Thứ 6, 18 Th9 &mdash; CN, 20 Th9</span>
         </div>
 
         {/* Desktop Dates Dropdown */}
@@ -207,19 +203,19 @@ export default function SearchHub() {
       
       {/* ---------------- OCCUPANCY ---------------- */}
       <div 
-        className={`flex-1 w-full bg-white rounded-xl shadow-sm border p-3 flex items-center justify-between cursor-pointer transition-colors relative z-20 ${activeTab === 'occupancy' ? 'border-[#e5a33d] ring-2 ring-[#e5a33d]/20' : 'border-[var(--color-muted)]/20 hover:border-[#16709a]'}`}
+        className={`flex-1 w-full bg-white rounded-xl shadow-sm border px-3.5 h-[58px] flex items-center justify-between cursor-pointer transition-colors relative z-20 ${activeTab === 'occupancy' ? 'border-[#e5a33d] ring-2 ring-[#e5a33d]/20' : 'border-[var(--color-muted)]/20 hover:border-[#16709a]'}`}
         onClick={() => setActiveTab('occupancy')}
       >
-        <div className="flex items-center gap-3">
-          <Users className="text-[var(--color-accent)] w-5 h-5 ml-1" />
-          <div className="flex flex-col">
+        <div className="flex items-center gap-3 min-w-0">
+          <Users className="text-[var(--color-accent)] w-5 h-5 ml-0.5 shrink-0" />
+          <div className="flex flex-col justify-center min-w-0">
             <span className="text-[10px] font-bold text-[var(--color-muted)] uppercase tracking-wider mb-0.5">Hành khách</span>
-            <span className="text-sm font-medium text-[var(--color-ink)]">2 người lớn &middot; 1 trẻ em &middot; 1 phòng</span>
+            <span className="text-sm font-medium text-[var(--color-ink)] truncate">2 người lớn &middot; 1 trẻ em &middot; 1 phòng</span>
           </div>
         </div>
-        <div className="flex flex-col items-center justify-center text-[var(--color-muted)] opacity-50 mr-1">
-            <ChevronDown className="w-3 h-3 rotate-180 -mb-1" />
-            <ChevronDown className="w-3 h-3" />
+        <div className="flex flex-col items-center justify-center text-[var(--color-muted)] opacity-60 mr-1 shrink-0">
+            <ChevronDown className="w-3.5 h-3.5 rotate-180 -mb-1" />
+            <ChevronDown className="w-3.5 h-3.5" />
         </div>
 
         {/* Desktop Occupancy Dropdown */}
@@ -298,8 +294,8 @@ export default function SearchHub() {
       </div>
       
       {/* Search Button */}
-      <div className="w-full md:w-auto shrink-0 h-full flex items-center">
-        <Button size="lg" className="rounded-xl w-full md:w-auto px-8 h-[52px] shadow-sm bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-600)] text-base font-semibold flex items-center gap-2">
+      <div className="w-full md:w-auto shrink-0 flex items-center">
+        <Button size="lg" className="rounded-xl w-full md:w-auto px-8 h-[58px] shadow-md bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-600)] text-base font-semibold flex items-center justify-center gap-2.5 transition-all">
           <Search className="w-5 h-5" />
           Tìm Chuyến Đi
         </Button>

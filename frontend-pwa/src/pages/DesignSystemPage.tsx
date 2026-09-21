@@ -1,11 +1,7 @@
 import { Button } from "../components/ui/button"
 import { Input } from "../components/ui/input"
 import { Badge } from "../components/ui/badge"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card"
 import { Skeleton } from "../components/ui/skeleton"
-import { Checkbox } from "../components/ui/checkbox"
-import { Switch } from "../components/ui/switch"
-import { Modal, ModalContent, ModalDescription, ModalFooter, ModalHeader, ModalTitle, ModalTrigger } from "../components/ui/modal"
 import { MapPin, Calendar, Users, ChevronDown, Search, User, Mail, Phone, Lock, Heart, Mountain, Waves, Landmark, Utensils, Building2, Flame, Star, CheckCircle, AlertTriangle, Info, Copy } from "lucide-react"
 
 export default function DesignSystemPage() {
