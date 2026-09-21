@@ -205,18 +205,18 @@ export default function HomePage() {
   return (
     <div className="w-full flex flex-col">
       {/* Hero Section */}
-      <section className="relative w-full h-[700px] flex items-center justify-center -mt-[80px]">
+      <section className="relative w-full h-[800px] flex items-center justify-center pt-24">
         <div 
           className="absolute inset-0 z-0 bg-cover bg-center"
           style={{ backgroundImage: `url('https://images.unsplash.com/photo-1528127269322-539801943592?q=80&w=2000&auto=format&fit=crop')` }}
         >
           {/* Overlay gradient */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0f2d3c]/70 via-[#0f2d3c]/35 to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0f2d3c]/80 via-[#0f2d3c]/40 to-transparent"></div>
           {/* Bottom white glow - Giảm độ trắng xuống, làm phần giao trong hơn */}
           <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-white/30 via-white/10 to-transparent pointer-events-none"></div>
         </div>
 
-        <div className="relative z-10 flex flex-col items-center text-center px-4 max-w-4xl -mt-20">
+        <div className="relative z-10 flex flex-col items-center text-center px-4 max-w-5xl w-full">
           <Badge className="bg-white/20 hover:bg-white/30 text-white border-none backdrop-blur-md mb-6 rounded-full px-4 py-1.5 text-xs font-medium">
             Nền tảng 12 hành trình sinh thái & trải nghiệm bản địa cao cấp hàng đầu
           </Badge>
@@ -227,53 +227,18 @@ export default function HomePage() {
               Từ Những Đỉnh Núi Đến Bờ Biển Xanh
             </span>
           </h1>
-          <p className="text-white/90 text-lg md:text-xl font-body max-w-2xl mx-auto">
+          <p className="text-white/90 text-lg md:text-xl font-body max-w-2xl mx-auto mb-10">
             Hành trình trải nghiệm văn hóa bản địa, ẩm thực truyền thống và cảnh sắc thiên nhiên hùng vĩ trên khắp dải đất hình chữ S.
           </p>
-        </div>
-
-        {/* SearchHub Overlapping Bottom */}
-        <div className="absolute -bottom-16 left-0 right-0 w-full z-20 px-4 md:px-8">
-          <div className="max-w-5xl mx-auto">
+          
+          {/* SearchHub Inside Image */}
+          <div className="w-full max-w-5xl mx-auto">
             <SearchHub />
           </div>
         </div>
       </section>
 
-      {/* Spacer to account for overlapping SearchHub */}
-      <div className="h-24 w-full"></div>
 
-      {/* Categories Section */}
-      <section className="max-w-[1280px] mx-auto w-full px-4 md:px-8 py-16">
-        <div className="flex flex-col md:flex-row justify-between items-end mb-10 gap-4">
-          <div className="flex flex-col items-start gap-3">
-            <Badge className="bg-[#daf0e2] text-[#2e7d5b] hover:bg-[#c1e6cf] font-medium px-3 py-1 text-xs">
-              Phân loại danh mục du lịch
-            </Badge>
-            <h2 className="text-3xl lg:text-4xl font-bold font-display text-[#0f2d3c]">
-              Khám Phá Theo Danh Mục Trải Nghiệm
-            </h2>
-            <p className="text-[#66716c] text-base">
-              Lựa chọn phong cách hành trình phù hợp với sở thích và tinh thần khám phá của bạn
-            </p>
-          </div>
-          <a href="#" className="text-[#16709a] font-semibold text-sm hover:underline flex items-center gap-1">
-            Tất cả dịch vụ <span className="text-lg leading-none">&rarr;</span>
-          </a>
-        </div>
-
-        <div className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-4 pb-4 md:grid md:grid-cols-3 lg:grid-cols-6 -mx-4 px-4 md:mx-0 md:px-0">
-          {homeData.categories.map(cat => (
-            <div key={cat.id} className="bg-white border border-[#66716c]/10 rounded-2xl p-6 flex flex-col items-center text-center shadow-sm hover:shadow-md transition-shadow cursor-pointer group min-w-[140px] shrink-0 snap-start md:min-w-0">
-              <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform ${getCategoryColorClass(cat.kind)}`}>
-                {getCategoryIcon(cat.kind)}
-              </div>
-              <h3 className="font-bold text-[#0f2d3c] mb-1">{cat.name}</h3>
-              <p className="text-xs text-[#66716c]">{cat.description || "Khám phá ngay"}</p>
-            </div>
-          ))}
-        </div>
-      </section>
 
       {/* Featured Destinations */}
       <section className="bg-[#f8f9fa] py-16">
@@ -291,18 +256,18 @@ export default function HomePage() {
               </p>
             </div>
             
-            <div className="flex overflow-x-auto scrollbar-hide bg-white p-1 rounded-xl border border-[#66716c]/10 shadow-sm w-full md:w-auto">
-              <button className="shrink-0 whitespace-nowrap px-4 py-2 bg-[#16709a] text-white rounded-lg text-sm font-semibold shadow-sm">Tất cả (12)</button>
-              <button className="shrink-0 whitespace-nowrap px-4 py-2 text-[#66716c] hover:text-[#0f2d3c] rounded-lg text-sm font-medium transition-colors">Bắc Bộ</button>
-              <button className="shrink-0 whitespace-nowrap px-4 py-2 text-[#66716c] hover:text-[#0f2d3c] rounded-lg text-sm font-medium transition-colors">Trung Bộ</button>
-              <button className="shrink-0 whitespace-nowrap px-4 py-2 text-[#66716c] hover:text-[#0f2d3c] rounded-lg text-sm font-medium transition-colors">Nam Bộ & Đảo</button>
+            <div className="flex overflow-x-auto scrollbar-hide w-full md:w-auto items-center gap-2 pb-2 md:pb-0">
+              <button className="shrink-0 whitespace-nowrap px-4 py-1.5 rounded-full border-2 border-[#16709a] text-[#16709a] font-bold text-sm bg-[#ebf6fa] hover:bg-[#dceff0] transition-colors shadow-sm">Tất cả (12)</button>
+              <button className="shrink-0 whitespace-nowrap px-4 py-1.5 rounded-full border border-[#66716c]/30 text-[#4a5568] hover:border-[#16709a] hover:text-[#16709a] font-medium text-sm transition-colors shadow-sm bg-white">Bắc Bộ</button>
+              <button className="shrink-0 whitespace-nowrap px-4 py-1.5 rounded-full border border-[#66716c]/30 text-[#4a5568] hover:border-[#16709a] hover:text-[#16709a] font-medium text-sm transition-colors shadow-sm bg-white">Trung Bộ</button>
+              <button className="shrink-0 whitespace-nowrap px-4 py-1.5 rounded-full border border-[#66716c]/30 text-[#4a5568] hover:border-[#16709a] hover:text-[#16709a] font-medium text-sm transition-colors shadow-sm bg-white">Nam Bộ & Đảo</button>
             </div>
           </div>
 
           <div className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-4 pb-4 md:grid md:grid-cols-2 lg:grid-cols-4 md:gap-6 -mx-4 px-4 md:mx-0 md:px-0">
             {homeData.featuredDestinations.length > 0 ? (
               homeData.featuredDestinations.map(dest => (
-              <div key={dest.id} className="bg-white rounded-2xl overflow-hidden border border-[#66716c]/10 shadow-sm hover:shadow-md transition-shadow group flex flex-col w-[85vw] max-w-[320px] shrink-0 snap-start md:w-auto md:max-w-none">
+              <div key={dest.id} className="bg-white rounded-2xl overflow-hidden border border-[#66716c]/10 shadow-sm hover:shadow-md transition-shadow group flex flex-col w-[85vw] max-w-[320px] shrink-0 snap-center md:w-auto md:max-w-none">
                 <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
                   <img src={dest.coverImageUrl || "https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?q=80&w=800"} alt={dest.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   {dest.tagBadge && <Badge className="absolute top-3 left-3 bg-[#3f7656] text-white border-none font-semibold shadow-sm">{dest.tagBadge}</Badge>}
@@ -360,7 +325,7 @@ export default function HomePage() {
         <div className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-4 pb-4 md:grid md:grid-cols-3 md:gap-8 -mx-4 px-4 md:mx-0 md:px-0">
           {homeData.homestays.length > 0 ? (
             homeData.homestays.map(hs => (
-            <div key={hs.id} className="bg-white rounded-[20px] overflow-hidden shadow-sm hover:shadow-md transition-all border border-[#66716c]/10 flex flex-col group w-[85vw] max-w-[320px] shrink-0 snap-start md:w-auto md:max-w-none">
+            <div key={hs.id} className="bg-white rounded-[20px] overflow-hidden shadow-sm hover:shadow-md transition-all border border-[#66716c]/10 flex flex-col group w-[85vw] max-w-[320px] shrink-0 snap-center md:w-auto md:max-w-none">
               <div className="relative aspect-[4/3] bg-[#f8f9fa] overflow-hidden">
                 <img src={hs.coverImageUrl || "https://images.unsplash.com/photo-1542718610-a1d656d1884c?q=80"} alt={hs.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                 <div className="absolute top-4 left-4">
@@ -435,17 +400,17 @@ export default function HomePage() {
               </p>
             </div>
             
-            <div className="flex overflow-x-auto scrollbar-hide bg-white p-1 rounded-xl border border-[#66716c]/10 shadow-sm w-full md:w-auto">
-              <button className="shrink-0 whitespace-nowrap px-4 py-2 bg-[#16709a] text-white rounded-lg text-sm font-semibold shadow-sm">Tour trọn gói</button>
-              <button className="shrink-0 whitespace-nowrap px-4 py-2 text-[#66716c] hover:text-[#0f2d3c] rounded-lg text-sm font-medium transition-colors">Bán chạy nhất</button>
-              <button className="shrink-0 whitespace-nowrap px-4 py-2 text-[#66716c] hover:text-[#0f2d3c] rounded-lg text-sm font-medium transition-colors">Ưu đãi mùa thu</button>
+            <div className="flex overflow-x-auto scrollbar-hide w-full md:w-auto items-center gap-2 pb-2 md:pb-0">
+              <button className="shrink-0 whitespace-nowrap px-4 py-1.5 rounded-full border-2 border-[#16709a] text-[#16709a] font-bold text-sm bg-[#ebf6fa] hover:bg-[#dceff0] transition-colors shadow-sm">Tour trọn gói</button>
+              <button className="shrink-0 whitespace-nowrap px-4 py-1.5 rounded-full border border-[#66716c]/30 text-[#4a5568] hover:border-[#16709a] hover:text-[#16709a] font-medium text-sm transition-colors shadow-sm bg-white">Bán chạy nhất</button>
+              <button className="shrink-0 whitespace-nowrap px-4 py-1.5 rounded-full border border-[#66716c]/30 text-[#4a5568] hover:border-[#16709a] hover:text-[#16709a] font-medium text-sm transition-colors shadow-sm bg-white">Ưu đãi mùa thu</button>
             </div>
           </div>
 
           <div className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-4 pb-4 md:grid md:grid-cols-2 lg:grid-cols-4 md:gap-6 -mx-4 px-4 md:mx-0 md:px-0">
             {homeData.featuredTours.length > 0 ? (
               homeData.featuredTours.map(tour => (
-              <div key={tour.id} className="bg-white rounded-2xl overflow-hidden border border-[#66716c]/10 shadow-sm hover:shadow-md transition-shadow group flex flex-col w-[85vw] max-w-[320px] shrink-0 snap-start md:w-auto md:max-w-none">
+              <div key={tour.id} className="bg-white rounded-2xl overflow-hidden border border-[#66716c]/10 shadow-sm hover:shadow-md transition-shadow group flex flex-col w-[85vw] max-w-[320px] shrink-0 snap-center md:w-auto md:max-w-none">
                 <div className="relative aspect-[4/3] overflow-hidden">
                   <img src={tour.coverImageUrl || "https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?q=80"} alt={tour.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   {tour.tagBadge && <Badge className="absolute top-3 left-3 bg-[#d04648] text-white border-none font-semibold shadow-sm">{tour.tagBadge}</Badge>}
@@ -510,15 +475,15 @@ export default function HomePage() {
 
           <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
             {/* Bộ lọc vùng miền */}
-            <div className="flex bg-[#f8f9fa] p-1 rounded-xl border border-[#66716c]/10 shadow-sm">
+            <div className="flex overflow-x-auto scrollbar-hide w-full md:w-auto items-center gap-2 pb-2 md:pb-0">
               {(['Tất cả', 'Bắc', 'Trung', 'Nam'] as const).map((region) => (
                 <button
                   key={region}
                   onClick={() => setSelectedRegion(region)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  className={`shrink-0 whitespace-nowrap px-4 py-1.5 rounded-full font-medium text-sm transition-colors shadow-sm ${
                     selectedRegion === region
-                      ? 'bg-[#16709a] text-white shadow-sm'
-                      : 'text-[#66716c] hover:text-[#0f2d3c]'
+                      ? 'border-2 border-[#16709a] text-[#16709a] font-bold bg-[#ebf6fa] hover:bg-[#dceff0]'
+                      : 'border border-[#66716c]/30 text-[#4a5568] hover:border-[#16709a] hover:text-[#16709a] bg-white'
                   }`}
                 >
                   {region === 'Tất cả' ? 'Tất cả 3 Miền' : `Miền ${region}`}
@@ -554,7 +519,7 @@ export default function HomePage() {
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseLeave}
           onMouseEnter={() => setIsHovered(true)}
-          className={`flex gap-6 overflow-x-auto scrollbar-hide py-2 px-1 select-none ${
+          className={`flex gap-6 overflow-x-auto snap-x snap-mandatory scrollbar-hide py-2 px-4 -mx-4 md:mx-0 md:px-0 select-none ${
             isDragging ? 'cursor-grabbing' : 'cursor-grab'
           }`}
           style={{ scrollBehavior: isDragging ? 'auto' : 'smooth' }}
@@ -562,7 +527,7 @@ export default function HomePage() {
           {filteredStories.map((story) => (
             <div
               key={story.id}
-              className="w-[320px] md:w-[380px] shrink-0 bg-white rounded-2xl overflow-hidden border border-[#66716c]/10 shadow-sm hover:shadow-lg transition-all duration-300 group flex flex-col"
+              className="w-[85vw] max-w-[320px] md:max-w-none shrink-0 snap-center md:w-[380px] bg-white rounded-2xl overflow-hidden border border-[#66716c]/10 shadow-sm hover:shadow-lg transition-all duration-300 group flex flex-col"
             >
               <div className="relative aspect-[16/10] overflow-hidden bg-[#e8eaf6]">
                 <img
@@ -627,7 +592,7 @@ export default function HomePage() {
           
           <div className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-4 pb-4 md:grid md:grid-cols-2 lg:grid-cols-4 md:gap-8 -mx-4 px-4 md:mx-0 md:px-0">
             {/* Value 1 */}
-            <div className="flex flex-col items-center text-center w-[75vw] max-w-[280px] shrink-0 snap-start md:w-auto md:max-w-none">
+            <div className="flex flex-col items-center text-center w-[75vw] max-w-[280px] shrink-0 snap-center md:w-auto md:max-w-none">
               <div className="w-16 h-16 rounded-full bg-[#dceff0] flex items-center justify-center mb-6">
                 <Handshake className="w-8 h-8 text-[#16709a]" />
               </div>
@@ -636,7 +601,7 @@ export default function HomePage() {
             </div>
             
             {/* Value 2 */}
-            <div className="flex flex-col items-center text-center w-[75vw] max-w-[280px] shrink-0 snap-start md:w-auto md:max-w-none">
+            <div className="flex flex-col items-center text-center w-[75vw] max-w-[280px] shrink-0 snap-center md:w-auto md:max-w-none">
               <div className="w-16 h-16 rounded-full bg-[#f8ebd0] flex items-center justify-center mb-6">
                 <Tag className="w-8 h-8 text-[#c28a33]" />
               </div>
@@ -645,7 +610,7 @@ export default function HomePage() {
             </div>
 
             {/* Value 3 */}
-            <div className="flex flex-col items-center text-center w-[75vw] max-w-[280px] shrink-0 snap-start md:w-auto md:max-w-none">
+            <div className="flex flex-col items-center text-center w-[75vw] max-w-[280px] shrink-0 snap-center md:w-auto md:max-w-none">
               <div className="w-16 h-16 rounded-full bg-[#fce5e6] flex items-center justify-center mb-6">
                 <Headphones className="w-8 h-8 text-[#d04648]" />
               </div>
@@ -654,7 +619,7 @@ export default function HomePage() {
             </div>
 
             {/* Value 4 */}
-            <div className="flex flex-col items-center text-center w-[75vw] max-w-[280px] shrink-0 snap-start md:w-auto md:max-w-none">
+            <div className="flex flex-col items-center text-center w-[75vw] max-w-[280px] shrink-0 snap-center md:w-auto md:max-w-none">
               <div className="w-16 h-16 rounded-full bg-[#daf0e2] flex items-center justify-center mb-6">
                 <ShieldCheck className="w-8 h-8 text-[#2e7d5b]" />
               </div>

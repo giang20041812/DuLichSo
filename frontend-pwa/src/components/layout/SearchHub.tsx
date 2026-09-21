@@ -131,7 +131,7 @@ export default function SearchHub() {
       
       {/* ---------------- DESTINATION ---------------- */}
       <div 
-        className={`flex-1 w-full bg-white rounded-xl shadow-sm border px-3.5 h-[58px] flex items-center gap-3 cursor-pointer transition-colors relative z-20 ${activeTab === 'destination' ? 'border-[#e5a33d] ring-2 ring-[#e5a33d]/20' : 'border-[var(--color-muted)]/20 hover:border-[#16709a]'}`}
+        className={`flex-1 w-full min-w-0 bg-white rounded-xl shadow-sm border px-3.5 h-[58px] flex items-center gap-3 cursor-pointer transition-colors relative z-20 ${activeTab === 'destination' ? 'border-[#e5a33d] ring-2 ring-[#e5a33d]/20' : 'border-[var(--color-muted)]/20 hover:border-[#16709a]'}`}
         onClick={() => setActiveTab('destination')}
       >
         <MapPin className="text-[var(--color-muted)] w-5 h-5 ml-0.5 shrink-0" />
@@ -188,7 +188,7 @@ export default function SearchHub() {
       
       {/* ---------------- DATES ---------------- */}
       <div 
-        className={`flex-1 w-full bg-white rounded-xl shadow-sm border px-3.5 h-[58px] flex items-center gap-3 cursor-pointer transition-colors relative z-20 ${activeTab === 'dates' ? 'border-[#e5a33d] ring-2 ring-[#e5a33d]/20' : 'border-[var(--color-muted)]/20 hover:border-[#16709a]'}`}
+        className={`flex-1 w-full min-w-0 bg-white rounded-xl shadow-sm border px-3.5 h-[58px] flex items-center gap-3 cursor-pointer transition-colors relative z-20 ${activeTab === 'dates' ? 'border-[#e5a33d] ring-2 ring-[#e5a33d]/20' : 'border-[var(--color-muted)]/20 hover:border-[#16709a]'}`}
         onClick={() => setActiveTab('dates')}
       >
         <Calendar className="text-[var(--color-muted)] w-5 h-5 ml-0.5 shrink-0" />
@@ -203,7 +203,7 @@ export default function SearchHub() {
       
       {/* ---------------- OCCUPANCY ---------------- */}
       <div 
-        className={`flex-1 w-full bg-white rounded-xl shadow-sm border px-3.5 h-[58px] flex items-center justify-between cursor-pointer transition-colors relative z-20 ${activeTab === 'occupancy' ? 'border-[#e5a33d] ring-2 ring-[#e5a33d]/20' : 'border-[var(--color-muted)]/20 hover:border-[#16709a]'}`}
+        className={`flex-1 w-full min-w-0 bg-white rounded-xl shadow-sm border px-3.5 h-[58px] flex items-center justify-between cursor-pointer transition-colors relative z-20 ${activeTab === 'occupancy' ? 'border-[#e5a33d] ring-2 ring-[#e5a33d]/20' : 'border-[var(--color-muted)]/20 hover:border-[#16709a]'}`}
         onClick={() => setActiveTab('occupancy')}
       >
         <div className="flex items-center gap-3 min-w-0">

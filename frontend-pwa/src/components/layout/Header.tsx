@@ -22,94 +22,38 @@ export default function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-white border-b border-[#66716c]/10 text-[#0f2d3c] flex flex-col w-full shadow-sm">
-        {/* Top Bar (Desktop only) */}
-        <div className="bg-[#f8f9fa] border-b border-[#66716c]/10 h-10 hidden lg:flex items-center">
-          <div className="max-w-[1280px] mx-auto w-full px-4 md:px-8 flex justify-between items-center text-[11px] font-medium text-[#66716c]">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-1.5 hover:text-[#16709a] transition-colors cursor-pointer">
-                <Phone className="w-3 h-3" />
-                <span>Hotline 24/7: <span className="font-bold text-[#16709a]">1900 6868</span></span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-[#3f7656]" />
-                <span>Cam kết 100% trải nghiệm bản địa đích thực</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-1.5 hover:text-[#0f2d3c] transition-colors cursor-pointer">
-                <Globe className="w-3.5 h-3.5" />
-                <span>VN | EN</span>
-              </div>
-              <div className="flex items-center gap-1.5 hover:text-[#d04648] transition-colors cursor-pointer">
-                <Heart className="w-3.5 h-3.5" />
-                <span>Yêu thích</span>
-                <span className="bg-[#d04648]/10 text-[#d04648] rounded-full px-1.5 py-0.5 text-[9px] font-bold">3</span>
-              </div>
-            </div>
-          </div>
-        </div>
+      <header className="absolute top-0 z-50 bg-transparent flex flex-col w-full transition-all duration-300">
+
 
         {/* Main Header - Desktop */}
-        <div className="hidden lg:flex h-24 items-center px-8">
-          <div className="max-w-[1280px] mx-auto w-full flex justify-between items-center gap-4">
+        <div className="hidden lg:flex flex-col items-center px-8 pt-4 pb-2 gap-4">
+          <div className="max-w-[1280px] mx-auto w-full flex justify-center items-center">
             
-            {/* Left Side: Logo */}
+            {/* Logo */}
             <Link to="/" className="flex items-center gap-3 shrink-0">
-              <div className="bg-[#0f5a70] text-white p-2.5 rounded-2xl shadow-sm">
+              <div className="bg-white/20 backdrop-blur-sm text-white p-2.5 rounded-2xl shadow-sm">
                 <Compass className="w-7 h-7" />
               </div>
               <div className="flex flex-col">
-                <span className="text-[22px] font-bold font-display text-[#16709a] leading-none tracking-tight">
+                <span className="text-[26px] font-bold font-display text-white leading-none tracking-tight drop-shadow-md">
                   VietJourney
                 </span>
-                <span className="text-[10px] font-bold text-[#3f7656] tracking-widest uppercase mt-1.5">
+                <span className="text-[11px] font-bold text-white/90 tracking-widest uppercase mt-1.5 drop-shadow-md">
                   Khám Phá Việt Nam
                 </span>
               </div>
             </Link>
             
-            {/* Center: Navigation - Balanced with consistent gaps and vertically centered */}
-            <nav className="flex items-center gap-6 xl:gap-8 text-[14px] font-semibold text-[#4a5568]">
-              <Link to="/destinations" className="flex flex-col items-center justify-center text-center leading-tight hover:text-[#16709a] transition-colors px-1 py-1">
-                <span>Điểm</span>
-                <span>đến</span>
-              </Link>
-              <Link to="/tours" className="flex flex-col items-center justify-center text-center leading-tight hover:text-[#16709a] transition-colors px-1 py-1">
-                <span>Tour & Trải</span>
-                <span>nghiệm</span>
-              </Link>
-              <Link to="/homestays" className="flex flex-col items-center justify-center text-center leading-tight hover:text-[#16709a] transition-colors px-1 py-1">
-                <span>Homestay &</span>
-                <span>Khách sạn</span>
-              </Link>
-              <Link to="/food" className="flex flex-col items-center justify-center text-center leading-tight hover:text-[#16709a] transition-colors px-1 py-1">
-                <span>Ẩm thực &</span>
-                <span>Đặc sản</span>
-              </Link>
-              <Link to="/guide" className="flex flex-col items-center justify-center text-center leading-tight hover:text-[#16709a] transition-colors px-1 py-1">
-                <span>Cẩm nang</span>
-                <span>du lịch</span>
-              </Link>
-            </nav>
+          </div>
 
-            {/* Right Side: Auth + User Profile */}
-            <div className="flex items-center gap-4 xl:gap-5 shrink-0">
-              <div className="flex items-center gap-1.5">
-                <Link to="/register" className="text-[14px] font-bold text-[#16709a] hover:underline transition-all">
-                  Đăng nhập
-                </Link>
-                <span className="text-[#16709a] font-bold">/</span>
-                <Link to="/login" className="text-[14px] font-bold text-[#16709a] hover:underline transition-all">
-                  Đăng ký
-                </Link>
-              </div>
-              
-              <Button size="icon" className="rounded-full bg-[#0f5a70] hover:bg-[#0b4353] text-white h-10 w-10 shadow-sm shrink-0">
-                <User className="w-4 h-4" />
-              </Button>
+          {/* Center/Right: Responsive-style Navigation */}
+          <div className="flex justify-center w-full">
+            <div className="flex items-center gap-3">
+              <Link to="/destinations" className="whitespace-nowrap px-5 py-2 rounded-full border-2 border-white text-white font-bold text-sm bg-white/20 backdrop-blur-md hover:bg-white/30 transition-colors shadow-sm">Điểm đến</Link>
+              <Link to="/tours" className="whitespace-nowrap px-5 py-2 rounded-full border border-white/40 text-white hover:border-white hover:bg-white/10 backdrop-blur-md font-medium text-sm transition-colors shadow-sm">Tour & Trải nghiệm</Link>
+              <Link to="/homestays" className="whitespace-nowrap px-5 py-2 rounded-full border border-white/40 text-white hover:border-white hover:bg-white/10 backdrop-blur-md font-medium text-sm transition-colors shadow-sm">Homestay & Khách sạn</Link>
+              <Link to="/food" className="whitespace-nowrap px-5 py-2 rounded-full border border-white/40 text-white hover:border-white hover:bg-white/10 backdrop-blur-md font-medium text-sm transition-colors shadow-sm">Ẩm thực & Đặc sản</Link>
             </div>
-            
           </div>
         </div>
 
@@ -118,25 +62,24 @@ export default function Header() {
           {/* Row 1: Logo + Icons */}
           <div className="flex justify-between items-center px-4 h-16">
             <Link to="/" className="flex items-center gap-2.5">
-              <div className="bg-[#0f5a70] text-white p-2 rounded-xl shadow-sm">
+              <div className="bg-white/20 backdrop-blur-sm text-white p-2 rounded-xl shadow-sm">
                 <Compass className="w-5 h-5" />
               </div>
-              <span className="text-[20px] font-bold font-display text-[#16709a] leading-none tracking-tight">
+              <span className="text-[20px] font-bold font-display text-white leading-none tracking-tight drop-shadow-md">
                 VietJourney
               </span>
             </Link>
-            <div className="flex items-center gap-5 text-[#0f2d3c]">
-              <Link to="/login"><UserCircle className="w-7 h-7" strokeWidth={1.5} /></Link>
-              <button onClick={() => setMobileMenuOpen(true)}><Menu className="w-7 h-7" strokeWidth={1.5} /></button>
+            <div className="flex items-center gap-5 text-white">
+              <button onClick={() => setMobileMenuOpen(true)}><Menu className="w-7 h-7 drop-shadow-md" strokeWidth={1.5} /></button>
             </div>
           </div>
           
           {/* Row 2: Scrollable Nav */}
-          <div className="flex overflow-x-auto gap-3 px-4 pb-3 scrollbar-hide items-center">
-            <Link to="/destinations" className="whitespace-nowrap px-4 py-2 rounded-full border-2 border-[#16709a] text-[#16709a] font-bold text-sm bg-[#ebf6fa]">Điểm đến</Link>
-            <Link to="/tours" className="whitespace-nowrap px-4 py-2 rounded-full border border-[#66716c]/30 text-[#4a5568] font-medium text-sm">Tour & Trải nghiệm</Link>
-            <Link to="/homestays" className="whitespace-nowrap px-4 py-2 rounded-full border border-[#66716c]/30 text-[#4a5568] font-medium text-sm">Homestay & Khách sạn</Link>
-            <Link to="/food" className="whitespace-nowrap px-4 py-2 rounded-full border border-[#66716c]/30 text-[#4a5568] font-medium text-sm">Ẩm thực & Đặc sản</Link>
+          <div className="flex overflow-x-auto gap-2 px-4 pb-3 scrollbar-hide items-center">
+            <Link to="/destinations" className="whitespace-nowrap px-4 py-1.5 rounded-full border-2 border-white text-white font-bold text-sm bg-white/20 backdrop-blur-md shadow-sm">Điểm đến</Link>
+            <Link to="/tours" className="whitespace-nowrap px-4 py-1.5 rounded-full border border-white/40 text-white hover:bg-white/10 backdrop-blur-md font-medium text-sm shadow-sm">Tour & Trải nghiệm</Link>
+            <Link to="/homestays" className="whitespace-nowrap px-4 py-1.5 rounded-full border border-white/40 text-white hover:bg-white/10 backdrop-blur-md font-medium text-sm shadow-sm">Homestay & Khách sạn</Link>
+            <Link to="/food" className="whitespace-nowrap px-4 py-1.5 rounded-full border border-white/40 text-white hover:bg-white/10 backdrop-blur-md font-medium text-sm shadow-sm">Ẩm thực & Đặc sản</Link>
           </div>
         </div>
       </header>
