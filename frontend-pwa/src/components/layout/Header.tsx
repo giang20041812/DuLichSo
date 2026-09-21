@@ -22,7 +22,7 @@ export default function Header() {
 
   return (
     <>
-      <header className="absolute top-0 z-50 bg-transparent flex flex-col w-full transition-all duration-300">
+      <header className="absolute top-0 z-50 flex flex-col w-full transition-all duration-300 bg-transparent">
 
 
         {/* Main Header - Desktop */}
@@ -47,12 +47,14 @@ export default function Header() {
           </div>
 
           {/* Center/Right: Responsive-style Navigation */}
-          <div className="flex justify-center w-full">
+          <div className="flex justify-center w-full mt-2">
             <div className="flex items-center gap-3">
-              <Link to="/destinations" className="whitespace-nowrap px-5 py-2 rounded-full border-2 border-white text-white font-bold text-sm bg-white/20 backdrop-blur-md hover:bg-white/30 transition-colors shadow-sm">Điểm đến</Link>
+              <Link to="/destinations" className="whitespace-nowrap px-5 py-2 rounded-full border border-white/40 text-white hover:border-white hover:bg-white/10 backdrop-blur-md font-medium text-sm transition-colors shadow-sm">Điểm đến</Link>
               <Link to="/tours" className="whitespace-nowrap px-5 py-2 rounded-full border border-white/40 text-white hover:border-white hover:bg-white/10 backdrop-blur-md font-medium text-sm transition-colors shadow-sm">Tour & Trải nghiệm</Link>
               <Link to="/homestays" className="whitespace-nowrap px-5 py-2 rounded-full border border-white/40 text-white hover:border-white hover:bg-white/10 backdrop-blur-md font-medium text-sm transition-colors shadow-sm">Homestay & Khách sạn</Link>
               <Link to="/food" className="whitespace-nowrap px-5 py-2 rounded-full border border-white/40 text-white hover:border-white hover:bg-white/10 backdrop-blur-md font-medium text-sm transition-colors shadow-sm">Ẩm thực & Đặc sản</Link>
+              <Link to="/transport" className="whitespace-nowrap px-5 py-2 rounded-full border border-white/40 text-white hover:border-white hover:bg-white/10 backdrop-blur-md font-medium text-sm transition-colors shadow-sm">Vận chuyển</Link>
+              <Link to="/services" className="whitespace-nowrap px-5 py-2 rounded-full border border-white/40 text-white hover:border-white hover:bg-white/10 backdrop-blur-md font-medium text-sm transition-colors shadow-sm">Dịch vụ/Tiện ích</Link>
             </div>
           </div>
         </div>
@@ -76,10 +78,12 @@ export default function Header() {
           
           {/* Row 2: Scrollable Nav */}
           <div className="flex overflow-x-auto gap-2 px-4 pb-3 scrollbar-hide items-center">
-            <Link to="/destinations" className="whitespace-nowrap px-4 py-1.5 rounded-full border-2 border-white text-white font-bold text-sm bg-white/20 backdrop-blur-md shadow-sm">Điểm đến</Link>
+            <Link to="/destinations" className="whitespace-nowrap px-4 py-1.5 rounded-full border border-white/40 text-white hover:bg-white/10 backdrop-blur-md font-medium text-sm shadow-sm">Điểm đến</Link>
             <Link to="/tours" className="whitespace-nowrap px-4 py-1.5 rounded-full border border-white/40 text-white hover:bg-white/10 backdrop-blur-md font-medium text-sm shadow-sm">Tour & Trải nghiệm</Link>
             <Link to="/homestays" className="whitespace-nowrap px-4 py-1.5 rounded-full border border-white/40 text-white hover:bg-white/10 backdrop-blur-md font-medium text-sm shadow-sm">Homestay & Khách sạn</Link>
             <Link to="/food" className="whitespace-nowrap px-4 py-1.5 rounded-full border border-white/40 text-white hover:bg-white/10 backdrop-blur-md font-medium text-sm shadow-sm">Ẩm thực & Đặc sản</Link>
+            <Link to="/transport" className="whitespace-nowrap px-4 py-1.5 rounded-full border border-white/40 text-white hover:bg-white/10 backdrop-blur-md font-medium text-sm shadow-sm">Vận chuyển</Link>
+            <Link to="/services" className="whitespace-nowrap px-4 py-1.5 rounded-full border border-white/40 text-white hover:bg-white/10 backdrop-blur-md font-medium text-sm shadow-sm">Dịch vụ/Tiện ích</Link>
           </div>
         </div>
       </header>
