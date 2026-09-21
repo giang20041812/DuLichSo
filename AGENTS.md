@@ -6,7 +6,7 @@ mọi module trong `frontend-pwa` và mọi agent làm việc trong workspace n�
 ## Tech Stack
 - Frontend: React + Vite + TypeScript (strict mode) — PWA
 - Backend: Java Spring Boot (Maven)
-- Tích hợp: SEPay, Google Maps, Cloudinary (ảnh/video), Firebase Cloud
+- Tích hợp: SEPay, Google Maps, Cloudflare Images (ảnh/video), Firebase Cloud
   Messaging, Gemini API
 
 ## Nguyên tắc TypeScript — BẮT BUỘC
@@ -22,7 +22,7 @@ mọi module trong `frontend-pwa` và mọi agent làm việc trong workspace n�
 
 3. **Type cho dữ liệu bên thứ ba phải dựa trên tài liệu chính thức**, không
    tự đoán field. Áp dụng cho: response của SEPay, Google Maps API, Firebase,
-   Cloudinary, Gemini API. Nếu chưa xác minh được cấu trúc response thật, phải
+   Cloudflare Images, Gemini API. Nếu chưa xác minh được cấu trúc response thật, phải
    ghi rõ `// TODO: verify against docs — chưa xác minh với API thật` ngay
    trong file định nghĩa type, và không được coi task đó là "Done".
 
@@ -94,16 +94,15 @@ frontend-pwa/src/types/
   bỏ ngang, phòng phải được nhả lại sau một khoảng thời gian xác định, không
   giữ vô thời hạn.
 
-### Bên thứ ba (Maps, Cloudinary, FCM)
+### Bên thứ ba (Maps, Cloudflare Images, FCM)
 - API key Google Maps phải giới hạn theo domain/app (restrict key), không
   dùng key không giới hạn.
-- Upload ảnh/video lên Cloudinary phải qua signed upload ký từ backend —
-  không dùng unsigned upload cho phép frontend tự upload tự do.
+- Upload ảnh/video lên Cloudflare Images phải qua cơ chế Direct Creator Upload (Backend gọi Cloudflare API để lấy upload URL 1 lần, Frontend dùng URL đó để upload ảnh trực tiếp).
 - Giới hạn loại file và dung lượng tối đa khi nhận upload từ client.
 
 ### Secrets & môi trường
 - Vite expose mọi biến có tiền tố `VITE_` thẳng vào bundle frontend, ai mở
-  DevTools cũng đọc được. Secret key (SEPay secret, Cloudinary API secret,
+  DevTools cũng đọc được. Secret key (SEPay secret, Cloudflare API Token,
   Gemini server key...) chỉ được đặt ở backend, KHÔNG BAO GIỜ đặt tiền tố
   `VITE_`. Chỉ public/publishable key mới được đưa ra frontend.
 - CORS không được cấu hình `*` (allow tất cả origin) kể cả lúc dev — phải
