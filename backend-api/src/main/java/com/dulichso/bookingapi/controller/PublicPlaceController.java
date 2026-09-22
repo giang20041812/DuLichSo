@@ -1,7 +1,11 @@
 package com.dulichso.bookingapi.controller;
 
+import com.dulichso.bookingapi.dto.MapContextDto;
+import com.dulichso.bookingapi.dto.PlaceDetailDto;
 import com.dulichso.bookingapi.dto.PlaceSummaryDto;
+import com.dulichso.bookingapi.dto.RoomTypeDetailDto;
 import com.dulichso.bookingapi.entity.enums.CategoryKind;
+import com.dulichso.bookingapi.service.PlaceDetailService;
 import com.dulichso.bookingapi.service.PublicPlaceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -15,12 +19,13 @@ import java.time.LocalDate;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/public/places")
+@RequestMapping({"/api/v1/public/places", "/api/public/places"})
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*", maxAge = 3600)
+@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000"}, maxAge = 3600)
 public class PublicPlaceController {
 
     private final PublicPlaceService publicPlaceService;
+    private final PlaceDetailService placeDetailService;
 
     @GetMapping
     public ResponseEntity<Page<PlaceSummaryDto>> getPlaces(
@@ -46,5 +51,20 @@ public class PublicPlaceController {
             @PathVariable Long id,
             @RequestParam(defaultValue = "10.0") double radius) {
         return ResponseEntity.ok(publicPlaceService.getNearbyPlaces(id, radius));
+    }
+
+    @GetMapping("/{slug}")
+    public ResponseEntity<PlaceDetailDto> getPlaceDetail(@PathVariable String slug) {
+        return ResponseEntity.ok(placeDetailService.getPlaceDetail(slug));
+    }
+
+    @GetMapping("/{slug}/rooms")
+    public ResponseEntity<List<RoomTypeDetailDto>> getPlaceRooms(@PathVariable String slug) {
+        return ResponseEntity.ok(placeDetailService.getPlaceRooms(slug));
+    }
+
+    @GetMapping("/{slug}/map-context")
+    public ResponseEntity<MapContextDto> getMapContext(@PathVariable String slug) {
+        return ResponseEntity.ok(placeDetailService.getMapContext(slug));
     }
 }

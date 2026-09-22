@@ -13,6 +13,7 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface PlaceRepository extends JpaRepository<Place, Long>, JpaSpecificationExecutor<Place> {
@@ -46,4 +47,6 @@ public interface PlaceRepository extends JpaRepository<Place, Long>, JpaSpecific
             @Param("radius") double radius,
             @Param("placeId") Long placeId,
             @Param("limit") int limit);
+
+    Optional<Place> findBySlugAndIsDeletedFalse(String slug);
 }
