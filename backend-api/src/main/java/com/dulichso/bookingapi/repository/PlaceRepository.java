@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Repository
@@ -30,4 +31,19 @@ public interface PlaceRepository extends JpaRepository<Place, Long>, JpaSpecific
             @Param("visibility") PlaceVisibility visibility,
             @Param("kinds") List<CategoryKind> kinds,
             Pageable pageable);
+
+    @Query(value = "SELECT id, name, kind, " +
+            "( 6371 * acos( cos( radians(:lat) ) * cos( radians( latitude ) ) * cos( radians( longitude ) - radians(:lng) ) + sin( radians(:lat) ) * sin( radians( latitude ) ) ) ) AS distance " +
+            "FROM place " +
+            "WHERE visibility = 'PUBLISHED' AND is_deleted = false AND id != :placeId AND latitude IS NOT NULL AND longitude IS NOT NULL " +
+            "AND kind != 'HOMESTAY' AND kind != 'HOTEL' " +
+            "HAVING distance <= :radius " +
+            "ORDER BY distance " +
+            "LIMIT :limit", nativeQuery = true)
+    List<NearbyPlaceProjection> findNearbyPlaces(
+            @Param("lat") BigDecimal lat,
+            @Param("lng") BigDecimal lng,
+            @Param("radius") double radius,
+            @Param("placeId") Long placeId,
+            @Param("limit") int limit);
 }

@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -28,8 +29,22 @@ public class PublicPlaceController {
             @RequestParam(required = false) BigDecimal maxPrice,
             @RequestParam(required = false) BigDecimal minRating,
             @RequestParam(required = false) List<String> amenities,
+            @RequestParam(required = false) LocalDate checkIn,
+            @RequestParam(required = false) LocalDate checkOut,
             @PageableDefault(size = 20) Pageable pageable) {
             
-        return ResponseEntity.ok(publicPlaceService.getPlaces(kind, minPrice, maxPrice, minRating, amenities, pageable));
+        return ResponseEntity.ok(publicPlaceService.getPlaces(kind, minPrice, maxPrice, minRating, amenities, checkIn, checkOut, pageable));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<com.dulichso.bookingapi.dto.PlaceDetailDto> getPlaceDetail(@PathVariable Long id) {
+        return ResponseEntity.ok(publicPlaceService.getPlaceDetail(id));
+    }
+
+    @GetMapping("/{id}/nearby")
+    public ResponseEntity<List<com.dulichso.bookingapi.dto.NearbyPlaceDto>> getNearbyPlaces(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "10.0") double radius) {
+        return ResponseEntity.ok(publicPlaceService.getNearbyPlaces(id, radius));
     }
 }

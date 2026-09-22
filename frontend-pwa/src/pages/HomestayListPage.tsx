@@ -1,30 +1,96 @@
 import { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { fetchHomestays, HomestayFilterParams } from '../services/homestayService';
 import { HomestayDto } from '../types/homestay';
-import CompactSearch from '../components/layout/CompactSearch';
 import SearchHub from '../components/layout/SearchHub';
+import { PriceSlider } from '../components/ui/price-slider';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { MapPin, Heart, Check, SlidersHorizontal, Star, ChevronLeft, ChevronRight, X } from 'lucide-react';
 
+const AMENITIES = [
+  { code: 'HOT_WATER', name: 'Nước nóng' },
+  { code: 'HEATER', name: 'Sưởi / điều hòa ấm' },
+  { code: 'BACKUP_POWER', name: 'Điện dự phòng' },
+  { code: 'STABLE_WATER', name: 'Nước ổn định' },
+  { code: 'WIFI', name: 'Wifi' },
+  { code: 'PARKING', name: 'Bãi đỗ xe' },
+  { code: 'RESTAURANT', name: 'Nhà hàng tại chỗ' }
+];
+
 export default function HomestayListPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  
   const [homestays, setHomestays] = useState<HomestayDto[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState<HomestayFilterParams>({});
+  
+  // Khởi tạo filters từ URL params
+  const [filters, setFilters] = useState<HomestayFilterParams>(() => {
+    const initialFilters: HomestayFilterParams = {};
+    const checkIn = searchParams.get('checkIn');
+    const checkOut = searchParams.get('checkOut');
+    const minPrice = searchParams.get('minPrice');
+    const maxPrice = searchParams.get('maxPrice');
+    const minRating = searchParams.get('minRating');
+    const amenitiesStr = searchParams.get('amenities');
+    
+    if (checkIn) initialFilters.checkIn = checkIn;
+    if (checkOut) initialFilters.checkOut = checkOut;
+    if (minPrice) initialFilters.minPrice = Number(minPrice);
+    if (maxPrice) initialFilters.maxPrice = Number(maxPrice);
+    if (minRating) initialFilters.minRating = Number(minRating);
+    if (amenitiesStr) initialFilters.amenities = amenitiesStr.split(',');
+    
+    return initialFilters;
+  });
+
   const [currentPage, setCurrentPage] = useState(1);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
 
   const ITEMS_PER_PAGE = 5;
 
   const handleFilterChange = (updates: Partial<HomestayFilterParams>) => {
-    setFilters(prev => ({ ...prev, ...updates }));
+    setFilters(prev => {
+      const newFilters = { ...prev, ...updates };
+      // Đồng bộ URL params
+      const newParams = new URLSearchParams(searchParams);
+      if (newFilters.checkIn) newParams.set('checkIn', newFilters.checkIn); else newParams.delete('checkIn');
+      if (newFilters.checkOut) newParams.set('checkOut', newFilters.checkOut); else newParams.delete('checkOut');
+      if (newFilters.minPrice !== undefined) newParams.set('minPrice', newFilters.minPrice.toString()); else newParams.delete('minPrice');
+      if (newFilters.maxPrice !== undefined) newParams.set('maxPrice', newFilters.maxPrice.toString()); else newParams.delete('maxPrice');
+      if (newFilters.minRating !== undefined) newParams.set('minRating', newFilters.minRating.toString()); else newParams.delete('minRating');
+      if (newFilters.amenities && newFilters.amenities.length > 0) newParams.set('amenities', newFilters.amenities.join(',')); else newParams.delete('amenities');
+      
+      setSearchParams(newParams, { replace: true });
+      return newFilters;
+    });
     setCurrentPage(1);
   };
 
   const handleClearFilters = () => {
     setFilters({});
+    setSearchParams(new URLSearchParams(), { replace: true });
     setCurrentPage(1);
   };
+
+  // Đồng bộ lại filters nếu URL thay đổi (nhấn back/forward hoặc từ SearchHub)
+  useEffect(() => {
+    const checkIn = searchParams.get('checkIn');
+    const checkOut = searchParams.get('checkOut');
+    const minPrice = searchParams.get('minPrice');
+    const maxPrice = searchParams.get('maxPrice');
+    const minRating = searchParams.get('minRating');
+    const amenitiesStr = searchParams.get('amenities');
+    
+    setFilters({
+      checkIn: checkIn || undefined,
+      checkOut: checkOut || undefined,
+      minPrice: minPrice ? Number(minPrice) : undefined,
+      maxPrice: maxPrice ? Number(maxPrice) : undefined,
+      minRating: minRating ? Number(minRating) : undefined,
+      amenities: amenitiesStr ? amenitiesStr.split(',') : undefined,
+    });
+  }, [searchParams]);
 
   useEffect(() => {
     setLoading(true);
@@ -53,20 +119,20 @@ export default function HomestayListPage() {
             <input type="checkbox" className="w-5 h-5 rounded border-gray-300 accent-[var(--color-primary)]" checked={true} readOnly />
             <span className="text-sm text-[var(--color-ink-deep)] flex-1">Homestay</span>
           </label>
-          {['Bao gồm bữa sáng', 'Hồ bơi', 'Bãi đậu xe miễn phí', 'Xe đưa đón sân bay', 'Phòng gym', 'Cho phép mang thú cưng'].map(amenity => (
-            <label key={amenity} className="flex items-center gap-3 cursor-pointer">
+          {AMENITIES.map(amenity => (
+            <label key={amenity.code} className="flex items-center gap-3 cursor-pointer">
               <input type="checkbox" className="w-5 h-5 rounded border-gray-300 accent-[var(--color-primary)]" 
-                checked={filters.amenities?.includes(amenity) || false}
+                checked={filters.amenities?.includes(amenity.code) || false}
                 onChange={(e) => {
                   const currentAmenities = filters.amenities || [];
                   handleFilterChange({ 
                     amenities: e.target.checked 
-                      ? [...currentAmenities, amenity] 
-                      : currentAmenities.filter(a => a !== amenity) 
+                      ? [...currentAmenities, amenity.code] 
+                      : currentAmenities.filter(a => a !== amenity.code) 
                   });
                 }}
               />
-              <span className="text-sm text-[var(--color-ink-deep)] flex-1">{amenity}</span>
+              <span className="text-sm text-[var(--color-ink-deep)] flex-1">{amenity.name}</span>
             </label>
           ))}
         </div>
@@ -75,18 +141,18 @@ export default function HomestayListPage() {
       <div className="p-4 border-b border-gray-200">
         <h4 className="font-bold text-[var(--color-ink-deep)] mb-3 text-sm">Điểm đánh giá của khách</h4>
         <div className="flex flex-col gap-3">
-          {[9, 8, 7].map(score => (
+          {[4.5, 4.0, 3.5].map(score => (
             <label key={score} className="flex items-center gap-3 cursor-pointer">
               <input type="checkbox" className="w-5 h-5 rounded border-gray-300 accent-[var(--color-primary)]" 
                 checked={filters.minRating === score}
                 onChange={(e) => handleFilterChange({ minRating: e.target.checked ? score : undefined })}
               />
               <span className="text-sm text-[var(--color-ink-deep)] flex-1">
-                {score === 9 ? 'Tuyệt hảo: 9 điểm trở lên' : score === 8 ? 'Rất tốt: 8 điểm trở lên' : 'Tốt: 7 điểm trở lên'}
+                {score === 4.5 ? 'Tuyệt hảo: 4.5 điểm trở lên' : score === 4.0 ? 'Rất tốt: 4.0 điểm trở lên' : 'Tốt: 3.5 điểm trở lên'}
               </span>
               <div className="flex">
                 {[...Array(5)].map((_, i) => (
-                  <Star key={i} className={`w-3 h-3 ${i < (score >= 9 ? 5 : score >= 8 ? 4 : 3) ? 'text-[var(--color-accent)] fill-[var(--color-accent)]' : 'text-gray-300'}`} />
+                  <Star key={i} className={`w-3.5 h-3.5 ${i < Math.floor(score) ? 'text-[#f59e0b] fill-[#f59e0b]' : 'text-gray-300'}`} />
                 ))}
               </div>
             </label>
@@ -96,32 +162,17 @@ export default function HomestayListPage() {
       
       <div className="p-4">
         <h4 className="font-bold text-[var(--color-ink-deep)] mb-3 text-sm">Ngân sách (mỗi đêm)</h4>
-        <div className="flex flex-col gap-3">
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input type="checkbox" className="w-5 h-5 rounded border-gray-300 accent-[var(--color-primary)]" 
-              checked={filters.maxPrice === 500000 && filters.minPrice === undefined}
-              onChange={(e) => handleFilterChange({ minPrice: undefined, maxPrice: e.target.checked ? 500000 : undefined })}
-            />
-            <span className="text-sm text-[var(--color-ink-deep)] flex-1">Dưới 500.000đ</span>
-          </label>
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input type="checkbox" className="w-5 h-5 rounded border-gray-300 accent-[var(--color-primary)]" 
-              checked={filters.minPrice === 500000 && filters.maxPrice === 1000000}
-              onChange={(e) => handleFilterChange({ 
-                minPrice: e.target.checked ? 500000 : undefined, 
-                maxPrice: e.target.checked ? 1000000 : undefined 
-              })}
-            />
-            <span className="text-sm text-[var(--color-ink-deep)] flex-1">500.000đ - 1.000.000đ</span>
-          </label>
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input type="checkbox" className="w-5 h-5 rounded border-gray-300 accent-[var(--color-primary)]" 
-              checked={filters.minPrice === 1000000 && filters.maxPrice === undefined}
-              onChange={(e) => handleFilterChange({ minPrice: e.target.checked ? 1000000 : undefined, maxPrice: undefined })}
-            />
-            <span className="text-sm text-[var(--color-ink-deep)] flex-1">Trên 1.000.000đ</span>
-          </label>
-        </div>
+        <PriceSlider 
+          min={200000} 
+          max={4000000} 
+          step={100000}
+          value={[filters.minPrice ?? 200000, filters.maxPrice ?? 4000000]}
+          onChange={() => {}}
+          onChangeEnd={([min, max]) => handleFilterChange({ 
+            minPrice: min > 200000 ? min : undefined, 
+            maxPrice: max < 4000000 ? max : undefined 
+          })}
+        />
       </div>
     </div>
   );
@@ -129,7 +180,7 @@ export default function HomestayListPage() {
   return (
     <div className="w-full flex flex-col min-h-screen bg-[#f5f5f5]">
       {/* Hero Section */}
-      <section className="relative w-full h-[320px] md:h-[400px] flex items-center justify-center pt-24">
+      <section className="relative w-full min-h-[460px] md:min-h-[360px] flex items-start md:items-center justify-center pt-[136px] md:pt-[110px] pb-8 md:pb-6">
         <div 
           className="absolute inset-0 z-0 bg-cover bg-center"
           style={{ backgroundImage: `url('https://images.unsplash.com/photo-1528127269322-539801943592?q=80&w=2000&auto=format&fit=crop')` }}
@@ -141,14 +192,7 @@ export default function HomestayListPage() {
         </div>
 
         <div className="relative z-10 w-full max-w-5xl mx-auto px-4">
-          {/* Desktop Search (Full) */}
-          <div className="hidden md:block">
-            <SearchHub />
-          </div>
-          {/* Mobile Search (Compact) */}
-          <div className="block md:hidden">
-            <CompactSearch />
-          </div>
+          <SearchHub />
         </div>
       </section>
 
@@ -171,50 +215,38 @@ export default function HomestayListPage() {
             </button>
           ) : null}
 
-          {filters.amenities?.map(amenity => (
+          {filters.amenities?.map(amenityCode => {
+            const name = AMENITIES.find(a => a.code === amenityCode)?.name || amenityCode;
+            return (
             <button 
-              key={amenity}
-              onClick={() => handleFilterChange({ amenities: filters.amenities?.filter(a => a !== amenity) })}
+              key={amenityCode}
+              onClick={() => handleFilterChange({ amenities: filters.amenities?.filter(a => a !== amenityCode) })}
               className="shrink-0 flex items-center gap-1.5 whitespace-nowrap px-4 py-2 rounded-full border border-[var(--color-primary)] bg-[var(--color-primary-50)] text-[var(--color-primary-700)] text-sm font-medium shadow-sm transition-colors hover:bg-[var(--color-primary-100)]"
             >
-              {amenity} <X className="w-3.5 h-3.5" />
+              {name} <X className="w-3.5 h-3.5" />
             </button>
-          ))}
+            )
+          })}
 
           {filters.minRating && (
             <button 
               onClick={() => handleFilterChange({ minRating: undefined })}
               className="shrink-0 flex items-center gap-1.5 whitespace-nowrap px-4 py-2 rounded-full border border-[var(--color-primary)] bg-[var(--color-primary-50)] text-[var(--color-primary-700)] text-sm font-medium shadow-sm transition-colors hover:bg-[var(--color-primary-100)]"
             >
-              {filters.minRating === 9 ? 'Tuyệt hảo: 9+' : filters.minRating === 8 ? 'Rất tốt: 8+' : 'Tốt: 7+'} <Star className="w-3 h-3 inline fill-current" />
+              {filters.minRating === 9 ? 'Tuyệt hảo: 9+' : filters.minRating === 8 ? 'Rất tốt: 8+' : 'Tốt: 7+'} <Star className="w-3.5 h-3.5 inline text-[#f59e0b] fill-[#f59e0b]" />
               <X className="w-3.5 h-3.5 ml-0.5" />
             </button>
           )}
 
-          {filters.maxPrice === 500000 && filters.minPrice === undefined && (
-            <button 
-              onClick={() => handleFilterChange({ maxPrice: undefined })}
-              className="shrink-0 flex items-center gap-1.5 whitespace-nowrap px-4 py-2 rounded-full border border-[var(--color-primary)] bg-[var(--color-primary-50)] text-[var(--color-primary-700)] text-sm font-medium shadow-sm transition-colors hover:bg-[var(--color-primary-100)]"
-            >
-              Dưới 500.000đ <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-
-          {filters.minPrice === 500000 && filters.maxPrice === 1000000 && (
+          {(filters.minPrice || filters.maxPrice) && (
             <button 
               onClick={() => handleFilterChange({ minPrice: undefined, maxPrice: undefined })}
               className="shrink-0 flex items-center gap-1.5 whitespace-nowrap px-4 py-2 rounded-full border border-[var(--color-primary)] bg-[var(--color-primary-50)] text-[var(--color-primary-700)] text-sm font-medium shadow-sm transition-colors hover:bg-[var(--color-primary-100)]"
             >
-              500.000đ - 1.000.000đ <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-
-          {filters.minPrice === 1000000 && filters.maxPrice === undefined && (
-            <button 
-              onClick={() => handleFilterChange({ minPrice: undefined })}
-              className="shrink-0 flex items-center gap-1.5 whitespace-nowrap px-4 py-2 rounded-full border border-[var(--color-primary)] bg-[var(--color-primary-50)] text-[var(--color-primary-700)] text-sm font-medium shadow-sm transition-colors hover:bg-[var(--color-primary-100)]"
-            >
-              Trên 1.000.000đ <X className="w-3.5 h-3.5" />
+              {filters.minPrice ? `Từ ${filters.minPrice.toLocaleString('vi-VN')}đ` : ''}
+              {filters.minPrice && filters.maxPrice ? ' - ' : ''}
+              {filters.maxPrice ? `Đến ${filters.maxPrice.toLocaleString('vi-VN')}đ` : ''}
+              <X className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
@@ -275,7 +307,9 @@ export default function HomestayListPage() {
                 <div key={hs.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row">
                   {/* Image */}
                   <div className="relative w-full md:w-[280px] h-[220px] shrink-0">
-                    <img src={hs.coverImageUrl} alt={hs.name} className="w-full h-full object-cover" />
+                    <Link to={`/homestays/${hs.id}`} className="block w-full h-full overflow-hidden">
+                      <img src={hs.coverImageUrl} alt={hs.name} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                    </Link>
                     <button className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-md text-gray-400 hover:text-red-500 transition-colors">
                       <Heart className="w-5 h-5" />
                     </button>
@@ -285,13 +319,15 @@ export default function HomestayListPage() {
                   <div className="p-4 flex-1 flex flex-col">
                     <div className="flex justify-between items-start gap-4">
                       <div>
-                        <h2 className="text-[20px] font-bold text-[var(--color-primary)] leading-tight mb-1">{hs.name}</h2>
+                        <Link to={`/homestays/${hs.id}`}>
+                          <h2 className="text-[20px] font-bold text-[var(--color-ink-deep)] hover:text-[var(--color-primary)] transition-colors leading-tight mb-1">{hs.name}</h2>
+                        </Link>
                         {hs.isGenius && (
                           <div className="flex items-center gap-1 mb-1">
                             <div className="flex gap-0.5">
-                                <span className="w-3.5 h-3.5 bg-[var(--color-accent)] rounded-sm flex items-center justify-center"><Star className="w-2.5 h-2.5 text-white fill-white" /></span>
-                                <span className="w-3.5 h-3.5 bg-[var(--color-accent)] rounded-sm flex items-center justify-center"><Star className="w-2.5 h-2.5 text-white fill-white" /></span>
-                                <span className="w-3.5 h-3.5 bg-[var(--color-accent)] rounded-sm flex items-center justify-center"><Star className="w-2.5 h-2.5 text-white fill-white" /></span>
+                                <span className="w-3.5 h-3.5 bg-[#f59e0b] rounded-xs flex items-center justify-center"><Star className="w-2.5 h-2.5 text-white fill-white" /></span>
+                                <span className="w-3.5 h-3.5 bg-[#f59e0b] rounded-xs flex items-center justify-center"><Star className="w-2.5 h-2.5 text-white fill-white" /></span>
+                                <span className="w-3.5 h-3.5 bg-[#f59e0b] rounded-xs flex items-center justify-center"><Star className="w-2.5 h-2.5 text-white fill-white" /></span>
                             </div>
                             <span className="bg-[var(--color-primary)] text-white text-[10px] font-bold px-1.5 py-0.5 rounded">Genius</span>
                           </div>
@@ -314,15 +350,20 @@ export default function HomestayListPage() {
                         )}
                       </div>
                       
-                      <div className="flex items-start gap-2 shrink-0">
-                        <div className="flex flex-col items-end">
-                          {hs.ratingText && <span className="font-bold text-[var(--color-ink-deep)] text-sm">{hs.ratingText}</span>}
-                          {hs.reviewCount > 0 && <span className="text-xs text-[var(--color-muted)]">{hs.reviewCount} đánh giá</span>}
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <div className="flex items-center gap-1.5 bg-[#fefce8] px-2.5 py-1 rounded-md border border-[#f59e0b]/30 shadow-xs">
+                          <Star className="w-4 h-4 text-[#f59e0b] fill-[#f59e0b]" />
+                          <span className="font-extrabold text-[#78350f] text-base leading-none">
+                            {hs.ratingScore > 0 ? hs.ratingScore.toString().replace('.', ',') : '9,0'}
+                          </span>
+                          {hs.ratingText && (
+                            <span className="text-xs font-bold text-[#b45309] hidden sm:inline">• {hs.ratingText}</span>
+                          )}
                         </div>
-                        {hs.ratingScore > 0 && (
-                          <div className="bg-[var(--color-primary)] text-white font-bold text-lg rounded-t-lg rounded-br-lg px-2 py-1.5 leading-none">
-                            {hs.ratingScore.toString().replace('.', ',')}
-                          </div>
+                        {hs.reviewCount > 0 && (
+                          <span className="text-xs text-[#59766e] font-medium">
+                            {hs.reviewCount} đánh giá
+                          </span>
                         )}
                       </div>
                     </div>
@@ -355,9 +396,11 @@ export default function HomestayListPage() {
                           </span>
                         </div>
                         {hs.taxesAndFeesIncluded && <div className="text-[11px] text-[var(--color-muted)]">Đã bao gồm thuế và phí</div>}
-                        <Button variant="primary" className="w-full md:w-auto mt-3 rounded-sm font-bold h-9 px-6 text-[13px]">
-                          Xem chỗ trống
-                        </Button>
+                        <Link to={`/homestays/${hs.id}`}>
+                          <Button variant="primary" className="w-full md:w-auto mt-3 rounded-sm font-bold h-9 px-6 text-[13px]">
+                            Xem chỗ trống
+                          </Button>
+                        </Link>
                       </div>
                     </div>
                   </div>

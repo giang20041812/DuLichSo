@@ -1,45 +1,53 @@
 @import "tailwindcss";
 
 @theme {
+  /* === VietJourney — Fresh Eco Nature Palette (Green, Light Green & Aqua) === */
+
+  /* Deep Teal — Primary (#048C73) */
   --color-primary: var(--color-primary);
-  --color-primary-50: #ebf6fa;
-  --color-primary-100: #dceff0;
-  --color-primary-200: #b0dce2;
-  --color-primary-300: #7cc3cc;
-  --color-primary-400: #49a8b5;
-  --color-primary-500: #16709a;
-  --color-primary-600: #125a7a;
-  --color-primary-700: #0d435b;
-  --color-primary-800: #092d3d;
-  --color-primary-900: #04161f;
+  --color-primary-50:  #edfbf7;
+  --color-primary-100: #d1f6ec;
+  --color-primary-200: #a7ecdc;
+  --color-primary-300: #70dcbf;
+  --color-primary-400: #3ec4a4;
+  --color-primary-500: #048c73;
+  --color-primary-600: #03725e;
+  --color-primary-700: #045b4c;
+  --color-primary-800: #06483d;
+  --color-primary-900: #063c33;
 
+  /* Bright Aqua / Turquoise — Secondary (#3DC9D9) */
   --color-secondary: var(--color-secondary);
-  --color-secondary-50: #f0f7f3;
-  --color-secondary-100: #daefe2;
-  --color-secondary-200: #b1dfc2;
-  --color-secondary-300: #88cea1;
-  --color-secondary-400: #5fbe81;
-  --color-secondary-500: #3f7656;
-  --color-secondary-600: #325e45;
-  --color-secondary-700: #264734;
-  --color-secondary-800: #192f22;
-  --color-secondary-900: #0c1711;
+  --color-secondary-50:  #f0fbfd;
+  --color-secondary-100: #dbf6fa;
+  --color-secondary-200: #bbf0f6;
+  --color-secondary-300: #8ee4ef;
+  --color-secondary-400: #5ad2e4;
+  --color-secondary-500: #3dc9d9;
+  --color-secondary-600: #26a6b7;
+  --color-secondary-700: #228493;
+  --color-secondary-800: #236c77;
+  --color-secondary-900: #215963;
 
+  /* Leaf Green — Accent (#52D967) */
   --color-accent: var(--color-accent);
-  --color-accent-50: #fcf6eb;
-  --color-accent-100: #f8ebd0;
-  --color-accent-200: #f1d39b;
-  --color-accent-300: #ebba65;
-  --color-accent-400: #e5a33d;
-  --color-accent-500: #c28830;
-  --color-accent-600: #9e6d23;
-  --color-accent-700: #7a5316;
-  --color-accent-800: #573809;
-  --color-accent-900: #331f00;
+  --color-accent-50:  #effcf2;
+  --color-accent-100: #d9f9e0;
+  --color-accent-200: #b5f2c3;
+  --color-accent-300: #83e89c;
+  --color-accent-400: #52d967;
+  --color-accent-500: #2bc044;
+  --color-accent-600: #1e9c34;
+  --color-accent-700: #1b7a2d;
+  --color-accent-800: #1a6127;
+  --color-accent-900: #174f22;
+
+  --color-primary-light: var(--color-primary-light);
+  --color-accent-light: var(--color-accent-light);
 
   --color-canvas: var(--color-canvas);
   --color-surface: var(--color-surface);
-  
+
   --color-ink: var(--color-ink);
   --color-ink-deep: var(--color-ink-deep);
   --color-muted: var(--color-muted);
@@ -51,32 +59,59 @@
   --font-display: "Plus Jakarta Sans", sans-serif;
   --font-body: "Inter", sans-serif;
 
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
   --radius-full: 9999px;
 
-  --shadow-xs: 0 0 0 1px rgba(139, 146, 153, 0.2);
-  --shadow-sm: 0 1px 2px rgba(31, 42, 55, 0.06);
-  --shadow-md: 0 4px 16px rgba(31, 42, 55, 0.08);
-  --shadow-lg: 0 12px 32px rgba(31, 42, 55, 0.14);
+  --shadow-xs: 0 0 0 1px rgba(97, 98, 117, 0.18);
+  --shadow-sm: 0 1px 2px rgba(13, 43, 38, 0.06);
+  --shadow-md: 0 4px 16px rgba(13, 43, 38, 0.08);
+  --shadow-lg: 0 12px 32px rgba(13, 43, 38, 0.14);
 }
 
   @layer base {
   :root {
-    --color-primary: #16709a;
-    --color-secondary: #3f7656;
-    --color-accent: #e5a33d;
-    --color-canvas: #ffffff;
-    --color-surface: #ffffff;
+    /* === VietJourney — Eco Tropical Glow Palette === */
+
+    /* Brand Core */
+    --color-primary:        #048c73; /* Deep Teal - Header, nút chính, liên kết */
+    --color-primary-light:  #7ef2dd; /* Mint Aqua - Nền nhạt, chip active, hover state */
+    --color-primary-50:     #edfbf7;
+    --color-secondary:      #06b6d4; /* Bright Aqua - Trời, biển, sông nước */
+    --color-secondary-light:#cffafe;
     
-    /* Updated colors from Scheme Image */
-    --color-ink-deep: #0f2d3c;
-    --color-ink: #202327;
-    --color-muted: #66716c;
-    --color-success: #2e7d5b;
-    --color-warning: #d98a28;
-    --color-danger: #d04648;
+    /* Tropical Warmth & Energy */
+    --color-sun:            #f59e0b; /* Golden Amber - Nắng vàng, lúa chín, rating sao, tag nổi bật */
+    --color-sun-light:      #fef3c7; /* Nền vàng kem dịu mắt */
+    --color-coral:          #f97316; /* Tropical Coral / Sunset Orange - Nút CTA chuyển đổi cao */
+    --color-coral-hover:    #ea580c; /* Hover cam đậm ấn tượng */
+    --color-coral-light:    #ffedd5; /* Nền cam san hô nhạt */
+    
+    /* Eco Nature */
+    --color-accent:         #10b981; /* Emerald Green - Chứng nhận sinh thái, cam kết xanh */
+    --color-accent-light:   #d1fae5; /* Nền xanh ngọc nhạt */
+
+    /* Backgrounds */
+    --color-canvas:         #f6faf8; /* Eco Mist - Nền trang trong lành thanh thoát */
+    --color-surface:        #ffffff; /* Pure White - Card, modal, container */
+
+    /* Ink / Text */
+    --color-ink-deep:       #0a2e26; /* Deep Forest - Heading đậm, độ tương phản cao */
+    --color-ink:            #1f2937; /* Forest Charcoal - Thân văn bản dễ đọc */
+    --color-muted:          #59766e; /* Sage Gray - Caption, placeholder, đường kẻ */
+
+    /* Feedback */
+    --color-success:        #048c73; /* Pine Teal */
+    --color-warning:        #f59e0b; /* Warm Sun Amber */
+    --color-danger:         #e05252; /* Coral Red */
+
+    /* Depth & Tinted Shadows */
+    --shadow-card:          0 2px 12px -1px rgba(4, 140, 115, 0.07), 0 1px 3px rgba(0, 0, 0, 0.04);
+    --shadow-card-hover:    0 10px 25px -3px rgba(4, 140, 115, 0.14), 0 4px 8px -2px rgba(0, 0, 0, 0.06);
+    --shadow-coral:         0 4px 16px 0 rgba(249, 115, 22, 0.3);
+    --shadow-teal:          0 4px 16px 0 rgba(4, 140, 115, 0.25);
 
     /* A11y and motion defaults */
     --transition-fast: 120ms cubic-bezier(0.2, 0.8, 0.2, 1);

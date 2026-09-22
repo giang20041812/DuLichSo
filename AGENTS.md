@@ -59,6 +59,31 @@ frontend-pwa/src/types/
    └─ gemini.ts
 ```
 
+## Nguyên tắc UI & Styling — BẮT BUỘC
+
+1. **Border-radius tinh gọn, sắc sảo (ít bo tròn, không bo tròn quá đà)**:
+   - Các thành phần giao diện như nút bấm (buttons), panels, cards, dialogs/modals, inputs, dropdowns... chỉ sử dụng border-radius nhỏ / vừa phải (subtle/sharp).
+   - Thang giá trị chuẩn:
+     - Nhỏ (sm): `4px` (`rounded-sm` hoặc `rounded`)
+     - Vừa (md): `6px` (`rounded-md` - khuyên dùng cho button, input)
+     - Lớn (lg): tối đa `8px` (`rounded-lg` - dành cho card, modal, panel lớn)
+   - TUYỆT ĐỐI KHÔNG dùng border-radius quá tròn như `rounded-2xl`, `rounded-3xl`, `rounded-full` cho panels, cards, modals, containers hay nút bấm (trừ avatar tròn hoặc chip/badge đặc thù khi có chỉ định rõ).
+   - Không thiết kế nút bấm dạng pill capsule (tròn xoe 2 đầu).
+
+2. **Bảng màu sống động chuẩn thiên nhiên (Eco Tropical Glow: Teal, Aqua, Golden Sun & Sunset Coral)**:
+   - Primary: `#048C73` (`--color-primary`, Deep Teal) — màu thương hiệu cốt lõi, Header, thanh tìm kiếm chủ đạo, active links.
+   - Secondary: `#06B6D4` / `#3DC9D9` (`--color-secondary`, Bright Aqua) — điểm nhấn biển trời, sông nước, icon tươi mát.
+   - Tropical Sun / Nắng Vàng Lúa Chín: `#F59E0B` (`--color-sun`, Golden Amber) — rating sao, huy hiệu mùa vụ/nổi bật, tag giá ưu đãi, tạo sinh khí ấm áp rực rỡ.
+   - Tropical Sunset / Cam San Hô CTA: `#F97316` / `#EA580C` (`--color-coral`, Coral / Sunset Orange) — nút hành động chuyển đổi cao (Đặt phòng, Xem chi tiết, Nhận ưu đãi), tạo điểm nhấn thị giác cuốn hút.
+   - Eco Leaf / Sinh Thái: `#10B981` / `#52D967` (`--color-accent`, Emerald Green) — nhãn sinh thái bản địa, bảo hiểm, cam kết xanh.
+   - Backgrounds: Canvas `#F6FAF8` (Eco Mist trong lành dịu nhẹ), Surface `#FFFFFF` (Pure White).
+   - Tuyệt đối không hardcode mã hex bừa bãi; luôn dùng CSS variable tokens đã định nghĩa trong `src/styles/globals.css`.
+
+3. **Chiều sâu thị giác & Hiệu ứng tương tác (Visual Depth & Micro-interactions)**:
+   - Sử dụng tinted soft shadow (đổ bóng màu nhẹ) thay vì bóng xám đen đơn điệu để card nổi khối sống động, cao cấp.
+   - Card hover effect: Nhẹ nhàng nâng lên 2px (`hover:-translate-y-0.5`), viền sáng lên nhẹ nhàng (`transition-all duration-300`).
+   - Micro-animations: Mượt mà với cubic-bezier chuẩn (`200ms - 300ms`).
+
 ## Nguyên tắc kiến trúc hệ thống — BẮT BUỘC
 
 ### Backend / dữ liệu

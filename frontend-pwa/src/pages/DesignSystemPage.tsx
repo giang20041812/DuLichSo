@@ -63,92 +63,92 @@ export default function DesignSystemPage() {
         </h3>
         
         <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-12">
-          <div className="bg-white rounded-2xl shadow-sm border border-[#66716c]/10 overflow-hidden flex flex-col h-[280px]">
-            <div className="bg-[#16709a] h-32 p-4 text-white flex flex-col justify-end">
+          <div className="bg-white rounded-lg shadow-sm border border-[#59766e]/15 overflow-hidden flex flex-col h-[280px]">
+            <div className="bg-[#048c73] h-32 p-4 text-white flex flex-col justify-end">
               <div className="text-xs font-semibold opacity-80 uppercase tracking-widest">Primary</div>
-              <div className="text-2xl font-bold">#16709A</div>
+              <div className="text-2xl font-bold">#048C73</div>
             </div>
             <div className="p-4 flex flex-col flex-1">
-              <div className="font-bold text-[#0f2d3c] mb-1">Ocean Blue</div>
-              <div className="text-xs text-[#66716c] mb-auto">bg-primary-container</div>
-              <div className="flex justify-between items-center bg-[#f8f9fa] rounded p-2 text-xs font-medium">
-                <span className="text-[#66716c]">Tương phản</span>
-                <span className="text-[#2e7d5b]">AAA (7.2:1)</span>
+              <div className="font-bold text-[#0a2e26] mb-1">Deep Teal</div>
+              <div className="text-xs text-[#59766e] mb-auto">bg-primary</div>
+              <div className="flex justify-between items-center bg-[#edfbf7] rounded p-2 text-xs font-medium">
+                <span className="text-[#59766e]">Tương phản</span>
+                <span className="text-[#048c73] font-bold">AA (4.6:1)</span>
               </div>
             </div>
           </div>
           
-          <div className="bg-white rounded-2xl shadow-sm border border-[#66716c]/10 overflow-hidden flex flex-col h-[280px]">
-            <div className="bg-[#3f7656] h-32 p-4 text-white flex flex-col justify-end">
+          <div className="bg-white rounded-lg shadow-sm border border-[#59766e]/15 overflow-hidden flex flex-col h-[280px]">
+            <div className="bg-[#3dc9d9] h-32 p-4 text-[#0a2e26] flex flex-col justify-end">
               <div className="text-xs font-semibold opacity-80 uppercase tracking-widest">Secondary</div>
-              <div className="text-2xl font-bold">#3F7656</div>
+              <div className="text-2xl font-bold">#3DC9D9</div>
             </div>
             <div className="p-4 flex flex-col flex-1">
-              <div className="font-bold text-[#0f2d3c] mb-1">Forest Green</div>
-              <div className="text-xs text-[#66716c] mb-auto">bg-secondary</div>
-              <div className="flex justify-between items-center bg-[#f8f9fa] rounded p-2 text-xs font-medium">
-                <span className="text-[#66716c]">Tương phản</span>
-                <span className="text-[#2e7d5b]">AA (5.1:1)</span>
+              <div className="font-bold text-[#0a2e26] mb-1">Bright Aqua</div>
+              <div className="text-xs text-[#59766e] mb-auto">bg-secondary</div>
+              <div className="flex justify-between items-center bg-[#f0fbfd] rounded p-2 text-xs font-medium">
+                <span className="text-[#59766e]">Tương phản</span>
+                <span className="text-[#0a2e26] font-bold">AAA (8.1:1)</span>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-[#66716c]/10 overflow-hidden flex flex-col h-[280px]">
-            <div className="bg-[#e5a33d] h-32 p-4 text-[#0f2d3c] flex flex-col justify-end">
+          <div className="bg-white rounded-lg shadow-sm border border-[#59766e]/15 overflow-hidden flex flex-col h-[280px]">
+            <div className="bg-[#52d967] h-32 p-4 text-[#0a2e26] flex flex-col justify-end">
               <div className="text-xs font-semibold opacity-80 uppercase tracking-widest">Accent / CTA</div>
-              <div className="text-2xl font-bold">#E5A33D</div>
+              <div className="text-2xl font-bold">#52D967</div>
             </div>
             <div className="p-4 flex flex-col flex-1">
-              <div className="font-bold text-[#0f2d3c] mb-1">Sunset Gold</div>
-              <div className="text-xs text-[#66716c] mb-auto">bg-tertiary-fixed-dim</div>
-              <div className="flex justify-between items-center bg-[#f8f9fa] rounded p-2 text-xs font-medium">
-                <span className="text-[#66716c]">Tương phản</span>
-                <span className="text-[#0f2d3c]">Dark text AAA</span>
+              <div className="font-bold text-[#0a2e26] mb-1">Leaf Green</div>
+              <div className="text-xs text-[#59766e] mb-auto">bg-accent</div>
+              <div className="flex justify-between items-center bg-[#effcf2] rounded p-2 text-xs font-medium">
+                <span className="text-[#59766e]">Tương phản</span>
+                <span className="text-[#0a2e26] font-bold">Dark text AAA</span>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-[#66716c]/10 overflow-hidden flex flex-col h-[280px]">
-            <div className="bg-[#f5eedf] h-32 p-4 text-[#0f2d3c] flex flex-col justify-end">
-              <div className="text-xs font-semibold opacity-60 uppercase tracking-widest">Canvas Warmth</div>
-              <div className="text-2xl font-bold">#F5EEDF</div>
+          <div className="bg-white rounded-lg shadow-sm border border-[#59766e]/15 overflow-hidden flex flex-col h-[280px]">
+            <div className="bg-[#7ef2dd] h-32 p-4 text-[#0a2e26] flex flex-col justify-end">
+              <div className="text-xs font-semibold opacity-80 uppercase tracking-widest">Primary Light</div>
+              <div className="text-2xl font-bold">#7EF2DD</div>
             </div>
             <div className="p-4 flex flex-col flex-1">
-              <div className="font-bold text-[#0f2d3c] mb-1">Sand Beige</div>
-              <div className="text-xs text-[#66716c] mb-auto">bg-tertiary-fixed</div>
-              <div className="flex justify-between items-center bg-[#f8f9fa] rounded p-2 text-xs font-medium">
-                <span className="text-[#66716c]">Tương phản</span>
-                <span className="text-[#0f2d3c]">Tier 0 Surface</span>
+              <div className="font-bold text-[#0a2e26] mb-1">Mint Aqua</div>
+              <div className="text-xs text-[#59766e] mb-auto">bg-primary-light</div>
+              <div className="flex justify-between items-center bg-[#edfbf7] rounded p-2 text-xs font-medium">
+                <span className="text-[#59766e]">Tương phản</span>
+                <span className="text-[#0a2e26] font-bold">Pastel Tint</span>
               </div>
             </div>
           </div>
           
-          <div className="bg-white rounded-2xl shadow-sm border border-[#66716c]/10 overflow-hidden flex flex-col h-[280px]">
-            <div className="bg-[#fcfdf9] border-b border-[#66716c]/10 h-32 p-4 text-[#0f2d3c] flex flex-col justify-end">
-              <div className="text-xs font-semibold opacity-60 uppercase tracking-widest">Surface Clean</div>
-              <div className="text-2xl font-bold">#FCFDF9</div>
+          <div className="bg-white rounded-lg shadow-sm border border-[#59766e]/15 overflow-hidden flex flex-col h-[280px]">
+            <div className="bg-[#88f28f] h-32 p-4 text-[#0a2e26] flex flex-col justify-end">
+              <div className="text-xs font-semibold opacity-80 uppercase tracking-widest">Accent Light</div>
+              <div className="text-2xl font-bold">#88F28F</div>
             </div>
             <div className="p-4 flex flex-col flex-1">
-              <div className="font-bold text-[#0f2d3c] mb-1">Cloud White</div>
-              <div className="text-xs text-[#66716c] mb-auto">bg-surface-container-lowest</div>
-              <div className="flex justify-between items-center bg-[#f8f9fa] rounded p-2 text-xs font-medium">
-                <span className="text-[#66716c]">Tương phản</span>
-                <span className="text-[#0f2d3c]">Light 99%</span>
+              <div className="font-bold text-[#0a2e26] mb-1">Soft Lime</div>
+              <div className="text-xs text-[#59766e] mb-auto">bg-accent-light</div>
+              <div className="flex justify-between items-center bg-[#effcf2] rounded p-2 text-xs font-medium">
+                <span className="text-[#59766e]">Tương phản</span>
+                <span className="text-[#0a2e26] font-bold">Eco Badge</span>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-[#66716c]/10 overflow-hidden flex flex-col h-[280px]">
-            <div className="bg-[#dceff0] h-32 p-4 text-[#16709a] flex flex-col justify-end">
-              <div className="text-xs font-semibold opacity-80 uppercase tracking-widest">Primary Light</div>
-              <div className="text-2xl font-bold">#DCEFF0</div>
+          <div className="bg-white rounded-lg shadow-sm border border-[#59766e]/15 overflow-hidden flex flex-col h-[280px]">
+            <div className="bg-[#f3faf7] border-b border-[#59766e]/15 h-32 p-4 text-[#0a2e26] flex flex-col justify-end">
+              <div className="text-xs font-semibold opacity-70 uppercase tracking-widest">Canvas Eco</div>
+              <div className="text-2xl font-bold">#F3FAF7</div>
             </div>
             <div className="p-4 flex flex-col flex-1">
-              <div className="font-bold text-[#0f2d3c] mb-1">Light Aqua</div>
-              <div className="text-xs text-[#66716c] mb-auto">bg-primary-fixed</div>
-              <div className="flex justify-between items-center bg-[#f8f9fa] rounded p-2 text-xs font-medium">
-                <span className="text-[#66716c]">Tương phản</span>
-                <span className="text-[#16709a]">Subtle Tint</span>
+              <div className="font-bold text-[#0a2e26] mb-1">Eco Mist</div>
+              <div className="text-xs text-[#59766e] mb-auto">bg-canvas</div>
+              <div className="flex justify-between items-center bg-white rounded p-2 text-xs font-medium border border-[#59766e]/15">
+                <span className="text-[#59766e]">Tương phản</span>
+                <span className="text-[#0a2e26]">Page Base</span>
               </div>
             </div>
           </div>

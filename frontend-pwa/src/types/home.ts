@@ -27,6 +27,7 @@ export interface PlaceSummaryDto {
   ratingCount: number;
   attributesJson: string;
   kind: CategoryKind;
+  priceUnitNote?: string;
   
   // Virtual fields enriched by backend
   tagBadge?: string;
@@ -41,4 +42,5 @@ export interface HomeResponseDto {
   featuredDestinations: PlaceSummaryDto[];
   homestays: PlaceSummaryDto[];
   featuredTours: PlaceSummaryDto[];
+  specialties?: PlaceSummaryDto[];
 }

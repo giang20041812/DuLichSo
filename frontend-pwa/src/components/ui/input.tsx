@@ -22,7 +22,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             type={type}
             disabled={disabled}
             className={cn(
-              "flex h-12 w-full rounded-lg border bg-[var(--color-surface)] py-2 text-[15px] font-medium text-[var(--color-ink)] transition-colors shadow-sm",
+              "flex h-12 w-full rounded-md border bg-[var(--color-surface)] py-2 text-[15px] font-medium text-[var(--color-ink)] transition-colors shadow-sm",
               startIcon ? "pl-10 pr-4" : "px-4",
               "placeholder:text-[var(--color-muted)] placeholder:font-normal",
               "focus-visible:outline-none focus-visible:ring-1",

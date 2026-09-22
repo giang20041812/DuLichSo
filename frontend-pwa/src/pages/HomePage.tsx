@@ -1,112 +1,62 @@
-import { useState, useRef, useEffect } from "react"
-import { Badge } from "../components/ui/badge"
+import { useState, useEffect, useMemo } from "react"
+import { Link } from "react-router-dom"
 import SearchHub from "../components/layout/SearchHub"
-import { MapPin, Heart, Star, Check, ArrowRight, Handshake, Tag, Headphones, ShieldCheck, Mountain, Sailboat, Landmark, Tent, Utensils, Building2, Ticket, CheckCircle2, Lock, ChevronLeft, ChevronRight } from "lucide-react"
+import { MapPin, Heart, Star, Check, Handshake, Tag, Headphones, ShieldCheck, Mountain, Tent, Ticket, CheckCircle2, Lock, Sparkles } from "lucide-react"
 import { fetchHomeData } from "../services/homeService"
-import { HomeResponseDto, CategoryKind } from "../types/home"
+import { HomeResponseDto, PlaceSummaryDto } from "../types/home"
 
-interface StoryItem {
-  id: string;
-  region: 'Bắc' | 'Trung' | 'Nam';
-  category: string;
-  title: string;
-  excerpt: string;
-  author: string;
-  date: string;
-  readTime: string;
-  image: string;
-  tagColor: string;
-}
 
-const REGION_STORIES: StoryItem[] = [
-  {
-    id: 'bac-1',
-    region: 'Bắc',
-    category: 'Phóng sự văn hóa',
-    title: 'Nghệ Nhân Dệt Thổ Cẩm Vùng Cao Sa Pa — Hồn Cốt Giữa Mây Ngàn',
-    excerpt: 'Gặp gỡ nghệ nhân làng dệt thổ cẩm vùng cao Tây Bắc, nơi từng sợi lanh nhuộm chàm thô mộc biến thành bức tranh sống động mang tinh hoa bản địa ngàn năm.',
-    author: 'VietJourney Văn Hóa',
-    date: '12 Tháng 9, 2026',
-    readTime: '5 phút đọc',
-    image: 'https://images.unsplash.com/photo-1542159040-3b03f0b2f059?q=80&w=800&auto=format&fit=crop',
-    tagColor: 'bg-[#daf0e2] text-[#2e7d5b]'
-  },
-  {
-    id: 'bac-2',
-    region: 'Bắc',
-    category: 'Ẩm thực truyền thống',
-    title: 'Bí Quyết Nước Dùng Trong Veo Của Phở Gia Truyền Hà Nội Cổ',
-    excerpt: 'Hành trình lần theo hương hồi quế qua những con ngõ nhỏ phố cổ Hà Nội, khám phá triết lý ẩm thực đằng sau bát phở thanh trong nức tiếng kinh kỳ.',
-    author: 'Ẩm Thực 36 Phố',
-    date: '10 Tháng 9, 2026',
-    readTime: '4 phút đọc',
-    image: 'https://images.unsplash.com/photo-1583561917173-0498a44d7072?q=80&w=800&auto=format&fit=crop',
-    tagColor: 'bg-[#fce5e6] text-[#d04648]'
-  },
-  {
-    id: 'trung-1',
-    region: 'Trung',
-    category: 'Di sản & Cung đình',
-    title: 'Dấu Ấn Cố Đô Huế — Hương Vị Cung Đình Bên Dòng Sông Hương',
-    excerpt: 'Dưới bóng kinh thành rêu phong, lắng nghe nhã nhạc cung đình và tìm hiểu nghệ thuật ẩm thực tinh tế được bảo tồn qua bao thế hệ con người xứ Huế.',
-    author: 'Di Sản Miền Trung',
-    date: '8 Tháng 9, 2026',
-    readTime: '6 phút đọc',
-    image: 'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?q=80&w=800&auto=format&fit=crop',
-    tagColor: 'bg-[#f8ebd0] text-[#c28a33]'
-  },
-  {
-    id: 'trung-2',
-    region: 'Trung',
-    category: 'Lễ hội & Đêm phố',
-    title: 'Đêm Phố Cổ Hội An — Khi Hàng Ngàn Ngọn Đèn Hoa Đăng Tỏa Sáng',
-    excerpt: 'Trải nghiệm chèo thuyền trên sông Hoài trong đêm rằm, thả chiếc đèn hoa đăng mang theo ước nguyện bình an giữa không gian lung linh huyền ảo.',
-    author: 'Hội An Hoài Niệm',
-    date: '6 Tháng 9, 2026',
-    readTime: '4 phút đọc',
-    image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=800&auto=format&fit=crop',
-    tagColor: 'bg-[#dceff0] text-[#16709a]'
-  },
-  {
-    id: 'nam-1',
-    region: 'Nam',
-    category: 'Sông nước bản địa',
-    title: 'Nhịp Sống Chợ Nổi Cái Răng — Sắc Màu Sông Nước Nam Bộ Lúc Bình Minh',
-    excerpt: 'Tiếng ghe máy rộn rã, những cây bẹo treo lủng lẳng hoa trái đầu cành mở ra bức tranh đời sống thương hồ phóng khoáng đặc trưng của miền Tây sông nước.',
-    author: 'Ký Sự Phương Nam',
-    date: '4 Tháng 9, 2026',
-    readTime: '5 phút đọc',
-    image: 'https://images.unsplash.com/photo-1610450949065-2e22528e08d6?q=80&w=800&auto=format&fit=crop',
-    tagColor: 'bg-[#daf0e2] text-[#2e7d5b]'
-  },
-  {
-    id: 'nam-2',
-    region: 'Nam',
-    category: 'Lifestyle & Ký ức',
-    title: 'Văn Hóa Cà Phê Vợt Sài Gòn — Nhịp Sống Chậm Giữa Đô Hội Hối Hả',
-    excerpt: 'Bên chiếc siêu đất đun củi và chiếc vợt vải ngả màu thời gian, thưởng thức ly cà phê sữa đá đậm đà lưu giữ ký ức cả thế kỷ của người Sài Gòn.',
-    author: 'Sài Gòn Góc Phố',
-    date: '2 Tháng 9, 2026',
-    readTime: '3 phút đọc',
-    image: 'https://images.unsplash.com/photo-1629828450148-52fb58fce4be?q=80&w=800&auto=format&fit=crop',
-    tagColor: 'bg-[#fce5e6] text-[#d04648]'
-  }
+
+
+
+const PROVINCE_TAGS = [
+  'Tất cả',
+  'Mù Cang Chải',
+  'La Pán Tẩn',
+  'Chế Cu Nha',
+  'Tú Lệ',
+  'Ngọc Chiến'
 ];
+
+
+
+const getDestinationImage = (dest: PlaceSummaryDto): string => {
+  if (dest.coverImageUrl && dest.coverImageUrl.trim().length > 0) {
+    return dest.coverImageUrl;
+  }
+  const name = dest.name.toLowerCase();
+  if (name.includes('thác')) return 'https://images.unsplash.com/photo-1546587348-d12660c30c50?q=80&w=800&auto=format&fit=crop';
+  if (name.includes('đèo') || name.includes('sống lưng')) return 'https://images.unsplash.com/photo-1528127269322-539801943592?q=80&w=800&auto=format&fit=crop';
+  if (name.includes('thung lũng') || name.includes('chế cu nha')) return 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=800&auto=format&fit=crop';
+  if (name.includes('trúc') || name.includes('rừng')) return 'https://images.unsplash.com/photo-1542718610-a1d656d1884c?q=80&w=800&auto=format&fit=crop';
+  return 'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?q=80&w=800&auto=format&fit=crop';
+};
+
+const SAMPLE_HOMESTAY_IMAGES = [
+  'https://images.unsplash.com/photo-1587061949409-02df41d5e562?q=80&w=800&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1542718610-a1d656d1884c?q=80&w=800&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1510798831971-661eb04b3739?q=80&w=800&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=800&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?q=80&w=800&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?q=80&w=800&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1571896349842-33c89424de2d?q=80&w=800&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=800&auto=format&fit=crop'
+];
+
+const getHomestayImage = (hs: PlaceSummaryDto, index: number): string => {
+  if (hs.coverImageUrl && hs.coverImageUrl.trim().length > 0) {
+    return hs.coverImageUrl;
+  }
+  return SAMPLE_HOMESTAY_IMAGES[index % SAMPLE_HOMESTAY_IMAGES.length] || 'https://images.unsplash.com/photo-1542718610-a1d656d1884c?q=80&w=800';
+};
 
 export default function HomePage() {
   const [homeData, setHomeData] = useState<HomeResponseDto | null>(null);
   const [loading, setLoading] = useState(true);
-
-  const [selectedRegion, setSelectedRegion] = useState<'Tất cả' | 'Bắc' | 'Trung' | 'Nam'>('Tất cả');
-  const [isHovered, setIsHovered] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const startXRef = useRef(0);
-  const scrollLeftRef = useRef(0);
+  const [selectedProvince, setSelectedProvince] = useState<string>('Tất cả');
 
   useEffect(() => {
     fetchHomeData().then(data => {
-      console.log('Home data fetched:', data);
       setHomeData(data);
       setLoading(false);
     }).catch(err => {
@@ -115,563 +65,533 @@ export default function HomePage() {
     });
   }, []);
 
-  const filteredStories = selectedRegion === 'Tất cả' 
-    ? REGION_STORIES 
-    : REGION_STORIES.filter(s => s.region === selectedRegion);
+  // Merge API destinations with curated destinations (avoid duplicates by slug or id)
+  const allDestinations = useMemo(() => {
+    const list: PlaceSummaryDto[] = [];
+    const seen = new Set<string>();
 
-  // Tính năng 1: Tự động cuộn ngang (Auto-scroll) theo chu kỳ, dừng khi hover hoặc kéo
-  useEffect(() => {
-    if (isHovered || isDragging) return;
-    
-    const interval = setInterval(() => {
-      if (!scrollRef.current) return;
-      const el = scrollRef.current;
-      const maxScroll = el.scrollWidth - el.clientWidth;
-      
-      // Nếu đã cuộn gần hết, quay lại đầu
-      if (el.scrollLeft >= maxScroll - 10) {
-        el.scrollTo({ left: 0, behavior: 'smooth' });
-      } else {
-        el.scrollBy({ left: 360, behavior: 'smooth' });
-      }
-    }, 3800);
-
-    return () => clearInterval(interval);
-  }, [isHovered, isDragging]);
-
-  // Tính năng 2: Người sử dụng tự kéo chuột sang (Mouse Drag to scroll)
-  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!scrollRef.current) return;
-    setIsDragging(true);
-    startXRef.current = e.pageX - scrollRef.current.offsetLeft;
-    scrollLeftRef.current = scrollRef.current.scrollLeft;
-  };
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isDragging || !scrollRef.current) return;
-    e.preventDefault();
-    const x = e.pageX - scrollRef.current.offsetLeft;
-    const walk = (x - startXRef.current) * 1.5;
-    scrollRef.current.scrollLeft = scrollLeftRef.current - walk;
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  const handleMouseLeave = () => {
-    setIsDragging(false);
-    setIsHovered(false);
-  };
-
-  const scrollPrev = () => {
-    scrollRef.current?.scrollBy({ left: -360, behavior: 'smooth' });
-  };
-
-  const scrollNext = () => {
-    scrollRef.current?.scrollBy({ left: 360, behavior: 'smooth' });
-  };
-
-  const getCategoryIcon = (kind: CategoryKind) => {
-    switch (kind) {
-      case 'ATTRACTION': return <Mountain className="w-8 h-8 text-[#d04648]" strokeWidth={1.5} />;
-      case 'EXPERIENCE': return <Sailboat className="w-8 h-8 text-[#16709a]" strokeWidth={1.5} />;
-      case 'CULTURE': return <Landmark className="w-8 h-8 text-[#c28a33]" strokeWidth={1.5} />;
-      case 'HOMESTAY': return <Tent className="w-8 h-8 text-[#2e7d5b]" strokeWidth={1.5} />;
-      case 'LOCAL_SPECIALTY': return <Utensils className="w-8 h-8 text-[#d04648]" strokeWidth={1.5} />;
-      default: return <Building2 className="w-8 h-8 text-[#5c6bc0]" strokeWidth={1.5} />;
+    if (homeData?.featuredDestinations) {
+      homeData.featuredDestinations.forEach(item => {
+        const key = item.slug || String(item.id);
+        if (!seen.has(key)) {
+          seen.add(key);
+          list.push(item);
+        }
+      });
     }
-  };
 
-  const getCategoryColorClass = (kind: CategoryKind) => {
-    switch (kind) {
-      case 'ATTRACTION': return "bg-[#fce5e6]";
-      case 'EXPERIENCE': return "bg-[#dceff0]";
-      case 'CULTURE': return "bg-[#f8ebd0]";
-      case 'HOMESTAY': return "bg-[#daf0e2]";
-      case 'LOCAL_SPECIALTY': return "bg-[#fce5e6]";
-      default: return "bg-[#e8eaf6]";
+    return list;
+  }, [homeData]);
+
+  // Filter destinations based on selectedProvince: max 6 items
+  const filteredDestinations = useMemo(() => {
+    let list = allDestinations;
+    if (selectedProvince !== 'Tất cả') {
+      list = allDestinations.filter(d => {
+        const reg = (d.regionName || '').toLowerCase();
+        const prov = selectedProvince.toLowerCase();
+        const name = (d.name || '').toLowerCase();
+        const desc = (d.description || '').toLowerCase();
+        return reg.includes(prov) || name.includes(prov) || desc.includes(prov);
+      });
     }
-  };
+    return list.slice(0, 6);
+  }, [allDestinations, selectedProvince]);
+
+  // Homestays: max 8 items
+  const displayedHomestays = useMemo(() => {
+    const list = homeData?.homestays ? [...homeData.homestays] : [];
+    return list.slice(0, 8);
+  }, [homeData]);
+
+  // Đặc sản: max 8 items
+  const displayedSpecialties = useMemo(() => {
+    const list = homeData?.specialties ? [...homeData.specialties] : [];
+    return list.slice(0, 8);
+  }, [homeData]);
+
 
   if (loading) {
-    return <div className="w-full h-screen flex items-center justify-center text-[#16709a] font-bold">Đang tải dữ liệu...</div>;
+    return (
+      <div className="w-full h-screen flex flex-col items-center justify-center gap-3 text-[var(--color-primary)] font-semibold">
+        <div className="w-8 h-8 border-3 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin"></div>
+        <p>Đang tải dữ liệu VietJourney...</p>
+      </div>
+    );
   }
 
   if (!homeData) {
-    return <div className="w-full h-screen flex items-center justify-center text-red-500 font-bold">Không thể tải dữ liệu. Vui lòng thử lại sau.</div>;
+    return (
+      <div className="w-full h-screen flex flex-col items-center justify-center text-red-500 font-medium">
+        <p>Không thể kết nối đến hệ thống. Vui lòng thử lại sau.</p>
+      </div>
+    );
   }
 
   return (
     <div className="w-full flex flex-col">
-      {/* Hero Section */}
-      <section className="relative w-full h-[800px] flex items-start justify-center pt-[180px] md:pt-[200px]">
+      {/* 1. Hero Section */}
+      <section className="relative z-30 w-full min-h-[640px] md:min-h-[720px] flex items-start justify-center pt-[150px] md:pt-[170px] pb-16 md:pb-24">
         <div 
           className="absolute inset-0 z-0 bg-cover bg-center"
           style={{ backgroundImage: `url('https://images.unsplash.com/photo-1528127269322-539801943592?q=80&w=2000&auto=format&fit=crop')` }}
         >
           {/* Overlay gradient */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0f2d3c]/80 via-[#0f2d3c]/40 to-transparent"></div>
-          {/* Bottom white glow - Giảm độ trắng xuống, làm phần giao trong hơn */}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0f2d3c]/85 via-[#0f2d3c]/45 to-transparent"></div>
+          {/* Bottom glow */}
           <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-white/30 via-white/10 to-transparent pointer-events-none"></div>
         </div>
 
-        <div className="relative z-10 flex flex-col items-center text-center px-4 max-w-5xl w-full">
-          <Badge className="bg-white/20 hover:bg-white/30 text-white border-none backdrop-blur-md mb-6 rounded-full px-4 py-1.5 text-xs font-medium">
-            Nền tảng 12 hành trình sinh thái & trải nghiệm bản địa cao cấp hàng đầu
-          </Badge>
-          {/* Tiêu đề chia thành 2 dòng, bỏ dấu gạch ngang */}
-          <h1 className="text-4xl md:text-5xl lg:text-[56px] font-bold font-display text-white leading-tight mb-6 tracking-tight flex flex-col items-center">
+        <div className="relative z-30 flex flex-col items-center text-center px-4 max-w-5xl w-full">
+          <div className="inline-flex items-center gap-2 bg-white/20 text-white backdrop-blur-md mb-6 px-4 py-1.5 rounded-md text-xs font-semibold shadow-sm border border-white/20">
+            <Sparkles className="w-3.5 h-3.5 text-[#52d967]" />
+            <span>Nền tảng du lịch sinh thái & trải nghiệm bản địa hàng đầu</span>
+          </div>
+
+          <h1 className="text-4xl md:text-5xl lg:text-[54px] font-bold font-display text-white leading-tight mb-5 tracking-tight flex flex-col items-center">
             <span>Khám Phá Việt Nam</span>
-            <span className="text-2xl md:text-3xl lg:text-4xl font-medium text-white/95 mt-2 tracking-normal">
+            <span className="text-2xl md:text-3xl lg:text-4xl font-normal text-white/95 mt-2 tracking-normal">
               Từ Những Đỉnh Núi Đến Bờ Biển Xanh
             </span>
           </h1>
-          <p className="text-white/90 text-lg md:text-xl font-body max-w-2xl mx-auto mb-10">
-            Hành trình trải nghiệm văn hóa bản địa, ẩm thực truyền thống và cảnh sắc thiên nhiên hùng vĩ trên khắp dải đất hình chữ S.
+          <p className="text-white/90 text-base md:text-lg font-body max-w-2xl mx-auto mb-9">
+            Hành trình trải nghiệm văn hóa bản địa, ẩm thực truyền thống và cảnh sắc thiên nhiên nguyên sơ trên khắp dải đất hình chữ S.
           </p>
           
-          {/* SearchHub Inside Image */}
+          {/* SearchHub */}
           <div className="w-full max-w-5xl mx-auto">
             <SearchHub />
           </div>
         </div>
       </section>
 
+      {/* 2. Offer / Voucher Section (Màu nền Đỏ Ruby & Cam Hoàng Hôn nổi bật, phông chữ & màu chữ vàng kim độc đáo) */}
+      <section className="relative z-10 max-w-[1280px] mx-auto w-full px-4 md:px-8 py-8 md:py-10">
+        <div className="bg-gradient-to-br from-[#881337] via-[#991b1b] to-[#c2410c] rounded-lg p-6 md:p-8 text-white shadow-[0_15px_35px_rgba(153,27,27,0.35)] border-2 border-[#fde047] ring-4 ring-[#fde047]/20 relative overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-6">
+          {/* Background ambient glowing rays & lights */}
+          <div className="absolute -right-20 -top-20 w-72 h-72 bg-[#fbbf24]/25 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="absolute -left-20 -bottom-20 w-72 h-72 bg-[#f97316]/30 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:20px_20px] opacity-10 pointer-events-none"></div>
 
+          <div className="flex-1 text-center lg:text-left relative z-10">
+            {/* Badge ưu đãi nổi bật */}
+            <div className="inline-flex items-center gap-2 bg-[#fef08a] text-[#881337] border-2 border-white/80 px-3.5 py-1.5 rounded-md text-xs font-black uppercase tracking-wider shadow-md mb-3.5">
+              <Ticket className="w-4 h-4 text-[#991b1b]" />
+              <span>SIÊU ƯU ĐÃI THÀNH VIÊN MỚI</span>
+              <Sparkles className="w-3.5 h-3.5 text-[#b45309]" />
+            </div>
+            
+            {/* Tiêu đề kết hợp phông chữ & màu chữ vàng hoàng kim nổi bật */}
+            <h2 className="text-2xl md:text-3xl lg:text-[36px] font-black tracking-tight text-white leading-tight">
+              GIẢM NGAY <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#fffbeb] via-[#fde047] to-[#fb923c] font-black text-3xl md:text-5xl lg:text-6xl drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]">25%</span> CHO CHUYẾN ĐI ĐẦU TIÊN
+            </h2>
 
-      {/* Featured Destinations */}
-      <section className="bg-[#f8f9fa] py-16">
+            {/* Mô tả & Khung mã Coupon */}
+            <div className="mt-3 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3">
+              <p className="text-[#fef2f2] text-sm md:text-base leading-relaxed font-normal">
+                Nhập mã ưu đãi độc quyền khi thanh toán:
+              </p>
+              <div className="inline-flex items-center gap-2 bg-black/25 backdrop-blur-md px-3.5 py-1 rounded-md border-2 border-dashed border-[#fde047] shadow-inner">
+                <span className="text-[#fde047] font-mono font-black text-sm md:text-base tracking-widest">VIETJOURNEY25</span>
+              </div>
+            </div>
+
+            <p className="text-[#fed7aa] text-xs md:text-sm mt-2 font-medium">
+              * Áp dụng ngay cho mọi homestay sinh thái, tour khám phá và ẩm thực bản địa.
+            </p>
+          </div>
+
+          <div className="w-full lg:w-[440px] shrink-0 relative z-10 flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row items-center p-1.5 bg-white rounded-md shadow-2xl gap-2 sm:gap-0 border-2 border-[#fde047]">
+              <input 
+                type="email" 
+                placeholder="Nhập email để nhận mã giảm giá..." 
+                className="w-full flex-1 px-4 py-3 outline-none text-[#0f172a] font-semibold text-sm rounded-md placeholder:text-gray-400 bg-transparent"
+              />
+              <button className="w-full sm:w-auto bg-[#048c73] hover:bg-[#03725e] text-white px-6 py-3 rounded-md font-black text-sm tracking-wide uppercase shadow-md transition-all active:scale-95 whitespace-nowrap">
+                LẤY MÃ NGAY
+              </button>
+            </div>
+            
+            <div className="flex items-center justify-center lg:justify-start gap-4 text-[#fef08a] text-xs font-bold drop-shadow-sm">
+              <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-[#fde047]" /> Áp dụng tự động</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-[#fde047]"></span>
+              <span className="flex items-center gap-1.5"><Lock className="w-3.5 h-3.5 text-[#fde047]" /> Bảo mật thông tin 100%</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. Featured Destinations (Điểm Đến Tiêu Biểu Theo Mùa) */}
+      <section className="bg-[#f8f9fa] py-14">
         <div className="max-w-[1280px] mx-auto w-full px-4 md:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
-            <div className="flex flex-col items-start gap-3">
-              <Badge className="bg-[#dceff0] text-[#16709a] hover:bg-[#cbe7e8] font-medium px-3 py-1 text-xs uppercase tracking-wider">
-                Hành trình 3 miền đất nước
-              </Badge>
-              <h2 className="text-3xl lg:text-4xl font-bold font-display text-[#0f2d3c]">
+          {/* Header row: Tiêu đề bên trái, Nút khám phá thêm ở góc phải trên */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-5 gap-4">
+            <div>
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold font-display text-[#0f2d3c]">
                 Điểm Đến Tiêu Biểu Theo Mùa
               </h2>
-              <p className="text-[#66716c] text-base">
-                Danh sách biên tập những vùng đất rực rỡ nhất trong tháng này
+              <p className="text-[#66716c] text-sm md:text-base mt-1.5">
+                Danh sách biên tập những vùng đất rực rỡ và giàu bản sắc nhất trong tháng này
               </p>
             </div>
             
-            <div className="flex overflow-x-auto scrollbar-hide w-full md:w-auto items-center gap-2 pb-2 md:pb-0">
-              <button className="shrink-0 whitespace-nowrap px-4 py-1.5 rounded-full border-2 border-[#16709a] text-[#16709a] font-bold text-sm bg-[#ebf6fa] hover:bg-[#dceff0] transition-colors shadow-sm">Tất cả (12)</button>
-              <button className="shrink-0 whitespace-nowrap px-4 py-1.5 rounded-full border border-[#66716c]/30 text-[#4a5568] hover:border-[#16709a] hover:text-[#16709a] font-medium text-sm transition-colors shadow-sm bg-white">Bắc Bộ</button>
-              <button className="shrink-0 whitespace-nowrap px-4 py-1.5 rounded-full border border-[#66716c]/30 text-[#4a5568] hover:border-[#16709a] hover:text-[#16709a] font-medium text-sm transition-colors shadow-sm bg-white">Trung Bộ</button>
-              <button className="shrink-0 whitespace-nowrap px-4 py-1.5 rounded-full border border-[#66716c]/30 text-[#4a5568] hover:border-[#16709a] hover:text-[#16709a] font-medium text-sm transition-colors shadow-sm bg-white">Nam Bộ & Đảo</button>
-            </div>
+            <Link 
+              to="/homestays" 
+              className="text-[#048c73] font-bold text-sm hover:text-[#ea580c] transition-colors flex items-center gap-1 shrink-0"
+            >
+              Khám phá thêm điểm đến <span className="text-base">&rarr;</span>
+            </Link>
           </div>
 
-          <div className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-4 pb-4 md:grid md:grid-cols-2 lg:grid-cols-4 md:gap-6 -mx-4 px-4 md:mx-0 md:px-0">
-            {homeData.featuredDestinations.length > 0 ? (
-              homeData.featuredDestinations.map(dest => (
-              <div key={dest.id} className="bg-white rounded-2xl overflow-hidden border border-[#66716c]/10 shadow-sm hover:shadow-md transition-shadow group flex flex-col w-[85vw] max-w-[320px] shrink-0 snap-center md:w-auto md:max-w-none">
-                <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
-                  <img src={dest.coverImageUrl || "https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?q=80&w=800"} alt={dest.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                  {dest.tagBadge && <Badge className="absolute top-3 left-3 bg-[#3f7656] text-white border-none font-semibold shadow-sm">{dest.tagBadge}</Badge>}
-                  <div className="absolute bottom-3 right-3 bg-[#0f2d3c]/80 backdrop-blur text-white text-[10px] font-bold px-2 py-1 rounded">{dest.statsText}</div>
-                </div>
-                <div className="p-5 flex flex-col flex-1">
-                  <div className="flex items-center gap-1 text-[#66716c] text-xs font-medium mb-2">
-                    <MapPin className="w-3.5 h-3.5" /> {dest.regionName || "Việt Nam"}
-                  </div>
-                  <h3 className="text-xl font-bold text-[#0f2d3c] mb-2 group-hover:text-[#16709a] transition-colors">{dest.name}</h3>
-                  <p className="text-[#66716c] text-sm line-clamp-2 mb-4 flex-1">
-                    {dest.description}
-                  </p>
-                  <div className="flex items-end justify-between pt-4 border-t border-[#66716c]/10 mt-auto">
-                    <div>
-                      <div className="text-[10px] text-[#66716c] mb-0.5">Giá tham khảo chỉ từ</div>
-                      <div className="text-[#16709a] font-bold text-lg leading-none">{dest.priceRefMin?.toLocaleString()}đ</div>
+          {/* Filter theo tỉnh thành đặt xuống dưới tiêu đề */}
+          <div className="flex overflow-x-auto scrollbar-hide w-full items-center gap-2 pb-2 mb-6 -mx-4 px-4 md:mx-0 md:px-0">
+            {PROVINCE_TAGS.map(prov => (
+              <button
+                key={prov}
+                onClick={() => setSelectedProvince(prov)}
+                className={`shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-md font-semibold text-xs transition-all ${
+                  selectedProvince === prov
+                    ? 'bg-[#048c73] text-white shadow-sm border border-[#048c73]'
+                    : 'bg-white border border-[#59766e]/20 text-[#213630] hover:border-[#048c73] hover:text-[#048c73]'
+                }`}
+              >
+                {prov}
+              </button>
+            ))}
+          </div>
+
+          {/* Danh sách điểm đến: Max 6 cái, hiển thị 3 cột trên desktop (2 dòng x 3 cột) */}
+          <div className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-4 pb-4 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-6 -mx-4 px-4 md:mx-0 md:px-0">
+            {filteredDestinations.length > 0 ? (
+              <>
+                {filteredDestinations.map(dest => (
+                  <div 
+                    key={dest.id} 
+                    className="bg-white rounded-lg overflow-hidden border border-[#048c73]/15 shadow-[0_4px_16px_rgba(4,140,115,0.07)] hover:shadow-[0_12px_28px_rgba(4,140,115,0.15)] hover:-translate-y-1 transition-all duration-300 group flex flex-col w-[calc(100vw-32px)] shrink-0 snap-center md:w-auto md:max-w-none"
+                  >
+                    <Link to={`/homestays?destination=${encodeURIComponent(dest.name)}`} className="relative aspect-[4/3] overflow-hidden bg-gray-100 block">
+                      <img 
+                        src={getDestinationImage(dest)} 
+                        alt={dest.name} 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                      />
+                      {dest.tagBadge && (
+                        <span className="absolute top-3 left-3 bg-[#048c73] text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-md">
+                          {dest.tagBadge}
+                        </span>
+                      )}
+                      {dest.statsText && (
+                        <div className="absolute bottom-3 right-3 bg-[#0a2e26]/90 backdrop-blur text-[#fef08a] text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
+                          {dest.statsText}
+                        </div>
+                      )}
+                    </Link>
+                    
+                    <div className="p-4 md:p-5 flex flex-col flex-1">
+                      {/* Đánh giá và Địa điểm cho Điểm đến */}
+                      <div className="flex justify-between items-center mb-1.5 text-xs">
+                        <div className="flex items-center gap-1.5 text-[#048c73] font-semibold">
+                          <MapPin className="w-3.5 h-3.5 text-[#f59e0b]" /> {dest.regionName || "Việt Nam"}
+                        </div>
+                        <div className="flex items-center gap-1 bg-[#fefce8] px-2 py-0.5 rounded border border-[#f59e0b]/30">
+                          <Star className="w-3.5 h-3.5 text-[#f59e0b] fill-[#f59e0b]" />
+                          <span className="font-extrabold text-[#78350f]">{dest.ratingAvg || "4.9"}</span>
+                          <span className="text-[#a16207] text-[10px]">({dest.ratingCount || "128"})</span>
+                        </div>
+                      </div>
+
+                      <Link to={`/homestays?destination=${encodeURIComponent(dest.name)}`}>
+                        <h3 className="text-lg font-bold text-[#0a2e26] mb-1.5 group-hover:text-[#048c73] transition-colors line-clamp-1">{dest.name}</h3>
+                      </Link>
+                      <p className="text-[#59766e] text-xs md:text-sm line-clamp-2 mb-4 flex-1 leading-relaxed">
+                        {dest.description}
+                      </p>
+                      <div className="flex items-end justify-between pt-3 border-t border-[#048c73]/10 mt-auto">
+                        <div>
+                          <div className="text-[10px] text-[#59766e] font-medium mb-0.5">Giá tham khảo chỉ từ</div>
+                          <div className="text-[#048c73] font-black text-base md:text-lg leading-none">
+                            {dest.priceRefMin != null && dest.priceRefMin > 0 ? `${dest.priceRefMin.toLocaleString()}đ` : 'Tham khảo'}
+                          </div>
+                        </div>
+                        <Link to={`/homestays?destination=${encodeURIComponent(dest.name)}`}>
+                          <button className="bg-[#edfbf7] hover:bg-[#048c73] text-[#048c73] hover:text-white text-xs font-bold px-3.5 py-1.5 rounded-md transition-all border border-[#048c73]/30 shadow-xs">
+                            Xem chi tiết
+                          </button>
+                        </Link>
+                      </div>
                     </div>
-                    <button className="bg-[#f8f9fa] hover:bg-[#e6e8eb] text-[#0f2d3c] text-xs font-semibold px-4 py-2 rounded-lg transition-colors">
-                      Xem chi tiết
-                    </button>
                   </div>
-                </div>
-              </div>
-            ))
+                ))}
+                <div className="shrink-0 w-1 md:hidden" aria-hidden="true" />
+              </>
             ) : (
-              <div className="col-span-full py-10 flex flex-col items-center justify-center text-[#66716c] bg-white rounded-2xl border border-dashed border-[#66716c]/20">
+              <div className="col-span-full py-12 flex flex-col items-center justify-center text-[#66716c] bg-white rounded-lg border border-dashed border-[#66716c]/20">
                 <Mountain className="w-10 h-10 text-[#66716c]/30 mb-3" />
-                <p>Chưa có dữ liệu điểm đến nổi bật</p>
+                <p className="font-semibold text-sm">Chưa có dữ liệu điểm đến cho tỉnh {selectedProvince}</p>
+                <button 
+                  onClick={() => setSelectedProvince('Tất cả')}
+                  className="mt-3 text-xs font-bold text-[#048c73] hover:underline"
+                >
+                  Xem tất cả điểm đến &rarr;
+                </button>
               </div>
             )}
           </div>
         </div>
       </section>
 
-      {/* Homestay Section */}
-      <section className="max-w-[1280px] mx-auto w-full px-4 md:px-8 py-16">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-4">
-          <div className="flex flex-col items-start gap-3">
-            <Badge className="bg-[#daf0e2] text-[#2e7d5b] hover:bg-[#c1e6cf] font-medium px-3 py-1 text-xs uppercase tracking-wider">
-              Không gian sống xanh & bảo tồn văn hóa
-            </Badge>
-            <h2 className="text-3xl lg:text-4xl font-bold font-display text-[#0f2d3c]">
+      {/* 4. Homestay Bản Địa & Chốn Nghỉ Bình Yên */}
+      <section className="max-w-[1280px] mx-auto w-full px-4 md:px-8 py-14">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
+          <div>
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold font-display text-[#0a2e26]">
               Homestay Bản Địa & Chốn Nghỉ Bình Yên
             </h2>
-            <p className="text-[#66716c] text-base max-w-2xl">
-              Trải nghiệm sống cùng người dân địa phương, tôn trọng tự nhiên và tìm lại sự cân bằng trong tâm hồn
+            <p className="text-[#59766e] text-sm md:text-base mt-1.5 max-w-2xl">
+              Trải nghiệm không gian sống mộc mạc cùng người dân địa phương, tôn trọng tự nhiên và tìm lại sự cân bằng
             </p>
           </div>
-          <a href="#" className="text-[#16709a] font-semibold text-sm hover:underline flex items-center gap-1">
-            Xem tất cả Homestay bản địa <span className="text-lg leading-none">&rarr;</span>
-          </a>
+          <Link to="/homestays" className="text-[#048c73] font-bold text-sm hover:text-[#ea580c] transition-colors flex items-center gap-1 shrink-0">
+            Xem tất cả Homestay bản địa <span className="text-base">&rarr;</span>
+          </Link>
         </div>
 
-        <div className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-4 pb-4 md:grid md:grid-cols-3 md:gap-8 -mx-4 px-4 md:mx-0 md:px-0">
-          {homeData.homestays.length > 0 ? (
-            homeData.homestays.map(hs => (
-            <div key={hs.id} className="bg-white rounded-[20px] overflow-hidden shadow-sm hover:shadow-md transition-all border border-[#66716c]/10 flex flex-col group w-[85vw] max-w-[320px] shrink-0 snap-center md:w-auto md:max-w-none">
-              <div className="relative aspect-[4/3] bg-[#f8f9fa] overflow-hidden">
-                <img src={hs.coverImageUrl || "https://images.unsplash.com/photo-1542718610-a1d656d1884c?q=80"} alt={hs.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                <div className="absolute top-4 left-4">
-                  {hs.tagBadge && (
-                    <Badge className="bg-[#2e7d5b]/90 backdrop-blur text-white hover:bg-[#2e7d5b] border-none shadow-sm flex items-center gap-1">
-                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                      {hs.tagBadge}
-                    </Badge>
-                  )}
-                </div>
-                <div className="absolute top-4 right-4">
-                  <button className="w-8 h-8 rounded-full bg-white/90 backdrop-blur flex items-center justify-center shadow-sm hover:bg-white text-[#66716c] hover:text-[#d04648] transition-colors">
-                    <Heart className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-              <div className="p-5 flex flex-col flex-1">
-                <div className="flex justify-between items-start mb-2">
-                  <div className="flex items-center gap-1.5 text-[#66716c] text-[11px] font-medium">
-                    <MapPin className="w-3.5 h-3.5" /> {hs.regionName}
-                  </div>
-                  <div className="flex items-center gap-1 text-[11px] text-[#66716c]">
-                    <Star className="w-3.5 h-3.5 text-[#e5a33d] fill-[#e5a33d]" />
-                    <span className="font-bold text-[#0f2d3c]">{hs.ratingAvg || "4.5"}</span> ({hs.ratingCount || "0"})
-                  </div>
-                </div>
-                <h3 className="font-bold text-[#0f2d3c] text-[19px] leading-tight mb-2 group-hover:text-[#16709a] transition-colors">{hs.name}</h3>
-                <p className="text-[#66716c] text-[13px] line-clamp-2 mb-4 flex-1">
-                  {hs.description}
-                </p>
-                
-                <div className="flex flex-wrap gap-2 mb-5">
-                  {hs.amenities?.map((amenity, idx) => (
-                    <span key={idx} className="bg-[#f8f9fa] text-[#66716c] text-[10px] px-2 py-1 rounded flex items-center gap-1">
-                      <Check className="w-3 h-3" />
-                      {amenity}
-                    </span>
-                  ))}
-                </div>
+        {/* Lưới Homestay: Max 8 cái, hiển thị 4 cột mỗi dòng trên desktop (2 dòng x 4 cột) */}
+        <div className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-4 pb-4 md:grid md:grid-cols-2 lg:grid-cols-4 md:gap-6 -mx-4 px-4 md:mx-0 md:px-0">
+          {displayedHomestays.length > 0 ? (
+            <>
+              {displayedHomestays.map((hs, idx) => (
+                <div 
+                  key={hs.id} 
+                  className="bg-white rounded-lg overflow-hidden shadow-[0_4px_16px_rgba(4,140,115,0.07)] hover:shadow-[0_12px_28px_rgba(4,140,115,0.15)] hover:-translate-y-1 transition-all duration-300 border border-[#048c73]/15 flex flex-col group w-[calc(100vw-32px)] shrink-0 snap-center md:w-auto md:max-w-none"
+                >
+                  <Link to={`/homestays/${hs.id}`} className="relative aspect-[4/3] bg-[#f8f9fa] overflow-hidden block">
+                    <img 
+                      src={getHomestayImage(hs, idx)} 
+                      alt={hs.name} 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                    />
+                    {hs.tagBadge && (
+                      <div className="absolute top-3 left-3">
+                        <span className="bg-[#048c73]/95 backdrop-blur text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-md flex items-center gap-1">
+                          <Check className="w-3 h-3 text-[#7ef2dd]" />
+                          {hs.tagBadge}
+                        </span>
+                      </div>
+                    )}
+                    <div className="absolute top-3 right-3">
+                      <button 
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                        className="w-8 h-8 rounded-md bg-white/90 backdrop-blur flex items-center justify-center shadow-sm hover:bg-white text-[#59766e] hover:text-[#e05252] transition-colors"
+                      >
+                        <Heart className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </Link>
 
-                <div className="flex items-end justify-between pt-4 border-t border-[#66716c]/10">
-                  <div>
-                    <div className="text-[10px] text-[#66716c] mb-0.5">Giá mỗi đêm</div>
-                    <div className="text-[#16709a] font-bold text-[19px] leading-none">{hs.priceRefMin?.toLocaleString()}đ<span className="text-xs text-[#66716c] font-normal"> / phòng</span></div>
+                  <div className="p-4 md:p-5 flex flex-col flex-1">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex items-center gap-1 text-[#048c73] text-[11px] font-semibold">
+                        <MapPin className="w-3.5 h-3.5 text-[#f59e0b]" /> {hs.regionName}
+                      </div>
+                      <div className="flex items-center gap-1 text-xs bg-[#fefce8] px-2 py-0.5 rounded border border-[#f59e0b]/30">
+                        <Star className="w-3.5 h-3.5 text-[#f59e0b] fill-[#f59e0b]" />
+                        <span className="font-extrabold text-[#78350f]">{hs.ratingAvg || "4.8"}</span>
+                        <span className="text-[#a16207] text-[10px]">({hs.ratingCount || "0"})</span>
+                      </div>
+                    </div>
+
+                    <Link to={`/homestays/${hs.id}`}>
+                      <h3 className="font-bold text-[#0a2e26] text-lg leading-snug mb-1.5 group-hover:text-[#048c73] transition-colors line-clamp-1">{hs.name}</h3>
+                    </Link>
+                    <p className="text-[#59766e] text-xs md:text-sm line-clamp-2 mb-3.5 flex-1 leading-relaxed">
+                      {hs.description}
+                    </p>
+                    
+                    <div className="flex flex-wrap gap-1.5 mb-4">
+                      {hs.amenities?.slice(0, 3).map((amenity, aIdx) => (
+                        <span key={aIdx} className="bg-[#edfbf7] text-[#048c73] text-[10px] font-semibold px-2 py-0.5 rounded-md flex items-center gap-1 border border-[#048c73]/15">
+                          <Check className="w-2.5 h-2.5 text-[#10b981]" />
+                          {amenity}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="flex items-end justify-between pt-3 border-t border-[#048c73]/10 mt-auto">
+                      <div>
+                        <div className="text-[10px] text-[#59766e] font-medium mb-0.5">Giá mỗi đêm</div>
+                        {hs.priceRefMin != null && hs.priceRefMin > 0 ? (
+                          <div className="text-[#048c73] font-black text-lg leading-none">
+                            {hs.priceRefMin.toLocaleString()}đ<span className="text-xs text-[#59766e] font-normal"> / phòng</span>
+                          </div>
+                        ) : (
+                          <div className="text-[#048c73] font-bold text-base leading-none">Tham khảo</div>
+                        )}
+                      </div>
+                      {/* Nút CTA Cam San Hô rực rỡ nhiệt đới có link tới Homestay Detail */}
+                      <Link to={`/homestays/${hs.id}`}>
+                        <button className="bg-gradient-to-r from-[#f97316] to-[#ea580c] hover:from-[#ea580c] hover:to-[#c2410c] text-white rounded-md px-4 py-2 font-black text-xs shadow-sm shadow-orange-500/25 transition-all active:scale-95">
+                          Xem phòng
+                        </button>
+                      </Link>
+                    </div>
                   </div>
-                  <button className="bg-[#16709a] text-white rounded-lg hover:bg-[#125a7a] px-5 py-2 font-bold text-xs shadow-sm transition-colors">Xem phòng</button>
                 </div>
-              </div>
-            </div>
-          ))) : (
-            <div className="col-span-full py-12 flex flex-col items-center justify-center text-[#66716c] bg-white rounded-2xl border border-dashed border-[#66716c]/20">
-              <Tent className="w-12 h-12 text-[#66716c]/30 mb-4" />
+              ))}
+              <div className="shrink-0 w-1 md:hidden" aria-hidden="true" />
+            </>
+          ) : (
+            <div className="col-span-full py-10 flex flex-col items-center justify-center text-[#59766e] bg-white rounded-lg border border-dashed border-[#59766e]/20">
+              <Tent className="w-10 h-10 text-[#59766e]/30 mb-3" />
               <p className="font-medium">Chưa có homestay bản địa nào</p>
             </div>
           )}
         </div>
       </section>
 
-      {/* Tours Section */}
-      <section className="bg-[#f8f9fa] py-16 border-t border-[#66716c]/10">
+      {/* 5. MỚI: Đặc Sản Nổi Tiếng */}
+      <section className="bg-gradient-to-b from-[#edfbf7]/80 via-[#f6faf8] to-[#edfbf7]/50 py-14 border-t border-[#048c73]/10">
         <div className="max-w-[1280px] mx-auto w-full px-4 md:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
-            <div className="flex flex-col items-start gap-3">
-              <Badge className="bg-[#f8ebd0] text-[#c28a33] hover:bg-[#f3e1ba] font-medium px-3 py-1 text-xs uppercase tracking-wider">
-                Trải nghiệm độc quyền
-              </Badge>
-              <h2 className="text-3xl lg:text-4xl font-bold font-display text-[#0f2d3c]">
-                Dịch Vụ & Tour Nổi Bật
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
+            <div>
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold font-display text-[#0a2e26]">
+                Đặc Sản Nổi Tiếng
               </h2>
-              <p className="text-[#66716c] text-base">
-                Các gói hành trình được thiết kế tỉ mỉ, trọn gói tiện ích và đảm bảo trải nghiệm cao cấp
+              <p className="text-[#59766e] text-sm md:text-base mt-1.5">
+                Thức quà ẩm thực trứ danh và tinh hoa làng nghề truyền thống ba miền đất nước
               </p>
             </div>
             
-            <div className="flex overflow-x-auto scrollbar-hide w-full md:w-auto items-center gap-2 pb-2 md:pb-0">
-              <button className="shrink-0 whitespace-nowrap px-4 py-1.5 rounded-full border-2 border-[#16709a] text-[#16709a] font-bold text-sm bg-[#ebf6fa] hover:bg-[#dceff0] transition-colors shadow-sm">Tour trọn gói</button>
-              <button className="shrink-0 whitespace-nowrap px-4 py-1.5 rounded-full border border-[#66716c]/30 text-[#4a5568] hover:border-[#16709a] hover:text-[#16709a] font-medium text-sm transition-colors shadow-sm bg-white">Bán chạy nhất</button>
-              <button className="shrink-0 whitespace-nowrap px-4 py-1.5 rounded-full border border-[#66716c]/30 text-[#4a5568] hover:border-[#16709a] hover:text-[#16709a] font-medium text-sm transition-colors shadow-sm bg-white">Ưu đãi mùa thu</button>
-            </div>
+            <Link to="/food" className="text-[#048c73] font-bold text-sm hover:text-[#ea580c] transition-colors flex items-center gap-1 shrink-0">
+              Khám phá thêm thức quà <span className="text-base">&rarr;</span>
+            </Link>
           </div>
 
+          {/* Phần lướt: Tự động căn trái phải vừa khít 1 thẻ thông tin trên responsive, desktop hiển thị lưới cố định */}
           <div className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-4 pb-4 md:grid md:grid-cols-2 lg:grid-cols-4 md:gap-6 -mx-4 px-4 md:mx-0 md:px-0">
-            {homeData.featuredTours.length > 0 ? (
-              homeData.featuredTours.map(tour => (
-              <div key={tour.id} className="bg-white rounded-2xl overflow-hidden border border-[#66716c]/10 shadow-sm hover:shadow-md transition-shadow group flex flex-col w-[85vw] max-w-[320px] shrink-0 snap-center md:w-auto md:max-w-none">
-                <div className="relative aspect-[4/3] overflow-hidden">
-                  <img src={tour.coverImageUrl || "https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?q=80"} alt={tour.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                  {tour.tagBadge && <Badge className="absolute top-3 left-3 bg-[#d04648] text-white border-none font-semibold shadow-sm">{tour.tagBadge}</Badge>}
-                  <div className="absolute bottom-3 right-3 bg-[#0f2d3c]/80 backdrop-blur text-white text-[10px] font-bold px-2 py-1 rounded">{tour.durationText}</div>
-                </div>
-                <div className="p-5 flex flex-col flex-1">
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex items-center gap-1 text-[11px] text-[#66716c]">
-                      <Star className="w-3.5 h-3.5 text-[#e5a33d] fill-[#e5a33d]" />
-                      <span className="font-bold text-[#0f2d3c]">{tour.ratingAvg || "4.8"}</span> ({tour.ratingCount || "0"})
+            {displayedSpecialties.map(item => (
+              <div 
+                key={item.id} 
+                className="bg-white rounded-lg overflow-hidden border border-[#048c73]/15 shadow-[0_4px_16px_rgba(4,140,115,0.07)] hover:shadow-[0_12px_28px_rgba(4,140,115,0.15)] hover:-translate-y-1 transition-all duration-300 group flex flex-col w-[calc(100vw-32px)] shrink-0 snap-center md:w-auto md:max-w-none"
+              >
+                <Link to="/food" className="relative aspect-[4/3] overflow-hidden bg-gray-100 block">
+                  <img 
+                    src={item.coverImageUrl || 'https://images.unsplash.com/photo-1542159040-3b03f0b2f059?q=80'} 
+                    alt={item.name} 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                  />
+                  {item.tagBadge && (
+                    <span className="absolute top-3 left-3 bg-[#048c73] text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-md">
+                      {item.tagBadge}
+                    </span>
+                  )}
+                  <span className="absolute bottom-3 right-3 bg-[#0a2e26]/90 backdrop-blur text-[#fef08a] text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
+                    {'Đặc sản địa phương'}
+                  </span>
+                </Link>
+
+                <div className="p-4 md:p-5 flex flex-col flex-1">
+                  <div className="flex justify-between items-center mb-1.5 text-xs">
+                    <div className="flex items-center gap-1 font-semibold text-[#048c73]">
+                      <MapPin className="w-3.5 h-3.5 text-[#f59e0b]" /> {item.regionName}
                     </div>
-                    <div className="flex items-center gap-1.5 text-[#66716c] text-[11px] font-medium">
-                      {tour.regionName} <MapPin className="w-3.5 h-3.5" />
+                    <div className="flex items-center gap-1 bg-[#fefce8] px-2 py-0.5 rounded border border-[#f59e0b]/30">
+                      <Star className="w-3.5 h-3.5 text-[#f59e0b] fill-[#f59e0b]" />
+                      <span className="font-extrabold text-[#78350f]">{item.ratingAvg}</span>
+                      <span className="text-[#a16207] text-[10px]">({item.ratingCount})</span>
                     </div>
-                  </div>
-                  <h3 className="text-[17px] font-bold text-[#0f2d3c] leading-tight mb-3 group-hover:text-[#16709a] transition-colors">{tour.name}</h3>
-                  
-                  <div className="flex flex-col gap-1.5 mb-5 text-[12px] text-[#66716c] font-medium flex-1">
-                    {tour.highlights?.map((hl, idx) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <Check className="w-3.5 h-3.5 text-[#3f7656]" /> {hl}
-                      </div>
-                    ))}
                   </div>
 
-                  <div className="flex items-end justify-between pt-4 border-t border-[#66716c]/10 mb-4">
+                  <Link to="/food">
+                    <h3 className="text-lg font-bold text-[#0a2e26] mb-1.5 group-hover:text-[#048c73] transition-colors line-clamp-1">
+                      {item.name}
+                    </h3>
+                  </Link>
+                  <p className="text-[#59766e] text-xs md:text-sm line-clamp-2 mb-4 flex-1 leading-relaxed">
+                    {item.description}
+                  </p>
+
+                  <div className="flex items-end justify-between pt-3 border-t border-[#048c73]/10 mt-auto">
                     <div>
-                      {tour.tagBadge === "Khuyến mãi" && <div className="text-[11px] text-[#66716c] line-through decoration-[#d04648]/50 mb-0.5">{(tour.priceRefMin * 1.2).toLocaleString()}đ</div>}
-                      <div className="text-[#16709a] font-bold text-xl leading-none">{tour.priceRefMin?.toLocaleString()}đ</div>
+                      <div className="text-[10px] text-[#59766e] font-medium mb-0.5">Giá tham khảo</div>
+                      <div className="text-[#048c73] font-black text-base md:text-lg leading-none">
+                        {item.priceRefMin != null && item.priceRefMin > 0 
+                          ? `${item.priceRefMin.toLocaleString()}đ${item.priceUnitNote ? ` ${item.priceUnitNote}` : ''}`
+                            : 'Tham khảo'}
+                        </div>
                     </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button className="flex-1 bg-white border border-[#16709a] text-[#16709a] hover:bg-[#dceff0] rounded-lg px-4 py-2 font-bold text-xs shadow-sm transition-colors text-center">Lịch trình</button>
-                    <button className="flex-1 bg-[#16709a] text-white rounded-lg hover:bg-[#125a7a] px-4 py-2 font-bold text-xs shadow-sm transition-colors text-center">Đặt ngay</button>
+                    <Link to="/food">
+                      <button className="bg-[#edfbf7] hover:bg-[#048c73] hover:text-white text-[#048c73] text-xs font-bold px-3.5 py-1.5 rounded-md transition-all border border-[#048c73]/30 shadow-xs">
+                        Chi tiết
+                      </button>
+                    </Link>
                   </div>
                 </div>
               </div>
-            ))
-            ) : (
-              <div className="col-span-full py-10 flex flex-col items-center justify-center text-[#66716c] bg-white rounded-2xl border border-dashed border-[#66716c]/20">
-                <Sailboat className="w-10 h-10 text-[#66716c]/30 mb-3" />
-                <p>Chưa có tour trải nghiệm nào</p>
-              </div>
-            )}
+            ))}
+            <div className="shrink-0 w-1 md:hidden" aria-hidden="true" />
           </div>
         </div>
       </section>
-      {/* Culture & Heritage Section - Tổng hợp câu chuyện của 3 miền, tự động cuộn ngang và kéo chuột */}
-      <section className="max-w-[1280px] mx-auto w-full px-4 md:px-8 py-16">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
-          <div className="flex flex-col items-start gap-3">
-            <Badge className="bg-[#fce5e6] text-[#d04648] hover:bg-[#f6cdcf] font-medium px-3 py-1 text-xs uppercase tracking-wider">
-              Chuyện người bản địa
-            </Badge>
-            <h2 className="text-3xl lg:text-4xl font-bold font-display text-[#0f2d3c]">
-              Hương Vị & Văn Hóa Xứ Sở — Câu Chuyện 3 Miền
+
+      {/* 6. Cam Kết Giá Trị Từ VietJourney: 4 ô với 4 sắc thái Eco Tropical Glow sống động */}
+      <section className="bg-white py-14 border-t border-[#048c73]/10">
+        <div className="max-w-[1280px] mx-auto w-full px-4 md:px-8">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl md:text-3xl font-bold font-display text-[#0a2e26]">
+              Cam Kết Giá Trị Từ VietJourney
             </h2>
-            <p className="text-[#66716c] text-base">
-              Lắng nghe những lát cắt mộc mạc và câu chuyện truyền cảm hứng từ Bắc, Trung đến Nam
+            <p className="text-[#59766e] text-sm md:text-base mt-1.5">
+              Đồng hành trọn vẹn vì một hành trình du lịch bền vững và đáng tin cậy
             </p>
           </div>
-
-          <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
-            {/* Bộ lọc vùng miền */}
-            <div className="flex overflow-x-auto scrollbar-hide w-full md:w-auto items-center gap-2 pb-2 md:pb-0">
-              {(['Tất cả', 'Bắc', 'Trung', 'Nam'] as const).map((region) => (
-                <button
-                  key={region}
-                  onClick={() => setSelectedRegion(region)}
-                  className={`shrink-0 whitespace-nowrap px-4 py-1.5 rounded-full font-medium text-sm transition-colors shadow-sm ${
-                    selectedRegion === region
-                      ? 'border-2 border-[#16709a] text-[#16709a] font-bold bg-[#ebf6fa] hover:bg-[#dceff0]'
-                      : 'border border-[#66716c]/30 text-[#4a5568] hover:border-[#16709a] hover:text-[#16709a] bg-white'
-                  }`}
-                >
-                  {region === 'Tất cả' ? 'Tất cả 3 Miền' : `Miền ${region}`}
-                </button>
-              ))}
-            </div>
-
-            {/* Nút cuộn thủ công */}
-            <div className="hidden sm:flex items-center gap-2">
-              <button
-                onClick={scrollPrev}
-                aria-label="Cuộn sang trái"
-                className="w-9 h-9 rounded-full bg-white border border-[#66716c]/20 hover:border-[#16709a] text-[#0f2d3c] hover:text-[#16709a] flex items-center justify-center shadow-sm transition-all"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button
-                onClick={scrollNext}
-                aria-label="Cuộn sang phải"
-                className="w-9 h-9 rounded-full bg-white border border-[#66716c]/20 hover:border-[#16709a] text-[#0f2d3c] hover:text-[#16709a] flex items-center justify-center shadow-sm transition-all"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Carousel Container: Hỗ trợ tự động cuộn ngang + Người dùng tự bấm giữ kéo chuột / vuốt tay */}
-        <div 
-          ref={scrollRef}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseLeave}
-          onMouseEnter={() => setIsHovered(true)}
-          className={`flex gap-6 overflow-x-auto snap-x snap-mandatory scrollbar-hide py-2 px-4 -mx-4 md:mx-0 md:px-0 select-none ${
-            isDragging ? 'cursor-grabbing' : 'cursor-grab'
-          }`}
-          style={{ scrollBehavior: isDragging ? 'auto' : 'smooth' }}
-        >
-          {filteredStories.map((story) => (
-            <div
-              key={story.id}
-              className="w-[85vw] max-w-[320px] md:max-w-none shrink-0 snap-center md:w-[380px] bg-white rounded-2xl overflow-hidden border border-[#66716c]/10 shadow-sm hover:shadow-lg transition-all duration-300 group flex flex-col"
-            >
-              <div className="relative aspect-[16/10] overflow-hidden bg-[#e8eaf6]">
-                <img
-                  src={story.image}
-                  alt={story.title}
-                  draggable={false}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none"
-                />
-                <div className="absolute top-3 left-3 flex items-center gap-2">
-                  <Badge className={`${story.tagColor} border-none font-bold text-xs shadow-sm px-2.5 py-0.5`}>
-                    Miền {story.region}
-                  </Badge>
-                  <span className="bg-[#0f2d3c]/75 backdrop-blur-sm text-white text-[10px] font-semibold px-2 py-0.5 rounded">
-                    {story.category}
-                  </span>
-                </div>
-              </div>
-
-              <div className="p-6 flex flex-col flex-1 justify-between">
-                <div>
-                  <div className="flex items-center gap-2 text-xs text-[#66716c] font-medium mb-3">
-                    <span className="text-[#16709a] font-bold">{story.author}</span>
-                    <span className="w-1 h-1 rounded-full bg-[#66716c]/30"></span>
-                    <span>{story.date}</span>
-                    <span className="w-1 h-1 rounded-full bg-[#66716c]/30"></span>
-                    <span>{story.readTime}</span>
-                  </div>
-                  <h3 className="text-lg font-bold text-[#0f2d3c] leading-snug mb-3 group-hover:text-[#16709a] transition-colors line-clamp-2">
-                    {story.title}
-                  </h3>
-                  <p className="text-[#66716c] text-sm leading-relaxed line-clamp-3 mb-4">
-                    {story.excerpt}
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-between pt-4 border-t border-[#66716c]/10 mt-auto">
-                  <span className="text-xs font-semibold text-[#16709a] group-hover:underline flex items-center gap-1">
-                    Đọc câu chuyện <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-                  </span>
-                  <span className="text-[11px] text-[#66716c]/80 italic">Kéo để xem tiếp &rarr;</span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Thanh trạng thái tương tác */}
-        <div className="flex items-center justify-center gap-2 mt-6">
-          <span className="text-xs text-[#66716c] flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-[#2e7d5b] animate-pulse"></span>
-            Tự động cuộn &bull; Bấm giữ kéo hoặc vuốt tay sang 3 miền
-          </span>
-        </div>
-      </section>
-
-      {/* Values Section */}
-      <section className="bg-[#f8f9fa] py-16 border-t border-[#66716c]/10">
-        <div className="max-w-[1280px] mx-auto w-full px-4 md:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold font-display text-[#0f2d3c]">Cam Kết Giá Trị Từ VietJourney</h2>
-          </div>
           
-          <div className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-4 pb-4 md:grid md:grid-cols-2 lg:grid-cols-4 md:gap-8 -mx-4 px-4 md:mx-0 md:px-0">
-            {/* Value 1 */}
-            <div className="flex flex-col items-center text-center w-[75vw] max-w-[280px] shrink-0 snap-center md:w-auto md:max-w-none">
-              <div className="w-16 h-16 rounded-full bg-[#dceff0] flex items-center justify-center mb-6">
-                <Handshake className="w-8 h-8 text-[#16709a]" />
+          {/* LƯỚI CỐ ĐỊNH: 2 DÒNG MỖI DÒNG 2 Ô - 4 SẮC THÁI ECO TROPICAL GLOW */}
+          <div className="grid grid-cols-2 gap-4 md:gap-6 lg:gap-8 max-w-4xl mx-auto">
+            {/* Value 1: Biển Trời Xanh Ngọc (Teal) */}
+            <div className="flex flex-col items-center text-center p-5 md:p-6 bg-gradient-to-br from-[#edfbf7] to-white rounded-lg border border-[#048c73]/25 shadow-sm hover:border-[#048c73]/50 hover:shadow-md transition-all">
+              <div className="w-12 h-12 md:w-14 md:h-14 rounded-md bg-[#048c73] flex items-center justify-center mb-3.5 text-white shadow-md shadow-teal-700/20">
+                <Handshake className="w-6 h-6 md:w-7 md:h-7" />
               </div>
-              <h3 className="font-bold text-[#0f2d3c] text-lg mb-3">Trải Nghiệm Bản Địa</h3>
-              <p className="text-[#66716c] text-sm">Hợp tác trực tiếp cùng người dân địa phương, đảm bảo tính chân thực và phát triển kinh tế vùng.</p>
-            </div>
-            
-            {/* Value 2 */}
-            <div className="flex flex-col items-center text-center w-[75vw] max-w-[280px] shrink-0 snap-center md:w-auto md:max-w-none">
-              <div className="w-16 h-16 rounded-full bg-[#f8ebd0] flex items-center justify-center mb-6">
-                <Tag className="w-8 h-8 text-[#c28a33]" />
-              </div>
-              <h3 className="font-bold text-[#0f2d3c] text-lg mb-3">Giá Niêm Yết Minh Bạch</h3>
-              <p className="text-[#66716c] text-sm">Không phí ẩn, cam kết đúng giá trị thực cho từng dịch vụ và trải nghiệm.</p>
-            </div>
-
-            {/* Value 3 */}
-            <div className="flex flex-col items-center text-center w-[75vw] max-w-[280px] shrink-0 snap-center md:w-auto md:max-w-none">
-              <div className="w-16 h-16 rounded-full bg-[#fce5e6] flex items-center justify-center mb-6">
-                <Headphones className="w-8 h-8 text-[#d04648]" />
-              </div>
-              <h3 className="font-bold text-[#0f2d3c] text-lg mb-3">Đồng Hành 24/7</h3>
-              <p className="text-[#66716c] text-sm">Đội ngũ hỗ trợ địa phương luôn sẵn sàng giải quyết mọi vấn đề phát sinh xuyên suốt hành trình.</p>
-            </div>
-
-            {/* Value 4 */}
-            <div className="flex flex-col items-center text-center w-[75vw] max-w-[280px] shrink-0 snap-center md:w-auto md:max-w-none">
-              <div className="w-16 h-16 rounded-full bg-[#daf0e2] flex items-center justify-center mb-6">
-                <ShieldCheck className="w-8 h-8 text-[#2e7d5b]" />
-              </div>
-              <h3 className="font-bold text-[#0f2d3c] text-lg mb-3">Linh Hoạt & Bảo Hiểm</h3>
-              <p className="text-[#66716c] text-sm">Chính sách hoàn hủy linh hoạt, tặng kèm bảo hiểm du lịch 100% cho mọi chuyến đi.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Newsletter CTA Section */}
-      <section className="py-16">
-        <div className="max-w-[1280px] mx-auto w-full px-4 md:px-8">
-          <div className="bg-gradient-to-br from-[#0d617e] to-[#264734] rounded-xl p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden">
-            {/* Background patterns */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-20 -mt-20 blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 w-40 h-40 bg-white/5 rounded-full -ml-10 -mb-10 blur-2xl"></div>
-            
-            <div className="flex-1 relative z-10 text-center md:text-left max-w-xl">
-              <Badge className="bg-white/10 hover:bg-white/20 text-white/90 border-none rounded-full px-3 py-1 text-xs font-medium mb-4 flex items-center gap-1.5 w-fit mx-auto md:mx-0">
-                <Ticket className="w-3.5 h-3.5" /> Mã ưu đãi độc quyền thành viên
-              </Badge>
-              <h2 className="text-3xl md:text-4xl font-bold font-display text-white mb-4 leading-tight">
-                Nhận Ngay Voucher Giảm 25%<br className="hidden md:block" /> Cho Chuyến Đi Đầu Tiên
-              </h2>
-              <p className="text-white/80 text-sm md:text-base leading-relaxed">
-                Đăng ký nhận bản tin định kỳ để không bỏ lỡ các ưu đãi mùa lúa, mùa hoa tam giác mạch và cẩm nang hành trình bản địa tuyển chọn.
+              <h3 className="font-bold text-[#0a2e26] text-sm md:text-base mb-1.5">Trải Nghiệm Bản Địa</h3>
+              <p className="text-[#59766e] text-xs md:text-sm leading-relaxed">
+                Hợp tác trực tiếp cùng người dân địa phương, đảm bảo tính chân thực và phát triển kinh tế vùng bền vững.
               </p>
             </div>
             
-            <div className="w-full md:w-[440px] shrink-0 relative z-10 flex flex-col">
-              <div className="flex flex-col sm:flex-row items-center p-1.5 bg-white rounded-2xl sm:rounded-full shadow-xl mb-3 gap-2 sm:gap-0 border border-white/30 transition-all focus-within:ring-2 focus-within:ring-[#e5a33d]">
-                <input 
-                  type="email" 
-                  placeholder="Nhập email của bạn..." 
-                  className="w-full flex-1 min-w-0 px-4 sm:px-5 py-3 outline-none text-[#0f2d3c] text-sm rounded-xl sm:rounded-full placeholder:text-[#66716c] bg-transparent"
-                />
-                <button className="w-full sm:w-auto bg-[#9e6d23] hover:bg-[#7a5316] text-white px-6 py-3 rounded-xl sm:rounded-full font-bold text-sm shadow-md transition-all whitespace-nowrap shrink-0 flex items-center justify-center">
-                  Nhận Mã Giảm
-                </button>
+            {/* Value 2: Nắng Vàng Nhiệt Đới (Golden Amber) */}
+            <div className="flex flex-col items-center text-center p-5 md:p-6 bg-gradient-to-br from-[#fefce8] to-white rounded-lg border border-[#f59e0b]/30 shadow-sm hover:border-[#f59e0b]/60 hover:shadow-md transition-all">
+              <div className="w-12 h-12 md:w-14 md:h-14 rounded-md bg-[#f59e0b] flex items-center justify-center mb-3.5 text-white shadow-md shadow-amber-600/25">
+                <Tag className="w-6 h-6 md:w-7 md:h-7" />
               </div>
-              
-              <div className="flex flex-col gap-2 text-left">
-                <p className="text-white/70 text-[11px]">
-                  * Ưu đãi áp dụng tự động cho đơn tour hoặc phòng homestay đầu tiên.
-                </p>
-                <div className="flex items-center gap-3 text-white/70 text-[11px]">
-                  <span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> Cam kết không spam</span>
-                  <span className="w-1 h-1 rounded-full bg-white/40"></span>
-                  <span className="flex items-center gap-1"><Lock className="w-3.5 h-3.5" /> Bảo mật dữ liệu</span>
-                </div>
+              <h3 className="font-bold text-[#78350f] text-sm md:text-base mb-1.5">Giá Niêm Yết Minh Bạch</h3>
+              <p className="text-[#78350f]/80 text-xs md:text-sm leading-relaxed">
+                Không phụ phí ẩn, cam kết đúng giá trị thực cho từng dịch vụ lưu trú và trải nghiệm văn hóa.
+              </p>
+            </div>
+
+            {/* Value 3: Cam San Hô Ấm Áp (Tropical Coral) */}
+            <div className="flex flex-col items-center text-center p-5 md:p-6 bg-gradient-to-br from-[#fff7ed] to-white rounded-lg border border-[#f97316]/30 shadow-sm hover:border-[#f97316]/60 hover:shadow-md transition-all">
+              <div className="w-12 h-12 md:w-14 md:h-14 rounded-md bg-[#ea580c] flex items-center justify-center mb-3.5 text-white shadow-md shadow-orange-600/25">
+                <Headphones className="w-6 h-6 md:w-7 md:h-7" />
               </div>
+              <h3 className="font-bold text-[#7c2d12] text-sm md:text-base mb-1.5">Đồng Hành 24/7</h3>
+              <p className="text-[#7c2d12]/80 text-xs md:text-sm leading-relaxed">
+                Đội ngũ hỗ trợ địa phương luôn sẵn sàng giải đáp thắc mắc và hỗ trợ kịp thời xuyên suốt chuyến đi.
+              </p>
+            </div>
+
+            {/* Value 4: Rừng Ngọc Bích Sinh Thái (Emerald Green) */}
+            <div className="flex flex-col items-center text-center p-5 md:p-6 bg-gradient-to-br from-[#f0fdf4] to-white rounded-lg border border-[#10b981]/30 shadow-sm hover:border-[#10b981]/60 hover:shadow-md transition-all">
+              <div className="w-12 h-12 md:w-14 md:h-14 rounded-md bg-[#10b981] flex items-center justify-center mb-3.5 text-white shadow-md shadow-emerald-600/25">
+                <ShieldCheck className="w-6 h-6 md:w-7 md:h-7" />
+              </div>
+              <h3 className="font-bold text-[#064e3b] text-sm md:text-base mb-1.5">Linh Hoạt & Bảo Hiểm</h3>
+              <p className="text-[#064e3b]/80 text-xs md:text-sm leading-relaxed">
+                Chính sách hoàn hủy linh hoạt, tích hợp bảo hiểm du lịch mang đến sự an tâm tuyệt đối cho bạn.
+              </p>
             </div>
           </div>
         </div>

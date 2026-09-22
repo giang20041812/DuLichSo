@@ -10,16 +10,16 @@ const badgeVariants = cva(
         default:
           "border-transparent bg-[var(--color-primary)] text-white",
         secondary:
-          "border-transparent bg-[var(--color-secondary)] text-white",
+          "border-transparent bg-[var(--color-secondary)] text-[var(--color-ink-deep)]",
         accent:
           "border-transparent bg-[var(--color-accent)] text-[var(--color-ink-deep)]",
         outline: "text-[var(--color-ink)] border-[var(--color-muted)]",
         danger:
           "border-transparent bg-[var(--color-danger)] text-white",
         "local-experience":
-          "border-transparent bg-[var(--color-secondary)] text-white",
+          "border-transparent bg-[var(--color-primary-light)] text-[var(--color-ink-deep)]",
         eco:
-          "border-transparent bg-[var(--color-secondary-100)] text-[var(--color-secondary-700)]",
+          "border-transparent bg-[var(--color-accent-light)] text-[var(--color-ink-deep)]",
       },
     },
     defaultVariants: {

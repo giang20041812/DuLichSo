@@ -50,7 +50,7 @@ public class PublicHomeServiceImpl implements PublicHomeService {
         List<PlaceSummaryDto> attractions = placeRepository.findPlaceSummariesByKinds(
                 PlaceVisibility.PUBLISHED,
                 List.of(CategoryKind.ATTRACTION),
-                PageRequest.of(0, 4)
+                PageRequest.of(0, 16)
         );
         enrichPlaceSummaries(attractions);
 
@@ -58,7 +58,7 @@ public class PublicHomeServiceImpl implements PublicHomeService {
         List<PlaceSummaryDto> homestays = placeRepository.findPlaceSummariesByKinds(
                 PlaceVisibility.PUBLISHED,
                 List.of(CategoryKind.HOMESTAY),
-                PageRequest.of(0, 3)
+                PageRequest.of(0, 16)
         );
         enrichPlaceSummaries(homestays);
 

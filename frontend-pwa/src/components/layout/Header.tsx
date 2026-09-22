@@ -1,90 +1,115 @@
-import { useState, useEffect } from "react"
-import { Link } from "react-router-dom"
-import { Button } from "../ui/button"
-import { Phone, ShieldCheck, Globe, Heart, User, Compass, Menu, UserCircle, X, Download, HelpCircle, BadgeInfo, Building } from "lucide-react"
+import { useState, useEffect, useRef } from "react"
+import { Link, useLocation } from "react-router-dom"
+import { 
+  Compass, Menu, X, Download, HelpCircle, ShieldCheck, BadgeInfo, Building,
+  Home, BedDouble, MapPin, Utensils, Sparkles, Bus, Layers 
+} from "lucide-react"
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [drawerMounted, setDrawerMounted] = useState(false);
+  const location = useLocation();
 
-  // Handle drawer animation delay
+  // Tất cả các trang có hero banner đều dùng header transparent
+  const hasHeroImage = location.pathname === '/' || location.pathname.startsWith('/homestays') || location.pathname.startsWith('/destinations') || location.pathname.startsWith('/tours');
+
+  const openMobileMenu = () => {
+    setDrawerMounted(true);
+    setMobileMenuOpen(true);
+  };
+
+  const closeMobileMenu = () => {
+    setMobileMenuOpen(false);
+    setTimeout(() => {
+      setDrawerMounted(false);
+    }, 300);
+  };
+
+  // Close drawer on route change
+  const prevPathRef = useRef(location.pathname);
   useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    if (mobileMenuOpen) {
-      setDrawerMounted(true);
-    } else {
-      timer = setTimeout(() => setDrawerMounted(false), 300);
+    if (prevPathRef.current !== location.pathname) {
+      prevPathRef.current = location.pathname;
+      closeMobileMenu();
     }
-    return () => {
-      if (timer) clearTimeout(timer);
-    };
-  }, [mobileMenuOpen]);
+  }, [location.pathname]);
+
+  const getNavLinkClass = (path: string) => {
+    const isActive = location.pathname === path || (path !== '/' && location.pathname.startsWith(path));
+    if (hasHeroImage) {
+      return isActive
+        ? "inline-flex items-center gap-1.5 whitespace-nowrap px-3.5 py-1.5 rounded-md font-bold text-sm bg-white text-[#048c73] shadow-md transition-all border border-white"
+        : "inline-flex items-center gap-1.5 whitespace-nowrap px-3.5 py-1.5 rounded-md border border-white/25 backdrop-blur-md font-medium text-sm text-white hover:border-white hover:bg-white/15 transition-all shadow-xs";
+    }
+    return isActive
+      ? "inline-flex items-center gap-1.5 whitespace-nowrap px-3.5 py-1.5 rounded-md font-bold text-sm bg-[#048c73] text-white shadow-sm transition-all border border-[#048c73]"
+      : "inline-flex items-center gap-1.5 whitespace-nowrap px-3.5 py-1.5 rounded-md border border-transparent font-medium text-sm text-[var(--color-ink-deep)] hover:text-[var(--color-primary)] hover:bg-[#edfbf7] transition-all";
+  };
 
   return (
     <>
-      <header className="absolute top-0 z-50 flex flex-col w-full transition-all duration-300 bg-transparent">
+      <header className={`absolute top-0 z-50 flex flex-col w-full transition-all duration-300 ${hasHeroImage ? 'bg-transparent' : 'bg-white shadow-sm border-b border-gray-200'}`}>
 
-
-        {/* Main Header - Desktop */}
-        <div className="hidden lg:flex flex-col items-center px-8 pt-4 pb-2 gap-4">
-          <div className="max-w-[1280px] mx-auto w-full flex justify-center items-center">
-            
-            {/* Logo */}
-            <Link to="/" className="flex items-center gap-3 shrink-0">
-              <div className="bg-white/20 backdrop-blur-sm text-white p-2.5 rounded-2xl shadow-sm">
-                <Compass className="w-7 h-7" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[26px] font-bold font-display text-white leading-none tracking-tight drop-shadow-md">
-                  VietJourney
-                </span>
-                <span className="text-[11px] font-bold text-white/90 tracking-widest uppercase mt-1.5 drop-shadow-md">
-                  Khám Phá Việt Nam
-                </span>
-              </div>
-            </Link>
-            
-          </div>
-
-          {/* Center/Right: Responsive-style Navigation */}
-          <div className="flex justify-center w-full mt-2">
-            <div className="flex items-center gap-3">
-              <Link to="/destinations" className="whitespace-nowrap px-5 py-2 rounded-full border border-white/40 text-white hover:border-white hover:bg-white/10 backdrop-blur-md font-medium text-sm transition-colors shadow-sm">Điểm đến</Link>
-              <Link to="/tours" className="whitespace-nowrap px-5 py-2 rounded-full border border-white/40 text-white hover:border-white hover:bg-white/10 backdrop-blur-md font-medium text-sm transition-colors shadow-sm">Tour & Trải nghiệm</Link>
-              <Link to="/homestays" className="whitespace-nowrap px-5 py-2 rounded-full border border-white/40 text-white hover:border-white hover:bg-white/10 backdrop-blur-md font-medium text-sm transition-colors shadow-sm">Homestay & Khách sạn</Link>
-              <Link to="/food" className="whitespace-nowrap px-5 py-2 rounded-full border border-white/40 text-white hover:border-white hover:bg-white/10 backdrop-blur-md font-medium text-sm transition-colors shadow-sm">Ẩm thực & Đặc sản</Link>
-              <Link to="/transport" className="whitespace-nowrap px-5 py-2 rounded-full border border-white/40 text-white hover:border-white hover:bg-white/10 backdrop-blur-md font-medium text-sm transition-colors shadow-sm">Vận chuyển</Link>
-              <Link to="/services" className="whitespace-nowrap px-5 py-2 rounded-full border border-white/40 text-white hover:border-white hover:bg-white/10 backdrop-blur-md font-medium text-sm transition-colors shadow-sm">Dịch vụ/Tiện ích</Link>
+        {/* Row 1: Logo căn giữa */}
+        <div className="relative max-w-[1280px] mx-auto w-full px-4 md:px-8 pt-4 pb-2 flex items-center justify-center">
+          {/* Logo & Tên nền tảng - Căn giữa hoàn toàn */}
+          <Link to="/" className="flex items-center gap-2.5 md:gap-3 shrink-0 group">
+            <div className={`backdrop-blur-sm p-2 rounded-md shadow-sm transition-transform group-hover:scale-105 ${hasHeroImage ? 'bg-white/20 text-white border border-white/30' : 'bg-[var(--color-primary)] text-white'}`}>
+              <Compass className="w-6 h-6 md:w-7 md:h-7" />
             </div>
-          </div>
-        </div>
-
-        {/* Main Header - Mobile */}
-        <div className="flex lg:hidden flex-col w-full">
-          {/* Row 1: Logo + Icons */}
-          <div className="flex justify-between items-center px-4 h-16">
-            <Link to="/" className="flex items-center gap-2.5">
-              <div className="bg-white/20 backdrop-blur-sm text-white p-2 rounded-xl shadow-sm">
-                <Compass className="w-5 h-5" />
-              </div>
-              <span className="text-[20px] font-bold font-display text-white leading-none tracking-tight drop-shadow-md">
+            <div className="flex flex-col items-center sm:items-start">
+              <span className={`text-[22px] md:text-[26px] font-bold font-display leading-none tracking-tight ${hasHeroImage ? 'text-white drop-shadow-md' : 'text-[var(--color-ink-deep)]'}`}>
                 VietJourney
               </span>
-            </Link>
-            <div className="flex items-center gap-5 text-white">
-              <button onClick={() => setMobileMenuOpen(true)}><Menu className="w-7 h-7 drop-shadow-md" strokeWidth={1.5} /></button>
             </div>
-          </div>
-          
-          {/* Row 2: Scrollable Nav */}
-          <div className="flex overflow-x-auto gap-2 px-4 pb-3 scrollbar-hide items-center">
-            <Link to="/destinations" className="whitespace-nowrap px-4 py-1.5 rounded-full border border-white/40 text-white hover:bg-white/10 backdrop-blur-md font-medium text-sm shadow-sm">Điểm đến</Link>
-            <Link to="/tours" className="whitespace-nowrap px-4 py-1.5 rounded-full border border-white/40 text-white hover:bg-white/10 backdrop-blur-md font-medium text-sm shadow-sm">Tour & Trải nghiệm</Link>
-            <Link to="/homestays" className="whitespace-nowrap px-4 py-1.5 rounded-full border border-white/40 text-white hover:bg-white/10 backdrop-blur-md font-medium text-sm shadow-sm">Homestay & Khách sạn</Link>
-            <Link to="/food" className="whitespace-nowrap px-4 py-1.5 rounded-full border border-white/40 text-white hover:bg-white/10 backdrop-blur-md font-medium text-sm shadow-sm">Ẩm thực & Đặc sản</Link>
-            <Link to="/transport" className="whitespace-nowrap px-4 py-1.5 rounded-full border border-white/40 text-white hover:bg-white/10 backdrop-blur-md font-medium text-sm shadow-sm">Vận chuyển</Link>
-            <Link to="/services" className="whitespace-nowrap px-4 py-1.5 rounded-full border border-white/40 text-white hover:bg-white/10 backdrop-blur-md font-medium text-sm shadow-sm">Dịch vụ/Tiện ích</Link>
-          </div>
+          </Link>
+
+          {/* Nút Menu Hamburger trên mobile (đặt góc phải) */}
+          <button
+            onClick={openMobileMenu}
+            aria-label="Mở menu"
+            className="lg:hidden absolute right-4 p-1.5 text-white drop-shadow-md hover:bg-white/10 rounded-md transition-colors"
+          >
+            <Menu className={`w-6 h-6 ${hasHeroImage ? 'text-white' : 'text-[var(--color-ink-deep)]'}`} strokeWidth={1.5} />
+          </button>
+        </div>
+
+        {/* Row 2: Navigation - Đặt ở dưới, hỗ trợ lướt ngang theo responsive với icon sống động */}
+        <div className="w-full flex justify-start md:justify-center overflow-x-auto scrollbar-hide px-4 md:px-8 py-2 scroll-smooth">
+          <nav className="flex items-center gap-1.5 md:gap-2 shrink-0 mx-auto md:mx-auto">
+            <Link to="/" className={getNavLinkClass('/')}>
+              <Home className="w-3.5 h-3.5" />
+              <span>Trang chủ</span>
+            </Link>
+            <Link to="/explore" className={getNavLinkClass('/explore')}>
+              <Compass className="w-3.5 h-3.5" />
+              <span>Khám phá</span>
+            </Link>
+            <Link to="/homestays" className={getNavLinkClass('/homestays')}>
+              <BedDouble className="w-3.5 h-3.5" />
+              <span>Lưu trú</span>
+            </Link>
+            <Link to="/destinations" className={getNavLinkClass('/destinations')}>
+              <MapPin className="w-3.5 h-3.5" />
+              <span>Điểm đến</span>
+            </Link>
+            <Link to="/food" className={getNavLinkClass('/food')}>
+              <Utensils className="w-3.5 h-3.5" />
+              <span>Ăn uống</span>
+            </Link>
+            <Link to="/tours" className={getNavLinkClass('/tours')}>
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Trải nghiệm</span>
+            </Link>
+            <Link to="/transport" className={getNavLinkClass('/transport')}>
+              <Bus className="w-3.5 h-3.5" />
+              <span>Vận chuyển</span>
+            </Link>
+            <Link to="/services" className={getNavLinkClass('/services')}>
+              <Layers className="w-3.5 h-3.5" />
+              <span>Dịch vụ & Tiện ích</span>
+            </Link>
+          </nav>
         </div>
       </header>
 
@@ -92,65 +117,79 @@ export default function Header() {
       {drawerMounted && (
         <div className={`lg:hidden fixed inset-0 z-[99999] flex justify-start ${mobileMenuOpen ? 'fade-in-overlay' : 'fade-out-overlay'}`}>
           {/* Backdrop */}
-          <div 
-            className="absolute inset-0 bg-black/50" 
-            onClick={() => setMobileMenuOpen(false)}
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={closeMobileMenu}
           ></div>
-          
+
           {/* Drawer Content */}
-          <div className={`relative w-full max-w-[320px] bg-white h-full flex flex-col shadow-2xl ${mobileMenuOpen ? 'drawer-slide-in' : 'drawer-slide-out'}`}>
+          <div className={`relative w-full max-w-[300px] bg-white h-full flex flex-col shadow-2xl ${mobileMenuOpen ? 'drawer-slide-in' : 'drawer-slide-out'}`}>
             <div className="flex justify-between items-center p-4 border-b border-[#66716c]/10">
-              <h2 className="text-xl font-bold font-display text-[#0f2d3c]">More</h2>
-              <button onClick={() => setMobileMenuOpen(false)} className="p-2 text-[#66716c] hover:text-[#0f2d3c]">
-                <X className="w-6 h-6" />
+              <div className="flex items-center gap-2">
+                <Compass className="w-5 h-5 text-[var(--color-primary)]" />
+                <span className="text-lg font-bold font-display text-[#0f2d3c]">VietJourney</span>
+              </div>
+              <button onClick={closeMobileMenu} className="p-2 text-[#66716c] hover:text-[#0f2d3c]">
+                <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="flex-1 overflow-y-auto py-2">
-              <div className="flex flex-col">
-                <button className="flex items-center gap-4 px-6 py-4 hover:bg-[#f8f9fa] text-left">
-                  <span className="font-medium text-[#4a5568] w-8">VND</span>
-                  <span className="text-[#0f2d3c] font-medium">Vietnamese Đồng</span>
-                </button>
-                <button className="flex items-center gap-4 px-6 py-4 hover:bg-[#f8f9fa] text-left">
-                  <Globe className="w-6 h-6 text-[#4a5568]" strokeWidth={1.5} />
-                  <span className="text-[#0f2d3c] font-medium">Tiếng Việt</span>
-                </button>
-                <button className="flex items-center gap-4 px-6 py-4 hover:bg-[#f8f9fa] text-left">
-                  <Download className="w-6 h-6 text-[#4a5568]" strokeWidth={1.5} />
-                  <span className="text-[#0f2d3c] font-medium">Tải ứng dụng</span>
-                </button>
-                <button className="flex items-center gap-4 px-6 py-4 hover:bg-[#f8f9fa] text-left">
-                  <Building className="w-6 h-6 text-[#4a5568]" strokeWidth={1.5} />
-                  <span className="text-[#0f2d3c] font-medium">Hợp tác cùng chúng tôi</span>
-                </button>
+              <div className="flex flex-col py-2 border-b border-[#66716c]/10">
+                <Link to="/" onClick={closeMobileMenu} className="flex items-center gap-3 px-5 py-2.5 text-sm font-medium text-[#0f2d3c] hover:bg-[#edfbf7] hover:text-[#048c73] transition-colors">
+                  <Home className="w-4 h-4 text-[#048c73]" />
+                  <span>Trang chủ</span>
+                </Link>
+                <Link to="/explore" onClick={closeMobileMenu} className="flex items-center gap-3 px-5 py-2.5 text-sm font-medium text-[#0f2d3c] hover:bg-[#edfbf7] hover:text-[#048c73] transition-colors">
+                  <Compass className="w-4 h-4 text-[#048c73]" />
+                  <span>Khám phá</span>
+                </Link>
+                <Link to="/homestays" onClick={closeMobileMenu} className="flex items-center gap-3 px-5 py-2.5 text-sm font-medium text-[#0f2d3c] hover:bg-[#edfbf7] hover:text-[#048c73] transition-colors">
+                  <BedDouble className="w-4 h-4 text-[#048c73]" />
+                  <span>Lưu trú</span>
+                </Link>
+                <Link to="/destinations" onClick={closeMobileMenu} className="flex items-center gap-3 px-5 py-2.5 text-sm font-medium text-[#0f2d3c] hover:bg-[#edfbf7] hover:text-[#048c73] transition-colors">
+                  <MapPin className="w-4 h-4 text-[#048c73]" />
+                  <span>Điểm đến</span>
+                </Link>
+                <Link to="/food" onClick={closeMobileMenu} className="flex items-center gap-3 px-5 py-2.5 text-sm font-medium text-[#0f2d3c] hover:bg-[#edfbf7] hover:text-[#048c73] transition-colors">
+                  <Utensils className="w-4 h-4 text-[#048c73]" />
+                  <span>Ăn uống</span>
+                </Link>
+                <Link to="/tours" onClick={closeMobileMenu} className="flex items-center gap-3 px-5 py-2.5 text-sm font-medium text-[#0f2d3c] hover:bg-[#edfbf7] hover:text-[#048c73] transition-colors">
+                  <Sparkles className="w-4 h-4 text-[#048c73]" />
+                  <span>Trải nghiệm</span>
+                </Link>
+                <Link to="/transport" onClick={closeMobileMenu} className="flex items-center gap-3 px-5 py-2.5 text-sm font-medium text-[#0f2d3c] hover:bg-[#edfbf7] hover:text-[#048c73] transition-colors">
+                  <Bus className="w-4 h-4 text-[#048c73]" />
+                  <span>Vận chuyển</span>
+                </Link>
+                <Link to="/services" onClick={closeMobileMenu} className="flex items-center gap-3 px-5 py-2.5 text-sm font-medium text-[#0f2d3c] hover:bg-[#edfbf7] hover:text-[#048c73] transition-colors">
+                  <Layers className="w-4 h-4 text-[#048c73]" />
+                  <span>Dịch vụ & Tiện ích</span>
+                </Link>
               </div>
 
-              <hr className="border-[#66716c]/10 my-2" />
-              
-              <div className="px-6 py-4 pb-2">
-                <h3 className="font-bold text-[#0f2d3c] mb-2">Trợ giúp và hỗ trợ</h3>
-              </div>
-              <div className="flex flex-col">
-                <button className="flex items-center gap-4 px-6 py-4 hover:bg-[#f8f9fa] text-left">
-                  <HelpCircle className="w-6 h-6 text-[#4a5568]" strokeWidth={1.5} />
-                  <span className="text-[#0f2d3c] font-medium">Liên hệ hỗ trợ</span>
+              <div className="flex flex-col py-2">
+                <button className="flex items-center gap-3 px-5 py-3 hover:bg-[#f8f9fa] text-left text-sm text-[#4a5568]">
+                  <Download className="w-5 h-5" strokeWidth={1.5} />
+                  <span>Tải ứng dụng</span>
                 </button>
-                <button className="flex items-center gap-4 px-6 py-4 hover:bg-[#f8f9fa] text-left">
-                  <ShieldCheck className="w-6 h-6 text-[#4a5568]" strokeWidth={1.5} />
-                  <span className="text-[#0f2d3c] font-medium">Chính sách bảo mật</span>
+                <button className="flex items-center gap-3 px-5 py-3 hover:bg-[#f8f9fa] text-left text-sm text-[#4a5568]">
+                  <Building className="w-5 h-5" strokeWidth={1.5} />
+                  <span>Hợp tác cùng chúng tôi</span>
                 </button>
-              </div>
-
-              <hr className="border-[#66716c]/10 my-2" />
-              
-              <div className="px-6 py-4 pb-2">
-                <h3 className="font-bold text-[#0f2d3c] mb-2">Thông tin khác</h3>
-              </div>
-              <div className="flex flex-col">
-                <button className="flex items-center gap-4 px-6 py-4 hover:bg-[#f8f9fa] text-left">
-                  <BadgeInfo className="w-6 h-6 text-[#4a5568]" strokeWidth={1.5} />
-                  <span className="text-[#0f2d3c] font-medium">Về VietJourney</span>
+                <button className="flex items-center gap-3 px-5 py-3 hover:bg-[#f8f9fa] text-left text-sm text-[#4a5568]">
+                  <HelpCircle className="w-5 h-5" strokeWidth={1.5} />
+                  <span>Liên hệ hỗ trợ</span>
+                </button>
+                <button className="flex items-center gap-3 px-5 py-3 hover:bg-[#f8f9fa] text-left text-sm text-[#4a5568]">
+                  <ShieldCheck className="w-5 h-5" strokeWidth={1.5} />
+                  <span>Chính sách bảo mật</span>
+                </button>
+                <button className="flex items-center gap-3 px-5 py-3 hover:bg-[#f8f9fa] text-left text-sm text-[#4a5568]">
+                  <BadgeInfo className="w-5 h-5" strokeWidth={1.5} />
+                  <span>Về VietJourney</span>
                 </button>
               </div>
             </div>
