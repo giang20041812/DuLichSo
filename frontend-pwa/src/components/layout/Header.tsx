@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
-import { Button } from "../ui/button"
-import { Phone, ShieldCheck, Globe, Heart, User, Compass, Menu, UserCircle, X, Download, HelpCircle, BadgeInfo, Building } from "lucide-react"
+import { ShieldCheck, Globe, Compass, Menu, X, Download, HelpCircle, BadgeInfo, Building } from "lucide-react"
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -55,6 +54,10 @@ export default function Header() {
               <Link to="/food" className="whitespace-nowrap px-5 py-2 rounded-full border border-white/40 text-white hover:border-white hover:bg-white/10 backdrop-blur-md font-medium text-sm transition-colors shadow-sm">Ẩm thực & Đặc sản</Link>
               <Link to="/transport" className="whitespace-nowrap px-5 py-2 rounded-full border border-white/40 text-white hover:border-white hover:bg-white/10 backdrop-blur-md font-medium text-sm transition-colors shadow-sm">Vận chuyển</Link>
               <Link to="/services" className="whitespace-nowrap px-5 py-2 rounded-full border border-white/40 text-white hover:border-white hover:bg-white/10 backdrop-blur-md font-medium text-sm transition-colors shadow-sm">Dịch vụ/Tiện ích</Link>
+              <Link to="/portal/login" className="whitespace-nowrap px-4 py-2 rounded-full bg-emerald-800/80 hover:bg-emerald-800 text-white border border-emerald-400/40 font-medium text-sm transition-colors shadow-sm flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-[#a3e635]" />
+                Cổng Quản Trị
+              </Link>
             </div>
           </div>
         </div>
@@ -120,10 +123,14 @@ export default function Header() {
                   <Download className="w-6 h-6 text-[#4a5568]" strokeWidth={1.5} />
                   <span className="text-[#0f2d3c] font-medium">Tải ứng dụng</span>
                 </button>
-                <button className="flex items-center gap-4 px-6 py-4 hover:bg-[#f8f9fa] text-left">
+                <Link
+                  to="/portal/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-4 px-6 py-4 hover:bg-[#f8f9fa] text-left"
+                >
                   <Building className="w-6 h-6 text-[#4a5568]" strokeWidth={1.5} />
-                  <span className="text-[#0f2d3c] font-medium">Hợp tác cùng chúng tôi</span>
-                </button>
+                  <span className="text-[#0f2d3c] font-medium">Cổng Quản Trị & Đối Tác</span>
+                </Link>
               </div>
 
               <hr className="border-[#66716c]/10 my-2" />

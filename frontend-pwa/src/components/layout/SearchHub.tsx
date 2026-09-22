@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react"
 import { createPortal } from "react-dom"
 import { Button } from "../ui/button"
 import { Switch } from "../ui/switch"
-import { MapPin, Calendar, Users, ChevronDown, Search, History, ChevronLeft, ChevronRight, Minus, Plus, ArrowLeft, Navigation, Plane, X } from "lucide-react"
+import { MapPin, Calendar, Users, ChevronDown, Search, History, ChevronLeft, ChevronRight, Minus, Plus, ArrowLeft, X } from "lucide-react"
 
 export default function SearchHub() {
   const [activeTab, setActiveTab] = useState<'destination' | 'dates' | 'occupancy' | null>(null);
@@ -93,10 +93,10 @@ export default function SearchHub() {
     let isStart = start === current;
     let isEnd = end === current;
     
-    let actualEnd = end || (hover && hover > start ? hover : null);
+    let actualEnd = end || (start && hover && hover > start ? hover : null);
     
-    let inRange = start && actualEnd && current > start && current < actualEnd;
-    let isTempEnd = !end && hover === current && hover > start;
+    let inRange = !!(start && actualEnd && current > start && current < actualEnd);
+    let isTempEnd = !end && !!(start && hover === current && hover > start);
     if (isTempEnd) isEnd = true;
 
     let bgClass = "bg-transparent";

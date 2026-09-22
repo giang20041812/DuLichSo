@@ -155,7 +155,7 @@ public class PlaceDetailServiceImpl implements PlaceDetailService {
                 .priceRefMax(new BigDecimal("750000"))
                 .priceUnitNote("đêm")
                 .operationStatus(PlaceOperationStatus.OPERATING)
-                .verification(PlaceVerificationStatus.COMMUNITY_VERIFIED)
+                .verification(PlaceVerificationStatus.VERIFIED)
                 .ratingAvg(new BigDecimal("4.95"))
                 .ratingCount(48)
                 .altitudeMeters(850)

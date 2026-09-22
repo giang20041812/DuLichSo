@@ -2,9 +2,9 @@ import { useState, useRef, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { Badge } from "../components/ui/badge"
 import SearchHub from "../components/layout/SearchHub"
-import { MapPin, Heart, Star, Check, ArrowRight, Handshake, Tag, Headphones, ShieldCheck, Mountain, Sailboat, Landmark, Tent, Utensils, Building2, Ticket, CheckCircle2, Lock, ChevronLeft, ChevronRight } from "lucide-react"
+import { MapPin, Heart, Star, Check, ArrowRight, Handshake, Tag, Headphones, ShieldCheck, Mountain, Sailboat, Tent, Ticket, CheckCircle2, Lock, ChevronLeft, ChevronRight } from "lucide-react"
 import { fetchHomeData } from "../services/homeService"
-import { HomeResponseDto, CategoryKind } from "../types/home"
+import { HomeResponseDto } from "../types/home"
 
 interface StoryItem {
   id: string;
@@ -171,28 +171,6 @@ export default function HomePage() {
 
   const scrollNext = () => {
     scrollRef.current?.scrollBy({ left: 360, behavior: 'smooth' });
-  };
-
-  const getCategoryIcon = (kind: CategoryKind) => {
-    switch (kind) {
-      case 'ATTRACTION': return <Mountain className="w-8 h-8 text-[#d04648]" strokeWidth={1.5} />;
-      case 'EXPERIENCE': return <Sailboat className="w-8 h-8 text-[#16709a]" strokeWidth={1.5} />;
-      case 'CULTURE': return <Landmark className="w-8 h-8 text-[#c28a33]" strokeWidth={1.5} />;
-      case 'HOMESTAY': return <Tent className="w-8 h-8 text-[#2e7d5b]" strokeWidth={1.5} />;
-      case 'LOCAL_SPECIALTY': return <Utensils className="w-8 h-8 text-[#d04648]" strokeWidth={1.5} />;
-      default: return <Building2 className="w-8 h-8 text-[#5c6bc0]" strokeWidth={1.5} />;
-    }
-  };
-
-  const getCategoryColorClass = (kind: CategoryKind) => {
-    switch (kind) {
-      case 'ATTRACTION': return "bg-[#fce5e6]";
-      case 'EXPERIENCE': return "bg-[#dceff0]";
-      case 'CULTURE': return "bg-[#f8ebd0]";
-      case 'HOMESTAY': return "bg-[#daf0e2]";
-      case 'LOCAL_SPECIALTY': return "bg-[#fce5e6]";
-      default: return "bg-[#e8eaf6]";
-    }
   };
 
   if (loading) {

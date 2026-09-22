@@ -45,8 +45,18 @@ export default function FullScreenMapPage() {
     );
   }
 
+  const fallbackScenario: MapViewerScenario = {
+    id: 'SCENARIO_1',
+    code: 'MAP-DEF-01',
+    label: '1. Mặc định',
+    targetName: mapContext.placeName,
+    latitude: mapContext.coordinates.latitude,
+    longitude: mapContext.coordinates.longitude,
+    zoomLevel: 14,
+  };
+
   const currentScenario: MapViewerScenario =
-    mapContext.scenarios.find((s) => s.id === activeScenarioId) || mapContext.scenarios[0];
+    mapContext.scenarios.find((s) => s.id === activeScenarioId) || mapContext.scenarios[0] || fallbackScenario;
 
   return (
     <div className="relative h-screen w-screen overflow-hidden flex flex-col bg-slate-100">

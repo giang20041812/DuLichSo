@@ -8,6 +8,11 @@ import ExperienceDetailPage from './pages/ExperienceDetailPage'
 import AppShell from './components/layout/AppShell'
 
 import HomestayListPage from './pages/HomestayListPage'
+import PortalLoginPage from './pages/PortalLoginPage'
+import AdminDashboardPage from './pages/AdminDashboardPage'
+import PartnerDashboardPage from './pages/PartnerDashboardPage'
+import PartnerHomestayEditPage from './pages/PartnerHomestayEditPage'
+import PartnerHomestayDetailPage from './pages/PartnerHomestayDetailPage'
 
 function App() {
   return (
@@ -31,6 +36,17 @@ function App() {
         <Route path="experience" element={<ExperienceDetailPage />} />
         <Route path="experience/:slug" element={<ExperienceDetailPage />} />
         <Route path="trai-nghiem/:slug" element={<ExperienceDetailPage />} />
+
+        {/* UC-08 & UC-10: Admin & NCC Partner Portal Login, Dashboards & Homestay Management */}
+        <Route path="admin/login" element={<PortalLoginPage />} />
+        <Route path="portal/login" element={<PortalLoginPage />} />
+        <Route path="login" element={<PortalLoginPage />} />
+        <Route path="admin" element={<AdminDashboardPage />} />
+        <Route path="partner" element={<PartnerDashboardPage />} />
+        <Route path="partner/homestays" element={<PartnerDashboardPage />} />
+        <Route path="partner/homestay/create" element={<PartnerHomestayEditPage />} />
+        <Route path="partner/homestay/:id" element={<PartnerHomestayDetailPage />} />
+        <Route path="partner/homestay/:id/edit" element={<PartnerHomestayEditPage />} />
       </Routes>
     </BrowserRouter>
   )
