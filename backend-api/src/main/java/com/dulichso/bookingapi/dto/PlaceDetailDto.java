@@ -4,6 +4,7 @@ import com.dulichso.bookingapi.entity.enums.ContactChannel;
 import com.dulichso.bookingapi.entity.enums.HighlightType;
 import com.dulichso.bookingapi.entity.enums.PlaceOperationStatus;
 import com.dulichso.bookingapi.entity.enums.PlaceVerificationStatus;
+import com.dulichso.bookingapi.entity.enums.CategoryKind;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -21,6 +22,7 @@ public class PlaceDetailDto {
     private Long id;
     private String slug;
     private String name;
+    private CategoryKind kind;
     private String categoryKind;
     private String categoryName;
     private String regionName;
@@ -38,9 +40,14 @@ public class PlaceDetailDto {
     private String description;
     private Integer altitudeMeters;
     private String verifiedGpsText;
+    private Map<String, Object> attributes;
+
+    private List<String> images;
+    private List<String> amenities;
+    private List<RoomTypeDto> rooms;
 
     private List<MediaItemDto> media;
-    private List<AmenityItemDto> amenities;
+    private List<AmenityItemDto> amenityItems;
     private List<ContactItemDto> contacts;
     private List<HighlightItemDto> highlights;
     private HomestayProfileDto homestayProfile;

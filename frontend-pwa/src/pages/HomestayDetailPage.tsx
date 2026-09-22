@@ -26,7 +26,8 @@ import { HomestayDetailDto, RoomTypeDto, NearbyPlaceDto } from '../types/homesta
 import { Button } from '../components/ui/button';
 
 export default function HomestayDetailPage() {
-  const { id } = useParams<{ id: string }>();
+  const { id, slug } = useParams<{ id?: string; slug?: string }>();
+  const identifier = id || slug || '28';
   const navigate = useNavigate();
   const [homestay, setHomestay] = useState<HomestayDetailDto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -36,9 +37,9 @@ export default function HomestayDetailPage() {
   const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlaceDto[]>([]);
 
   useEffect(() => {
-    if (id) {
+    if (identifier) {
       setLoading(true);
-      getHomestayById(id).then(data => {
+      getHomestayById(identifier).then(data => {
         if (!data) setErrorMsg("API returned null");
         setHomestay(data);
         setLoading(false);
@@ -47,13 +48,13 @@ export default function HomestayDetailPage() {
         setLoading(false);
       });
     }
-  }, [id]);
+  }, [identifier]);
 
   useEffect(() => {
-    if (id) {
-      fetchNearbyPlaces(id, radius).then(data => setNearbyPlaces(data));
+    if (identifier) {
+      fetchNearbyPlaces(identifier, radius).then(data => setNearbyPlaces(data));
     }
-  }, [id, radius]);
+  }, [identifier, radius]);
 
   if (loading) {
     return (

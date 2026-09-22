@@ -18,20 +18,6 @@ import java.util.Optional;
 @Repository
 public interface PlaceRepository extends JpaRepository<Place, Long>, JpaSpecificationExecutor<Place> {
 
-    @Query("SELECT new com.dulichso.bookingapi.dto.PlaceSummaryDto(" +
-           "p.id, p.slug, p.name, r.name, m.publicUrl, p.description, " +
-           "p.priceRefMin, p.ratingAvg, p.ratingCount, p.attributes, p.kind) " +
-           "FROM Place p " +
-           "LEFT JOIN p.region r " +
-           "LEFT JOIN PlaceMedia pm ON pm.place.id = p.id AND pm.role = 'COVER' " +
-           "LEFT JOIN pm.media m " +
-           "WHERE p.visibility = :visibility AND p.isDeleted = false " +
-           "AND p.kind IN :kinds " +
-           "ORDER BY p.ratingAvg DESC, p.ratingCount DESC")
-    List<PlaceSummaryDto> findPlaceSummariesByKinds(
-            @Param("visibility") PlaceVisibility visibility,
-            @Param("kinds") List<CategoryKind> kinds,
-            Pageable pageable);
 
     @Query(value = "SELECT id, name, kind, " +
             "( 6371 * acos( cos( radians(:lat) ) * cos( radians( latitude ) ) * cos( radians( longitude ) - radians(:lng) ) + sin( radians(:lat) ) * sin( radians( latitude ) ) ) ) AS distance " +

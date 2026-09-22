@@ -9,6 +9,7 @@ import com.dulichso.bookingapi.entity.enums.PlaceVisibility;
 import com.dulichso.bookingapi.repository.CategoryRepository;
 import com.dulichso.bookingapi.repository.PlaceRepository;
 import com.dulichso.bookingapi.service.PublicHomeService;
+import com.dulichso.bookingapi.service.PublicPlaceService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +29,7 @@ import java.util.stream.Collectors;
 public class PublicHomeServiceImpl implements PublicHomeService {
 
     private final CategoryRepository categoryRepository;
-    private final PlaceRepository placeRepository;
+    private final PublicPlaceService publicPlaceService;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -47,34 +48,35 @@ public class PublicHomeServiceImpl implements PublicHomeService {
                 .collect(Collectors.toList());
 
         // Fetch Featured Destinations (ATTRACTION)
-        List<PlaceSummaryDto> attractions = placeRepository.findPlaceSummariesByKinds(
-                PlaceVisibility.PUBLISHED,
-                List.of(CategoryKind.ATTRACTION),
-                PageRequest.of(0, 16)
-        );
+        List<PlaceSummaryDto> attractions = new ArrayList<>(publicPlaceService.getPlaces(
+                CategoryKind.ATTRACTION, null, null, null, null, null, null, PageRequest.of(0, 16)
+        ).getContent());
         enrichPlaceSummaries(attractions);
 
         // Fetch Top Homestays
-        List<PlaceSummaryDto> homestays = placeRepository.findPlaceSummariesByKinds(
-                PlaceVisibility.PUBLISHED,
-                List.of(CategoryKind.HOMESTAY),
-                PageRequest.of(0, 16)
-        );
+        List<PlaceSummaryDto> homestays = new ArrayList<>(publicPlaceService.getPlaces(
+                CategoryKind.HOMESTAY, null, null, null, null, null, null, PageRequest.of(0, 16)
+        ).getContent());
         enrichPlaceSummaries(homestays);
 
-        // Fetch Featured Tours
-        List<PlaceSummaryDto> tours = placeRepository.findPlaceSummariesByKinds(
-                PlaceVisibility.PUBLISHED,
-                List.of(CategoryKind.EXPERIENCE, CategoryKind.TRANSPORT),
-                PageRequest.of(0, 4)
-        );
+        // Fetch Featured Tours (EXPERIENCE)
+        List<PlaceSummaryDto> tours = new ArrayList<>(publicPlaceService.getPlaces(
+                CategoryKind.EXPERIENCE, null, null, null, null, null, null, PageRequest.of(0, 8)
+        ).getContent());
         enrichPlaceSummaries(tours);
+
+        // Fetch Specialties (FOOD)
+        List<PlaceSummaryDto> specialties = new ArrayList<>(publicPlaceService.getPlaces(
+                CategoryKind.FOOD, null, null, null, null, null, null, PageRequest.of(0, 8)
+        ).getContent());
+        enrichPlaceSummaries(specialties);
 
         return HomeResponseDto.builder()
                 .categories(categoryDtos)
                 .featuredDestinations(attractions)
                 .homestays(homestays)
                 .featuredTours(tours)
+                .specialties(specialties)
                 .build();
     }
 

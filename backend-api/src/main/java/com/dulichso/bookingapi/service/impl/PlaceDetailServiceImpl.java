@@ -198,7 +198,22 @@ public class PlaceDetailServiceImpl implements PlaceDetailService {
                                 .sortOrder(4)
                                 .build()
                 ))
+                .images(List.of(
+                        "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1200&q=80",
+                        "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80",
+                        "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=800&q=80",
+                        "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=800&q=80",
+                        "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80"
+                ))
                 .amenities(List.of(
+                        "Phục vụ bữa ăn theo yêu cầu",
+                        "Nấu nướng tự do (bếp chung có củi)",
+                        "Nước nóng sinh hoạt (bình NLMT)",
+                        "Màn chống muỗi từng đệm nằm riêng",
+                        "Chỗ để xe máy & ô tô an toàn",
+                        "Hỗ trợ đón từ xe khách (có phụ phí)"
+                ))
+                .amenityItems(List.of(
                         PlaceAmenityItemDto("MEAL_ON_DEMAND", "Phục vụ bữa ăn theo yêu cầu", "Utensils", "YES", "Món ăn đặc sản Thái Trắng tươi ngon"),
                         PlaceAmenityItemDto("FREE_KITCHEN", "Nấu nướng tự do (bếp chung có củi)", "ChefHat", "YES", "Có sẵn gia vị, củi khô và bếp ga"),
                         PlaceAmenityItemDto("HOT_WATER", "Nước nóng sinh hoạt (bình NLMT)", "ShowerHead", "YES", "Hệ thống nước nóng 24/7 ổn định"),

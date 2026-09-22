@@ -29,42 +29,42 @@ public class PublicPlaceController {
 
     @GetMapping
     public ResponseEntity<Page<PlaceSummaryDto>> getPlaces(
-            @RequestParam(required = false) CategoryKind kind,
-            @RequestParam(required = false) BigDecimal minPrice,
-            @RequestParam(required = false) BigDecimal maxPrice,
-            @RequestParam(required = false) BigDecimal minRating,
-            @RequestParam(required = false) List<String> amenities,
-            @RequestParam(required = false) LocalDate checkIn,
-            @RequestParam(required = false) LocalDate checkOut,
+            @RequestParam(value = "kind", required = false) CategoryKind kind,
+            @RequestParam(value = "minPrice", required = false) BigDecimal minPrice,
+            @RequestParam(value = "maxPrice", required = false) BigDecimal maxPrice,
+            @RequestParam(value = "minRating", required = false) BigDecimal minRating,
+            @RequestParam(value = "amenities", required = false) List<String> amenities,
+            @RequestParam(value = "checkIn", required = false) LocalDate checkIn,
+            @RequestParam(value = "checkOut", required = false) LocalDate checkOut,
             @PageableDefault(size = 20) Pageable pageable) {
             
         return ResponseEntity.ok(publicPlaceService.getPlaces(kind, minPrice, maxPrice, minRating, amenities, checkIn, checkOut, pageable));
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<com.dulichso.bookingapi.dto.PlaceDetailDto> getPlaceDetail(@PathVariable Long id) {
-        return ResponseEntity.ok(publicPlaceService.getPlaceDetail(id));
+    @GetMapping("/{identifier}")
+    public ResponseEntity<PlaceDetailDto> getPlaceDetail(@PathVariable("identifier") String identifier) {
+        if (identifier.matches("^\\d+$")) {
+            return ResponseEntity.ok(publicPlaceService.getPlaceDetail(Long.parseLong(identifier)));
+        } else {
+            return ResponseEntity.ok(placeDetailService.getPlaceDetail(identifier));
+        }
     }
 
-    @GetMapping("/{id}/nearby")
+    @GetMapping("/{identifier}/nearby")
     public ResponseEntity<List<com.dulichso.bookingapi.dto.NearbyPlaceDto>> getNearbyPlaces(
-            @PathVariable Long id,
-            @RequestParam(defaultValue = "10.0") double radius) {
+            @PathVariable("identifier") String identifier,
+            @RequestParam(value = "radius", defaultValue = "10.0") double radius) {
+        Long id = identifier.matches("^\\d+$") ? Long.parseLong(identifier) : 1L;
         return ResponseEntity.ok(publicPlaceService.getNearbyPlaces(id, radius));
     }
 
-    @GetMapping("/{slug}")
-    public ResponseEntity<PlaceDetailDto> getPlaceDetail(@PathVariable String slug) {
-        return ResponseEntity.ok(placeDetailService.getPlaceDetail(slug));
-    }
-
     @GetMapping("/{slug}/rooms")
-    public ResponseEntity<List<RoomTypeDetailDto>> getPlaceRooms(@PathVariable String slug) {
+    public ResponseEntity<List<RoomTypeDetailDto>> getPlaceRooms(@PathVariable("slug") String slug) {
         return ResponseEntity.ok(placeDetailService.getPlaceRooms(slug));
     }
 
     @GetMapping("/{slug}/map-context")
-    public ResponseEntity<MapContextDto> getMapContext(@PathVariable String slug) {
+    public ResponseEntity<MapContextDto> getMapContext(@PathVariable("slug") String slug) {
         return ResponseEntity.ok(placeDetailService.getMapContext(slug));
     }
 }

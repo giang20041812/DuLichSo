@@ -16,4 +16,5 @@ public class HomeResponseDto {
     private List<PlaceSummaryDto> featuredDestinations;
     private List<PlaceSummaryDto> homestays;
     private List<PlaceSummaryDto> featuredTours;
+    private List<PlaceSummaryDto> specialties;
 }
