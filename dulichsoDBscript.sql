@@ -927,33 +927,8 @@ CREATE TABLE specialty_media (
     CONSTRAINT fk_sm_media     FOREIGN KEY (media_id) REFERENCES media_asset(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
--- 14.2 Lễ hội / sự kiện văn hóa (sheet "Văn hóa") — SỰ KIỆN theo thời gian, không phải địa điểm cố định.
-CREATE TABLE festival (
-    id                  BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    slug                VARCHAR(191) NOT NULL UNIQUE,
-    name                VARCHAR(255) NOT NULL,
-    name_norm           VARCHAR(255) NOT NULL,
-    season_note         VARCHAR(500),           -- "Đầu năm mới; lịch cụ thể theo địa phương"
-    core_value          TEXT,
-    suitable_experience TEXT,
-    etiquette_dont      TEXT,                   -- "Điều không nên làm"
-    region_id           BIGINT UNSIGNED NULL,
-    visibility          ENUM('DRAFT','PUBLISHED','UNPUBLISHED') NOT NULL DEFAULT 'DRAFT',
-    is_deleted          BOOLEAN NOT NULL DEFAULT FALSE,
-    CONSTRAINT fk_festival_region FOREIGN KEY (region_id) REFERENCES region(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
--- daterange → tách 2 cột (không cần chống chồng lấn nên không cần trigger riêng)
-CREATE TABLE festival_occurrence (
-    id           BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    festival_id  BIGINT UNSIGNED NOT NULL,
-    period_start DATE NOT NULL,
-    period_end   DATE NOT NULL,
-    is_estimated BOOLEAN NOT NULL DEFAULT TRUE,
-    note         VARCHAR(500),
-    CONSTRAINT fk_fo_festival FOREIGN KEY (festival_id) REFERENCES festival(id) ON DELETE CASCADE,
-    CONSTRAINT ck_fo_period CHECK (period_start <= period_end)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+-- 14.2 Lễ hội / sự kiện văn hóa — Đã được định nghĩa đầy đủ ở section 10.1 (festival + festival_occurrence).
+-- Không tạo lại bảng ở đây để tránh trùng lặp.
 
 -- 14.3 Yêu cầu hỗ trợ (BR-100..103)
 CREATE TABLE support_ticket (
@@ -981,3 +956,77 @@ CREATE TABLE support_ticket (
     CONSTRAINT ck_ticket_target CHECK (NOT (booking_id IS NOT NULL
         AND place_id IS NOT NULL))
 )  ENGINE=INNODB DEFAULT CHARSET=UTF8MB4 COLLATE = UTF8MB4_0900_AI_CI;
+
+-- ============================================================================
+-- 15. MODULE SOS CỨU HỘ (Phase 1.6)
+-- ============================================================================
+
+-- 15.1 Đầu mối liên hệ khẩn cấp (cảnh sát, y tế, cứu hoả, hỗ trợ du lịch)
+CREATE TABLE emergency_contact (
+    id          BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    region_id   BIGINT UNSIGNED NULL,
+    type        ENUM('POLICE','MEDICAL','FIRE','TOURISM_SUPPORT') NOT NULL,
+    name        VARCHAR(255)  NOT NULL,
+    phone       VARCHAR(32)   NOT NULL,
+    address     VARCHAR(500)  NULL,
+    is_active   BOOLEAN       NOT NULL DEFAULT TRUE,
+    CONSTRAINT fk_ec_region FOREIGN KEY (region_id) REFERENCES region(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE INDEX idx_ec_region ON emergency_contact (region_id);
+CREATE INDEX idx_ec_type   ON emergency_contact (type);
+
+-- 15.2 Yêu cầu SOS/cứu hộ từ du khách
+CREATE TABLE sos_request (
+    id                  BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    requester_name      VARCHAR(255) NOT NULL,
+    requester_phone     VARCHAR(32)  NOT NULL,
+    latitude            DECIMAL(10,7) NULL,
+    longitude           DECIMAL(10,7) NULL,
+    type                ENUM('MEDICAL','SECURITY','ACCIDENT','LOST','OTHER') NOT NULL,
+    description         TEXT NULL,
+    status              ENUM('PENDING','DISPATCHED','RESOLVED','CANCELLED') NOT NULL DEFAULT 'PENDING',
+    assigned_contact_id BIGINT UNSIGNED NULL,
+    dispatch_note       VARCHAR(500) NULL,
+    created_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    resolved_at         DATETIME NULL,
+    CONSTRAINT fk_sos_contact FOREIGN KEY (assigned_contact_id)
+        REFERENCES emergency_contact(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE INDEX idx_sos_status     ON sos_request (status);
+CREATE INDEX idx_sos_created_at ON sos_request (created_at DESC);
+
+-- ============================================================================
+-- 16. MODULE TÀI CHÍNH & AFFILIATE (Phase 1.7)
+-- ============================================================================
+
+-- 16.1 Link affiliate (người giới thiệu booking để nhận hoa hồng)
+CREATE TABLE affiliate_link (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    account_id      BIGINT UNSIGNED NOT NULL,
+    code            VARCHAR(64)    NOT NULL UNIQUE,
+    commission_rate DECIMAL(5,4)   NOT NULL,               -- ví dụ 0.0500 = 5%
+    is_active       BOOLEAN        NOT NULL DEFAULT TRUE,
+    created_at      DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_al_account FOREIGN KEY (account_id) REFERENCES account(id),
+    CONSTRAINT ck_al_rate CHECK (commission_rate > 0 AND commission_rate <= 1)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE INDEX idx_al_account ON affiliate_link (account_id);
+
+-- 16.2 Sổ cái hoa hồng: mỗi booking qua affiliate link tạo 1 ledger entry
+CREATE TABLE commission_ledger (
+    id                  BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    affiliate_link_id   BIGINT UNSIGNED NOT NULL,
+    booking_id          BIGINT UNSIGNED NOT NULL,
+    amount              DECIMAL(12,0)  NOT NULL,
+    status              ENUM('PENDING','APPROVED','PAID','REJECTED') NOT NULL DEFAULT 'PENDING',
+    created_at          DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    paid_at             DATETIME       NULL,
+    CONSTRAINT fk_cl_affiliate FOREIGN KEY (affiliate_link_id) REFERENCES affiliate_link(id),
+    CONSTRAINT fk_cl_booking   FOREIGN KEY (booking_id) REFERENCES booking(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE INDEX idx_cl_status    ON commission_ledger (status);
+CREATE INDEX idx_cl_affiliate ON commission_ledger (affiliate_link_id);

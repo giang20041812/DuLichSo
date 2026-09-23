@@ -14,7 +14,6 @@ import {
 import { VietTrackLogoMark } from "../ui/logo";
 
 interface HeaderProps {
-  onOpenSidebar?: () => void;
   toggleSidebar?: () => void;
 }
 
@@ -29,7 +28,7 @@ const navLinks = [
   { id: 'services', path: '/services', label: 'Dịch vụ & Tiện ích', icon: <Layers className="w-3.5 h-3.5 shrink-0" /> },
 ];
 
-export default function Header({ onOpenSidebar, toggleSidebar }: HeaderProps) {
+export default function Header({ toggleSidebar }: HeaderProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
 
@@ -44,11 +43,7 @@ export default function Header({ onOpenSidebar, toggleSidebar }: HeaderProps) {
   }, []);
 
   const handleOpen = () => {
-    if (onOpenSidebar) {
-      onOpenSidebar();
-    } else if (toggleSidebar) {
-      toggleSidebar();
-    }
+    if (toggleSidebar) toggleSidebar();
   };
 
   // Các trang có hero image dùng header transparent khi ở đỉnh trang
