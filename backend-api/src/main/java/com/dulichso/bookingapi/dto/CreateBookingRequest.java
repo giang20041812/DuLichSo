@@ -48,4 +48,16 @@ public class CreateBookingRequest {
     private String guestNote;
 
     private List<String> specialRequests;
+
+    private List<ServiceItemRequest> serviceItems;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class ServiceItemRequest {
+        private String serviceName;
+        private String serviceCode;
+        private String note;
+    }
 }

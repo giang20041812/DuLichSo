@@ -73,6 +73,9 @@ export interface PlaceDetail {
   description?: string;
   altitudeMeters?: number;
   verifiedGpsText?: string;
+  isSuitableByTime?: boolean;
+  suitableDateStart?: string;
+  suitableDateEnd?: string;
   
   // Rich embedded objects
   media: PlaceMediaItem[];
@@ -123,6 +126,9 @@ export interface HomestayDto {
   longitude?: number;
   contacts?: PlaceContactItem[];
   amenities?: string[];
+  isSuitableByTime?: boolean;
+  suitableDateStart?: string;
+  suitableDateEnd?: string;
 }
 
 import { RoomTypeDto } from './room';
@@ -142,6 +148,9 @@ export interface HomestayDetailDto {
   priceRefMax: number;
   ratingAvg: number;
   ratingCount: number;
+  isSuitableByTime?: boolean;
+  suitableDateStart?: string;
+  suitableDateEnd?: string;
   attributes: Record<string, unknown>;
   
   images: string[];
@@ -159,4 +168,5 @@ export interface NearbyPlaceDto {
   latitude?: number;
   longitude?: number;
   address?: string;
+  contacts?: PlaceContactItem[];
 }

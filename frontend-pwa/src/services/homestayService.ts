@@ -7,6 +7,9 @@ export interface HomestayFilterParams {
   maxPrice?: number;
   minRating?: number;
   amenities?: string[];
+  province?: string;
+  ward?: string;
+  attractions?: string[];
 }
 
 export const fetchHomestays = async (params?: HomestayFilterParams): Promise<HomestayDto[]> => {
@@ -19,6 +22,11 @@ export const fetchHomestays = async (params?: HomestayFilterParams): Promise<Hom
     if (params?.minPrice !== undefined) url.searchParams.append('minPrice', params.minPrice.toString());
     if (params?.maxPrice !== undefined) url.searchParams.append('maxPrice', params.maxPrice.toString());
     if (params?.minRating !== undefined) url.searchParams.append('minRating', params.minRating.toString());
+    if (params?.province) url.searchParams.append('province', params.province);
+    if (params?.ward) url.searchParams.append('ward', params.ward);
+    if (params?.attractions && params.attractions.length > 0) {
+      url.searchParams.append('attractions', params.attractions.join(','));
+    }
     if (params?.amenities && params.amenities.length > 0) {
       params.amenities.forEach(amenity => url.searchParams.append('amenities', amenity));
     }
@@ -138,6 +146,9 @@ export const fetchRegionalDestinations = async (id: string, limit: number = 4): 
       longitude: item.longitude,
       roomType: 'Điểm tham quan',
       bedInfo: '',
+      isSuitableByTime: Boolean(item.isSuitableByTime),
+      suitableDateStart: item.suitableDateStart,
+      suitableDateEnd: item.suitableDateEnd,
     }));
   } catch (error) {
     console.error("Error fetching regional destinations:", error);

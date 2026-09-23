@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- ChangeSet 1: Add is_suitable_by_time column to place table -->
+    <changeSet id="20260924-01-add-place-suitable-by-time" author="dulichso">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="place" columnName="is_suitable_by_time"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="place">
+            <column name="is_suitable_by_time" type="boolean" defaultValueBoolean="false" remarks="Đánh dấu điểm đến phù hợp theo thời gian/mùa vụ hiện tại">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <!-- ChangeSet 2: Add is_suitable_by_time column to festival table -->
+    <changeSet id="20260924-02-add-festival-suitable-by-time" author="dulichso">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="festival" columnName="is_suitable_by_time"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="festival">
+            <column name="is_suitable_by_time" type="boolean" defaultValueBoolean="false" remarks="Đánh dấu lễ hội phù hợp theo thời gian/mùa vụ hiện tại">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <!-- ChangeSet 3: Create booking_service_item table for services included in booking (without price) -->
+    <changeSet id="20260924-03-create-booking-service-item" author="dulichso">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="booking_service_item"/>
+            </not>
+        </preConditions>
+        <createTable tableName="booking_service_item" remarks="Dịch vụ bổ sung đi kèm booking (không tính giá)">
+            <column name="id" type="bigint unsigned" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="booking_id" type="bigint unsigned">
+                <constraints nullable="false" foreignKeyName="fk_bsi_booking" references="booking(id)" deleteCascade="true"/>
+            </column>
+            <column name="service_name" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="service_code" type="varchar(64)"/>
+            <column name="note" type="varchar(500)"/>
+            <column name="is_included" type="boolean" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="datetime" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createIndex tableName="booking_service_item" indexName="idx_bsi_booking">
+            <column name="booking_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

@@ -4,6 +4,9 @@ export interface FestivalDto {
   name: string;
   seasonNote: string;
   timeRange: string;
+  isSuitableByTime?: boolean; // Lễ hội phù hợp theo mùa/thời gian
+  suitableDateStart?: string;
+  suitableDateEnd?: string;
   isCurrentSeason: boolean; // Gợi ý festival cho thời điểm hiện tại
   nextPeriodStart?: string;
   nextPeriodEnd?: string;

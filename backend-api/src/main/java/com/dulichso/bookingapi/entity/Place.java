@@ -71,6 +71,15 @@ public class Place {
     @Column(name = "is_deleted", nullable = false)
     private Boolean isDeleted = false;
     
+    @Column(name = "is_suitable_by_time", nullable = false)
+    private Boolean isSuitableByTime = false;
+    
+    @Column(name = "suitable_date_start")
+    private java.time.LocalDate suitableDateStart;
+
+    @Column(name = "suitable_date_end")
+    private java.time.LocalDate suitableDateEnd;
+    
     @Enumerated(EnumType.STRING)
     @Column(name = "source_type", nullable = false)
     private SourceType sourceType = SourceType.PUBLIC_TRUSTED;

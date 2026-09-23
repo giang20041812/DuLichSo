@@ -30,14 +30,14 @@ export default function CultureFestivalPage() {
     });
   }, []);
 
-  // Các lễ hội đang diễn ra / gợi ý tốt nhất cho tháng hiện tại
-  const currentSeasonFestivals = festivals.filter(f => f.isCurrentSeason);
+  // Các lễ hội thích hợp theo mùa / thời điểm hiện tại
+  const currentSeasonFestivals = festivals.filter(f => f.isSuitableByTime || f.isCurrentSeason);
 
   // Lọc theo tabs & keyword
   const filteredFestivals = festivals.filter(f => {
     let matchSeason = true;
     if (activeSeason === 'CURRENT') {
-      matchSeason = f.isCurrentSeason;
+      matchSeason = Boolean(f.isSuitableByTime || f.isCurrentSeason);
     } else if (activeSeason === 'AUTUMN') {
       matchSeason = f.slug === 'mua-vang-kham-pha-ruong-bac-thang' || f.slug === 'mung-com-moi' || f.seasonNote.toLowerCase().includes('tháng 9') || f.seasonNote.toLowerCase().includes('tháng 10');
     } else if (activeSeason === 'SPRING') {
@@ -115,10 +115,10 @@ export default function CultureFestivalPage() {
                   Gợi ý nổi bật nhất Tháng {currentMonth}
                 </div>
                 <h2 className="text-xl md:text-2xl font-black text-[var(--color-ink-deep)]">
-                  Thời Điểm Vàng Du Lịch Mù Cang Chải
+                  Lễ Hội Thích Hợp Theo Mùa
                 </h2>
                 <p className="text-xs md:text-sm text-[var(--color-muted)] mt-1">
-                  Đang diễn ra các hoạt động văn hóa đặc sắc gắn liền với mùa lúa chín bậc thang và ngày mùa bản địa.
+                  Các lễ hội và sinh hoạt văn hóa truyền thống đang diễn ra hoặc bước vào thời điểm đẹp nhất trong năm.
                 </p>
               </div>
 
@@ -149,13 +149,23 @@ export default function CultureFestivalPage() {
                     <h3 className="text-lg font-bold text-[var(--color-ink-deep)] mb-1.5">
                       {item.name}
                     </h3>
-                    <p className="text-xs text-[var(--color-muted)] line-clamp-2 leading-relaxed mb-3">
+                    <p className="text-xs text-[var(--color-muted)] line-clamp-2 leading-relaxed mb-2.5">
                       {item.coreValue}
                     </p>
 
-                    <div className="flex items-center gap-1.5 text-xs text-[var(--color-muted)] mb-3">
+                    <div className="flex items-center gap-1.5 text-xs text-[var(--color-muted)] mb-2.5">
                       <MapPin className="w-3.5 h-3.5 text-[var(--color-primary)] shrink-0" />
                       <span className="truncate">{item.location}</span>
+                    </div>
+
+                    {/* Hiển thị thời gian phù hợp */}
+                    <div className="mb-2 py-1 px-2.5 rounded-sm bg-[#edfbf7] border border-[#048c73]/20 flex items-center justify-between text-xs">
+                      <span className="text-slate-600 font-medium">Thời gian phù hợp:</span>
+                      <span className="font-bold text-[#048c73]">
+                        {item.suitableDateStart && item.suitableDateEnd 
+                          ? `${item.suitableDateStart.split('-').reverse().slice(0, 2).join('/')} – ${item.suitableDateEnd.split('-').reverse().slice(0, 2).join('/')}`
+                          : (item.suitableDateEnd ? `Đến ${item.suitableDateEnd.split('-').reverse().slice(0, 2).join('/')}` : item.timeRange)}
+                      </span>
                     </div>
                   </div>
 
@@ -246,9 +256,9 @@ export default function CultureFestivalPage() {
                     <Badge className="bg-[var(--color-primary)] text-white text-xs font-bold rounded-sm px-2.5 py-1 shadow-xs">
                       {fest.highlightTag}
                     </Badge>
-                    {fest.isCurrentSeason && (
+                    {(fest.isSuitableByTime || fest.isCurrentSeason) && (
                       <Badge className="bg-amber-500 text-white text-xs font-bold rounded-sm px-2.5 py-0.5 shadow-xs flex items-center gap-1">
-                        <Flame className="w-3 h-3 fill-white" /> Đang mùa
+                        <Flame className="w-3 h-3 fill-white" /> Thích hợp theo mùa
                       </Badge>
                     )}
                   </div>
@@ -261,6 +271,11 @@ export default function CultureFestivalPage() {
                       <span className="flex items-center gap-1 bg-[var(--color-primary-50)] px-2.5 py-1 rounded-md border border-[var(--color-primary-100)]">
                         <Calendar className="w-3.5 h-3.5" /> {fest.seasonNote}
                       </span>
+                      {fest.suitableDateStart && fest.suitableDateEnd && (
+                        <span className="flex items-center gap-1 bg-[#edfbf7] text-[#048c73] px-2.5 py-1 rounded-md border border-[#048c73]/20 font-bold">
+                          Đẹp nhất: {fest.suitableDateStart.split('-').reverse().slice(0, 2).join('/')} – {fest.suitableDateEnd.split('-').reverse().slice(0, 2).join('/')}
+                        </span>
+                      )}
                       <span className="flex items-center gap-1 text-[var(--color-muted)]">
                         <MapPin className="w-3.5 h-3.5 text-[var(--color-coral)]" /> {fest.location}
                       </span>

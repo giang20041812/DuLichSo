@@ -36,9 +36,12 @@ public class PublicPlaceController {
             @RequestParam(value = "amenities", required = false) List<String> amenities,
             @RequestParam(value = "checkIn", required = false) LocalDate checkIn,
             @RequestParam(value = "checkOut", required = false) LocalDate checkOut,
+            @RequestParam(value = "province", required = false) String province,
+            @RequestParam(value = "ward", required = false) String ward,
+            @RequestParam(value = "attractions", required = false) List<Long> attractions,
             @PageableDefault(size = 20) Pageable pageable) {
             
-        return ResponseEntity.ok(publicPlaceService.getPlaces(kind, minPrice, maxPrice, minRating, amenities, checkIn, checkOut, pageable));
+        return ResponseEntity.ok(publicPlaceService.getPlaces(kind, minPrice, maxPrice, minRating, amenities, checkIn, checkOut, province, ward, attractions, pageable));
     }
 
     @GetMapping("/{identifier}")

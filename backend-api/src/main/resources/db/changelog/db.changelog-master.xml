@@ -7,5 +7,7 @@
 
     <!-- Include your changelog files here -->
     <include file="db/changelog/changes/001-add-festival-cover-image-and-location.xml"/>
+    <include file="db/changelog/changes/002-add-suitable-by-time-and-booking-services.xml"/>
+    <include file="db/changelog/changes/003-add-suitable-dates.xml"/>
 
 </databaseChangeLog>

@@ -2132,43 +2132,43 @@ Ghi chú: Nên hỏi ngày sản xuất, khối lượng tịnh, cách bảo qu�
 -- ============================================================================
 
 -- ---- Lễ hội: Gầu Tào ----
-INSERT INTO festival (slug, name, name_norm, season_note, core_value, suitable_experience, etiquette_dont, region_id, visibility) VALUES (
+INSERT INTO festival (slug, name, name_norm, season_note, core_value, suitable_experience, etiquette_dont, region_id, visibility, is_suitable_by_time) VALUES (
   'gau-tao', 'Gầu Tào', 'gau tao', 'Đầu năm mới; lịch cụ thể theo địa phương', 'Cầu phúc, cầu mệnh, mùa màng, sức khỏe; sinh hoạt cộng đồng',
   'Xem phần hội được phép; nghe giới thiệu bối cảnh; giao lưu khèn/múa; ẩm thực cộng đồng
 Nhóm khách phù hợp: Khách văn hóa, nghiên cứu, khách quốc tế, nhóm nhỏ
-Dịch vụ có thể bán: Hướng dẫn bản địa, homestay, ăn uống, tour văn hóa', 'Tự ý quay/chụp nghi lễ; diễn lại phần thiêng; chen lấn', @rg_mu_cang_chai, 'PUBLISHED'
+Dịch vụ có thể bán: Hướng dẫn bản địa, homestay, ăn uống, tour văn hóa', 'Tự ý quay/chụp nghi lễ; diễn lại phần thiêng; chen lấn', @rg_mu_cang_chai, 'PUBLISHED', FALSE
 );
 
 -- ---- Lễ hội: Mừng cơm mới ----
-INSERT INTO festival (slug, name, name_norm, season_note, core_value, suitable_experience, etiquette_dont, region_id, visibility) VALUES (
+INSERT INTO festival (slug, name, name_norm, season_note, core_value, suitable_experience, etiquette_dont, region_id, visibility, is_suitable_by_time) VALUES (
   'mung-com-moi', 'Mừng cơm mới', 'mung com moi', 'Sau vụ lúa; tùy gia đình', 'Biết ơn tổ tiên, trời đất; đoàn tụ và mừng mùa',
   'Trải nghiệm nông nghiệp, nghe kể chuyện, thưởng thức món từ gạo mới khi được mời
 Nhóm khách phù hợp: Gia đình, khách giáo dục, khách chậm
-Dịch vụ có thể bán: Bữa cơm bản địa, tour ruộng, lưu trú', 'Biến lễ gia đình thành show; áp đặt lễ vật/lịch', @rg_mu_cang_chai, 'PUBLISHED'
+Dịch vụ có thể bán: Bữa cơm bản địa, tour ruộng, lưu trú', 'Biến lễ gia đình thành show; áp đặt lễ vật/lịch', @rg_mu_cang_chai, 'PUBLISHED', TRUE
 );
 
 -- ---- Lễ hội: Festival Khèn Mông ----
-INSERT INTO festival (slug, name, name_norm, season_note, core_value, suitable_experience, etiquette_dont, region_id, visibility) VALUES (
+INSERT INTO festival (slug, name, name_norm, season_note, core_value, suitable_experience, etiquette_dont, region_id, visibility, is_suitable_by_time) VALUES (
   'festival-khen-mong', 'Festival Khèn Mông', 'festival khen mong', 'Thường gắn chào xuân', 'Tôn vinh nghệ thuật khèn và trao truyền',
   'Xem trình diễn; workshop khèn; gặp nghệ nhân; mua nhạc cụ hợp pháp
 Nhóm khách phù hợp: Khách trẻ, khách văn hóa, nhiếp ảnh
-Dịch vụ có thể bán: Vé sự kiện, workshop, bán sản phẩm, lưu trú', 'Chỉ dùng khèn như tiết mục minh họa thiếu bối cảnh', @rg_mu_cang_chai, 'PUBLISHED'
+Dịch vụ có thể bán: Vé sự kiện, workshop, bán sản phẩm, lưu trú', 'Chỉ dùng khèn như tiết mục minh họa thiếu bối cảnh', @rg_mu_cang_chai, 'PUBLISHED', FALSE
 );
 
 -- ---- Lễ hội: Hoa Tớ Dày ----
-INSERT INTO festival (slug, name, name_norm, season_note, core_value, suitable_experience, etiquette_dont, region_id, visibility) VALUES (
+INSERT INTO festival (slug, name, name_norm, season_note, core_value, suitable_experience, etiquette_dont, region_id, visibility, is_suitable_by_time) VALUES (
   'hoa-to-day', 'Hoa Tớ Dày', 'hoa to day', 'Cuối năm–đầu năm', 'Cảnh quan hoa và không khí chào xuân',
   'Ngắm hoa có kiểm soát, chụp ảnh, đi bộ, kết hợp bản làng
 Nhóm khách phù hợp: Khách nghỉ dưỡng, nhiếp ảnh, gia đình
-Dịch vụ có thể bán: Tour cảnh quan, homestay, ẩm thực', 'Bẻ cành, giẫm cây, xả rác, quá tải điểm hoa', @rg_mu_cang_chai, 'PUBLISHED'
+Dịch vụ có thể bán: Tour cảnh quan, homestay, ẩm thực', 'Bẻ cành, giẫm cây, xả rác, quá tải điểm hoa', @rg_mu_cang_chai, 'PUBLISHED', FALSE
 );
 
 -- ---- Lễ hội: Mùa vàng/khám phá ruộng bậc thang ----
-INSERT INTO festival (slug, name, name_norm, season_note, core_value, suitable_experience, etiquette_dont, region_id, visibility) VALUES (
+INSERT INTO festival (slug, name, name_norm, season_note, core_value, suitable_experience, etiquette_dont, region_id, visibility, is_suitable_by_time) VALUES (
   'mua-vang-kham-pha-ruong-bac-thang', 'Mùa vàng/khám phá ruộng bậc thang', 'mua vang/kham pha ruong bac thang', 'Mùa lúa chín', 'Lao động, cảnh quan và sinh kế nông nghiệp',
   'Trekking, nhiếp ảnh, trải nghiệm gặt/làm nông khi được phép
 Nhóm khách phù hợp: Khách cảnh quan, trekking, nhiếp ảnh
-Dịch vụ có thể bán: Hướng dẫn, xe địa phương, nông sản, homestay', 'Đi vào ruộng, phá bờ thửa, gây cản trở sản xuất', @rg_mu_cang_chai, 'PUBLISHED'
+Dịch vụ có thể bán: Hướng dẫn, xe địa phương, nông sản, homestay', 'Đi vào ruộng, phá bờ thửa, gây cản trở sản xuất', @rg_mu_cang_chai, 'PUBLISHED', TRUE
 );
 
 
@@ -3040,5 +3040,271 @@ UPDATE place SET
     attributes = JSON_SET(COALESCE(attributes, '{}'), '$.coverImageUrl', 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&w=800&q=80', '$.rentalType', 'Lều chống mưa 2-4-6 người, Túi ngủ, Bếp cồn nướng BBQ', '$.priceDetails', 'Combo trọn gói camping ngắm dải ngân hà')
 WHERE id = 81; -- Cho Thuê Lều Trại Mâm Xôi Camp
 
+
+
+-- ============================================================================
+-- 6. THIẾT KẾ DỮ LIỆU ĐẦY ĐỦ CÁC BẢNG NGHIỆP VỤ (HOMESTAY, ROOM, BOOKING, PAYMENT, REVIEWS)
+-- ============================================================================
+
+-- 6.1 Cập nhật is_suitable_by_time, suitable_date_start, suitable_date_end cho các Điểm đến (ATTRACTION) & Ẩm thực (CUISINE)
+-- Mùa thu lúa chín & mùa vàng (Tháng 9 - Tháng 10): Đồi Mâm Xôi, Đồi Móng Ngựa, La Pán Tẩn, Khau Phạ, Cốm Tú Lệ phù hợp nhất
+UPDATE place SET 
+    is_suitable_by_time = TRUE,
+    suitable_date_start = '2026-09-10',
+    suitable_date_end = '2026-10-25'
+WHERE id IN (38, 39, 42, 43, 46, 76, 78, 101, 102);
+
+UPDATE place SET 
+    is_suitable_by_time = TRUE,
+    suitable_date_start = '2026-09-10',
+    suitable_date_end = '2026-10-25'
+WHERE slug IN ('do-mam-xoi', 'doi-mong-ngua', 'ruong-bac-thang-la-pan-tan', 'deo-khau-pha', 'thung-lung-tu-le', 'com-nep-tan-tu-le');
+
+-- Các điểm mùa đông / mùa hoa Tớ Dày (Tháng 12 - Tháng 1)
+UPDATE place SET 
+    is_suitable_by_time = FALSE,
+    suitable_date_start = '2026-12-15',
+    suitable_date_end = '2027-01-20'
+WHERE slug IN ('rung-truc-na-hang-tua', 'thac-mo-mu-cang-chai', 'ban-che-tao');
+
+-- 6.2 Cập nhật is_suitable_by_time và khoảng thời gian cho Homestays đang mùa đẹp
+UPDATE place SET 
+    is_suitable_by_time = TRUE,
+    suitable_date_start = '2026-09-01',
+    suitable_date_end = '2026-10-31'
+WHERE id IN (1, 2, 4, 7, 8, 12, 15, 82, 83);
+
+-- 6.2b Cập nhật is_suitable_by_time và khoảng thời gian cho Lễ hội (FESTIVAL)
+-- Lễ hội Mùa Vàng & Cơm Mới (Tháng 9 - 11): đang vào mùa thích hợp nhất
+UPDATE festival SET 
+    is_suitable_by_time = TRUE,
+    suitable_date_start = '2026-09-12',
+    suitable_date_end = '2026-10-18'
+WHERE slug = 'mua-vang-kham-pha-ruong-bac-thang';
+
+UPDATE festival SET 
+    is_suitable_by_time = TRUE,
+    suitable_date_start = '2026-09-20',
+    suitable_date_end = '2026-11-15'
+WHERE slug = 'mung-com-moi';
+
+-- Festival Khèn Mông & Hoa Tớ Dày (Mùa đông cuối năm)
+UPDATE festival SET 
+    is_suitable_by_time = FALSE,
+    suitable_date_start = '2026-12-20',
+    suitable_date_end = '2027-01-15'
+WHERE slug = 'festival-khen-mong';
+
+UPDATE festival SET 
+    is_suitable_by_time = FALSE,
+    suitable_date_start = '2026-12-15',
+    suitable_date_end = '2027-01-20'
+WHERE slug = 'hoa-to-day';
+
+-- Lễ hội Gầu Tào (Mùa xuân)
+UPDATE festival SET 
+    is_suitable_by_time = FALSE,
+    suitable_date_start = '2027-02-05',
+    suitable_date_end = '2027-02-25'
+WHERE slug = 'gau-tao';
+
+-- 6.3 HỒ SƠ HOMESTAY (homestay_profile) & CHÍNH SÁCH HỦY (cancellation_policy)
+INSERT INTO cancellation_policy (id, place_id, version, name, free_cancel_cutoff_hours, refund_on_late_cancel, content_text)
+VALUES 
+  (1, 1, 1, 'Chính sách Hủy Linh Hoạt (Bản Lìm Mông)', 24, 'FULL_REFUND', 'Miễn phí hủy trước 24 giờ so với thời điểm nhận phòng. Hủy sau 24h hoàn lại 0% phí đêm đầu.'),
+  (2, 2, 1, 'Chính sách Hủy Tiêu Chuẩn (Pơ Mu Khau Phạ)', 48, 'FULL_REFUND', 'Miễn phí hủy trước 48 giờ. Hủy cận ngày chịu phạt 50% tiền cọc.'),
+  (3, 4, 1, 'Chính sách Hủy Mùa Cao Điểm (Hello Mù Cang Chải)', 72, 'NO_REFUND', 'Miễn phí hủy trước 72 giờ. Trong vòng 72 giờ trước check-in không hoàn tiền.')
+ON DUPLICATE KEY UPDATE name = VALUES(name), content_text = VALUES(content_text);
+
+INSERT INTO homestay_profile (place_id, check_in_from, check_out_until, house_rules, surcharge_note, current_policy_id)
+VALUES
+  (1, '14:00:00', '12:00:00', 'Giữ im lặng sau 22:30. Không hút thuốc trong phòng ngủ gỗ Pơ Mu. Tôn trọng phong tục bản địa Thái.', 'Nhận phòng sớm trước 10:00 phụ thu 30% giá phòng.', 1),
+  (2, '13:30:00', '11:30:00', 'Vui lòng cởi giày dép khi lên sàn gỗ. Sử dụng nước nóng tiết kiệm vào mùa lạnh.', 'Trẻ em dưới 6 tuổi ngủ chung cùng bố mẹ miễn phí.', 2),
+  (4, '14:00:00', '12:00:00', 'Tắt các thiết bị sưởi ấm khi rời phòng. Không mang đồ ăn có mùi lên giường ngủ.', 'Phụ thu thêm người lớn thứ 3: 150.000 VNĐ/người/đêm.', 3)
+ON DUPLICATE KEY UPDATE house_rules = VALUES(house_rules), surcharge_note = VALUES(surcharge_note);
+
+-- 6.4 LOẠI PHÒNG (room_type) & GIƯỜNG (room_bed) & TIỆN ÍCH PHÒNG (room_amenity)
+INSERT INTO room_type (id, place_id, name, description, max_occupancy, total_room_count, private_bathroom, area_sqm, base_price, status)
+VALUES
+  (1, 1, 'Phòng Bungalow View Ruộng Bậc Thang', 'Bungalow gỗ thông riêng biệt, cửa kính panorama bao trọn thung lũng lúa Cao Phạ.', 2, 4, 'YES', 28.5, 650000, 'ACTIVE'),
+  (2, 1, 'Phòng Gia Đình Nhà Sàn Ấm Cúng', 'Phòng rộng rãi phù hợp gia đình 3-4 người, sàn gỗ tự nhiên, ban công đón nắng sớm.', 4, 2, 'YES', 36.0, 950000, 'ACTIVE'),
+  (3, 1, 'Giường Đơn Tập Thể Nhà Sàn Cộng Đồng', 'Nệm êm ái trên sàn gỗ truyền thống, có rèm che riêng tư, chăn đệm thổ cẩm sạch sẽ.', 1, 12, 'NO', 70.0, 180000, 'ACTIVE'),
+  (4, 2, 'Phòng Đôi Tiêu Chuẩn Gỗ Pơ Mu', 'Phòng ốp gỗ Pơ Mu thơm ngát, view nhìn thẳng ra dãy đèo Khau Phạ mây vờn.', 2, 3, 'YES', 24.0, 500000, 'ACTIVE'),
+  (5, 2, 'Phòng Tập Thể Nhóm Phượt (4 Khách)', 'Trang bị 2 giường tầng thông minh, tủ để đồ cá nhân có khóa an toàn.', 4, 2, 'YES', 30.0, 700000, 'ACTIVE'),
+  (6, 4, 'Phòng Deluxe Panorama Mù Cang Chải', 'Hạng phòng cao cấp nhất với ban công riêng, bồn tắm ngâm thảo dược ngắm hoàng hôn.', 2, 3, 'YES', 35.0, 850000, 'ACTIVE')
+ON DUPLICATE KEY UPDATE name = VALUES(name), base_price = VALUES(base_price), total_room_count = VALUES(total_room_count);
+
+INSERT INTO room_bed (id, room_type_id, bed_type, quantity)
+VALUES
+  (1, 1, 'DOUBLE', 1),
+  (2, 2, 'DOUBLE', 1),
+  (3, 2, 'SINGLE', 2),
+  (4, 3, 'FLOOR_MATTRESS', 12),
+  (5, 4, 'DOUBLE', 1),
+  (6, 5, 'BUNK', 2),
+  (7, 6, 'DOUBLE', 1)
+ON DUPLICATE KEY UPDATE bed_type = VALUES(bed_type), quantity = VALUES(quantity);
+
+-- Tiện ích phòng
+INSERT IGNORE INTO room_amenity (room_type_id, amenity_id, value)
+VALUES
+  (1, 8, 'YES'), (1, 9, 'YES'), (1, 11, 'YES'),
+  (2, 8, 'YES'), (2, 9, 'YES'),
+  (4, 8, 'YES'), (4, 9, 'YES'),
+  (6, 8, 'YES'), (6, 9, 'YES'), (6, 11, 'YES');
+
+-- 6.5 GIÁ ĐẶC BIỆT DỊP LỄ HỘI (room_special_price)
+INSERT INTO room_special_price (id, room_type_id, name, period_start, period_end, price, created_by)
+VALUES
+  (1, 1, 'Phụ thu Festival Mùa Vàng 2026', '2026-09-15', '2026-09-25', 850000, 1),
+  (2, 6, 'Phụ thu Tuần Lễ Dù Lượn Khau Phạ', '2026-09-18', '2026-09-22', 1100000, 1)
+ON DUPLICATE KEY UPDATE price = VALUES(price);
+
+-- 6.6 TỒN KHO PHÒNG THEO NGÀY (room_inventory_day)
+INSERT INTO room_inventory_day (room_type_id, stay_date, total_rooms, held_rooms, confirmed_rooms, stop_sell)
+VALUES
+  (1, '2026-09-24', 4, 1, 2, FALSE),
+  (1, '2026-09-25', 4, 0, 3, FALSE),
+  (1, '2026-09-26', 4, 0, 4, TRUE),
+  (1, '2026-09-27', 4, 1, 1, FALSE),
+  (2, '2026-09-24', 2, 0, 1, FALSE),
+  (2, '2026-09-25', 2, 1, 1, FALSE),
+  (4, '2026-09-24', 3, 0, 1, FALSE),
+  (6, '2026-09-24', 3, 0, 2, FALSE)
+ON DUPLICATE KEY UPDATE total_rooms = VALUES(total_rooms), confirmed_rooms = VALUES(confirmed_rooms);
+
+-- 6.7 CỔNG THANH TOÁN (payment_gateway)
+INSERT INTO payment_gateway (id, code, name, is_active)
+VALUES
+  (1, 'SEPAY', 'Chuyển khoản Ngân hàng Tự động (SEPay QR)', TRUE),
+  (2, 'VNPAY', 'Cổng thanh toán điện tử VNPAY-QR', TRUE),
+  (3, 'MOMO', 'Ví điện tử MoMo', TRUE),
+  (4, 'BANK_TRANSFER', 'Chuyển khoản thủ công ủy nhiệm', TRUE)
+ON DUPLICATE KEY UPDATE name = VALUES(name), is_active = VALUES(is_active);
+
+-- 6.8 DANH SÁCH ĐƠN ĐẶT PHÒNG MẪU ĐA DẠNG TRẠNG THÁI (booking)
+INSERT INTO booking (
+  id, booking_code, place_id, room_type_id, provider_id, check_in, check_out,
+  room_count, guest_count, guest_name, guest_phone, guest_email, guest_note,
+  status, hold_expires_at, payment_deadline_at, currency, total_amount, policy_id, policy_snapshot,
+  created_at, confirmed_at, closed_at, close_reason, closed_by_actor
+) VALUES
+  -- 1. CONFIRMED: Đã thanh toán và xác nhận lưu trú
+  (1, 'VJ-882101', 1, 1, 1, '2026-09-24', '2026-09-26',
+   1, 2, 'Nguyễn Hoàng Long', '0988123456', 'hoanglong.travel@gmail.com', 'Đoàn có mặt tầm 15:00 chiều, nhờ homestay chuẩn bị bữa tối cơm lam gà nướng.',
+   'CONFIRMED', NULL, NULL, 'VND', 1300000, 1, JSON_OBJECT('policyName', 'Chính sách Hủy Linh Hoạt', 'freeCancelCutoffHours', 24),
+   '2026-09-22 09:30:00', '2026-09-22 10:15:00', NULL, NULL, NULL),
+
+  -- 2. PENDING: Đang chờ chủ homestay xác nhận giữ phòng
+  (2, 'VJ-654320', 1, 2, 1, '2026-09-27', '2026-09-29',
+   1, 4, 'Trần Thị Thu Hà', '0912987654', 'thuha.hanoi@outlook.com', 'Gia đình có 2 bé nhỏ, nhờ kê thêm chăn ấm và hướng dẫn chỗ săn mây đẹp.',
+   'PENDING', '2026-09-24 18:00:00', NULL, 'VND', 1900000, 1, JSON_OBJECT('policyName', 'Chính sách Hủy Linh Hoạt', 'freeCancelCutoffHours', 24),
+   '2026-09-23 20:00:00', NULL, NULL, NULL, NULL),
+
+  -- 3. AWAITING_PAYMENT: Homestay đã chấp nhận, khách đang thanh toán QR qua SEPay
+  (3, 'VJ-912834', 2, 4, 2, '2026-09-25', '2026-09-27',
+   1, 2, 'Lê Quốc Bảo', '0977345678', 'baole.photo@yahoo.com', 'Phòng tầng 2 view thoáng ngắm đèo Khau Phạ.',
+   'AWAITING_PAYMENT', '2026-09-24 12:00:00', '2026-09-24 09:15:00', 'VND', 1000000, 2, JSON_OBJECT('policyName', 'Chính sách Tiêu Chuẩn', 'freeCancelCutoffHours', 48),
+   '2026-09-23 22:45:00', NULL, NULL, NULL, NULL),
+
+  -- 4. COMPLETED: Kỳ nghỉ đã hoàn thành viên mãn
+  (4, 'VJ-341908', 4, 6, 4, '2026-09-18', '2026-09-20',
+   1, 2, 'Phạm Minh Tuấn', '0936555888', 'tuanpm.tech@gmail.com', 'Chuyến đi ngắm mùa vàng xuất sắc, cảm ơn homestay đã đón tiếp nồng hậu.',
+   'COMPLETED', NULL, NULL, 'VND', 1700000, 3, JSON_OBJECT('policyName', 'Chính sách Mùa Cao Điểm', 'freeCancelCutoffHours', 72),
+   '2026-09-15 14:20:00', '2026-09-15 14:40:00', '2026-09-20 12:00:00', 'Khách trả phòng đúng hạn', 'SYSTEM'),
+
+  -- 5. CANCELLED: Khách hủy có lý do hoàn trả cọc
+  (5, 'VJ-772190', 1, 1, 1, '2026-10-02', '2026-10-04',
+   1, 2, 'Vũ Thu Thảo', '0904111222', 'thaovu.hn@gmail.com', 'Gặp việc bận đột xuất gia đình xin hủy lịch hẹn sang tháng sau.',
+   'CANCELLED', NULL, NULL, 'VND', 1300000, 1, JSON_OBJECT('policyName', 'Chính sách Hủy Linh Hoạt', 'freeCancelCutoffHours', 24),
+   '2026-09-20 11:00:00', '2026-09-20 11:30:00', '2026-09-21 08:30:00', 'Khách báo bận việc đột xuất trước 24h quy định', 'CUSTOMER')
+ON DUPLICATE KEY UPDATE guest_name = VALUES(guest_name), status = VALUES(status);
+
+-- 6.9 CHI TIẾT TỪNG ĐÊM NGHỈ (booking_night)
+INSERT INTO booking_night (booking_id, stay_date, unit_price, room_count)
+VALUES
+  (1, '2026-09-24', 650000, 1),
+  (1, '2026-09-25', 650000, 1),
+  (2, '2026-09-27', 950000, 1),
+  (2, '2026-09-28', 950000, 1),
+  (3, '2026-09-25', 500000, 1),
+  (3, '2026-09-26', 500000, 1),
+  (4, '2026-09-18', 850000, 1),
+  (4, '2026-09-19', 850000, 1),
+  (5, '2026-10-02', 650000, 1),
+  (5, '2026-10-03', 650000, 1)
+ON DUPLICATE KEY UPDATE unit_price = VALUES(unit_price);
+
+-- 6.10 DỊCH VỤ BỔ SUNG ĐI KÈM BOOKING (booking_service_item) — KHÔNG TÍNH GIÁ
+INSERT INTO booking_service_item (id, booking_id, service_name, service_code, note, is_included)
+VALUES
+  (1, 1, 'Hỗ trợ đón tại Ngã Ba Kim Mù Cang Chải', 'PICKUP_FREE', 'Tài xế homestay ra đón bằng xe máy lúc 14:45', TRUE),
+  (2, 1, 'Đốt lò sưởi củi sưởi ấm ban đêm', 'FIREPLACE', 'Chuẩn bị củi thông thơm từ 19:30 tại sân sinh hoạt', TRUE),
+  (3, 1, 'Mượn ô và trang phục dân tộc Thái chụp ảnh', 'COSTUME_FREE', '02 bộ nữ Thái truyền thống chụp tại bờ suối', TRUE),
+  (4, 2, 'Kê thêm nệm phụ cho em bé', 'EXTRA_BEDDING', 'Miễn phí chăn đệm sạch cho 2 bé nhỏ', TRUE),
+  (5, 2, 'Tư vấn lịch trình săn mây đèo Khau Phạ', 'TRAVEL_GUIDE', 'Chủ homestay trực tiếp vẽ bản đồ các điểm mây đẹp', TRUE),
+  (6, 3, 'Gửi xe máy qua đêm có mái che an toàn', 'PARKING_FREE', '02 xe máy phượt của khách', TRUE),
+  (7, 4, 'Bữa sáng cháo bắp thịt bản & trà sơn tra', 'BREAKFAST_FREE', 'Phục vụ tại ban công lúc 07:15', TRUE),
+  (8, 4, 'Ngâm chân nước lá thuốc thảo mộc người Dao', 'HERBAL_FOOT', 'Chuẩn bị thùng gỗ ngâm sau chuyến trekking Mâm Xôi', TRUE)
+ON DUPLICATE KEY UPDATE service_name = VALUES(service_name);
+
+-- 6.11 GIAO DỊCH THANH TOÁN (payment_transaction)
+INSERT INTO payment_transaction (id, booking_id, gateway_id, external_txn_id, amount, currency, status, initiated_at, paid_at, raw_callback)
+VALUES
+  (1, 1, 1, 'SEPAY_TXN_20260922_001', 1300000, 'VND', 'SUCCESS', '2026-09-22 10:10:00', '2026-09-22 10:14:35',
+   JSON_OBJECT('gateway', 'SEPay', 'accountNumber', '0912345678', 'bankCode', 'MB', 'transferContent', 'VJ 882101')),
+  (2, 3, 1, 'SEPAY_TXN_20260923_098', 1000000, 'VND', 'INITIATED', '2026-09-23 22:50:00', NULL, NULL),
+  (3, 4, 2, 'VNPAY_TXN_9918231', 1700000, 'VND', 'SUCCESS', '2026-09-15 14:30:00', '2026-09-15 14:38:20',
+   JSON_OBJECT('vnp_ResponseCode', '00', 'vnp_TransactionNo', '14092812')),
+  (4, 5, 1, 'SEPAY_TXN_20260920_055', 1300000, 'VND', 'SUCCESS', '2026-09-20 11:20:00', '2026-09-20 11:25:10',
+   JSON_OBJECT('gateway', 'SEPay', 'transferContent', 'VJ 772190'))
+ON DUPLICATE KEY UPDATE status = VALUES(status), amount = VALUES(amount);
+
+-- 6.12 HOÀN TIỀN (refund) CHO ĐƠN ĐÃ HỦY
+INSERT INTO refund (id, booking_id, payment_transaction_id, refund_type, amount, reason, status, requested_at, processed_at)
+VALUES
+  (1, 5, 4, 'FULL_REFUND', 1300000, 'Khách hủy trước 24h theo đúng cam kết chính sách linh hoạt', 'PROCESSED', '2026-09-21 08:35:00', '2026-09-21 09:10:00')
+ON DUPLICATE KEY UPDATE amount = VALUES(amount), status = VALUES(status);
+
+-- 6.13 LỊCH SỬ BIẾN ĐỘNG TRẠNG THÁI BOOKING (booking_status_history)
+INSERT INTO booking_status_history (id, booking_id, from_status, to_status, actor, actor_id, reason, created_at)
+VALUES
+  (1, 1, 'PENDING', 'CONFIRMED', 'PROVIDER', 1, 'Chủ nhà Bản Lìm Mông Eco Lodge đã nhận phòng & xác nhận cọc', '2026-09-22 10:15:00'),
+  (2, 4, 'PENDING', 'CONFIRMED', 'PROVIDER', 4, 'Chấp nhận đơn đặt phòng mùa vàng', '2026-09-15 14:40:00'),
+  (3, 4, 'CONFIRMED', 'COMPLETED', 'SYSTEM', NULL, 'Hệ thống tự động đóng đơn sau khi khách hoàn thành kỳ nghỉ', '2026-09-20 12:00:00'),
+  (4, 5, 'PENDING', 'CONFIRMED', 'PROVIDER', 1, 'Đồng ý nhận khách', '2026-09-20 11:30:00'),
+  (5, 5, 'CONFIRMED', 'CANCELLED', 'CUSTOMER', NULL, 'Khách gửi yêu cầu hủy vé do bận việc gia đình', '2026-09-21 08:30:00')
+ON DUPLICATE KEY UPDATE reason = VALUES(reason);
+
+-- 6.14 ĐÁNH GIÁ CỦA KHÁCH DU LỊCH (review)
+INSERT INTO review (id, place_id, booking_id, rating, content, status, editable_until, created_at)
+VALUES
+  (1, 4, 4, 5, 'Không gian tuyệt vời trên cả kỳ vọng! Sáng sớm thức dậy mở toang rèm là thấy biển mây ùa vào tận hiên nhà. Chị chủ chuẩn bị bữa sáng xôi nếp nương và gà đồi nướng rất ngon. Chắc chắn sẽ quay lại vào mùa hoa Tớ Dày!', 'VISIBLE', '2026-09-27 12:00:00', '2026-09-20 16:30:00')
+ON DUPLICATE KEY UPDATE rating = VALUES(rating), content = VALUES(content);
+
+-- 6.15 MẪU THÔNG BÁO (notification_template) & THÔNG BÁO THỰC TẾ (notification)
+INSERT INTO notification_template (id, code, channel, subject, body_template, is_active)
+VALUES
+  (1, 'BOOKING_CREATED', 'SMS', NULL, 'DuLichSo: Don dat phong {{booking_code}} tai {{homestay_name}} da duoc tao thanh cong. Vui long cho xac nhan tu chu nha trong 12h.', TRUE),
+  (2, 'BOOKING_CONFIRMED', 'SMS', NULL, 'DuLichSo: Don dat phong {{booking_code}} da duoc XAC NHAN! Vui long thanh toan truoc {{payment_deadline}} qua QR chuyen khoan.', TRUE),
+  (3, 'PAYMENT_SUCCESS', 'SMS', NULL, 'DuLichSo: Thanh toan thanh cong {{total_amount}} VND cho don {{booking_code}}. Chuc ban co chuyen di Mu Cang Chai tuyet voi!', TRUE),
+  (4, 'NEW_BOOKING_PROVIDER', 'IN_APP', 'Đơn đặt phòng mới', 'Bạn có 1 yêu cầu đặt phòng mới mã {{booking_code}} từ khách {{guest_name}} ({{guest_phone}}). Vui lòng kiểm tra và xác nhận phòng trống.', TRUE)
+ON DUPLICATE KEY UPDATE body_template = VALUES(body_template);
+
+INSERT INTO notification (id, template_code, channel, recipient_type, recipient_account_id, recipient_phone, related_entity_type, related_entity_id, payload, status, created_at, sent_at)
+VALUES
+  (1, 'BOOKING_CREATED', 'SMS', 'CUSTOMER', NULL, '0988123456', 'booking', 1, JSON_OBJECT('booking_code', 'VJ-882101', 'homestay_name', 'Bản Lìm Mông Eco Lodge'), 'SENT', '2026-09-22 09:31:00', '2026-09-22 09:31:15'),
+  (2, 'BOOKING_CONFIRMED', 'SMS', 'CUSTOMER', NULL, '0988123456', 'booking', 1, JSON_OBJECT('booking_code', 'VJ-882101', 'payment_deadline', '2026-09-22 11:15'), 'SENT', '2026-09-22 10:15:05', '2026-09-22 10:15:20'),
+  (3, 'PAYMENT_SUCCESS', 'SMS', 'CUSTOMER', NULL, '0988123456', 'booking', 1, JSON_OBJECT('booking_code', 'VJ-882101', 'total_amount', '1.300.000'), 'SENT', '2026-09-22 10:15:30', '2026-09-22 10:15:45'),
+  (4, 'NEW_BOOKING_PROVIDER', 'IN_APP', 'ACCOUNT', 1, NULL, 'booking', 2, JSON_OBJECT('booking_code', 'VJ-654320', 'guest_name', 'Trần Thị Thu Hà', 'guest_phone', '0912987654'), 'SENT', '2026-09-23 20:00:10', '2026-09-23 20:00:12')
+ON DUPLICATE KEY UPDATE status = VALUES(status);
+
+-- 6.16 NHẬT KÝ HỆ THỐNG (audit_log)
+INSERT INTO audit_log (id, actor, actor_id, action, entity_type, entity_id, reason, before_data, after_data, created_at)
+VALUES
+  (1, 'SYSTEM', NULL, 'SYSTEM_INITIALIZE', 'database', 1, 'Khởi tạo dữ liệu mẫu toàn diện chuẩn Liquibase', NULL, JSON_OBJECT('version', 'v0.2', 'status', 'SUCCESS'), '2026-09-24 00:00:00'),
+  (2, 'PROVIDER', 1, 'BOOKING_ACCEPT', 'booking', 1, 'Xác nhận còn phòng Bungalow cho khách Nguyễn Hoàng Long', JSON_OBJECT('status', 'PENDING'), JSON_OBJECT('status', 'CONFIRMED'), '2026-09-22 10:15:00'),
+  (3, 'CUSTOMER', NULL, 'BOOKING_CANCEL', 'booking', 5, 'Khách gửi yêu cầu hủy vé sớm', JSON_OBJECT('status', 'CONFIRMED'), JSON_OBJECT('status', 'CANCELLED'), '2026-09-21 08:30:00')
+ON DUPLICATE KEY UPDATE action = VALUES(action);
 
 COMMIT;

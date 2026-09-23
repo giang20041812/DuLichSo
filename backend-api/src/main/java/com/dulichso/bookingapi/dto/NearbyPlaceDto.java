@@ -18,4 +18,5 @@ public class NearbyPlaceDto {
     private java.math.BigDecimal latitude;
     private java.math.BigDecimal longitude;
     private String address;
+    private java.util.List<PlaceDetailDto.ContactItemDto> contacts;
 }

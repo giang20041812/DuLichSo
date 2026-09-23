@@ -16,6 +16,7 @@ export interface FestivalDto {
   activities: string[];
 
   // Trường tính toán
+  isSuitableByTime?: boolean;
   isCurrentSeason: boolean;
   nextPeriodStart: string | null; // ISO date string
   nextPeriodEnd: string | null;   // ISO date string

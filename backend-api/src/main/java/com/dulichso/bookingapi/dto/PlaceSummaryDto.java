@@ -27,6 +27,9 @@ public class PlaceSummaryDto {
     private BigDecimal latitude;
     private BigDecimal longitude;
     private String address;
+    private Boolean isSuitableByTime;
+    private java.time.LocalDate suitableDateStart;
+    private java.time.LocalDate suitableDateEnd;
     
     // Virtual fields that will be parsed from attributes or assigned in service
     private String categoryName;

@@ -59,6 +59,16 @@ public class Festival {
     @Builder.Default
     private Boolean isDeleted = false;
 
+    @Column(name = "is_suitable_by_time", nullable = false)
+    @Builder.Default
+    private Boolean isSuitableByTime = false;
+
+    @Column(name = "suitable_date_start")
+    private java.time.LocalDate suitableDateStart;
+
+    @Column(name = "suitable_date_end")
+    private java.time.LocalDate suitableDateEnd;
+
     @OneToMany(mappedBy = "festival", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<FestivalOccurrence> occurrences = new ArrayList<>();

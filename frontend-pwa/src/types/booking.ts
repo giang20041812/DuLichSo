@@ -9,6 +9,14 @@ export type BookingStatus =
   | 'COMPLETED'
   | 'NO_SHOW';
 
+export interface BookingServiceItemDto {
+  id?: number;
+  serviceName: string;
+  serviceCode?: string;
+  note?: string;
+  isIncluded?: boolean;
+}
+
 // DTO gửi lên backend — field name khớp với CreateBookingRequest.java
 export interface CreateBookingRequest {
   placeId: number;
@@ -22,6 +30,7 @@ export interface CreateBookingRequest {
   guestEmail?: string;
   guestNote?: string;
   specialRequests?: string[];
+  serviceItems?: BookingServiceItemDto[];
 }
 
 // DTO nhận về từ backend — field name khớp với BookingResponseDto.java
@@ -49,6 +58,7 @@ export interface BookingResponseDto {
   createdAt: string;       // ISO datetime
   holdExpiresAt: string;   // ISO datetime
   policySnapshot: Record<string, unknown>;
+  serviceItems?: BookingServiceItemDto[];
 }
 
 // State truyền từ HomestayDetailPage -> BookingPage qua navigate()
@@ -69,6 +79,10 @@ export interface BookingNavigationState {
   bedInfo?: string;
   hasBreakfast?: boolean;
   freeCancellation?: boolean;
+
+  // Vị trí tọa độ homestay
+  latitude?: number;
+  longitude?: number;
 
   // Phải là ISO date YYYY-MM-DD để backend parse được LocalDate
   checkIn: string;

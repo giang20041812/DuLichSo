@@ -43,6 +43,7 @@ export function AppRoutes() {
         <Route path="culture" element={<CultureFestivalPage />} />
         <Route path="explore" element={<CultureFestivalPage />} />
         <Route path="food" element={<RestaurantListPage />} />
+        <Route path="tours" element={<CultureFestivalPage />} />
         <Route path="transport" element={<TransportListPage />} />
         <Route path="services" element={<UtilityListPage />} />
         <Route path="photo" element={<UtilityListPage />} />

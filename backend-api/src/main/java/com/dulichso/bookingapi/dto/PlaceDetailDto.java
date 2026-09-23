@@ -40,6 +40,9 @@ public class PlaceDetailDto {
     private String description;
     private Integer altitudeMeters;
     private String verifiedGpsText;
+    private Boolean isSuitableByTime;
+    private java.time.LocalDate suitableDateStart;
+    private java.time.LocalDate suitableDateEnd;
     private Map<String, Object> attributes;
 
     private List<String> images;

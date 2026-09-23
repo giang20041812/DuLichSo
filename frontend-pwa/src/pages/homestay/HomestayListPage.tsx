@@ -90,6 +90,9 @@ export default function HomestayListPage() {
     const maxPrice = searchParams.get('maxPrice');
     const minRating = searchParams.get('minRating');
     const amenitiesStr = searchParams.get('amenities');
+    const province = searchParams.get('province');
+    const ward = searchParams.get('ward');
+    const attractionsStr = searchParams.get('attractions');
     
     if (checkIn) initialFilters.checkIn = checkIn;
     if (checkOut) initialFilters.checkOut = checkOut;
@@ -97,6 +100,9 @@ export default function HomestayListPage() {
     if (maxPrice) initialFilters.maxPrice = Number(maxPrice);
     if (minRating) initialFilters.minRating = Number(minRating);
     if (amenitiesStr) initialFilters.amenities = amenitiesStr.split(',');
+    if (province) initialFilters.province = province;
+    if (ward) initialFilters.ward = ward;
+    if (attractionsStr) initialFilters.attractions = attractionsStr.split(',');
     
     return initialFilters;
   });
@@ -143,6 +149,9 @@ export default function HomestayListPage() {
       if (newFilters.maxPrice !== undefined) newParams.set('maxPrice', newFilters.maxPrice.toString()); else newParams.delete('maxPrice');
       if (newFilters.minRating !== undefined) newParams.set('minRating', newFilters.minRating.toString()); else newParams.delete('minRating');
       if (newFilters.amenities && newFilters.amenities.length > 0) newParams.set('amenities', newFilters.amenities.join(',')); else newParams.delete('amenities');
+      if (newFilters.province) newParams.set('province', newFilters.province); else newParams.delete('province');
+      if (newFilters.ward) newParams.set('ward', newFilters.ward); else newParams.delete('ward');
+      if (newFilters.attractions && newFilters.attractions.length > 0) newParams.set('attractions', newFilters.attractions.join(',')); else newParams.delete('attractions');
       
       setSearchParams(newParams, { replace: true });
       return newFilters;
@@ -164,6 +173,9 @@ export default function HomestayListPage() {
     const maxPrice = searchParams.get('maxPrice');
     const minRating = searchParams.get('minRating');
     const amenitiesStr = searchParams.get('amenities');
+    const province = searchParams.get('province');
+    const ward = searchParams.get('ward');
+    const attractionsStr = searchParams.get('attractions');
     
     setFilters({
       checkIn: checkIn || undefined,
@@ -172,6 +184,9 @@ export default function HomestayListPage() {
       maxPrice: maxPrice ? Number(maxPrice) : undefined,
       minRating: minRating ? Number(minRating) : undefined,
       amenities: amenitiesStr ? amenitiesStr.split(',') : undefined,
+      province: province || undefined,
+      ward: ward || undefined,
+      attractions: attractionsStr ? attractionsStr.split(',') : undefined,
     });
   }, [searchParams]);
 
@@ -187,7 +202,7 @@ export default function HomestayListPage() {
   }, [filters]);
 
   const hasActiveFilters = Boolean(
-    filters.amenities?.length || filters.minRating || filters.maxPrice || filters.minPrice
+    filters.amenities?.length || filters.minRating || filters.maxPrice || filters.minPrice || filters.ward || (filters.province && filters.province !== 'Yên Bái') || filters.attractions?.length
   );
 
   // Sắp xếp danh sách
@@ -572,6 +587,45 @@ export default function HomestayListPage() {
                 Đang áp dụng:
               </span>
 
+              {filters.province && filters.province !== 'Yên Bái' && (
+                <button 
+                  onClick={() => handleFilterChange({ province: undefined })}
+                  className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-[var(--color-primary)] bg-[var(--color-primary-50)] text-[var(--color-primary-700)] text-xs font-semibold shadow-2xs transition-all hover:bg-[var(--color-primary-100)]"
+                >
+                  <MapPin className="w-3 h-3 text-[var(--color-primary)]" />
+                  Tỉnh: {filters.province} <X className="w-3 h-3 text-[var(--color-primary)]" />
+                </button>
+              )}
+
+              {filters.ward && (
+                <button 
+                  onClick={() => handleFilterChange({ ward: undefined })}
+                  className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-[var(--color-primary)] bg-[var(--color-primary-50)] text-[var(--color-primary-700)] text-xs font-semibold shadow-2xs transition-all hover:bg-[var(--color-primary-100)]"
+                >
+                  <MapPin className="w-3 h-3 text-[var(--color-primary)]" />
+                  Xã: {filters.ward} <X className="w-3 h-3 text-[var(--color-primary)]" />
+                </button>
+              )}
+
+              {filters.attractions && filters.attractions.length > 0 && (
+                <button 
+                  onClick={() => handleFilterChange({ attractions: undefined })}
+                  className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-[#f59e0b] bg-[#fffbeb] text-[#b45309] text-xs font-semibold shadow-2xs transition-all hover:bg-[#fef3c7]"
+                >
+                  <Sparkles className="w-3 h-3 text-[#f59e0b]" />
+                  {filters.attractions.length} điểm du lịch <X className="w-3 h-3 text-[#b45309]" />
+                </button>
+              )}
+
+              {filters.checkIn && (
+                <button 
+                  onClick={() => handleFilterChange({ checkIn: undefined })}
+                  className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-teal-300 bg-teal-50 text-teal-800 text-xs font-semibold shadow-2xs transition-all hover:bg-teal-100"
+                >
+                  Ngày đi: {filters.checkIn} <X className="w-3 h-3 text-teal-700" />
+                </button>
+              )}
+
               {filters.amenities?.map(amenityCode => {
                 const item = ALL_AMENITIES.find(a => a.code === amenityCode);
                 const name = item ? `${item.name}${item.scope === 'ROOM' ? ' (Phòng)' : ''}` : amenityCode;
@@ -685,6 +739,8 @@ export default function HomestayListPage() {
                       latitude: hs.latitude || (21.85 + (Math.sin(Number(hs.id) || 1) * 0.05)),
                       longitude: hs.longitude || (104.08 + (Math.cos(Number(hs.id) || 1) * 0.05)),
                       price: hs.price,
+                      kind: 'HOMESTAY',
+                      displayMode: 'price',
                       coverImageUrl: hs.coverImageUrl,
                       district: hs.district,
                       url: `/homestays/${hs.id}`

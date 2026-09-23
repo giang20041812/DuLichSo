@@ -43,7 +43,12 @@ public class PublicPlaceService {
 
     @Transactional(readOnly = true)
     public Page<PlaceSummaryDto> getPlaces(CategoryKind kind, BigDecimal minPrice, BigDecimal maxPrice, BigDecimal minRating, List<String> amenities, LocalDate checkIn, LocalDate checkOut, Pageable pageable) {
-        Specification<Place> spec = PlaceSpecification.filterPublicPlaces(kind, minPrice, maxPrice, minRating, amenities, checkIn, checkOut);
+        return getPlaces(kind, minPrice, maxPrice, minRating, amenities, checkIn, checkOut, null, null, null, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<PlaceSummaryDto> getPlaces(CategoryKind kind, BigDecimal minPrice, BigDecimal maxPrice, BigDecimal minRating, List<String> amenities, LocalDate checkIn, LocalDate checkOut, String province, String ward, List<Long> attractionIds, Pageable pageable) {
+        Specification<Place> spec = PlaceSpecification.filterPublicPlaces(kind, minPrice, maxPrice, minRating, amenities, checkIn, checkOut, province, ward, attractionIds);
         
         Page<Place> placesPage = placeRepository.findAll(spec, pageable);
         
@@ -86,6 +91,9 @@ public class PublicPlaceService {
                     p.getLongitude(),
                     p.getAddress()
             );
+            dto.setIsSuitableByTime(p.getIsSuitableByTime());
+            dto.setSuitableDateStart(p.getSuitableDateStart());
+            dto.setSuitableDateEnd(p.getSuitableDateEnd());
             dto.setContacts(contactsByPlaceId.getOrDefault(p.getId(), Collections.emptyList()));
             return dto;
         });
@@ -140,6 +148,9 @@ public class PublicPlaceService {
                 .ratingAvg(place.getRatingAvg())
                 .ratingCount(place.getRatingCount())
                 .attributes(place.getAttributes())
+                .isSuitableByTime(place.getIsSuitableByTime())
+                .suitableDateStart(place.getSuitableDateStart())
+                .suitableDateEnd(place.getSuitableDateEnd())
                 .images(images)
                 .amenities(amenityNames)
                 .rooms(roomDtos)
@@ -158,6 +169,22 @@ public class PublicPlaceService {
         List<com.dulichso.bookingapi.repository.NearbyPlaceProjection> projections = 
             placeRepository.findNearbyPlaces(place.getLatitude(), place.getLongitude(), radiusInKm, id, 10);
 
+        List<Long> placeIds = projections.stream().map(com.dulichso.bookingapi.repository.NearbyPlaceProjection::getId).collect(Collectors.toList());
+        Map<Long, List<PlaceDetailDto.ContactItemDto>> contactsByPlaceId = new java.util.HashMap<>();
+        if (!placeIds.isEmpty()) {
+            List<com.dulichso.bookingapi.entity.PlaceContact> contacts = placeContactRepository.findByPlaceIdInAndIsPublicTrue(placeIds);
+            for (com.dulichso.bookingapi.entity.PlaceContact c : contacts) {
+                contactsByPlaceId.computeIfAbsent(c.getPlace().getId(), k -> new ArrayList<>())
+                        .add(PlaceDetailDto.ContactItemDto.builder()
+                                .id(c.getId())
+                                .channel(c.getChannel())
+                                .value(c.getValue())
+                                .isPublic(c.getIsPublic())
+                                .sortOrder(c.getSortOrder())
+                                .build());
+            }
+        }
+
         return projections.stream().map(p -> com.dulichso.bookingapi.dto.NearbyPlaceDto.builder()
                 .id(p.getId())
                 .name(p.getName())
@@ -166,6 +193,7 @@ public class PublicPlaceService {
                 .latitude(p.getLatitude())
                 .longitude(p.getLongitude())
                 .address(p.getAddress())
+                .contacts(contactsByPlaceId.getOrDefault(p.getId(), Collections.emptyList()))
                 .build()
         ).collect(Collectors.toList());
     }
@@ -204,6 +232,9 @@ public class PublicPlaceService {
                     .priceRefMin(p.getPriceRefMin())
                     .priceRefMax(p.getPriceRefMax())
                     .priceUnitNote(p.getPriceUnitNote())
+                    .isSuitableByTime(p.getIsSuitableByTime())
+                    .suitableDateStart(p.getSuitableDateStart())
+                    .suitableDateEnd(p.getSuitableDateEnd())
                     .build();
         }).collect(Collectors.toList());
     }

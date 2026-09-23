@@ -30,6 +30,9 @@ export interface PlaceSummaryDto {
   attributesJson: string;
   kind: CategoryKind;
   priceUnitNote?: string;
+  isSuitableByTime?: boolean;
+  suitableDateStart?: string;
+  suitableDateEnd?: string;
   
   // Virtual fields enriched by backend
   tagBadge?: string;

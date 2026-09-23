@@ -47,10 +47,16 @@ public class PublicHomeServiceImpl implements PublicHomeService {
                         .build())
                 .collect(Collectors.toList());
 
-        // Fetch Featured Destinations (ATTRACTION)
+        // Fetch Featured Destinations (ATTRACTION) - Ưu tiên các điểm đến thích hợp theo mùa (isSuitableByTime = true)
         List<PlaceSummaryDto> attractions = new ArrayList<>(publicPlaceService.getPlaces(
                 CategoryKind.ATTRACTION, null, null, null, null, null, null, PageRequest.of(0, 16)
         ).getContent());
+        // Sắp xếp đưa điểm đến thích hợp theo mùa lên trước
+        attractions.sort((a, b) -> {
+            boolean aSuitable = Boolean.TRUE.equals(a.getIsSuitableByTime());
+            boolean bSuitable = Boolean.TRUE.equals(b.getIsSuitableByTime());
+            return Boolean.compare(bSuitable, aSuitable);
+        });
         enrichPlaceSummaries(attractions);
 
         // Fetch Top Homestays

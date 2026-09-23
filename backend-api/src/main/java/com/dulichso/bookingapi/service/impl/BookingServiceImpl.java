@@ -18,8 +18,12 @@ import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -157,6 +161,27 @@ public class BookingServiceImpl implements BookingService {
             bookingNightRepository.save(night);
         }
 
+        // 8.1 Lưu các dịch vụ đi kèm booking (không tính giá)
+        if (request.getServiceItems() != null && !request.getServiceItems().isEmpty()) {
+            List<com.dulichso.bookingapi.entity.BookingServiceItem> items = new ArrayList<>();
+            for (CreateBookingRequest.ServiceItemRequest itemReq : request.getServiceItems()) {
+                if (itemReq.getServiceName() != null && !itemReq.getServiceName().isBlank()) {
+                    items.add(com.dulichso.bookingapi.entity.BookingServiceItem.builder()
+                            .booking(savedBooking)
+                            .serviceName(itemReq.getServiceName())
+                            .serviceCode(itemReq.getServiceCode())
+                            .note(itemReq.getNote())
+                            .isIncluded(true)
+                            .createdAt(now)
+                            .build());
+                }
+            }
+            if (!items.isEmpty()) {
+                savedBooking.getServiceItems().addAll(items);
+                bookingRepository.save(savedBooking);
+            }
+        }
+
         log.info("Tạo booking thành công với mã: {}", bookingCode);
 
         // 9. Map sang DTO trả về
@@ -178,6 +203,19 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private BookingResponseDto mapToResponseDto(Booking booking, Place place, RoomType roomType, BigDecimal unitPrice, int nights) {
+        List<BookingResponseDto.ServiceItemDto> serviceItemDtos = Collections.emptyList();
+        if (booking.getServiceItems() != null && !booking.getServiceItems().isEmpty()) {
+            serviceItemDtos = booking.getServiceItems().stream().map(item ->
+                    BookingResponseDto.ServiceItemDto.builder()
+                            .id(item.getId())
+                            .serviceName(item.getServiceName())
+                            .serviceCode(item.getServiceCode())
+                            .note(item.getNote())
+                            .isIncluded(item.getIsIncluded())
+                            .build()
+            ).collect(Collectors.toList());
+        }
+
         return BookingResponseDto.builder()
                 .id(booking.getId())
                 .bookingCode(booking.getBookingCode())
@@ -202,6 +240,7 @@ public class BookingServiceImpl implements BookingService {
                 .createdAt(booking.getCreatedAt())
                 .holdExpiresAt(booking.getHoldExpiresAt())
                 .policySnapshot(booking.getPolicySnapshot())
+                .serviceItems(serviceItemDtos)
                 .build();
     }
 

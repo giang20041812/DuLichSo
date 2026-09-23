@@ -25,13 +25,19 @@ export default function InteractiveMapView({
       name: placeName,
       latitude: centerLat,
       longitude: centerLng,
+      isMain: true,
+      kind: 'HOMESTAY',
+      displayMode: 'name' as const,
     },
-    ...pois.map((poi, idx) => ({
+    ...pois.map((poi, idx): OsmMarkerItem => ({
       id: `poi-${idx}`,
       name: poi.name,
       latitude: poi.latitude,
       longitude: poi.longitude,
       district: poi.category,
+      kind: poi.category,
+      category: poi.category,
+      displayMode: 'name' as const,
     }))
   ];
 

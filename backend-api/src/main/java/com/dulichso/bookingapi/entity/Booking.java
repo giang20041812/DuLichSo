@@ -91,4 +91,8 @@ public class Booking {
     
     @Column(name = "dup_guard", insertable = false, updatable = false)
     private Byte dupGuard;
+
+    @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private java.util.List<BookingServiceItem> serviceItems = new java.util.ArrayList<>();
 }

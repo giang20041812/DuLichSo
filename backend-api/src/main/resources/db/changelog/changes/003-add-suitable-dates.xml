@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- ChangeSet 1: Add suitable_date_start & suitable_date_end columns to place table -->
+    <changeSet id="20260924-04-add-place-suitable-dates" author="dulichso">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="place" columnName="suitable_date_start"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="place">
+            <column name="suitable_date_start" type="date" remarks="Ngày bắt đầu khoảng thời gian phù hợp/mùa vụ đẹp nhất">
+            </column>
+            <column name="suitable_date_end" type="date" remarks="Ngày kết thúc khoảng thời gian phù hợp/mùa vụ đẹp nhất">
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <!-- ChangeSet 2: Add suitable_date_start & suitable_date_end columns to festival table -->
+    <changeSet id="20260924-05-add-festival-suitable-dates" author="dulichso">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="festival" columnName="suitable_date_start"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="festival">
+            <column name="suitable_date_start" type="date" remarks="Ngày bắt đầu khoảng thời gian lễ hội phù hợp nhất">
+            </column>
+            <column name="suitable_date_end" type="date" remarks="Ngày kết thúc khoảng thời gian lễ hội phù hợp nhất">
+            </column>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>

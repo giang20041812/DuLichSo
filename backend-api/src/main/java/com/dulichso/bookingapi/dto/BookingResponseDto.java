@@ -38,4 +38,17 @@ public class BookingResponseDto {
     private LocalDateTime createdAt;
     private LocalDateTime holdExpiresAt;
     private Map<String, Object> policySnapshot;
+    private java.util.List<ServiceItemDto> serviceItems;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class ServiceItemDto {
+        private Long id;
+        private String serviceName;
+        private String serviceCode;
+        private String note;
+        private Boolean isIncluded;
+    }
 }

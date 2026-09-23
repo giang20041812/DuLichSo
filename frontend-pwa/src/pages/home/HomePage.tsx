@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react"
 import { Link } from "react-router-dom"
 import SearchHub from "@/components/layout/SearchHub"
-import { MapPin, Heart, Star, Check, Handshake, Tag, Headphones, ShieldCheck, Mountain, Tent } from "lucide-react"
+import { MapPin, Heart, Star, Handshake, Tag, Headphones, ShieldCheck, Mountain, Tent, Calendar, Sparkles } from "lucide-react"
 import { fetchHomeData } from "@/services/homeService"
 import { HomeResponseDto, PlaceSummaryDto } from "@/types/home"
 
@@ -83,7 +83,7 @@ export default function HomePage() {
     return list;
   }, [homeData]);
 
-  // Filter destinations based on selectedProvince: max 6 items
+  // Filter destinations based on selectedProvince: ưu tiên điểm đến thích hợp theo mùa, max 6 items
   const filteredDestinations = useMemo(() => {
     let list = allDestinations;
     if (selectedProvince !== 'Tất cả') {
@@ -95,7 +95,13 @@ export default function HomePage() {
         return reg.includes(prov) || name.includes(prov) || desc.includes(prov);
       });
     }
-    return list.slice(0, 6);
+    // Sắp xếp ưu tiên các điểm đến có isSuitableByTime = true
+    const sorted = [...list].sort((a, b) => {
+      const aVal = a.isSuitableByTime ? 1 : 0;
+      const bVal = b.isSuitableByTime ? 1 : 0;
+      return bVal - aVal;
+    });
+    return sorted.slice(0, 6);
   }, [allDestinations, selectedProvince]);
 
   // Homestays: max 8 items
@@ -162,17 +168,21 @@ export default function HomePage() {
 
 
 
-      {/* 3. Featured Destinations (Điểm Đến Tiêu Biểu Theo Mùa) */}
+      {/* 3. Điểm Đến Thích Hợp Theo Mùa */}
       <section className="bg-[#f8f9fa] py-14">
         <div className="max-w-[1280px] mx-auto w-full px-4 md:px-8">
           {/* Header row: Tiêu đề bên trái, Nút khám phá thêm ở góc phải trên */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-5 gap-4">
             <div>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#edfbf7] text-[#048c73] font-bold text-xs mb-2 border border-[#048c73]/20">
+                <Sparkles className="w-3.5 h-3.5 text-[#048c73]" />
+                Thời Điểm Vàng Du Lịch Khám Phá
+              </div>
               <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold font-display text-[#0f2d3c]">
-                Điểm Đến Tiêu Biểu Theo Mùa
+                Điểm Đến Thích Hợp Theo Mùa
               </h2>
               <p className="text-[#66716c] text-sm md:text-base mt-1.5">
-                Danh sách biên tập những vùng đất rực rỡ và giàu bản sắc nhất trong tháng này
+                Tuyển chọn những tọa độ đang trong mùa đẹp nhất, cập nhật thời gian mùa vụ bản địa thực tế
               </p>
             </div>
             
@@ -205,73 +215,115 @@ export default function HomePage() {
           <div className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-4 pb-4 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-6 -mx-4 px-4 md:mx-0 md:px-0">
             {filteredDestinations.length > 0 ? (
               <>
-                {filteredDestinations.map(dest => (
-                  <div 
-                    key={dest.id} 
-                    className="bg-white rounded-lg overflow-hidden border border-[#048c73]/15 shadow-[0_4px_16px_rgba(4,140,115,0.07)] hover:shadow-[0_12px_28px_rgba(4,140,115,0.15)] hover:-translate-y-1 transition-all duration-300 group flex flex-col w-[calc(100vw-32px)] shrink-0 snap-center md:w-auto md:max-w-none"
-                  >
-                    <Link to={`/homestays?destination=${encodeURIComponent(dest.name)}`} className="relative aspect-[4/3] overflow-hidden bg-gray-100 block">
-                      <img 
-                        src={getDestinationImage(dest)} 
-                        alt={dest.name} 
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                      />
-                      {dest.tagBadge && (
-                        <span className="absolute top-3 left-3 bg-[#048c73] text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-md">
-                          {dest.tagBadge}
-                        </span>
-                      )}
-                      {dest.statsText && (
-                        <div className="absolute bottom-3 right-3 bg-[#0a2e26]/90 backdrop-blur text-[#fef08a] text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
-                          {dest.statsText}
-                        </div>
-                      )}
-                    </Link>
-                    
-                    <div className="p-4 md:p-5 flex flex-col flex-1">
-                      {/* Đánh giá và Địa điểm cho Điểm đến */}
-                      <div className="flex justify-between items-center mb-1.5 text-xs">
-                        <div className="flex items-center gap-1.5 text-[#048c73] font-semibold">
-                          <MapPin className="w-3.5 h-3.5 text-[#f59e0b]" /> {dest.regionName || "Việt Nam"}
-                        </div>
-                        <div className="flex items-center gap-1 bg-[#fefce8] px-2 py-0.5 rounded border border-[#f59e0b]/30">
-                          <Star className="w-3.5 h-3.5 text-[#f59e0b] fill-[#f59e0b]" />
-                          <span className="font-extrabold text-[#78350f]">{dest.ratingAvg || "4.9"}</span>
-                          <span className="text-[#a16207] text-[10px]">({dest.ratingCount || "128"})</span>
-                        </div>
-                      </div>
+                {filteredDestinations.map(dest => {
+                  const formatDate = (dStr?: string) => {
+                    if (!dStr) return '';
+                    const parts = dStr.split('-');
+                    if (parts.length === 3) return `${parts[2]}/${parts[1]}`;
+                    return dStr;
+                  };
 
-                      <Link to={`/homestays?destination=${encodeURIComponent(dest.name)}`}>
-                        <h3 className="text-lg font-bold text-[#0a2e26] mb-1.5 group-hover:text-[#048c73] transition-colors line-clamp-1">{dest.name}</h3>
+                  const isSuitable = Boolean(dest.isSuitableByTime);
+                  const startFormatted = formatDate(dest.suitableDateStart);
+                  const endFormatted = formatDate(dest.suitableDateEnd);
+
+                  return (
+                    <div 
+                      key={dest.id} 
+                      className={`bg-white rounded-md overflow-hidden border shadow-2xs hover:shadow-xs transition-all duration-200 group flex flex-col w-[calc(100vw-32px)] shrink-0 snap-center md:w-auto md:max-w-none ${
+                        isSuitable ? 'border-[#048c73]/40 ring-1 ring-[#048c73]/20' : 'border-slate-200/90'
+                      }`}
+                    >
+                      <Link to={`/homestays?destination=${encodeURIComponent(dest.name)}`} className="relative aspect-[4/3] overflow-hidden bg-slate-100 block">
+                        <img 
+                          src={getDestinationImage(dest)} 
+                          alt={dest.name} 
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+                        />
+                        {/* Huy hiệu thích hợp theo mùa hoặc tagBadge */}
+                        <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 items-start">
+                          {isSuitable && (
+                            <span className="bg-[#048c73] text-white text-[10px] font-bold px-2 py-0.5 rounded-xs tracking-tight shadow-sm flex items-center gap-1">
+                              <Sparkles className="w-3 h-3 text-amber-300" /> Thích hợp theo mùa
+                            </span>
+                          )}
+                          {dest.tagBadge && !isSuitable && (
+                            <span className="bg-[#0f2d3c] text-white text-[10px] font-bold px-2 py-0.5 rounded-xs tracking-tight">
+                              {dest.tagBadge}
+                            </span>
+                          )}
+                        </div>
+
+                        {dest.statsText && (
+                          <div className="absolute bottom-2.5 right-2.5 bg-slate-900/85 text-white text-[10px] font-medium px-2 py-0.5 rounded-xs">
+                            {dest.statsText}
+                          </div>
+                        )}
                       </Link>
-                      <p className="text-[#59766e] text-xs md:text-sm line-clamp-2 mb-4 flex-1 leading-relaxed">
-                        {dest.description}
-                      </p>
-                      <div className="flex items-end justify-between pt-3 border-t border-[#048c73]/10 mt-auto">
-                        <div>
-                          <div className="text-[10px] text-[#59766e] font-medium mb-0.5">Giá tham khảo chỉ từ</div>
-                          <div className="text-[#048c73] font-black text-base md:text-lg leading-none">
-                            {dest.priceRefMin != null && dest.priceRefMin > 0 ? `${dest.priceRefMin.toLocaleString()}đ` : 'Tham khảo'}
+                      
+                      <div className="p-4 flex flex-col flex-1">
+                        {/* Đánh giá và Địa điểm cho Điểm đến */}
+                        <div className="flex justify-between items-center mb-1.5 text-xs">
+                          <div className="flex items-center gap-1 text-slate-600 font-medium truncate">
+                            <MapPin className="w-3.5 h-3.5 text-[#048c73] shrink-0" /> 
+                            <span className="truncate">{dest.regionName || "Việt Nam"}</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-xs shrink-0">
+                            <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+                            <span className="font-bold text-slate-800">{dest.ratingAvg || "4.9"}</span>
+                            <span className="text-slate-400 text-[10px]">({dest.ratingCount || "128"})</span>
                           </div>
                         </div>
+
                         <Link to={`/homestays?destination=${encodeURIComponent(dest.name)}`}>
-                          <button className="bg-[#edfbf7] hover:bg-[#048c73] text-[#048c73] hover:text-white text-xs font-bold px-3.5 py-1.5 rounded-md transition-all border border-[#048c73]/30 shadow-xs">
-                            Xem chi tiết
-                          </button>
+                          <h3 className="text-base font-bold text-slate-900 mb-1 group-hover:text-[#048c73] transition-colors line-clamp-1">{dest.name}</h3>
                         </Link>
+                        
+                        <p className="text-slate-500 text-xs line-clamp-2 mb-2.5 flex-1 leading-relaxed">
+                          {dest.description}
+                        </p>
+
+                        {/* Thẻ hiển thị thời gian thích hợp / mùa vụ */}
+                        <div className="mb-3 py-1 px-2 rounded-xs bg-[#f4f7f6] border border-[#e1e9e6] flex items-center justify-between text-[11px]">
+                          <span className="text-slate-600 font-medium flex items-center gap-1">
+                            <Calendar className="w-3 h-3 text-[#048c73]" />
+                            {isSuitable ? 'Mùa đẹp nhất:' : 'Thời gian phù hợp:'}
+                          </span>
+                          <span className="font-bold text-[#048c73]">
+                            {startFormatted && endFormatted
+                              ? `${startFormatted} – ${endFormatted}`
+                              : (endFormatted 
+                                  ? `Đến ${endFormatted}` 
+                                  : (isSuitable ? 'Đang vào mùa đẹp' : 'Quanh năm'))}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-2.5 border-t border-slate-100 mt-auto">
+                          <div>
+                            <div className="text-[10px] text-slate-400 font-medium leading-none mb-1">Giá chỉ từ</div>
+                            <div className="text-[#048c73] font-bold text-base leading-none">
+                              {dest.priceRefMin != null && dest.priceRefMin > 0 ? `${dest.priceRefMin.toLocaleString()}đ` : 'Tham khảo'}
+                            </div>
+                          </div>
+                          <Link to={`/homestays?destination=${encodeURIComponent(dest.name)}`}>
+                            <button className="bg-slate-50 hover:bg-[#048c73] text-slate-700 hover:text-white text-xs font-semibold px-3 py-1.5 rounded-sm transition-colors border border-slate-200">
+                              Xem chi tiết
+                            </button>
+                          </Link>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 <div className="shrink-0 w-1 md:hidden" aria-hidden="true" />
               </>
             ) : (
-              <div className="col-span-full py-12 flex flex-col items-center justify-center text-[#66716c] bg-white rounded-lg border border-dashed border-[#66716c]/20">
-                <Mountain className="w-10 h-10 text-[#66716c]/30 mb-3" />
-                <p className="font-semibold text-sm">Chưa có dữ liệu điểm đến cho tỉnh {selectedProvince}</p>
+              <div className="col-span-full py-12 flex flex-col items-center justify-center text-[#66716c] bg-white rounded-md border border-dashed border-slate-200">
+                <Mountain className="w-10 h-10 text-slate-300 mb-3" />
+                <p className="font-medium text-sm text-slate-600">Chưa có dữ liệu điểm đến cho tỉnh {selectedProvince}</p>
                 <button 
                   onClick={() => setSelectedProvince('Tất cả')}
-                  className="mt-3 text-xs font-bold text-[#048c73] hover:underline"
+                  className="mt-3 text-xs font-semibold text-[#048c73] hover:underline"
                 >
                   Xem tất cả điểm đến &rarr;
                 </button>
@@ -285,14 +337,14 @@ export default function HomePage() {
       <section className="max-w-[1280px] mx-auto w-full px-4 md:px-8 py-14">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
           <div>
-            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold font-display text-[#0a2e26]">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold font-display text-slate-900">
               Homestay Bản Địa & Chốn Nghỉ Bình Yên
             </h2>
-            <p className="text-[#59766e] text-sm md:text-base mt-1.5 max-w-2xl">
+            <p className="text-slate-500 text-sm md:text-base mt-1 max-w-2xl">
               Trải nghiệm không gian sống mộc mạc cùng người dân địa phương, tôn trọng tự nhiên và tìm lại sự cân bằng
             </p>
           </div>
-          <Link to="/homestays" className="text-[#048c73] font-bold text-sm hover:text-[#ea580c] transition-colors flex items-center gap-1 shrink-0">
+          <Link to="/homestays" className="text-[#048c73] font-semibold text-sm hover:underline flex items-center gap-1 shrink-0">
             Xem tất cả Homestay bản địa <span className="text-base">&rarr;</span>
           </Link>
         </div>
@@ -304,75 +356,73 @@ export default function HomePage() {
               {displayedHomestays.map((hs, idx) => (
                 <div 
                   key={hs.id} 
-                  className="bg-white rounded-lg overflow-hidden shadow-[0_4px_16px_rgba(4,140,115,0.07)] hover:shadow-[0_12px_28px_rgba(4,140,115,0.15)] hover:-translate-y-1 transition-all duration-300 border border-[#048c73]/15 flex flex-col group w-[calc(100vw-32px)] shrink-0 snap-center md:w-auto md:max-w-none"
+                  className="bg-white rounded-md overflow-hidden shadow-2xs hover:shadow-xs hover:border-[#048c73]/40 transition-all duration-200 border border-slate-200/90 flex flex-col group w-[calc(100vw-32px)] shrink-0 snap-center md:w-auto md:max-w-none"
                 >
-                  <Link to={`/homestays/${hs.id}`} className="relative aspect-[4/3] bg-[#f8f9fa] overflow-hidden block">
+                  <Link to={`/homestays/${hs.id}`} className="relative aspect-[4/3] bg-slate-100 overflow-hidden block">
                     <img 
                       src={getHomestayImage(hs, idx)} 
                       alt={hs.name} 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
                     />
                     {hs.tagBadge && (
-                      <div className="absolute top-3 left-3">
-                        <span className="bg-[#048c73]/95 backdrop-blur text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-md flex items-center gap-1">
-                          <Check className="w-3 h-3 text-[#7ef2dd]" />
+                      <div className="absolute top-2.5 left-2.5">
+                        <span className="bg-[#048c73] text-white text-[10px] font-bold px-2 py-0.5 rounded-xs tracking-tight flex items-center gap-1">
                           {hs.tagBadge}
                         </span>
                       </div>
                     )}
-                    <div className="absolute top-3 right-3">
+                    <div className="absolute top-2.5 right-2.5">
                       <button 
                         type="button"
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                        className="w-8 h-8 rounded-md bg-white/90 backdrop-blur flex items-center justify-center shadow-sm hover:bg-white text-[#59766e] hover:text-[#e05252] transition-colors"
+                        className="w-7 h-7 rounded-sm bg-white/90 backdrop-blur flex items-center justify-center hover:bg-white text-slate-500 hover:text-rose-500 transition-colors"
                       >
-                        <Heart className="w-4 h-4" />
+                        <Heart className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </Link>
 
-                  <div className="p-4 md:p-5 flex flex-col flex-1">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex items-center gap-1 text-[#048c73] text-[11px] font-semibold">
-                        <MapPin className="w-3.5 h-3.5 text-[#f59e0b]" /> {hs.regionName}
+                  <div className="p-4 flex flex-col flex-1">
+                    <div className="flex justify-between items-start mb-1.5">
+                      <div className="flex items-center gap-1 text-slate-600 text-xs font-medium">
+                        <MapPin className="w-3.5 h-3.5 text-[#048c73]" /> {hs.regionName}
                       </div>
-                      <div className="flex items-center gap-1 text-xs bg-[#fefce8] px-2 py-0.5 rounded border border-[#f59e0b]/30">
-                        <Star className="w-3.5 h-3.5 text-[#f59e0b] fill-[#f59e0b]" />
-                        <span className="font-extrabold text-[#78350f]">{hs.ratingAvg || "4.8"}</span>
-                        <span className="text-[#a16207] text-[10px]">({hs.ratingCount || "0"})</span>
+                      <div className="flex items-center gap-1 text-xs">
+                        <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+                        <span className="font-bold text-slate-800">{hs.ratingAvg || "4.8"}</span>
+                        <span className="text-slate-400 text-[10px]">({hs.ratingCount || "0"})</span>
                       </div>
                     </div>
 
                     <Link to={`/homestays/${hs.id}`}>
-                      <h3 className="font-bold text-[#0a2e26] text-lg leading-snug mb-1.5 group-hover:text-[#048c73] transition-colors line-clamp-1">{hs.name}</h3>
+                      <h3 className="font-bold text-slate-900 text-base leading-snug mb-1 group-hover:text-[#048c73] transition-colors line-clamp-1">{hs.name}</h3>
                     </Link>
-                    <p className="text-[#59766e] text-xs md:text-sm line-clamp-2 mb-3.5 flex-1 leading-relaxed">
+                    <p className="text-slate-500 text-xs line-clamp-2 mb-3 flex-1 leading-relaxed">
                       {hs.description}
                     </p>
                     
-                    <div className="flex flex-wrap gap-1.5 mb-4">
+                    {/* Compact solid tags for amenities */}
+                    <div className="flex flex-wrap gap-1 mb-3.5">
                       {hs.amenities?.slice(0, 3).map((amenity, aIdx) => (
-                        <span key={aIdx} className="bg-[#edfbf7] text-[#048c73] text-[10px] font-semibold px-2 py-0.5 rounded-md flex items-center gap-1 border border-[#048c73]/15">
-                          <Check className="w-2.5 h-2.5 text-[#10b981]" />
+                        <span key={aIdx} className="bg-slate-100 text-slate-700 text-[10px] font-medium px-2 py-0.5 rounded-xs">
                           {amenity}
                         </span>
                       ))}
                     </div>
 
-                    <div className="flex items-end justify-between pt-3 border-t border-[#048c73]/10 mt-auto">
+                    <div className="flex items-center justify-between pt-3 border-t border-slate-100 mt-auto">
                       <div>
-                        <div className="text-[10px] text-[#59766e] font-medium mb-0.5">Giá mỗi đêm</div>
+                        <div className="text-[10px] text-slate-400 font-medium leading-none mb-1">Giá mỗi đêm</div>
                         {hs.priceRefMin != null && hs.priceRefMin > 0 ? (
-                          <div className="text-[#048c73] font-black text-lg leading-none">
-                            {hs.priceRefMin.toLocaleString()}đ<span className="text-xs text-[#59766e] font-normal"> / phòng</span>
+                          <div className="text-[#048c73] font-bold text-base leading-none">
+                            {hs.priceRefMin.toLocaleString()}đ<span className="text-xs text-slate-400 font-normal">/đêm</span>
                           </div>
                         ) : (
-                          <div className="text-[#048c73] font-bold text-base leading-none">Tham khảo</div>
+                          <div className="text-[#048c73] font-semibold text-sm leading-none">Tham khảo</div>
                         )}
                       </div>
-                      {/* Nút CTA Cam San Hô rực rỡ nhiệt đới có link tới Homestay Detail */}
                       <Link to={`/homestays/${hs.id}`}>
-                        <button className="bg-gradient-to-r from-[#f97316] to-[#ea580c] hover:from-[#ea580c] hover:to-[#c2410c] text-white rounded-md px-4 py-2 font-black text-xs shadow-sm shadow-orange-500/25 transition-all active:scale-95">
+                        <button className="bg-[#048c73] hover:bg-[#03705c] text-white rounded-sm px-3 py-1.5 font-semibold text-xs transition-colors">
                           Xem phòng
                         </button>
                       </Link>
@@ -383,87 +433,86 @@ export default function HomePage() {
               <div className="shrink-0 w-1 md:hidden" aria-hidden="true" />
             </>
           ) : (
-            <div className="col-span-full py-10 flex flex-col items-center justify-center text-[#59766e] bg-white rounded-lg border border-dashed border-[#59766e]/20">
-              <Tent className="w-10 h-10 text-[#59766e]/30 mb-3" />
-              <p className="font-medium">Chưa có homestay bản địa nào</p>
+            <div className="col-span-full py-10 flex flex-col items-center justify-center text-slate-400 bg-white rounded-md border border-dashed border-slate-200">
+              <Tent className="w-10 h-10 text-slate-300 mb-2" />
+              <p className="font-medium text-sm">Chưa có homestay bản địa nào</p>
             </div>
           )}
         </div>
       </section>
 
       {/* 5. MỚI: Đặc Sản Nổi Tiếng */}
-      <section className="bg-gradient-to-b from-[#edfbf7]/80 via-[#f6faf8] to-[#edfbf7]/50 py-14 border-t border-[#048c73]/10">
+      <section className="bg-slate-50 py-14 border-t border-slate-200/80">
         <div className="max-w-[1280px] mx-auto w-full px-4 md:px-8">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
             <div>
-              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold font-display text-[#0a2e26]">
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold font-display text-slate-900">
                 Đặc Sản Nổi Tiếng
               </h2>
-              <p className="text-[#59766e] text-sm md:text-base mt-1.5">
+              <p className="text-slate-500 text-sm md:text-base mt-1">
                 Thức quà ẩm thực trứ danh và tinh hoa làng nghề truyền thống ba miền đất nước
               </p>
             </div>
             
-            <Link to="/food" className="text-[#048c73] font-bold text-sm hover:text-[#ea580c] transition-colors flex items-center gap-1 shrink-0">
+            <Link to="/food" className="text-[#048c73] font-semibold text-sm hover:underline flex items-center gap-1 shrink-0">
               Khám phá thêm thức quà <span className="text-base">&rarr;</span>
             </Link>
           </div>
 
-          {/* Phần lướt: Tự động căn trái phải vừa khít 1 thẻ thông tin trên responsive, desktop hiển thị lưới cố định */}
           <div className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-4 pb-4 md:grid md:grid-cols-2 lg:grid-cols-4 md:gap-6 -mx-4 px-4 md:mx-0 md:px-0">
             {displayedSpecialties.map(item => (
               <div 
                 key={item.id} 
-                className="bg-white rounded-lg overflow-hidden border border-[#048c73]/15 shadow-[0_4px_16px_rgba(4,140,115,0.07)] hover:shadow-[0_12px_28px_rgba(4,140,115,0.15)] hover:-translate-y-1 transition-all duration-300 group flex flex-col w-[calc(100vw-32px)] shrink-0 snap-center md:w-auto md:max-w-none"
+                className="bg-white rounded-md overflow-hidden border border-slate-200/90 shadow-2xs hover:shadow-xs hover:border-[#048c73]/40 transition-all duration-200 group flex flex-col w-[calc(100vw-32px)] shrink-0 snap-center md:w-auto md:max-w-none"
               >
-                <Link to="/food" className="relative aspect-[4/3] overflow-hidden bg-gray-100 block">
+                <Link to="/food" className="relative aspect-[4/3] overflow-hidden bg-slate-100 block">
                   <img 
                     src={item.coverImageUrl || 'https://images.unsplash.com/photo-1542159040-3b03f0b2f059?q=80'} 
                     alt={item.name} 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
                   />
                   {item.tagBadge && (
-                    <span className="absolute top-3 left-3 bg-[#048c73] text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-md">
+                    <span className="absolute top-2.5 left-2.5 bg-slate-900/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-xs">
                       {item.tagBadge}
                     </span>
                   )}
-                  <span className="absolute bottom-3 right-3 bg-[#0a2e26]/90 backdrop-blur text-[#fef08a] text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm">
-                    {'Đặc sản địa phương'}
+                  <span className="absolute bottom-2.5 right-2.5 bg-slate-900/80 text-white text-[10px] font-medium px-2 py-0.5 rounded-xs">
+                    Đặc sản
                   </span>
                 </Link>
 
-                <div className="p-4 md:p-5 flex flex-col flex-1">
+                <div className="p-4 flex flex-col flex-1">
                   <div className="flex justify-between items-center mb-1.5 text-xs">
-                    <div className="flex items-center gap-1 font-semibold text-[#048c73]">
-                      <MapPin className="w-3.5 h-3.5 text-[#f59e0b]" /> {item.regionName}
+                    <div className="flex items-center gap-1 font-medium text-slate-600">
+                      <MapPin className="w-3.5 h-3.5 text-[#048c73]" /> {item.regionName}
                     </div>
-                    <div className="flex items-center gap-1 bg-[#fefce8] px-2 py-0.5 rounded border border-[#f59e0b]/30">
-                      <Star className="w-3.5 h-3.5 text-[#f59e0b] fill-[#f59e0b]" />
-                      <span className="font-extrabold text-[#78350f]">{item.ratingAvg}</span>
-                      <span className="text-[#a16207] text-[10px]">({item.ratingCount})</span>
+                    <div className="flex items-center gap-1 text-xs">
+                      <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+                      <span className="font-bold text-slate-800">{item.ratingAvg}</span>
+                      <span className="text-slate-400 text-[10px]">({item.ratingCount})</span>
                     </div>
                   </div>
 
                   <Link to="/food">
-                    <h3 className="text-lg font-bold text-[#0a2e26] mb-1.5 group-hover:text-[#048c73] transition-colors line-clamp-1">
+                    <h3 className="text-base font-bold text-slate-900 mb-1 group-hover:text-[#048c73] transition-colors line-clamp-1">
                       {item.name}
                     </h3>
                   </Link>
-                  <p className="text-[#59766e] text-xs md:text-sm line-clamp-2 mb-4 flex-1 leading-relaxed">
+                  <p className="text-slate-500 text-xs line-clamp-2 mb-3 flex-1 leading-relaxed">
                     {item.description}
                   </p>
 
-                  <div className="flex items-end justify-between pt-3 border-t border-[#048c73]/10 mt-auto">
+                  <div className="flex items-center justify-between pt-3 border-t border-slate-100 mt-auto">
                     <div>
-                      <div className="text-[10px] text-[#59766e] font-medium mb-0.5">Giá tham khảo</div>
-                      <div className="text-[#048c73] font-black text-base md:text-lg leading-none">
+                      <div className="text-[10px] text-slate-400 font-medium leading-none mb-1">Giá tham khảo</div>
+                      <div className="text-[#048c73] font-bold text-base leading-none">
                         {item.priceRefMin != null && item.priceRefMin > 0 
                           ? `${item.priceRefMin.toLocaleString()}đ${item.priceUnitNote ? ` ${item.priceUnitNote}` : ''}`
                             : 'Tham khảo'}
-                        </div>
+                      </div>
                     </div>
                     <Link to="/food">
-                      <button className="bg-[#edfbf7] hover:bg-[#048c73] hover:text-white text-[#048c73] text-xs font-bold px-3.5 py-1.5 rounded-md transition-all border border-[#048c73]/30 shadow-xs">
+                      <button className="bg-slate-50 hover:bg-[#048c73] hover:text-white text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-sm transition-colors border border-slate-200">
                         Chi tiết
                       </button>
                     </Link>
@@ -488,48 +537,48 @@ export default function HomePage() {
             </p>
           </div>
           
-          {/* LƯỚI CỐ ĐỊNH: 2 DÒNG MỖI DÒNG 2 Ô - 4 SẮC THÁI ECO TROPICAL GLOW */}
-          <div className="grid grid-cols-2 gap-4 md:gap-6 lg:gap-8 max-w-4xl mx-auto">
-            {/* Value 1: Biển Trời Xanh Ngọc (Teal) */}
-            <div className="flex flex-col items-center text-center p-5 md:p-6 bg-gradient-to-br from-[#edfbf7] to-white rounded-lg border border-[#048c73]/25 shadow-sm hover:border-[#048c73]/50 hover:shadow-md transition-all">
-              <div className="w-12 h-12 md:w-14 md:h-14 rounded-md bg-[#048c73] flex items-center justify-center mb-3.5 text-white shadow-md shadow-teal-700/20">
-                <Handshake className="w-6 h-6 md:w-7 md:h-7" />
+          {/* LƯỚI CỐ ĐỊNH: 2 DÒNG MỖI DÒNG 2 Ô */}
+          <div className="grid grid-cols-2 gap-4 md:gap-6 max-w-4xl mx-auto">
+            {/* Value 1: Trải Nghiệm Bản Địa */}
+            <div className="flex flex-col items-center text-center p-5 md:p-6 bg-white rounded-md border border-slate-200/90 shadow-2xs hover:border-[#048c73]/40 transition-all">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-sm bg-[#048c73] flex items-center justify-center mb-3 text-white">
+                <Handshake className="w-5 h-5 md:w-6 md:h-6" />
               </div>
-              <h3 className="font-bold text-[#0a2e26] text-sm md:text-base mb-1.5">Trải Nghiệm Bản Địa</h3>
-              <p className="text-[#59766e] text-xs md:text-sm leading-relaxed">
+              <h3 className="font-bold text-slate-900 text-sm md:text-base mb-1">Trải Nghiệm Bản Địa</h3>
+              <p className="text-slate-500 text-xs md:text-sm leading-relaxed">
                 Hợp tác trực tiếp cùng người dân địa phương, đảm bảo tính chân thực và phát triển kinh tế vùng bền vững.
               </p>
             </div>
             
-            {/* Value 2: Nắng Vàng Nhiệt Đới (Golden Amber) */}
-            <div className="flex flex-col items-center text-center p-5 md:p-6 bg-gradient-to-br from-[#fefce8] to-white rounded-lg border border-[#f59e0b]/30 shadow-sm hover:border-[#f59e0b]/60 hover:shadow-md transition-all">
-              <div className="w-12 h-12 md:w-14 md:h-14 rounded-md bg-[#f59e0b] flex items-center justify-center mb-3.5 text-white shadow-md shadow-amber-600/25">
-                <Tag className="w-6 h-6 md:w-7 md:h-7" />
+            {/* Value 2: Giá Niêm Yết Minh Bạch */}
+            <div className="flex flex-col items-center text-center p-5 md:p-6 bg-white rounded-md border border-slate-200/90 shadow-2xs hover:border-amber-400 transition-all">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-sm bg-amber-500 flex items-center justify-center mb-3 text-white">
+                <Tag className="w-5 h-5 md:w-6 md:h-6" />
               </div>
-              <h3 className="font-bold text-[#78350f] text-sm md:text-base mb-1.5">Giá Niêm Yết Minh Bạch</h3>
-              <p className="text-[#78350f]/80 text-xs md:text-sm leading-relaxed">
+              <h3 className="font-bold text-slate-900 text-sm md:text-base mb-1">Giá Niêm Yết Minh Bạch</h3>
+              <p className="text-slate-500 text-xs md:text-sm leading-relaxed">
                 Không phụ phí ẩn, cam kết đúng giá trị thực cho từng dịch vụ lưu trú và trải nghiệm văn hóa.
               </p>
             </div>
 
-            {/* Value 3: Cam San Hô Ấm Áp (Tropical Coral) */}
-            <div className="flex flex-col items-center text-center p-5 md:p-6 bg-gradient-to-br from-[#fff7ed] to-white rounded-lg border border-[#f97316]/30 shadow-sm hover:border-[#f97316]/60 hover:shadow-md transition-all">
-              <div className="w-12 h-12 md:w-14 md:h-14 rounded-md bg-[#ea580c] flex items-center justify-center mb-3.5 text-white shadow-md shadow-orange-600/25">
-                <Headphones className="w-6 h-6 md:w-7 md:h-7" />
+            {/* Value 3: Đồng Hành 24/7 */}
+            <div className="flex flex-col items-center text-center p-5 md:p-6 bg-white rounded-md border border-slate-200/90 shadow-2xs hover:border-red-400 transition-all">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-sm bg-[#dc2626] flex items-center justify-center mb-3 text-white">
+                <Headphones className="w-5 h-5 md:w-6 md:h-6" />
               </div>
-              <h3 className="font-bold text-[#7c2d12] text-sm md:text-base mb-1.5">Đồng Hành 24/7</h3>
-              <p className="text-[#7c2d12]/80 text-xs md:text-sm leading-relaxed">
+              <h3 className="font-bold text-slate-900 text-sm md:text-base mb-1">Đồng Hành 24/7</h3>
+              <p className="text-slate-500 text-xs md:text-sm leading-relaxed">
                 Đội ngũ hỗ trợ địa phương luôn sẵn sàng giải đáp thắc mắc và hỗ trợ kịp thời xuyên suốt chuyến đi.
               </p>
             </div>
 
-            {/* Value 4: Rừng Ngọc Bích Sinh Thái (Emerald Green) */}
-            <div className="flex flex-col items-center text-center p-5 md:p-6 bg-gradient-to-br from-[#f0fdf4] to-white rounded-lg border border-[#10b981]/30 shadow-sm hover:border-[#10b981]/60 hover:shadow-md transition-all">
-              <div className="w-12 h-12 md:w-14 md:h-14 rounded-md bg-[#10b981] flex items-center justify-center mb-3.5 text-white shadow-md shadow-emerald-600/25">
-                <ShieldCheck className="w-6 h-6 md:w-7 md:h-7" />
+            {/* Value 4: Linh Hoạt & Bảo Hiểm */}
+            <div className="flex flex-col items-center text-center p-5 md:p-6 bg-white rounded-md border border-slate-200/90 shadow-2xs hover:border-emerald-400 transition-all">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-sm bg-emerald-600 flex items-center justify-center mb-3 text-white">
+                <ShieldCheck className="w-5 h-5 md:w-6 md:h-6" />
               </div>
-              <h3 className="font-bold text-[#064e3b] text-sm md:text-base mb-1.5">Linh Hoạt & Bảo Hiểm</h3>
-              <p className="text-[#064e3b]/80 text-xs md:text-sm leading-relaxed">
+              <h3 className="font-bold text-slate-900 text-sm md:text-base mb-1">Linh Hoạt & Bảo Hiểm</h3>
+              <p className="text-slate-500 text-xs md:text-sm leading-relaxed">
                 Chính sách hoàn hủy linh hoạt, tích hợp bảo hiểm du lịch mang đến sự an tâm tuyệt đối cho bạn.
               </p>
             </div>

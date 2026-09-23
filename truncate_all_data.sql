@@ -30,6 +30,7 @@ TRUNCATE TABLE payment_gateway;
 TRUNCATE TABLE review;
 
 -- 4. Bảng đặt phòng (booking) & lịch sử
+TRUNCATE TABLE booking_service_item;
 TRUNCATE TABLE booking_night;
 TRUNCATE TABLE booking_status_history;
 TRUNCATE TABLE booking;

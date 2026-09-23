@@ -30,7 +30,10 @@ public class PlaceSpecification {
             BigDecimal minRating,
             List<String> amenities,
             LocalDate checkIn,
-            LocalDate checkOut) {
+            LocalDate checkOut,
+            String province,
+            String ward,
+            List<Long> attractionIds) {
             
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -39,8 +42,14 @@ public class PlaceSpecification {
             predicates.add(cb.equal(root.get("visibility"), PlaceVisibility.PUBLISHED));
             predicates.add(cb.isFalse(root.get("isDeleted")));
             
-            // 2. Date availability check
-            if (checkIn != null && checkOut != null) {
+            // 2. Date availability check (Nếu chỉ chọn checkIn thì kiểm tra đêm lưu trú checkIn đến checkIn + 1)
+            LocalDate effectiveCheckIn = checkIn;
+            LocalDate effectiveCheckOut = checkOut;
+            if (effectiveCheckIn != null && effectiveCheckOut == null) {
+                effectiveCheckOut = effectiveCheckIn.plusDays(1);
+            }
+            
+            if (effectiveCheckIn != null && effectiveCheckOut != null) {
                 Subquery<Long> availableRtSq = query.subquery(Long.class);
                 Root<RoomType> rtRoot = availableRtSq.from(RoomType.class);
                 availableRtSq.select(cb.count(rtRoot));
@@ -54,8 +63,8 @@ public class PlaceSpecification {
                 bookedSq.select(cb.sum(bnRoot.get("roomCount")));
                 bookedSq.where(
                     cb.equal(bJoin.get("roomType"), rtRoot),
-                    cb.greaterThanOrEqualTo(bnRoot.get("id").get("stayDate"), checkIn),
-                    cb.lessThan(bnRoot.get("id").get("stayDate"), checkOut),
+                    cb.greaterThanOrEqualTo(bnRoot.get("id").get("stayDate"), effectiveCheckIn),
+                    cb.lessThan(bnRoot.get("id").get("stayDate"), effectiveCheckOut),
                     cb.notEqual(bJoin.get("status"), com.dulichso.bookingapi.entity.enums.BookingStatus.CANCELLED)
                 );
                 bookedSq.groupBy(bnRoot.get("id").get("stayDate"));
@@ -71,6 +80,36 @@ public class PlaceSpecification {
             // 3. Category Kind
             if (kind != null) {
                 predicates.add(cb.equal(root.get("kind"), kind));
+            }
+
+            // 4. Lọc theo Địa điểm du lịch (attractionIds)
+            // Nếu có chọn điểm du lịch: tìm homestay có cùng region hoặc địa chỉ chứa region của attraction
+            if (attractionIds != null && !attractionIds.isEmpty()) {
+                Subquery<Long> attractionRegionSq = query.subquery(Long.class);
+                Root<Place> attRoot = attractionRegionSq.from(Place.class);
+                attractionRegionSq.select(attRoot.get("region").get("id"));
+                attractionRegionSq.where(
+                    attRoot.get("id").in(attractionIds),
+                    cb.isNotNull(attRoot.get("region"))
+                );
+
+                Join<Object, Object> regionJoin = root.join("region", jakarta.persistence.criteria.JoinType.LEFT);
+                predicates.add(regionJoin.get("id").in(attractionRegionSq));
+            } else {
+                // Nếu không filter theo địa điểm, áp dụng filter Phường/Xã hoặc Tỉnh
+                if (ward != null && !ward.trim().isEmpty()) {
+                    String wardClean = ward.trim().toLowerCase();
+                    Join<Object, Object> regionJoin = root.join("region", jakarta.persistence.criteria.JoinType.LEFT);
+                    Predicate matchRegion = cb.like(cb.lower(regionJoin.get("name")), "%" + wardClean + "%");
+                    Predicate matchAddress = cb.like(cb.lower(root.get("address")), "%" + wardClean + "%");
+                    predicates.add(cb.or(matchRegion, matchAddress));
+                } else if (province != null && !province.trim().isEmpty()) {
+                    String provClean = province.trim().toLowerCase();
+                    Join<Object, Object> regionJoin = root.join("region", jakarta.persistence.criteria.JoinType.LEFT);
+                    Predicate matchRegion = cb.like(cb.lower(regionJoin.get("name")), "%" + provClean + "%");
+                    Predicate matchAddress = cb.like(cb.lower(root.get("address")), "%" + provClean + "%");
+                    predicates.add(cb.or(matchRegion, matchAddress));
+                }
             }
             
             // 4. Price range

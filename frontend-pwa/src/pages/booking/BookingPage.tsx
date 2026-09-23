@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import {
   Compass,
@@ -20,11 +20,34 @@ import {
   Star,
   CheckCircle2,
   Banknote,
-  Phone
+  Phone,
+  Mountain,
+  Bus,
+  MapPin,
+  Map as MapIcon,
+  Plus,
+  Trash2,
+  X
 } from 'lucide-react';
-import { BookingNavigationState, BookingResponseDto } from '@/types/booking';
+import { BookingNavigationState, BookingResponseDto, BookingServiceItemDto } from '@/types/booking';
 import { createBooking } from '@/services/bookingService';
+import { fetchNearbyPlaces } from '@/services/homestayService';
+import { NearbyPlaceDto } from '@/types/homestay';
 import { Button } from '@/components/ui/button';
+import OpenStreetMapView, { OsmMarkerItem } from '@/components/map/OpenStreetMapView';
+
+// Helper tính khoảng cách Haversine chuẩn theo tọa độ GPS/OSM
+function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Bán kính Trái Đất (km)
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(R * c * 10) / 10;
+}
 
 // Định dạng ISO YYYY-MM-DD -> 'Thứ 5, 24 thg 9'
 function formatISODate(isoDate: string): string {
@@ -40,30 +63,37 @@ export default function BookingPage() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Nhận state từ HomestayDetailPage hoặc fallback dữ liệu mẫu chuẩn theo ảnh
+  // Nhận state từ HomestayDetailPage hoặc fallback dữ liệu mẫu
   const navState = location.state as BookingNavigationState | undefined;
 
-  const roomInfo = {
-    placeName: navState?.placeName || 'Homestay Bản Mường Sinh Thái',
-    placeAddress: navState?.placeAddress || 'Bản Lác, Mai Châu, Hòa Bình',
-    placeRating: navState?.placeRating || 4.8,
-    placeReviewCount: navState?.placeReviewCount || 128,
-    roomName: navState?.roomTypeName || '(1x) Superior Double No View',
-    roomCount: navState?.roomCount || 1,
-    nights: navState?.nights || 1,
-    checkInDateStr: formatISODate(navState?.checkIn ?? '') || 'Thứ 5, 24 thg 9',
-    checkInTime: 'Từ 14:00',
-    checkOutDateStr: formatISODate(navState?.checkOut ?? '') || 'Thứ 6, 25 thg 9',
-    checkOutTime: 'Trước 12:00',
-    guestCount: navState?.guestCount || 2,
-    bedInfo: navState?.bedInfo || '1 giường cỡ king',
-    hasBreakfast: navState?.hasBreakfast ?? false,
-    freeCancellation: navState?.freeCancellation ?? true,
-    totalRoomsLeft: navState?.totalRoomCount || 2,
-    basePrice: navState?.basePrice || 361028,
-    taxAndFees: Math.round((navState?.basePrice || 361028) * 0.155),
-    originalPrice: navState?.originalPrice || 1306000,
-  };
+  const roomInfo = useMemo(() => {
+    const base = navState?.basePrice || 361028;
+    return {
+      placeId: navState?.placeId || 1,
+      placeName: navState?.placeName || 'Homestay Bản Mường Sinh Thái',
+      placeAddress: navState?.placeAddress || 'Bản Lác, Mai Châu, Hòa Bình',
+      placeRating: navState?.placeRating || 4.8,
+      placeReviewCount: navState?.placeReviewCount || 128,
+      coverImageUrl: navState?.coverImageUrl || '',
+      latitude: navState?.latitude || 21.85,
+      longitude: navState?.longitude || 104.08,
+      roomName: navState?.roomTypeName || '(1x) Superior Double No View',
+      roomCount: navState?.roomCount || 1,
+      nights: navState?.nights || 1,
+      checkInDateStr: formatISODate(navState?.checkIn ?? '') || 'Thứ 5, 24 thg 9',
+      checkInTime: 'Từ 14:00',
+      checkOutDateStr: formatISODate(navState?.checkOut ?? '') || 'Thứ 6, 25 thg 9',
+      checkOutTime: 'Trước 12:00',
+      guestCount: navState?.guestCount || 2,
+      bedInfo: navState?.bedInfo || '1 giường cỡ king',
+      hasBreakfast: navState?.hasBreakfast ?? false,
+      freeCancellation: navState?.freeCancellation ?? true,
+      totalRoomsLeft: navState?.totalRoomCount || 2,
+      basePrice: base,
+      taxAndFees: Math.round(base * 0.155),
+      originalPrice: navState?.originalPrice || 1306000,
+    };
+  }, [navState]);
 
   const totalPrice = roomInfo.basePrice + roomInfo.taxAndFees;
 
@@ -91,6 +121,145 @@ export default function BookingPage() {
 
   // Price breakdown accordion
   const [isPriceDetailOpen, setIsPriceDetailOpen] = useState(true);
+
+  // Dịch vụ đi kèm theo thiết kế DB mới: booking_service_item
+  const [serviceItems, setServiceItems] = useState<BookingServiceItemDto[]>([]);
+
+  // State cho phần Địa điểm quanh đây (đồng bộ như trang chi tiết)
+  const [radius, setRadius] = useState<number>(10);
+  const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlaceDto[]>([]);
+  const [nearbyCategory, setNearbyCategory] = useState<'ALL' | 'ATTRACTION' | 'FOOD' | 'TRANSPORT'>('ALL');
+  const [showOsmModal, setShowOsmModal] = useState<boolean>(false);
+  const [selectedMapTarget, setSelectedMapTarget] = useState<{ lat: number; lng: number; zoom: number } | null>(null);
+
+  // Modal thêm nhanh ghi chú khi add dịch vụ quanh đây
+  const [addingPlaceModal, setAddingPlaceModal] = useState<{
+    place: NearbyPlaceDto;
+    defaultServiceName: string;
+    note: string;
+  } | null>(null);
+
+  // Fetch địa điểm quanh đây từ API backend
+  useEffect(() => {
+    if (roomInfo.placeId) {
+      fetchNearbyPlaces(roomInfo.placeId.toString(), radius)
+        .then((data) => setNearbyPlaces(data))
+        .catch((err) => console.error('Error fetching nearby places on booking page:', err));
+    }
+  }, [roomInfo.placeId, radius]);
+
+  // Tính khoảng cách Haversine chính xác theo tọa độ
+  const processedNearbyPlaces = useMemo(() => {
+    const homeLat = roomInfo.latitude || 21.85;
+    const homeLng = roomInfo.longitude || 104.08;
+
+    return nearbyPlaces.map((item) => {
+      const pLat = item.latitude ?? (homeLat + ((item.id % 7) - 3) * 0.007);
+      const pLng = item.longitude ?? (homeLng + ((item.id % 5) - 2) * 0.007);
+      const calculatedDistance = calculateDistanceKm(homeLat, homeLng, pLat, pLng);
+
+      return {
+        ...item,
+        latitude: pLat,
+        longitude: pLng,
+        displayDistance: calculatedDistance,
+      };
+    });
+  }, [nearbyPlaces, roomInfo.latitude, roomInfo.longitude]);
+
+  // Bộ lọc danh mục quanh đây
+  const filteredNearbyPlaces = useMemo(() => {
+    if (nearbyCategory === 'ALL') return processedNearbyPlaces;
+    return processedNearbyPlaces.filter((item) => {
+      if (nearbyCategory === 'FOOD') {
+        return item.kind === 'FOOD' || item.kind === 'RESTAURANT' || item.kind === 'CUISINE';
+      }
+      if (nearbyCategory === 'ATTRACTION') {
+        return item.kind === 'ATTRACTION';
+      }
+      if (nearbyCategory === 'TRANSPORT') {
+        return item.kind === 'TRANSPORT';
+      }
+      return true;
+    });
+  }, [processedNearbyPlaces, nearbyCategory]);
+
+  // Markers cho modal OpenStreetMap
+  const mapMarkers = useMemo<OsmMarkerItem[]>(() => {
+    const list: OsmMarkerItem[] = [
+      {
+        id: `homestay-${roomInfo.placeId}`,
+        name: roomInfo.placeName,
+        latitude: roomInfo.latitude || 21.751214,
+        longitude: roomInfo.longitude || 104.318420,
+        price: roomInfo.basePrice,
+        displayMode: 'name',
+        district: roomInfo.placeAddress,
+        coverImageUrl: roomInfo.coverImageUrl,
+        isMain: true,
+        kind: 'HOMESTAY',
+      },
+    ];
+
+    filteredNearbyPlaces.forEach((p) => {
+      list.push({
+        id: `poi-${p.id}`,
+        name: p.name,
+        latitude: p.latitude || 21.751214,
+        longitude: p.longitude || 104.318420,
+        district: p.address || `${p.displayDistance} km từ chỗ nghỉ`,
+        kind: p.kind,
+        category: p.kind,
+        distance: p.displayDistance,
+        displayMode: 'name',
+        isMain: false,
+      });
+    });
+
+    return list;
+  }, [roomInfo, filteredNearbyPlaces]);
+
+  // Quản lý toggle hoặc mở modal add dịch vụ quanh đây
+  const handleOpenAddService = (place: NearbyPlaceDto) => {
+    const isAlreadyAdded = serviceItems.some(item => item.serviceCode === `NEARBY_${place.kind}_${place.id}`);
+    if (isAlreadyAdded) {
+      // Nếu đã add thì cho phép xóa trực tiếp
+      setServiceItems(prev => prev.filter(item => item.serviceCode !== `NEARBY_${place.kind}_${place.id}`));
+      return;
+    }
+
+    let defaultName = `Dịch vụ quanh đây: ${place.name}`;
+    if (place.kind === 'TRANSPORT') {
+      defaultName = `Hỗ trợ đưa đón / di chuyển: ${place.name}`;
+    } else if (place.kind === 'FOOD' || place.kind === 'RESTAURANT' || place.kind === 'CUISINE') {
+      defaultName = `Hỗ trợ đặt bàn / ẩm thực: ${place.name}`;
+    } else if (place.kind === 'ATTRACTION') {
+      defaultName = `Hỗ trợ hướng dẫn tham quan: ${place.name}`;
+    }
+
+    setAddingPlaceModal({
+      place,
+      defaultServiceName: defaultName,
+      note: ''
+    });
+  };
+
+  const handleConfirmAddService = () => {
+    if (!addingPlaceModal) return;
+    const { place, defaultServiceName, note } = addingPlaceModal;
+    const newItem: BookingServiceItemDto = {
+      serviceName: defaultServiceName,
+      serviceCode: `NEARBY_${place.kind}_${place.id}`,
+      note: note.trim() || undefined,
+      isIncluded: true,
+    };
+    setServiceItems(prev => [...prev, newItem]);
+    setAddingPlaceModal(null);
+  };
+
+  const handleRemoveService = (index: number) => {
+    setServiceItems(prev => prev.filter((_, idx) => idx !== index));
+  };
 
   const toggleSpecialRequest = (key: string) => {
     setSpecialRequests((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -147,6 +316,7 @@ export default function BookingPage() {
         guestEmail: email.trim(),
         guestNote: customNote.trim() || undefined,
         specialRequests: selectedRequests.length > 0 ? selectedRequests : undefined,
+        serviceItems: serviceItems.length > 0 ? serviceItems : undefined,
       });
       setBookingResult(result);
       setIsBookingSuccess(true);
@@ -158,9 +328,25 @@ export default function BookingPage() {
     }
   };
 
+  // Icon biểu tượng địa điểm
+  const getPlaceIcon = (kind: string) => {
+    switch (kind) {
+      case 'FOOD':
+      case 'RESTAURANT':
+      case 'CUISINE':
+        return <Utensils className="w-3.5 h-3.5 text-[#dc2626]" />;
+      case 'ATTRACTION':
+        return <Mountain className="w-3.5 h-3.5 text-[#2563eb]" />;
+      case 'TRANSPORT':
+        return <Bus className="w-3.5 h-3.5 text-[#d97706]" />;
+      default:
+        return <Compass className="w-3.5 h-3.5 text-slate-600" />;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#f6faf8] text-[var(--color-ink)] flex flex-col">
-      {/* Header: Chỉ thuần túy Logo và Tên theo yêu cầu */}
+      {/* Header: Chỉ thuần túy Logo và Tên theo chuẩn */}
       <header className="w-full bg-white border-b border-gray-200/90 sticky top-0 z-40 shadow-xs">
         <div className="max-w-[1180px] mx-auto px-4 md:px-6 h-16 flex items-center">
           <Link to="/" className="flex items-center gap-2.5 md:gap-3 group">
@@ -196,7 +382,7 @@ export default function BookingPage() {
                   <span className="font-bold text-gray-900 tracking-wider">{bookingResult?.bookingCode ?? '—'}</span>
                   <button
                     type="button"
-                    className="text-gray-400 hover:text-[var(--color-primary)] ml-1"
+                    className="text-gray-400 hover:text-[var(--color-primary)] ml-1 cursor-pointer"
                     title="Sao chép mã đặt chỗ"
                     onClick={() => { if (bookingResult?.bookingCode) navigator.clipboard.writeText(bookingResult.bookingCode); }}
                   >
@@ -289,6 +475,28 @@ export default function BookingPage() {
                     {roomInfo.checkInDateStr} <ArrowRight className="w-3 h-3 inline mx-1 text-gray-400" /> {roomInfo.checkOutDateStr}
                   </div>
                 </div>
+
+                {/* Dịch vụ đi kèm theo DB mới: booking_service_item */}
+                {bookingResult?.serviceItems && bookingResult.serviceItems.length > 0 && (
+                  <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-100">
+                    <div className="text-gray-500">Dịch vụ đi kèm đã lưu</div>
+                    <div className="col-span-2 space-y-2">
+                      {bookingResult.serviceItems.map((svc, idx) => (
+                        <div key={idx} className="p-2.5 rounded-md bg-[#edfbf7] border border-[#048c73]/20 text-xs">
+                          <div className="font-bold text-[#048c73] flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-[#048c73]" />
+                            {svc.serviceName}
+                          </div>
+                          {svc.note && (
+                            <div className="text-gray-600 mt-1 italic">
+                              Ghi chú: {svc.note}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Thông tin liên hệ & người đặt phòng */}
                 <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-100">
@@ -385,7 +593,7 @@ export default function BookingPage() {
               </span>
             </div>
 
-            {/* TÊN VÀ ĐÁNH GIÁ SAO (Không cần panel, hiển thị tự nhiên theo mẫu) */}
+            {/* TÊN VÀ ĐÁNH GIÁ SAO */}
             <div className="mb-5">
               <h1 className="text-xl md:text-2xl font-bold text-[var(--color-ink-deep)] leading-tight mb-1.5">
                 {roomInfo.placeName}
@@ -402,6 +610,15 @@ export default function BookingPage() {
                 </span>
                 <span className="text-gray-400 font-bold">·</span>
                 <span className="text-gray-500 font-medium">({roomInfo.placeReviewCount} đánh giá)</span>
+                {roomInfo.placeAddress && (
+                  <>
+                    <span className="text-gray-400 font-bold">·</span>
+                    <span className="text-gray-500 flex items-center gap-1">
+                      <MapPin className="w-3.5 h-3.5 text-gray-400" />
+                      {roomInfo.placeAddress}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
 
@@ -583,6 +800,239 @@ export default function BookingPage() {
                     </div>
                   )}
                 </div>
+
+                {/* ================= KHỐI MỚI: ĐỊA ĐIỂM & DỊCH VỤ QUANH ĐÂY (GIỐNG TRANG CHI TIẾT & ADD VÀO BOOKING) ================= */}
+                <div className="bg-white rounded-lg border border-gray-200 shadow-xs p-5 md:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100 mb-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-md bg-[#edfbf7] text-[var(--color-primary)] flex items-center justify-center shrink-0">
+                          <Compass className="w-4 h-4" />
+                        </div>
+                        <h2 className="text-lg font-bold text-[var(--color-ink-deep)]">Địa điểm & Dịch vụ quanh đây</h2>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Khám phá điểm đến quanh đây và nhấn <strong>"+ Thêm vào booking"</strong> để homestay chuẩn bị đón tiếp
+                      </p>
+                    </div>
+
+                    {/* Radius slider */}
+                    <div className="flex items-center gap-2.5 bg-gray-50 px-3 py-1.5 rounded-md border border-gray-200 shrink-0">
+                      <span className="text-xs font-semibold text-gray-600">Bán kính:</span>
+                      <input
+                        type="range"
+                        min="1"
+                        max="30"
+                        step="1"
+                        value={radius}
+                        onChange={(e) => setRadius(Number(e.target.value))}
+                        className="w-20 md:w-28 h-1.5 bg-gray-300 rounded-sm appearance-none cursor-pointer accent-[var(--color-primary)]"
+                      />
+                      <span className="text-xs font-bold text-[var(--color-primary)] w-9 text-right">{radius}km</span>
+                    </div>
+                  </div>
+
+                  {/* BỘ LỌC PHÂN LOẠI DANH MỤC */}
+                  <div className="flex flex-wrap items-center gap-1.5 mb-4 pb-3 border-b border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setNearbyCategory('ALL')}
+                      className={`px-2.5 py-1 rounded-xs text-xs font-semibold transition-all cursor-pointer ${
+                        nearbyCategory === 'ALL'
+                          ? 'bg-[#048c73] text-white'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
+                      Tất cả ({processedNearbyPlaces.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNearbyCategory('ATTRACTION')}
+                      className={`px-2.5 py-1 rounded-xs text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+                        nearbyCategory === 'ATTRACTION'
+                          ? 'bg-[#2563eb] text-white'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
+                      <Mountain className="w-3.5 h-3.5" />
+                      Điểm đến & Thắng cảnh ({processedNearbyPlaces.filter(p => p.kind === 'ATTRACTION').length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNearbyCategory('FOOD')}
+                      className={`px-2.5 py-1 rounded-xs text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+                        nearbyCategory === 'FOOD'
+                          ? 'bg-[#dc2626] text-white'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
+                      <Utensils className="w-3.5 h-3.5" />
+                      Ẩm thực & Quán ngon ({processedNearbyPlaces.filter(p => p.kind === 'FOOD' || p.kind === 'RESTAURANT' || p.kind === 'CUISINE').length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNearbyCategory('TRANSPORT')}
+                      className={`px-2.5 py-1 rounded-xs text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+                        nearbyCategory === 'TRANSPORT'
+                          ? 'bg-[#d97706] text-white'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
+                      <Bus className="w-3.5 h-3.5" />
+                      Bến xe & Di chuyển ({processedNearbyPlaces.filter(p => p.kind === 'TRANSPORT').length})
+                    </button>
+                  </div>
+
+                  {/* Danh sách địa điểm quanh đây có nút Add vào booking */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                    {filteredNearbyPlaces.length > 0 ? (
+                      filteredNearbyPlaces.map((item, idx) => {
+                        const isAdded = serviceItems.some(s => s.serviceCode === `NEARBY_${item.kind}_${item.id}`);
+
+                        return (
+                          <div
+                            key={idx}
+                            className={`p-3 rounded-md border transition-all flex flex-col justify-between gap-2.5 ${
+                              isAdded
+                                ? 'bg-[#f0fdf4] border-emerald-300 shadow-2xs'
+                                : 'bg-[var(--color-canvas)] border-gray-100 hover:border-gray-200 hover:bg-gray-50/80'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-start gap-2.5 min-w-0">
+                                <div className="w-8 h-8 rounded-md bg-white flex items-center justify-center border border-gray-200 shrink-0 mt-0.5">
+                                  {getPlaceIcon(item.kind)}
+                                </div>
+                                <div className="min-w-0">
+                                  <span className="text-xs md:text-sm font-bold text-[var(--color-ink-deep)] block truncate">
+                                    {item.name}
+                                  </span>
+                                  <span className="text-[11px] text-gray-500 block truncate">
+                                    {item.kind === 'FOOD' ? 'Ẩm thực & Quán ăn' : item.kind === 'ATTRACTION' ? 'Danh lam thắng cảnh' : item.kind === 'TRANSPORT' ? 'Bến xe & Di chuyển' : 'Điểm lân cận'}
+                                    {item.address ? ` · ${item.address}` : ''}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <span className="text-[11px] font-bold text-[var(--color-primary)] bg-white px-2 py-0.5 rounded-sm border border-gray-200 shrink-0 shadow-2xs">
+                                {item.displayDistance < 1 ? Math.round(item.displayDistance * 1000) + ' m' : item.displayDistance + ' km'}
+                              </span>
+                            </div>
+
+                            {/* Nút hành động: Xem trên map & Thêm vào booking */}
+                            <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-200/60 mt-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedMapTarget({ lat: item.latitude, lng: item.longitude, zoom: 16 });
+                                  setShowOsmModal(true);
+                                }}
+                                className="text-[11px] font-semibold text-gray-500 hover:text-[var(--color-primary)] flex items-center gap-1 cursor-pointer transition-colors"
+                              >
+                                <MapIcon className="w-3 h-3" /> Xem vị trí
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleOpenAddService(item)}
+                                className={`px-2.5 py-1 rounded-xs text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                                  isAdded
+                                    ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-2xs'
+                                    : 'bg-[var(--color-primary)] text-white hover:bg-[#03725e]'
+                                }`}
+                              >
+                                {isAdded ? (
+                                  <>
+                                    <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                    Đã thêm (Bỏ chọn)
+                                  </>
+                                ) : (
+                                  <>
+                                    <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                                    + Thêm vào booking
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="col-span-2 text-xs text-gray-500 italic p-4 text-center bg-gray-50 rounded-md">
+                        Không tìm thấy địa điểm nào phù hợp trong danh mục này trong bán kính {radius}km.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Nút mở bản đồ OpenStreetMap toàn cảnh */}
+                  <div className="pt-2 flex justify-center">
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        setSelectedMapTarget(null);
+                        setShowOsmModal(true);
+                      }}
+                      variant="outline"
+                      className="rounded-md font-bold text-xs md:text-sm flex items-center gap-2 px-5 py-2 border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary-50)] cursor-pointer"
+                    >
+                      <MapIcon className="w-4 h-4" />
+                      Mở bản đồ OpenStreetMap toàn cảnh ({filteredNearbyPlaces.length} địa điểm)
+                    </Button>
+                  </div>
+                </div>
+
+                {/* ================= KHỐI HIỂN THỊ DỊCH VỤ ĐI KÈM ĐÃ CHỌN (booking_service_item) ================= */}
+                {serviceItems.length > 0 && (
+                  <div className="bg-white rounded-lg border-2 border-[var(--color-primary)]/40 shadow-xs p-5 md:p-6 animate-in fade-in duration-200">
+                    <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-md bg-[#edfbf7] text-[var(--color-primary)] flex items-center justify-center">
+                          <Sparkles className="w-4 h-4" />
+                        </div>
+                        <h3 className="text-base font-bold text-[var(--color-ink-deep)]">
+                          Dịch vụ quanh đây đính kèm ({serviceItems.length})
+                        </h3>
+                      </div>
+                      <span className="text-[11px] font-bold bg-[#edfbf7] text-[var(--color-primary)] px-2 py-0.5 rounded-sm border border-[var(--color-primary)]/30">
+                        Miễn phí đính kèm
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-gray-500 mb-3">
+                      Các dịch vụ/yêu cầu dưới đây sẽ được gửi trực tiếp đến chủ homestay để chuẩn bị trước khi bạn đến nhận phòng.
+                    </p>
+
+                    <div className="space-y-2.5">
+                      {serviceItems.map((svc, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-start justify-between gap-3 p-3 rounded-md bg-[#f6faf8] border border-gray-200/90 text-xs"
+                        >
+                          <div className="space-y-1">
+                            <div className="font-bold text-gray-900 flex items-center gap-1.5">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                              <span>{svc.serviceName}</span>
+                            </div>
+                            {svc.note && (
+                              <p className="text-gray-600 italic pl-5">
+                                Ghi chú: &ldquo;{svc.note}&rdquo;
+                              </p>
+                            )}
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveService(idx)}
+                            className="text-gray-400 hover:text-red-500 p-1 rounded-sm cursor-pointer transition-colors"
+                            title="Xóa dịch vụ này"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Khối 3: Yêu cầu đặc biệt */}
                 <div className="bg-white rounded-lg border border-gray-200 shadow-xs p-5 md:p-6">
@@ -813,6 +1263,23 @@ export default function BookingPage() {
                         <span>{roomInfo.hasBreakfast ? 'Bao gồm bữa sáng miễn phí' : 'Không bao gồm bữa sáng'}</span>
                       </div>
 
+                      {/* Hiển thị tóm tắt các dịch vụ đi kèm đã add */}
+                      {serviceItems.length > 0 && (
+                        <div className="p-2.5 bg-[#edfbf7] rounded-md border border-[#048c73]/30 space-y-1">
+                          <div className="font-bold text-xs text-[#048c73] flex items-center gap-1">
+                            <Sparkles className="w-3.5 h-3.5" />
+                            Đã thêm {serviceItems.length} dịch vụ quanh đây:
+                          </div>
+                          <ul className="text-[11px] text-gray-700 space-y-0.5 list-disc list-inside pl-1">
+                            {serviceItems.map((s, idx) => (
+                              <li key={idx} className="truncate">
+                                {s.serviceName}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
                       <div className="flex items-center gap-2 text-emerald-700 font-medium">
                         <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                         <span>
@@ -871,6 +1338,13 @@ export default function BookingPage() {
                           {new Intl.NumberFormat('vi-VN').format(roomInfo.taxAndFees)} VND
                         </span>
                       </div>
+
+                      {serviceItems.length > 0 && (
+                        <div className="flex justify-between items-center text-[#048c73] pt-1 border-t border-dashed border-gray-200">
+                          <span className="font-medium">Dịch vụ đính kèm ({serviceItems.length} mục)</span>
+                          <span className="font-bold">Miễn phí (Hỗ trợ tại chỗ)</span>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -911,7 +1385,7 @@ export default function BookingPage() {
 
                   {/* Nút Xác nhận đặt phòng CTA */}
                   {submitError && (
-                    <div className="flex items-center gap-2.5 bg-red-50 border border-red-200 rounded-md px-4 py-3 text-sm text-red-700 font-medium">
+                    <div className="flex items-center gap-2.5 bg-red-50 border border-red-200 rounded-md px-4 py-3 text-sm text-red-700 font-medium mb-3">
                       <Info className="w-4 h-4 shrink-0 text-red-500" />
                       <span>{submitError}</span>
                     </div>
@@ -954,6 +1428,155 @@ export default function BookingPage() {
             </div>
           </div>
         </main>
+      )}
+
+      {/* ================= MODAL NHẬP GHI CHÚ KHI THÊM DỊCH VỤ QUANH ĐÂY ================= */}
+      {addingPlaceModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-lg max-w-md w-full p-5 shadow-xl relative border border-gray-200">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-md bg-[#edfbf7] text-[var(--color-primary)] flex items-center justify-center">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <h3 className="font-bold text-base text-[var(--color-ink-deep)]">
+                  Thêm dịch vụ vào đơn đặt phòng
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAddingPlaceModal(null)}
+                className="p-1 text-gray-400 hover:text-gray-600 rounded-md cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3.5 text-xs">
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">
+                  Địa điểm / Dịch vụ lựa chọn
+                </label>
+                <div className="p-2.5 rounded-md bg-gray-50 border border-gray-200 font-semibold text-gray-800">
+                  {addingPlaceModal.place.name}
+                  <span className="block text-[11px] text-gray-500 font-normal mt-0.5">
+                    Khoảng cách: {addingPlaceModal.place.distance} km từ chỗ nghỉ
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">
+                  Tên mục dịch vụ đính kèm
+                </label>
+                <input
+                  type="text"
+                  value={addingPlaceModal.defaultServiceName}
+                  onChange={(e) =>
+                    setAddingPlaceModal({ ...addingPlaceModal, defaultServiceName: e.target.value })
+                  }
+                  className="w-full h-10 px-3 text-xs bg-white border border-gray-300 rounded-md focus:border-[var(--color-primary)] outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">
+                  Ghi chú cho chỗ nghỉ (Tùy chọn)
+                </label>
+                <textarea
+                  rows={3}
+                  value={addingPlaceModal.note}
+                  onChange={(e) =>
+                    setAddingPlaceModal({ ...addingPlaceModal, note: e.target.value })
+                  }
+                  placeholder="Ví dụ: Cần xe đón 2 người lúc 14:00, hoặc nhờ đặt bàn ăn tối..."
+                  className="w-full p-2.5 text-xs bg-white border border-gray-300 rounded-md focus:border-[var(--color-primary)] outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-4 mt-4 border-t border-gray-100">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-md"
+                onClick={() => setAddingPlaceModal(null)}
+              >
+                Hủy bỏ
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                className="bg-[var(--color-primary)] hover:bg-[#03725e] text-white font-bold rounded-md"
+                onClick={handleConfirmAddService}
+              >
+                Xác nhận thêm
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL OPENSTREETMAP TOÀN CẢNH ================= */}
+      {showOsmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-lg max-w-4xl w-full h-[85vh] p-4 md:p-5 shadow-2xl flex flex-col border border-gray-200 relative">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-3">
+              <div className="flex items-center gap-2">
+                <MapIcon className="w-5 h-5 text-[var(--color-primary)]" />
+                <h3 className="font-bold text-base md:text-lg text-[var(--color-ink-deep)]">
+                  Bản đồ OpenStreetMap xung quanh {roomInfo.placeName}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowOsmModal(false)}
+                className="p-1 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Chú thích màu sắc */}
+            <div className="flex flex-wrap items-center gap-2 mb-3 text-[11px] font-bold">
+              <div className="flex items-center gap-1.5 bg-[#edfbf7] text-[#048c73] px-2.5 py-1 rounded-sm border border-[#048c73]/30">
+                <span className="w-2.5 h-2.5 rounded-xs bg-[#048C73]"></span> Chỗ nghỉ (Mục tiêu)
+              </div>
+              <div className="flex items-center gap-1.5 bg-[#eff6ff] text-[#2563eb] px-2.5 py-1 rounded-sm border border-[#2563eb]/30">
+                <span className="w-2.5 h-2.5 rounded-xs bg-[#2563EB]"></span> Thắng cảnh / Check-in
+              </div>
+              <div className="flex items-center gap-1.5 bg-[#fef2f2] text-[#dc2626] px-2.5 py-1 rounded-sm border border-[#dc2626]/30">
+                <span className="w-2.5 h-2.5 rounded-xs bg-[#DC2626]"></span> Quán ăn / Ẩm thực
+              </div>
+              <div className="flex items-center gap-1.5 bg-[#fffbeb] text-[#d97706] px-2.5 py-1 rounded-sm border border-[#d97706]/30">
+                <span className="w-2.5 h-2.5 rounded-xs bg-[#D97706]"></span> Bến xe / Di chuyển
+              </div>
+            </div>
+
+            {/* Khung bản đồ OSM */}
+            <div className="flex-1 rounded-md overflow-hidden border border-gray-200 relative">
+              <OpenStreetMapView
+                centerLat={selectedMapTarget?.lat || roomInfo.latitude || 21.85}
+                centerLng={selectedMapTarget?.lng || roomInfo.longitude || 104.08}
+                zoomLevel={selectedMapTarget?.zoom || 14}
+                className="w-full h-full"
+                markers={mapMarkers}
+              />
+            </div>
+
+            <div className="pt-3 flex justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-md cursor-pointer"
+                onClick={() => setShowOsmModal(false)}
+              >
+                Đóng bản đồ
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>

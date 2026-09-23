@@ -225,6 +225,9 @@ CREATE TABLE place (
     visibility          ENUM('DRAFT','PUBLISHED','UNPUBLISHED') NOT NULL DEFAULT 'DRAFT',
     operation_status    ENUM('OPERATING','TEMP_CLOSED') NOT NULL DEFAULT 'OPERATING',
     is_deleted          BOOLEAN NOT NULL DEFAULT FALSE, -- UC-16: soft delete ≠ visibility
+    is_suitable_by_time BOOLEAN NOT NULL DEFAULT FALSE, -- Phù hợp theo thời gian / mùa vụ hiện tại
+    suitable_date_start DATE NULL,                      -- Ngày bắt đầu mùa vụ / thời điểm đẹp nhất
+    suitable_date_end   DATE NULL,                      -- Ngày kết thúc mùa vụ / thời điểm đẹp nhất
 
     -- NGUỒN DỮ LIỆU — chỉ 1 trường phân biệt chính thống/reviewer, không tách bảng (BR-90/92/93)
     source_type         ENUM('OFFICIAL','PROVIDER','PUBLIC_TRUSTED','SOCIAL_COMMUNITY') NOT NULL DEFAULT 'PUBLIC_TRUSTED',
@@ -554,6 +557,19 @@ CREATE TABLE booking_night (
     CONSTRAINT ck_bn_count CHECK (room_count > 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- 7.1.1 Dịch vụ đi kèm booking (không tính giá)
+CREATE TABLE booking_service_item (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    booking_id      BIGINT UNSIGNED NOT NULL,
+    service_name    VARCHAR(255) NOT NULL,
+    service_code    VARCHAR(64),
+    note            VARCHAR(500),
+    is_included     BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_bsi_booking FOREIGN KEY (booking_id) REFERENCES booking(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+CREATE INDEX idx_bsi_booking ON booking_service_item (booking_id);
+
 -- 7.2 Lịch sử trạng thái (BR-104/105)
 CREATE TABLE booking_status_history (
     id           BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -704,6 +720,41 @@ CREATE TABLE notification (
 CREATE INDEX idx_notification_entity ON notification (related_entity_type, related_entity_id);
 CREATE INDEX idx_notification_pending ON notification (status, created_at);
 CREATE INDEX idx_notification_account ON notification (recipient_account_id);
+
+-- ============================================================================
+-- 10.1 LỄ HỘI & SỰ KIỆN VĂN HÓA (Festival & Occurrences)
+-- ============================================================================
+CREATE TABLE festival (
+    id                  BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    slug                VARCHAR(191) NOT NULL UNIQUE,
+    name                VARCHAR(255) NOT NULL,
+    name_norm           VARCHAR(255) NOT NULL,
+    season_note         VARCHAR(500),
+    core_value          TEXT,
+    suitable_experience TEXT,
+    etiquette_dont      TEXT,
+    cover_image_url     VARCHAR(500),
+    location            VARCHAR(255),
+    region_id           BIGINT UNSIGNED NULL,
+    visibility          ENUM('DRAFT','PUBLISHED','UNPUBLISHED') NOT NULL DEFAULT 'DRAFT',
+    is_deleted          BOOLEAN NOT NULL DEFAULT FALSE,
+    is_suitable_by_time BOOLEAN NOT NULL DEFAULT FALSE,
+    suitable_date_start DATE NULL,
+    suitable_date_end   DATE NULL,
+    CONSTRAINT fk_festival_region FOREIGN KEY (region_id) REFERENCES region(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE festival_occurrence (
+    id            BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    festival_id   BIGINT UNSIGNED NOT NULL,
+    period_start  DATE NOT NULL,
+    period_end    DATE NOT NULL,
+    is_estimated  BOOLEAN NOT NULL DEFAULT TRUE,
+    note          VARCHAR(500),
+    CONSTRAINT fk_fo_festival FOREIGN KEY (festival_id) REFERENCES festival(id) ON DELETE CASCADE,
+    CONSTRAINT ck_fo_dates CHECK (period_end >= period_start)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+CREATE INDEX idx_fo_dates ON festival_occurrence (festival_id, period_start, period_end);
 
 -- ============================================================================
 -- 11. VIEW phục vụ UC-01/02 — điều kiện public gom về 1 chỗ
