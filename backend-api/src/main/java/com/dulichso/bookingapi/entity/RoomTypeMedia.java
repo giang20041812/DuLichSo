@@ -23,12 +23,14 @@ public class RoomTypeMedia {
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private MediaRole role = MediaRole.GALLERY;
     
     @Column(length = 500)
     private String caption;
     
     @Column(name = "sort_order", nullable = false)
+    @Builder.Default
     private Integer sortOrder = 0;
     
     @Column(name = "cover_guard", insertable = false, updatable = false)

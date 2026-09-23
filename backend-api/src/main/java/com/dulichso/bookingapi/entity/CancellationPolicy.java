@@ -24,12 +24,14 @@ public class CancellationPolicy {
     
     @Enumerated(EnumType.STRING)
     @Column(name = "refund_on_late_cancel", nullable = false)
+    @Builder.Default
     private RefundType refundOnLateCancel = RefundType.NO_REFUND;
     
     @Column(name = "content_text", nullable = false, columnDefinition = "TEXT")
     private String contentText;
     
     @Column(name = "effective_from", nullable = false)
+    @Builder.Default
     private LocalDateTime effectiveFrom = LocalDateTime.now();
     
     @ManyToOne(fetch = FetchType.LAZY)

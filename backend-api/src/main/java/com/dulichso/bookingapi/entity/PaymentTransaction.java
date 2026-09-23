@@ -30,13 +30,16 @@ public class PaymentTransaction {
     private BigDecimal amount;
     @Column(nullable = false, columnDefinition = "CHAR(3)")
     @org.hibernate.annotations.JdbcTypeCode(java.sql.Types.CHAR)
+    @Builder.Default
     private String currency = "VND";
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private PaymentStatus status = PaymentStatus.INITIATED;
     
     @Column(name = "initiated_at", nullable = false, updatable = false)
+    @Builder.Default
     private LocalDateTime initiatedAt = LocalDateTime.now();
     @Column(name = "paid_at")
     private LocalDateTime paidAt;

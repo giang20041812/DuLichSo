@@ -63,16 +63,29 @@ public class AdminFinanceService {
      */
     @Transactional(readOnly = true)
     public RevenueSummaryDto getRevenueSummary() {
-        BigDecimal grandTotal = paymentTransactionRepository.sumTotalRevenue(PaymentStatus.SUCCESS);
+        BigDecimal sum = paymentTransactionRepository.sumTotalRevenue(PaymentStatus.SUCCESS);
+        BigDecimal grandTotal = sum != null ? sum : BigDecimal.ZERO;
         List<Object[]> rows = paymentTransactionRepository.sumRevenueByMonth(PaymentStatus.SUCCESS);
 
-        List<MonthlyRevenueItem> byMonth = rows.stream().map(row -> MonthlyRevenueItem.builder()
-                .year(((Number) row[0]).intValue())
-                .month(((Number) row[1]).intValue())
-                .totalAmount((BigDecimal) row[2])
-                .transactionCount(((Number) row[3]).longValue())
-                .build()
-        ).collect(Collectors.toList());
+        List<MonthlyRevenueItem> byMonth = (rows != null ? rows : java.util.Collections.<Object[]>emptyList()).stream().map(row -> {
+            Number yearNum = row[0] instanceof Number n ? n : null;
+            Number monthNum = row[1] instanceof Number n ? n : null;
+            BigDecimal amount;
+            if (row[2] instanceof BigDecimal bd) {
+                amount = bd;
+            } else if (row[2] instanceof Number n) {
+                amount = BigDecimal.valueOf(n.doubleValue());
+            } else {
+                amount = BigDecimal.ZERO;
+            }
+            Number countNum = row[3] instanceof Number n ? n : null;
+            return MonthlyRevenueItem.builder()
+                    .year(yearNum != null ? yearNum.intValue() : 0)
+                    .month(monthNum != null ? monthNum.intValue() : 0)
+                    .totalAmount(amount)
+                    .transactionCount(countNum != null ? countNum.longValue() : 0L)
+                    .build();
+        }).collect(Collectors.toList());
 
         long totalTransactions = byMonth.stream()
                 .mapToLong(MonthlyRevenueItem::getTransactionCount)
@@ -231,10 +244,14 @@ public class AdminFinanceService {
 
     @Transactional(readOnly = true)
     public CommissionSummaryDto getCommissionSummary() {
-        BigDecimal pending = commissionLedgerRepository.sumAmountByStatus(CommissionStatus.PENDING);
-        BigDecimal approved = commissionLedgerRepository.sumAmountByStatus(CommissionStatus.APPROVED);
-        BigDecimal paid = commissionLedgerRepository.sumAmountByStatus(CommissionStatus.PAID);
-        BigDecimal rejected = commissionLedgerRepository.sumAmountByStatus(CommissionStatus.REJECTED);
+        BigDecimal sumPending = commissionLedgerRepository.sumAmountByStatus(CommissionStatus.PENDING);
+        BigDecimal pending = sumPending != null ? sumPending : BigDecimal.ZERO;
+        BigDecimal sumApproved = commissionLedgerRepository.sumAmountByStatus(CommissionStatus.APPROVED);
+        BigDecimal approved = sumApproved != null ? sumApproved : BigDecimal.ZERO;
+        BigDecimal sumPaid = commissionLedgerRepository.sumAmountByStatus(CommissionStatus.PAID);
+        BigDecimal paid = sumPaid != null ? sumPaid : BigDecimal.ZERO;
+        BigDecimal sumRejected = commissionLedgerRepository.sumAmountByStatus(CommissionStatus.REJECTED);
+        BigDecimal rejected = sumRejected != null ? sumRejected : BigDecimal.ZERO;
 
         List<CommissionLedgerDto> items = commissionLedgerRepository.findAllByOrderByCreatedAtDesc()
                 .stream().map(this::toCommissionLedgerDto).collect(Collectors.toList());

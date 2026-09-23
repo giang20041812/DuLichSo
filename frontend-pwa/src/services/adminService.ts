@@ -13,12 +13,18 @@ import type {
   UpdatePlaceVerificationRequest,
   UpdatePlaceVisibilityRequest,
   AdminDashboardSummaryDto,
-  AccountRole,
   AccountStatus,
   ProviderStatus,
-  PlaceVisibility,
   PlaceVerificationStatus,
-  CategoryKind,
+  PageResponse,
+  AdminBookingDto,
+  BookingSearchParams,
+  BookingStatusSummary,
+  PlaceSearchParams,
+  PlaceVerificationSummary,
+  AdminTravelerDto,
+  AccountSearchParams,
+  TravelerSearchParams,
 } from '../types/admin';
 
 const API_BASE = '/api/v1/admin';
@@ -45,15 +51,24 @@ export const adminService = {
   // ─────────────────────────────────────────────
   // 2. Quản lý Tài khoản (/accounts)
   // ─────────────────────────────────────────────
-  async getAccounts(params?: {
-    role?: AccountRole;
-    status?: AccountStatus;
-    keyword?: string;
-  }): Promise<AdminAccountDto[]> {
-    const res = await axios.get<AdminAccountDto[]>(`${API_BASE}/accounts`, {
+  async getAccounts(params?: AccountSearchParams): Promise<PageResponse<AdminAccountDto>> {
+    const res = await axios.get<PageResponse<AdminAccountDto>>(`${API_BASE}/accounts`, {
       ...getAuthHeaders(),
       params,
     });
+    return res.data;
+  },
+
+  async getTravelers(params?: TravelerSearchParams): Promise<PageResponse<AdminTravelerDto>> {
+    const res = await axios.get<PageResponse<AdminTravelerDto>>(`${API_BASE}/travelers`, {
+      ...getAuthHeaders(),
+      params,
+    });
+    return res.data;
+  },
+
+  async updateTravelerStatus(id: number, data: { status: AccountStatus; reason?: string }): Promise<AdminTravelerDto> {
+    const res = await axios.patch<AdminTravelerDto>(`${API_BASE}/travelers/${id}/status`, data, getAuthHeaders());
     return res.data;
   },
 
@@ -115,21 +130,38 @@ export const adminService = {
   // ─────────────────────────────────────────────
   // 4. Kiểm duyệt Điểm đến (/places)
   // ─────────────────────────────────────────────
-  async getPlaces(params?: {
-    keyword?: string;
-    visibility?: PlaceVisibility;
-    verification?: PlaceVerificationStatus;
-    kind?: CategoryKind;
-    page?: number;
-    size?: number;
-  }): Promise<{ content: AdminPlaceSummaryDto[]; totalElements: number; totalPages: number }> {
-    const res = await axios.get<{ content: AdminPlaceSummaryDto[]; totalElements: number; totalPages: number }>(
-      `${API_BASE}/places`,
-      {
-        ...getAuthHeaders(),
-        params,
-      }
-    );
+  async getPlaces(params?: PlaceSearchParams): Promise<PageResponse<AdminPlaceSummaryDto>> {
+    const res = await axios.get<PageResponse<AdminPlaceSummaryDto>>(`${API_BASE}/places`, {
+      ...getAuthHeaders(),
+      params,
+    });
+    return res.data;
+  },
+
+  async getBookings(params?: BookingSearchParams): Promise<PageResponse<AdminBookingDto>> {
+    const res = await axios.get<PageResponse<AdminBookingDto>>(`${API_BASE}/bookings`, {
+      ...getAuthHeaders(),
+      params,
+    });
+    return res.data;
+  },
+
+  async getBookingsSummary(): Promise<BookingStatusSummary> {
+    const res = await axios.get<BookingStatusSummary>(`${API_BASE}/bookings/summary`, getAuthHeaders());
+    return res.data;
+  },
+
+  async getPlacesSummary(): Promise<PlaceVerificationSummary> {
+    const res = await axios.get<PlaceVerificationSummary>(`${API_BASE}/places/summary`, getAuthHeaders());
+    return res.data;
+  },
+
+  async bulkUpdatePlaceVerification(data: {
+    ids: number[];
+    verification: PlaceVerificationStatus;
+    reason?: string;
+  }): Promise<{ updated: number }> {
+    const res = await axios.patch<{ updated: number }>(`${API_BASE}/places/verification/bulk`, data, getAuthHeaders());
     return res.data;
   },
 

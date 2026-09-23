@@ -26,8 +26,10 @@ public class Category {
     private MediaAsset iconMedia;
     
     @Column(name = "sort_order", nullable = false)
+    @Builder.Default
     private Integer sortOrder = 0;
     @Column(name = "is_active", nullable = false)
+    @Builder.Default
     private Boolean isActive = true;
     
     @Column(name = "homestay_guard", insertable = false, updatable = false)

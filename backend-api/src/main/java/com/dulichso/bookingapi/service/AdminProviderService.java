@@ -45,14 +45,14 @@ public class AdminProviderService {
         Map<Long, Long> placeCounts = new HashMap<>();
         for (Object[] row : providerRepository.countPlacesByProvider()) {
             if (row[0] != null) {
-                placeCounts.put((Long) row[0], ((Number) row[1]).longValue());
+                placeCounts.put(((Number) row[0]).longValue(), ((Number) row[1]).longValue());
             }
         }
 
         Map<Long, Long> accountCounts = new HashMap<>();
         for (Object[] row : providerRepository.countAccountsByProvider()) {
             if (row[0] != null) {
-                accountCounts.put((Long) row[0], ((Number) row[1]).longValue());
+                accountCounts.put(((Number) row[0]).longValue(), ((Number) row[1]).longValue());
             }
         }
 
@@ -166,6 +166,11 @@ public class AdminProviderService {
     public ProviderSummaryDto updateProviderStatus(Long id, UpdateProviderStatusRequest request, Long callerAccountId) {
         Provider provider = providerRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đối tác NCC với ID: " + id));
+
+        if (request.getStatus() != ProviderStatus.ACTIVE
+                && (request.getReason() == null || request.getReason().isBlank())) {
+            throw new IllegalArgumentException("Vui lòng nhập lý do khi đình chỉ hoặc chấm dứt đối tác.");
+        }
 
         ProviderStatus oldStatus = provider.getStatus();
         provider.setStatus(request.getStatus());

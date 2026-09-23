@@ -134,7 +134,11 @@ public class PlaceSpecification {
             String keyword,
             com.dulichso.bookingapi.entity.enums.PlaceVisibility visibility,
             com.dulichso.bookingapi.entity.enums.PlaceVerificationStatus verification,
-            CategoryKind kind) {
+            CategoryKind kind,
+            Long providerId,
+            Long regionId,
+            LocalDate createdFrom,
+            LocalDate createdTo) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.isFalse(root.get("isDeleted")));
@@ -148,12 +152,26 @@ public class PlaceSpecification {
             if (kind != null) {
                 predicates.add(cb.equal(root.get("kind"), kind));
             }
+            if (providerId != null) {
+                predicates.add(cb.equal(root.get("provider").get("id"), providerId));
+            }
+            if (regionId != null) {
+                predicates.add(cb.equal(root.get("region").get("id"), regionId));
+            }
+            if (createdFrom != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), createdFrom.atStartOfDay()));
+            }
+            if (createdTo != null) {
+                predicates.add(cb.lessThan(root.get("createdAt"), createdTo.plusDays(1).atStartOfDay()));
+            }
             if (keyword != null && !keyword.isBlank()) {
-                String kw = "%" + keyword.trim().toLowerCase() + "%";
+                String kw = "%" + keyword.trim().toLowerCase().replace("%", "\\%").replace("_", "\\_") + "%";
+                Join<Object, Object> provider = root.join("provider", jakarta.persistence.criteria.JoinType.LEFT);
                 predicates.add(cb.or(
                         cb.like(cb.lower(root.get("name")), kw),
                         cb.like(cb.lower(root.get("slug")), kw),
-                        cb.like(cb.lower(root.get("address")), kw)
+                        cb.like(cb.lower(root.get("address")), kw),
+                        cb.like(cb.lower(provider.get("name")), kw)
                 ));
             }
             return cb.and(predicates.toArray(new Predicate[0]));

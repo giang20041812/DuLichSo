@@ -22,13 +22,13 @@ public interface PaymentTransactionRepository extends JpaRepository<PaymentTrans
            "WHERE pt.status = :status AND pt.paidAt IS NOT NULL " +
            "GROUP BY YEAR(pt.paidAt), MONTH(pt.paidAt) " +
            "ORDER BY YEAR(pt.paidAt) DESC, MONTH(pt.paidAt) DESC")
-    List<Object[]> sumRevenueByMonth(PaymentStatus status);
+    List<Object[]> sumRevenueByMonth(@org.springframework.data.repository.query.Param("status") PaymentStatus status);
 
     /**
      * Tổng doanh thu toàn thời gian từ giao dịch SUCCESS.
      */
-    @Query("SELECT COALESCE(SUM(pt.amount), 0) FROM PaymentTransaction pt WHERE pt.status = :status")
-    BigDecimal sumTotalRevenue(PaymentStatus status);
+    @Query("SELECT SUM(pt.amount) FROM PaymentTransaction pt WHERE pt.status = :status")
+    BigDecimal sumTotalRevenue(@org.springframework.data.repository.query.Param("status") PaymentStatus status);
 
     List<PaymentTransaction> findByBookingId(Long bookingId);
 }

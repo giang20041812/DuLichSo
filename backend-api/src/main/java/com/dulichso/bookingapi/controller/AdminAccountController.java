@@ -28,11 +28,19 @@ public class AdminAccountController {
      * Danh sách tài khoản (lọc role, status, từ khoá).
      */
     @GetMapping
-    public ResponseEntity<List<AccountDto>> getAccounts(
+    public ResponseEntity<org.springframework.data.domain.Page<AccountDto>> getAccounts(
             @RequestParam(required = false) AccountRole role,
             @RequestParam(required = false) AccountStatus status,
-            @RequestParam(required = false) String keyword) {
-        return ResponseEntity.ok(adminAccountService.getAccounts(role, status, keyword));
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) com.dulichso.bookingapi.entity.enums.ProviderStatus providerStatus,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate createdFrom,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate createdTo,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(adminAccountService.getAccounts(
+                role, status, keyword, providerStatus, createdFrom, createdTo, sortBy, sortDir, page, size));
     }
 
     /**

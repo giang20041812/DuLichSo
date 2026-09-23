@@ -31,6 +31,10 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    /** Danh sách origin frontend được phép, cấu hình qua CORS_ALLOWED_ORIGINS (phân tách bằng dấu phẩy). */
+    @org.springframework.beans.factory.annotation.Value("${app.cors.allowed-origins}")
+    private List<String> allowedOrigins;
+
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
@@ -66,14 +70,30 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        // Chỉ cho phép các origin cụ thể — KHÔNG dùng * theo AGENTS.md
-        config.setAllowedOrigins(List.of(
-                "http://localhost:5173",    // Vite dev server
-                "http://localhost:3000",
-                "https://taybactrails.vn"  // Production domain
+        java.util.List<String> patterns = new java.util.ArrayList<>(java.util.List.of(
+                "http://localhost:*",
+                "http://127.0.0.1:*",
+                "http://192.168.*:*",
+                "http://10.*:*",
+                "http://172.16.*:*",
+                "https://*.ngrok-free.app",
+                "https://*.ngrok.io",
+                "https://*.ngrok-free.dev",
+                "https://*.loca.lt",
+                "https://*.trycloudflare.com"
         ));
+        if (allowedOrigins != null) {
+            for (String o : allowedOrigins) {
+                String trimmed = o.trim();
+                if (!trimmed.isEmpty() && !patterns.contains(trimmed)) {
+                    patterns.add(trimmed);
+                }
+            }
+        }
+        config.setAllowedOriginPatterns(patterns);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
+        config.setExposedHeaders(List.of("Authorization", "Content-Disposition", "ngrok-skip-browser-warning"));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);
 

@@ -34,5 +34,6 @@ public class EmergencyContact {
     private String address;
 
     @Column(name = "is_active", nullable = false)
+    @Builder.Default
     private Boolean isActive = true;
 }

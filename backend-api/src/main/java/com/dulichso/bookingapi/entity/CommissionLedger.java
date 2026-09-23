@@ -31,9 +31,11 @@ public class CommissionLedger {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private CommissionStatus status = CommissionStatus.PENDING;
 
     @Column(name = "created_at", nullable = false, updatable = false)
+    @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 
     @Column(name = "paid_at")

@@ -28,6 +28,7 @@ public class RoomType {
     
     @Enumerated(EnumType.STRING)
     @Column(name = "private_bathroom", nullable = false)
+    @Builder.Default
     private AmenityValue privateBathroom = AmenityValue.UNVERIFIED;
     
     @Column(name = "area_sqm", precision = 6, scale = 2)
@@ -40,8 +41,10 @@ public class RoomType {
     private String status = "ACTIVE"; // Kept string for simplicity since it's just 'ACTIVE'/'INACTIVE'
     
     @Column(name = "created_at", nullable = false, updatable = false)
+    @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
     @Column(name = "updated_at", nullable = false)
+    @Builder.Default
     private LocalDateTime updatedAt = LocalDateTime.now();
     
     @PreUpdate

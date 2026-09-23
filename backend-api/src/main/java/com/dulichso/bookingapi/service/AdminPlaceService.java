@@ -27,16 +27,58 @@ public class AdminPlaceService {
         this.auditLogService = auditLogService;
     }
 
+    private static final java.util.Set<String> PLACE_SORT_FIELDS = java.util.Set.of("createdAt", "updatedAt", "name", "ratingAvg");
+
     @Transactional(readOnly = true)
     public Page<AdminPlaceSummaryDto> getPlaces(
             String keyword,
             PlaceVisibility visibility,
             PlaceVerificationStatus verification,
             CategoryKind kind,
-            Pageable pageable) {
+            Long providerId,
+            Long regionId,
+            LocalDate createdFrom,
+            LocalDate createdTo,
+            String sortBy,
+            String sortDir,
+            int page,
+            int size) {
 
-        Specification<Place> spec = PlaceSpecification.filterAdminPlaces(keyword, visibility, verification, kind);
+        org.springframework.data.domain.Sort sort = org.springframework.data.domain.Sort.by(
+                "asc".equalsIgnoreCase(sortDir)
+                        ? org.springframework.data.domain.Sort.Direction.ASC
+                        : org.springframework.data.domain.Sort.Direction.DESC,
+                PLACE_SORT_FIELDS.contains(sortBy) ? sortBy : "createdAt");
+        Pageable pageable = org.springframework.data.domain.PageRequest.of(
+                Math.max(page, 0), Math.min(Math.max(size, 1), 100), sort);
+
+        Specification<Place> spec = PlaceSpecification.filterAdminPlaces(
+                keyword, visibility, verification, kind, providerId, regionId, createdFrom, createdTo);
         return placeRepository.findAll(spec, pageable).map(this::mapToSummaryDto);
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Long> countByVerification() {
+        Map<String, Long> counts = new java.util.LinkedHashMap<>();
+        for (PlaceVerificationStatus v : PlaceVerificationStatus.values()) {
+            counts.put(v.name(), placeRepository.count(
+                    PlaceSpecification.filterAdminPlaces(null, null, v, null, null, null, null, null)));
+        }
+        return counts;
+    }
+
+    @Transactional
+    public int bulkUpdateVerification(java.util.List<Long> ids, PlaceVerificationStatus verification, String reason, Long callerAccountId) {
+        if (ids == null || ids.isEmpty()) throw new IllegalArgumentException("Chưa chọn điểm đến nào.");
+        if (ids.size() > 100) throw new IllegalArgumentException("Tối đa 100 điểm đến mỗi lần.");
+        if (verification == null) throw new IllegalArgumentException("Thiếu trạng thái kiểm duyệt.");
+        UpdatePlaceVerificationRequest req = new UpdatePlaceVerificationRequest();
+        req.setVerification(verification);
+        req.setReason(reason);
+        for (Long id : ids) {
+            updateVerification(id, req, callerAccountId);
+        }
+        return ids.size();
     }
 
     @Transactional(readOnly = true)
@@ -52,6 +94,12 @@ public class AdminPlaceService {
         Place place = placeRepository.findById(id)
                 .filter(p -> !Boolean.TRUE.equals(p.getIsDeleted()))
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy địa điểm với ID: " + id));
+
+        if ((request.getVerification() == PlaceVerificationStatus.NEEDS_UPDATE
+                || request.getVerification() == PlaceVerificationStatus.ARCHIVED)
+                && (request.getReason() == null || request.getReason().isBlank())) {
+            throw new IllegalArgumentException("Vui lòng nhập lý do khi yêu cầu bổ sung hoặc lưu trữ điểm đến.");
+        }
 
         PlaceVerificationStatus oldStatus = place.getVerification();
         place.setVerification(request.getVerification());
@@ -79,6 +127,11 @@ public class AdminPlaceService {
         Place place = placeRepository.findById(id)
                 .filter(p -> !Boolean.TRUE.equals(p.getIsDeleted()))
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy địa điểm với ID: " + id));
+
+        if (request.getVisibility() != PlaceVisibility.PUBLISHED
+                && (request.getReason() == null || request.getReason().isBlank())) {
+            throw new IllegalArgumentException("Vui lòng nhập lý do khi ẩn điểm đến.");
+        }
 
         PlaceVisibility oldVis = place.getVisibility();
         place.setVisibility(request.getVisibility());

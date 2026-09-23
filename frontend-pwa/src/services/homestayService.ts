@@ -1,4 +1,5 @@
 import { HomestayDto, HomestayDetailDto } from "../types/homestay";
+import { apiOrigin } from '@/lib/apiBase';
 
 export interface HomestayFilterParams {
   checkIn?: string;
@@ -11,7 +12,7 @@ export interface HomestayFilterParams {
 
 export const fetchHomestays = async (params?: HomestayFilterParams): Promise<HomestayDto[]> => {
   try {
-    const url = new URL('/api/public/places', window.location.origin);
+    const url = new URL('/api/public/places', apiOrigin());
     url.searchParams.append('kind', 'HOMESTAY');
     
     if (params?.checkIn) url.searchParams.append('checkIn', params.checkIn);
@@ -70,7 +71,7 @@ export const fetchHomestays = async (params?: HomestayFilterParams): Promise<Hom
 
 export const getHomestayById = async (id: string): Promise<HomestayDetailDto | null> => {
   try {
-    const url = new URL(`/api/public/places/${id}`, window.location.origin);
+    const url = new URL(`/api/public/places/${id}`, apiOrigin());
     const response = await fetch(url.toString());
     if (!response.ok) {
       if (response.status === 404) return null;
@@ -90,7 +91,7 @@ export const getHomestayById = async (id: string): Promise<HomestayDetailDto | n
 
 export const fetchNearbyPlaces = async (id: string, radius: number): Promise<import("../types/homestay").NearbyPlaceDto[]> => {
   try {
-    const url = new URL(`/api/public/places/${id}/nearby`, window.location.origin);
+    const url = new URL(`/api/public/places/${id}/nearby`, apiOrigin());
     url.searchParams.append('radius', radius.toString());
     
     const response = await fetch(url.toString());
@@ -106,7 +107,7 @@ export const fetchNearbyPlaces = async (id: string, radius: number): Promise<imp
 
 export const fetchPlaceReviews = async (id: string): Promise<import("../types/review").ReviewDto[]> => {
   try {
-    const url = new URL(`/api/public/places/${id}/reviews`, window.location.origin);
+    const url = new URL(`/api/public/places/${id}/reviews`, apiOrigin());
     const response = await fetch(url.toString());
     if (!response.ok) return [];
     return await response.json();
@@ -118,7 +119,7 @@ export const fetchPlaceReviews = async (id: string): Promise<import("../types/re
 
 export const fetchRegionalDestinations = async (id: string, limit: number = 4): Promise<import("../types/homestay").HomestayDto[]> => {
   try {
-    const url = new URL(`/api/public/places/${id}/destinations`, window.location.origin);
+    const url = new URL(`/api/public/places/${id}/destinations`, apiOrigin());
     url.searchParams.append('limit', limit.toString());
     const response = await fetch(url.toString());
     if (!response.ok) return [];

@@ -23,5 +23,6 @@ public class RoomAmenity {
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private AmenityValue value = AmenityValue.UNVERIFIED;
 }

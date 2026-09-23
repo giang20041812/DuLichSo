@@ -15,5 +15,6 @@ public class Tag {
     @Column(nullable = false)
     private String name;
     @Column(name = "is_active", nullable = false)
+    @Builder.Default
     private Boolean isActive = true;
 }

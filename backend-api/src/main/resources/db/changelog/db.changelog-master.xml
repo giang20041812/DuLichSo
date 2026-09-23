@@ -14,4 +14,8 @@
     <!-- Module Tài chính & Affiliate: affiliate_link, commission_ledger -->
     <include file="db/changelog/changes/003-add-finance-module.xml"/>
 
+    <!-- Tài khoản khách du lịch: traveler -->
+    <include file="db/changelog/changes/004-add-traveler.xml"/>
+    <include file="db/changelog/changes/005-add-traveler-status.xml"/>
+
 </databaseChangeLog>

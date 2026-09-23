@@ -13,5 +13,6 @@ public class PaymentGateway {
     @Column(nullable = false, length = 128)
     private String name;
     @Column(name = "is_active", nullable = false)
+    @Builder.Default
     private Boolean isActive = true;
 }

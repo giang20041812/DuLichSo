@@ -23,10 +23,16 @@ public class AccountAuthService {
 
     private final AccountRepository accountRepository;
     private final JwtUtils jwtUtils;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+    private final boolean qaMockAccounts;
 
-    public AccountAuthService(AccountRepository accountRepository, JwtUtils jwtUtils) {
+    public AccountAuthService(AccountRepository accountRepository, JwtUtils jwtUtils,
+                              org.springframework.security.crypto.password.PasswordEncoder passwordEncoder,
+                              @org.springframework.beans.factory.annotation.Value("${app.qa-mock-accounts:false}") boolean qaMockAccounts) {
         this.accountRepository = accountRepository;
         this.jwtUtils = jwtUtils;
+        this.passwordEncoder = passwordEncoder;
+        this.qaMockAccounts = qaMockAccounts;
     }
 
     @Transactional
@@ -35,7 +41,7 @@ public class AccountAuthService {
         String password = request.getPassword() != null ? request.getPassword().trim() : "";
 
         // Kịch bản 7: QA Simulator mô phỏng lỗi 500
-        if (request.isSimulateError500() || identifier.equalsIgnoreCase("sim_500@taybactrails.vn")) {
+        if (qaMockAccounts && (request.isSimulateError500() || identifier.equalsIgnoreCase("sim_500@taybactrails.vn"))) {
             log.warn("QA Simulator: Triggering simulated 500 Internal Server Error for identifier: {}", identifier);
             throw new RuntimeException("Lỗi hệ thống máy chủ nội bộ (500) phục vụ kiểm thử QA Simulator.");
         }
@@ -54,7 +60,7 @@ public class AccountAuthService {
             }
         } else {
             // Fallback: Kiểm tra dữ liệu mẫu QA Simulator phục vụ dev & test ngay cả khi DB chưa seed
-            account = getMockAccountForQa(identifier, password);
+            account = qaMockAccounts ? getMockAccountForQa(identifier, password) : null;
             if (account == null) {
                 throw new BadCredentialsException("Thông tin đăng nhập không chính xác. Vui lòng kiểm tra lại Email/Số điện thoại hoặc Mật khẩu.");
             }
@@ -119,7 +125,10 @@ public class AccountAuthService {
 
     private boolean checkPassword(String plainPassword, String storedHash) {
         if (storedHash == null || plainPassword == null) return false;
-        // Chấp nhận so khớp trực tiếp hoặc bcrypt nếu có
+        // Tài khoản tạo qua Admin lưu BCrypt; dữ liệu seed cũ có thể là plain text (dev).
+        if (storedHash.startsWith("$2a$") || storedHash.startsWith("$2b$") || storedHash.startsWith("$2y$")) {
+            return passwordEncoder.matches(plainPassword, storedHash);
+        }
         return storedHash.equals(plainPassword);
     }
 

@@ -14,6 +14,7 @@ import type {
   PublicSosSubmitRequest,
   PublicSosSubmitResponse,
 } from '../types/sos';
+import { apiOrigin } from '@/lib/apiBase';
 
 const API_BASE = '/api/v1/admin';
 const PUBLIC_BASE = '/api/public';
@@ -48,7 +49,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
  * @param status lọc theo trạng thái (tuỳ chọn)
  */
 export async function getSosRequests(status?: string): Promise<SosRequestListResponse> {
-  const url = new URL(`${API_BASE}/sos-requests`, window.location.origin);
+  const url = new URL(`${API_BASE}/sos-requests`, apiOrigin());
   if (status) url.searchParams.set('status', status);
   const response = await fetch(url.toString(), { headers: getAuthHeaders() });
   return handleResponse<SosRequestListResponse>(response);
@@ -103,7 +104,7 @@ export async function cancelSosRequest(id: number): Promise<SosRequestDto> {
 // ─────────────────────────────────────────────
 
 export async function getEmergencyContacts(activeOnly = false): Promise<EmergencyContactDto[]> {
-  const url = new URL(`${API_BASE}/emergency-contacts`, window.location.origin);
+  const url = new URL(`${API_BASE}/emergency-contacts`, apiOrigin());
   url.searchParams.set('activeOnly', String(activeOnly));
   const response = await fetch(url.toString(), { headers: getAuthHeaders() });
   return handleResponse<EmergencyContactDto[]>(response);

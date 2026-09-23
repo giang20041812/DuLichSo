@@ -1,4 +1,5 @@
 import { PlaceContactItem } from '../types/homestay';
+import { apiOrigin } from '@/lib/apiBase';
 
 export interface DestinationDto {
   id: string;
@@ -47,7 +48,7 @@ const GENERIC_DESTINATION_FALLBACK = 'https://images.unsplash.com/photo-15281272
 
 export const fetchDestinations = async (params?: DestinationFilterParams): Promise<DestinationDto[]> => {
   try {
-    const url = new URL('/api/public/places', window.location.origin);
+    const url = new URL('/api/public/places', apiOrigin());
     url.searchParams.append('kind', 'ATTRACTION');
     url.searchParams.append('size', '50');
 

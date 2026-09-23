@@ -21,6 +21,6 @@ public interface CommissionLedgerRepository extends JpaRepository<CommissionLedg
 
     List<CommissionLedger> findByAffiliateLinkId(Long affiliateLinkId);
 
-    @Query("SELECT COALESCE(SUM(cl.amount), 0) FROM CommissionLedger cl WHERE cl.status = :status")
-    BigDecimal sumAmountByStatus(CommissionStatus status);
+    @Query("SELECT SUM(cl.amount) FROM CommissionLedger cl WHERE cl.status = :status")
+    BigDecimal sumAmountByStatus(@org.springframework.data.repository.query.Param("status") CommissionStatus status);
 }

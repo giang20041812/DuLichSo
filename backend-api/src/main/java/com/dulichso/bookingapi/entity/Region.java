@@ -25,5 +25,6 @@ public class Region {
     @Column(nullable = false)
     private String path;
     @Column(name = "is_active", nullable = false)
+    @Builder.Default
     private Boolean isActive = true;
 }

@@ -28,7 +28,9 @@ public class CategoryFieldDef {
     private List<String> enumValues;
     
     @Column(name = "is_required_for_publish", nullable = false)
+    @Builder.Default
     private Boolean isRequiredForPublish = false;
     @Column(name = "sort_order", nullable = false)
+    @Builder.Default
     private Integer sortOrder = 0;
 }

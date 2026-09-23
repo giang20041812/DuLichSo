@@ -23,6 +23,7 @@ public class Refund {
     
     @Enumerated(EnumType.STRING)
     @Column(name = "refund_type", nullable = false)
+    @Builder.Default
     private RefundType refundType = RefundType.FULL_REFUND;
     
     @Column(nullable = false)
@@ -32,9 +33,11 @@ public class Refund {
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private RefundStatus status = RefundStatus.PENDING;
     
     @Column(name = "requested_at", nullable = false, updatable = false)
+    @Builder.Default
     private LocalDateTime requestedAt = LocalDateTime.now();
     @Column(name = "processed_at")
     private LocalDateTime processedAt;

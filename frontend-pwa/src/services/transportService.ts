@@ -1,4 +1,5 @@
 import { PlaceContactItem } from '../types/homestay';
+import { apiOrigin } from '@/lib/apiBase';
 
 export interface TransportDto {
   id: string;
@@ -42,7 +43,7 @@ const TRANSPORT_FALLBACK_IMAGES: string[] = [
 
 export const fetchTransports = async (params?: TransportFilterParams): Promise<TransportDto[]> => {
   try {
-    const url = new URL('/api/public/places', window.location.origin);
+    const url = new URL('/api/public/places', apiOrigin());
     url.searchParams.append('kind', 'TRANSPORT');
     url.searchParams.append('size', '50');
 

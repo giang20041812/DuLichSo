@@ -1,4 +1,5 @@
 import { PlaceContactItem } from '../types/homestay';
+import { apiOrigin } from '@/lib/apiBase';
 
 export interface UtilityServiceDto {
   id: string;
@@ -36,7 +37,7 @@ export const fetchUtilityServices = async (params?: UtilityFilterParams): Promis
     const results: UtilityServiceDto[] = [];
 
     for (const k of fetchKinds) {
-      const url = new URL('/api/public/places', window.location.origin);
+      const url = new URL('/api/public/places', apiOrigin());
       url.searchParams.append('kind', k);
       url.searchParams.append('size', '50');
 
