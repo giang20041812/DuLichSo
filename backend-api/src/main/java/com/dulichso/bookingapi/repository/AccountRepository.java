@@ -17,4 +17,24 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     Optional<Account> findByEmail(String email);
 
     Optional<Account> findByPhone(String phone);
+
+    boolean existsByEmail(String email);
+
+    boolean existsByPhone(String phone);
+
+    long countByStatus(com.dulichso.bookingapi.entity.enums.AccountStatus status);
+
+    @Query("""
+        SELECT a FROM Account a LEFT JOIN FETCH a.provider 
+        WHERE (:role IS NULL OR a.role = :role)
+          AND (:status IS NULL OR a.status = :status)
+          AND (:keyword IS NULL OR LOWER(a.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) 
+               OR LOWER(a.email) LIKE LOWER(CONCAT('%', :keyword, '%')) 
+               OR a.phone LIKE CONCAT('%', :keyword, '%'))
+        ORDER BY a.createdAt DESC
+    """)
+    java.util.List<Account> searchAccounts(
+            @Param("role") com.dulichso.bookingapi.entity.enums.AccountRole role,
+            @Param("status") com.dulichso.bookingapi.entity.enums.AccountStatus status,
+            @Param("keyword") String keyword);
 }

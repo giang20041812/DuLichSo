@@ -129,4 +129,34 @@ public class PlaceSpecification {
             return cb.and(predicates.toArray(new Predicate[0]));
         };
     }
+
+    public static Specification<Place> filterAdminPlaces(
+            String keyword,
+            com.dulichso.bookingapi.entity.enums.PlaceVisibility visibility,
+            com.dulichso.bookingapi.entity.enums.PlaceVerificationStatus verification,
+            CategoryKind kind) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.isFalse(root.get("isDeleted")));
+
+            if (visibility != null) {
+                predicates.add(cb.equal(root.get("visibility"), visibility));
+            }
+            if (verification != null) {
+                predicates.add(cb.equal(root.get("verification"), verification));
+            }
+            if (kind != null) {
+                predicates.add(cb.equal(root.get("kind"), kind));
+            }
+            if (keyword != null && !keyword.isBlank()) {
+                String kw = "%" + keyword.trim().toLowerCase() + "%";
+                predicates.add(cb.or(
+                        cb.like(cb.lower(root.get("name")), kw),
+                        cb.like(cb.lower(root.get("slug")), kw),
+                        cb.like(cb.lower(root.get("address")), kw)
+                ));
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+    }
 }

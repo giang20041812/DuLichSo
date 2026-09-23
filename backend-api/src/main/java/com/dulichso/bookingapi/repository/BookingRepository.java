@@ -10,6 +10,7 @@ import java.util.Optional;
 public interface BookingRepository extends JpaRepository<Booking, Long> {
     Optional<Booking> findByBookingCode(String bookingCode);
     boolean existsByBookingCode(String bookingCode);
+    long countByCreatedAtBetween(java.time.LocalDateTime start, java.time.LocalDateTime end);
 
     @org.springframework.data.jpa.repository.Query("""
         SELECT b FROM Booking b 

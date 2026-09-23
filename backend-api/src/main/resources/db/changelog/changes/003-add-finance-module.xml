@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <changeSet id="003-create-affiliate-link" author="dulichso">
+        <createTable tableName="affiliate_link"
+                     remarks="Link affiliate do Admin tạo để người dùng giới thiệu booking nhận hoa hồng">
+            <column name="id" type="BIGINT UNSIGNED" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="account_id" type="BIGINT UNSIGNED">
+                <constraints nullable="false"/>
+            </column>
+            <column name="code" type="VARCHAR(64)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="commission_rate" type="DECIMAL(5,4)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="DATETIME" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                baseTableName="affiliate_link" baseColumnNames="account_id"
+                referencedTableName="account" referencedColumnNames="id"
+                constraintName="fk_al_account"/>
+
+        <sql>ALTER TABLE affiliate_link ADD CONSTRAINT ck_al_rate
+             CHECK (commission_rate > 0 AND commission_rate &lt;= 1)</sql>
+
+        <createIndex tableName="affiliate_link" indexName="idx_al_account">
+            <column name="account_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="003-create-commission-ledger" author="dulichso">
+        <createTable tableName="commission_ledger"
+                     remarks="Sổ cái hoa hồng: mỗi booking qua affiliate link tạo 1 entry">
+            <column name="id" type="BIGINT UNSIGNED" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="affiliate_link_id" type="BIGINT UNSIGNED">
+                <constraints nullable="false"/>
+            </column>
+            <column name="booking_id" type="BIGINT UNSIGNED">
+                <constraints nullable="false"/>
+            </column>
+            <column name="amount" type="DECIMAL(12,0)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="ENUM('PENDING','APPROVED','PAID','REJECTED')"
+                    defaultValue="PENDING">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="DATETIME" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="paid_at" type="DATETIME"/>
+        </createTable>
+
+        <addForeignKeyConstraint
+                baseTableName="commission_ledger" baseColumnNames="affiliate_link_id"
+                referencedTableName="affiliate_link" referencedColumnNames="id"
+                constraintName="fk_cl_affiliate"/>
+
+        <addForeignKeyConstraint
+                baseTableName="commission_ledger" baseColumnNames="booking_id"
+                referencedTableName="booking" referencedColumnNames="id"
+                constraintName="fk_cl_booking"/>
+
+        <createIndex tableName="commission_ledger" indexName="idx_cl_status">
+            <column name="status"/>
+        </createIndex>
+        <createIndex tableName="commission_ledger" indexName="idx_cl_affiliate">
+            <column name="affiliate_link_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
