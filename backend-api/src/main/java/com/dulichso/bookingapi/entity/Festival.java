@@ -40,6 +40,12 @@ public class Festival {
     @Column(name = "etiquette_dont", columnDefinition = "TEXT")
     private String etiquetteDont;
 
+    @Column(name = "cover_image_url", length = 500)
+    private String coverImageUrl;
+
+    @Column(name = "location", length = 255)
+    private String location;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "region_id")
     private Region region;

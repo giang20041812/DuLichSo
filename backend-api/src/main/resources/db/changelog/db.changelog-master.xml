@@ -6,6 +6,6 @@
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
 
     <!-- Include your changelog files here -->
-    <!-- <include file="db/changelog/changes/001-initial-schema.xml"/> -->
+    <include file="db/changelog/changes/001-add-festival-cover-image-and-location.xml"/>
 
 </databaseChangeLog>

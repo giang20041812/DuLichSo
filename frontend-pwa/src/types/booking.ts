@@ -77,3 +77,10 @@ export interface BookingNavigationState {
   guestCount: number;
   roomCount: number;
 }
+
+export interface BookedDateRangeDto {
+  roomTypeId: number;
+  checkIn: string;
+  checkOut: string;
+  roomCount: number;
+}

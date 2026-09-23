@@ -28,4 +28,20 @@ public class PublicBookingController {
         BookingResponseDto response = bookingService.getBookingByCode(bookingCode);
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/rooms/{roomTypeId}/booked-dates")
+    public ResponseEntity<java.util.List<com.dulichso.bookingapi.dto.BookedDateRangeDto>> getBookedDatesByRoomType(
+            @PathVariable("roomTypeId") Long roomTypeId,
+            @RequestParam(value = "startDate", required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate startDate,
+            @RequestParam(value = "endDate", required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate endDate) {
+        return ResponseEntity.ok(bookingService.getBookedDatesByRoomType(roomTypeId, startDate, endDate));
+    }
+
+    @GetMapping("/places/{placeId}/booked-dates")
+    public ResponseEntity<java.util.List<com.dulichso.bookingapi.dto.BookedDateRangeDto>> getBookedDatesByPlace(
+            @PathVariable("placeId") Long placeId,
+            @RequestParam(value = "startDate", required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate startDate,
+            @RequestParam(value = "endDate", required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate endDate) {
+        return ResponseEntity.ok(bookingService.getBookedDatesByPlace(placeId, startDate, endDate));
+    }
 }

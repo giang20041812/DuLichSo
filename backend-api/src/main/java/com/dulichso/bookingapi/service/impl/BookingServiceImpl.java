@@ -205,6 +205,38 @@ public class BookingServiceImpl implements BookingService {
                 .build();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.List<com.dulichso.bookingapi.dto.BookedDateRangeDto> getBookedDatesByRoomType(Long roomTypeId, LocalDate startDate, LocalDate endDate) {
+        LocalDate start = startDate != null ? startDate : LocalDate.now().minusDays(15);
+        LocalDate end = endDate != null ? endDate : LocalDate.now().plusMonths(3);
+
+        java.util.List<Booking> bookings = bookingRepository.findActiveBookingsByRoomTypeAndDateRange(roomTypeId, start, end);
+        return bookings.stream().map(b -> com.dulichso.bookingapi.dto.BookedDateRangeDto.builder()
+                .roomTypeId(b.getRoomType().getId())
+                .checkIn(b.getCheckIn())
+                .checkOut(b.getCheckOut())
+                .roomCount(b.getRoomCount())
+                .build()
+        ).collect(java.util.stream.Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.List<com.dulichso.bookingapi.dto.BookedDateRangeDto> getBookedDatesByPlace(Long placeId, LocalDate startDate, LocalDate endDate) {
+        LocalDate start = startDate != null ? startDate : LocalDate.now().minusDays(15);
+        LocalDate end = endDate != null ? endDate : LocalDate.now().plusMonths(3);
+
+        java.util.List<Booking> bookings = bookingRepository.findActiveBookingsByPlaceAndDateRange(placeId, start, end);
+        return bookings.stream().map(b -> com.dulichso.bookingapi.dto.BookedDateRangeDto.builder()
+                .roomTypeId(b.getRoomType().getId())
+                .checkIn(b.getCheckIn())
+                .checkOut(b.getCheckOut())
+                .roomCount(b.getRoomCount())
+                .build()
+        ).collect(java.util.stream.Collectors.toList());
+    }
+
     private String generateUniqueBookingCode() {
         for (int i = 0; i < 10; i++) {
             int codeNumber = 100000 + RANDOM.nextInt(900000);

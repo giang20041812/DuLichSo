@@ -37,4 +37,18 @@ public interface PlaceRepository extends JpaRepository<Place, Long>, JpaSpecific
             @Param("limit") int limit);
 
     Optional<Place> findBySlugAndIsDeletedFalse(String slug);
+
+    @Query(value = """
+            SELECT * FROM place 
+            WHERE visibility = 'PUBLISHED' AND is_deleted = false 
+              AND id != :placeId 
+              AND kind = 'ATTRACTION'
+              AND (region_id = :regionId OR :regionId IS NULL)
+            ORDER BY rating_avg DESC, rating_count DESC
+            LIMIT :limit
+            """, nativeQuery = true)
+    List<Place> findRegionalDestinations(
+            @Param("placeId") Long placeId,
+            @Param("regionId") Long regionId,
+            @Param("limit") int limit);
 }

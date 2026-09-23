@@ -149,3 +149,5 @@ Nếu một quyết định kiến trúc hoặc type ảnh hưởng đến nhi�
 field dùng chung, đổi cấu trúc response AI booking), agent phải dừng lại và
 hỏi trước khi thực hiện, thay vì tự quyết rồi generate hàng loạt code dựa
 trên giả định sai.
+
+## Không chạy playwright bừa bãi

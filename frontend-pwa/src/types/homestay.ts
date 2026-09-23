@@ -122,6 +122,7 @@ export interface HomestayDto {
   latitude?: number;
   longitude?: number;
   contacts?: PlaceContactItem[];
+  amenities?: string[];
 }
 
 import { RoomTypeDto } from './room';
@@ -155,4 +156,7 @@ export interface NearbyPlaceDto {
   name: string;
   kind: string;
   distance: number;
+  latitude?: number;
+  longitude?: number;
+  address?: string;
 }

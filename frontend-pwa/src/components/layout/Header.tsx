@@ -1,17 +1,27 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { Link, useLocation } from "react-router-dom"
-import { 
-  Compass, Menu, X, Download, HelpCircle, ShieldCheck, BadgeInfo, Building,
-  Home, BedDouble, MapPin, Utensils, Sparkles, Bus, Layers 
-} from "lucide-react"
+import { Menu } from "lucide-react"
 import { VietTrackLogoMark } from "../ui/logo"
 
-export default function Header() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [drawerMounted, setDrawerMounted] = useState(false);
+interface HeaderProps {
+  toggleSidebar?: () => void;
+}
+
+export default function Header({ toggleSidebar }: HeaderProps) {
+  const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
 
-  // Tất cả các trang có hero banner đều dùng header transparent
+  // Scroll listener for sticky navigation state
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Các trang có hero image dùng header transparent khi ở đỉnh trang
   const hasHeroImage = location.pathname === '/' || 
     location.pathname.startsWith('/culture') || 
     location.pathname.startsWith('/explore') || 
@@ -25,193 +35,59 @@ export default function Header() {
     location.pathname.startsWith('/rental') || 
     location.pathname.startsWith('/tours');
 
-  const openMobileMenu = () => {
-    setDrawerMounted(true);
-    setMobileMenuOpen(true);
-  };
-
-  const closeMobileMenu = () => {
-    setMobileMenuOpen(false);
-    setTimeout(() => {
-      setDrawerMounted(false);
-    }, 300);
-  };
-
-  // Close drawer on route change
-  const prevPathRef = useRef(location.pathname);
-  useEffect(() => {
-    if (prevPathRef.current !== location.pathname) {
-      prevPathRef.current = location.pathname;
-      closeMobileMenu();
-    }
-  }, [location.pathname]);
-
-  const getNavLinkClass = (path: string) => {
-    const isActive = location.pathname === path || (path !== '/' && location.pathname.startsWith(path));
-    if (hasHeroImage) {
-      return isActive
-        ? "inline-flex items-center gap-1.5 whitespace-nowrap px-3.5 py-1.5 rounded-md font-bold text-sm bg-white text-[#048c73] shadow-md transition-all border border-white"
-        : "inline-flex items-center gap-1.5 whitespace-nowrap px-3.5 py-1.5 rounded-md border border-white/25 backdrop-blur-md font-medium text-sm text-white hover:border-white hover:bg-white/15 transition-all shadow-xs";
-    }
-    return isActive
-      ? "inline-flex items-center gap-1.5 whitespace-nowrap px-3.5 py-1.5 rounded-md font-bold text-sm bg-[#048c73] text-white shadow-sm transition-all border border-[#048c73]"
-      : "inline-flex items-center gap-1.5 whitespace-nowrap px-3.5 py-1.5 rounded-md border border-transparent font-medium text-sm text-[var(--color-ink-deep)] hover:text-[var(--color-primary)] hover:bg-[#edfbf7] transition-all";
-  };
+  const isSolid = !hasHeroImage || isScrolled;
 
   return (
-    <>
-      <header className={`absolute top-0 z-50 flex flex-col w-full transition-all duration-300 ${hasHeroImage ? 'bg-transparent' : 'bg-white shadow-sm border-b border-gray-200'}`}>
+    <header
+      className={`fixed top-0 inset-x-0 z-50 flex flex-col w-full transition-all duration-300 ${
+        isSolid
+          ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-200/80'
+          : 'bg-gradient-to-b from-black/70 via-black/30 to-transparent'
+      }`}
+    >
+      <div
+        className={`relative w-full px-4 md:px-6 flex items-center justify-center transition-all duration-300 ${
+          isScrolled ? 'py-2' : 'py-3'
+        }`}
+      >
+        {/* Nút Menu Hamburger BÊN TRÁI - Hoàn toàn sát mép trái của toàn bộ trang web */}
+        <button
+          onClick={toggleSidebar}
+          aria-label="Mở menu điều hướng"
+          title="Menu điều hướng"
+          className={`absolute left-4 md:left-6 p-2 rounded-md transition-all cursor-pointer flex items-center justify-center z-10 ${
+            isSolid
+              ? 'text-[var(--color-ink-deep)] hover:bg-[#edfbf7] hover:text-[#048c73] active:scale-95'
+              : 'text-white drop-shadow-md hover:bg-white/20 active:scale-95'
+          }`}
+        >
+          <Menu className="w-6 h-6 md:w-7 md:h-7" strokeWidth={2.2} />
+        </button>
 
-        {/* Row 1: Logo căn giữa */}
-        <div className="relative max-w-[1280px] mx-auto w-full px-4 md:px-8 pt-4 pb-2 flex items-center justify-center">
-          {/* Logo & Tên nền tảng - Căn giữa hoàn toàn, không khung vuông, icon to nổi bật */}
-          <Link to="/" className="flex items-center gap-3 md:gap-3.5 shrink-0 group">
-            <VietTrackLogoMark size={54} className="transition-transform group-hover:scale-105 drop-shadow-md" />
-            <div className="flex flex-col items-start">
-              <span className={`text-[24px] md:text-[28px] font-black font-display leading-none tracking-tight ${hasHeroImage ? 'text-white drop-shadow-md' : 'text-[var(--color-ink-deep)]'}`}>
-                VietTrack
-              </span>
-              <span className={`text-[10px] md:text-[11px] font-semibold tracking-wider uppercase mt-1.5 ${hasHeroImage ? 'text-white/90 drop-shadow' : 'text-[#66716c]'}`}>
-                Du Lịch Di Sản & Sinh Thái
-              </span>
-            </div>
-          </Link>
-
-          {/* Nút Menu Hamburger trên mobile (đặt góc phải) */}
-          <button
-            onClick={openMobileMenu}
-            aria-label="Mở menu"
-            className="lg:hidden absolute right-4 p-1.5 text-white drop-shadow-md hover:bg-white/10 rounded-md transition-colors"
-          >
-            <Menu className={`w-6 h-6 ${hasHeroImage ? 'text-white' : 'text-[var(--color-ink-deep)]'}`} strokeWidth={1.5} />
-          </button>
-        </div>
-
-        {/* Row 2: Navigation - Đặt ở dưới, hỗ trợ lướt ngang theo responsive với icon sống động */}
-        <div className="w-full flex justify-start md:justify-center overflow-x-auto scrollbar-hide px-4 md:px-8 py-2 scroll-smooth">
-          <nav className="flex items-center gap-1.5 md:gap-2 shrink-0 mx-auto md:mx-auto">
-            <Link to="/" className={getNavLinkClass('/')}>
-              <Home className="w-3.5 h-3.5" />
-              <span>Trang chủ</span>
-            </Link>
-            <Link to="/culture" className={getNavLinkClass('/culture')}>
-              <Compass className="w-3.5 h-3.5" />
-              <span>Văn hóa</span>
-            </Link>
-            <Link to="/homestays" className={getNavLinkClass('/homestays')}>
-              <BedDouble className="w-3.5 h-3.5" />
-              <span>Lưu trú</span>
-            </Link>
-            <Link to="/destinations" className={getNavLinkClass('/destinations')}>
-              <MapPin className="w-3.5 h-3.5" />
-              <span>Điểm đến</span>
-            </Link>
-            <Link to="/food" className={getNavLinkClass('/food')}>
-              <Utensils className="w-3.5 h-3.5" />
-              <span>Ăn uống</span>
-            </Link>
-            <Link to="/tours" className={getNavLinkClass('/tours')}>
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Trải nghiệm</span>
-            </Link>
-            <Link to="/transport" className={getNavLinkClass('/transport')}>
-              <Bus className="w-3.5 h-3.5" />
-              <span>Vận chuyển</span>
-            </Link>
-            <Link to="/services" className={getNavLinkClass('/services')}>
-              <Layers className="w-3.5 h-3.5" />
-              <span>Dịch vụ & Tiện ích</span>
-            </Link>
-          </nav>
-        </div>
-      </header>
-
-      {/* Mobile Drawer (Hamburger Menu) */}
-      {drawerMounted && (
-        <div className={`lg:hidden fixed inset-0 z-[99999] flex justify-start ${mobileMenuOpen ? 'fade-in-overlay' : 'fade-out-overlay'}`}>
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={closeMobileMenu}
-          ></div>
-
-          {/* Drawer Content */}
-          <div className={`relative w-full max-w-[300px] bg-white h-full flex flex-col shadow-2xl ${mobileMenuOpen ? 'drawer-slide-in' : 'drawer-slide-out'}`}>
-            <div className="flex justify-between items-center p-4 border-b border-[#66716c]/10">
-              <div className="flex items-center gap-3">
-                <VietTrackLogoMark size={36} />
-                <div className="flex flex-col leading-none">
-                  <span className="text-xl font-bold font-display text-[#0f2d3c]">VietTrack</span>
-                  <span className="text-[9px] font-semibold text-[#66716c] uppercase tracking-wider mt-1">Du Lịch Di Sản & Sinh Thái</span>
-                </div>
-              </div>
-              <button onClick={closeMobileMenu} className="p-2 text-[#66716c] hover:text-[#0f2d3c]">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto py-2">
-              <div className="flex flex-col py-2 border-b border-[#66716c]/10">
-                <Link to="/" onClick={closeMobileMenu} className="flex items-center gap-3 px-5 py-2.5 text-sm font-medium text-[#0f2d3c] hover:bg-[#edfbf7] hover:text-[#048c73] transition-colors">
-                  <Home className="w-4 h-4 text-[#048c73]" />
-                  <span>Trang chủ</span>
-                </Link>
-                <Link to="/culture" onClick={closeMobileMenu} className="flex items-center gap-3 px-5 py-2.5 text-sm font-medium text-[#0f2d3c] hover:bg-[#edfbf7] hover:text-[#048c73] transition-colors">
-                  <Compass className="w-4 h-4 text-[#048c73]" />
-                  <span>Văn hóa</span>
-                </Link>
-                <Link to="/homestays" onClick={closeMobileMenu} className="flex items-center gap-3 px-5 py-2.5 text-sm font-medium text-[#0f2d3c] hover:bg-[#edfbf7] hover:text-[#048c73] transition-colors">
-                  <BedDouble className="w-4 h-4 text-[#048c73]" />
-                  <span>Lưu trú</span>
-                </Link>
-                <Link to="/destinations" onClick={closeMobileMenu} className="flex items-center gap-3 px-5 py-2.5 text-sm font-medium text-[#0f2d3c] hover:bg-[#edfbf7] hover:text-[#048c73] transition-colors">
-                  <MapPin className="w-4 h-4 text-[#048c73]" />
-                  <span>Điểm đến</span>
-                </Link>
-                <Link to="/food" onClick={closeMobileMenu} className="flex items-center gap-3 px-5 py-2.5 text-sm font-medium text-[#0f2d3c] hover:bg-[#edfbf7] hover:text-[#048c73] transition-colors">
-                  <Utensils className="w-4 h-4 text-[#048c73]" />
-                  <span>Ăn uống</span>
-                </Link>
-                <Link to="/tours" onClick={closeMobileMenu} className="flex items-center gap-3 px-5 py-2.5 text-sm font-medium text-[#0f2d3c] hover:bg-[#edfbf7] hover:text-[#048c73] transition-colors">
-                  <Sparkles className="w-4 h-4 text-[#048c73]" />
-                  <span>Trải nghiệm</span>
-                </Link>
-                <Link to="/transport" onClick={closeMobileMenu} className="flex items-center gap-3 px-5 py-2.5 text-sm font-medium text-[#0f2d3c] hover:bg-[#edfbf7] hover:text-[#048c73] transition-colors">
-                  <Bus className="w-4 h-4 text-[#048c73]" />
-                  <span>Vận chuyển</span>
-                </Link>
-                <Link to="/services" onClick={closeMobileMenu} className="flex items-center gap-3 px-5 py-2.5 text-sm font-medium text-[#0f2d3c] hover:bg-[#edfbf7] hover:text-[#048c73] transition-colors">
-                  <Layers className="w-4 h-4 text-[#048c73]" />
-                  <span>Dịch vụ & Tiện ích</span>
-                </Link>
-              </div>
-
-              <div className="flex flex-col py-2">
-                <button className="flex items-center gap-3 px-5 py-3 hover:bg-[#f8f9fa] text-left text-sm text-[#4a5568]">
-                  <Download className="w-5 h-5" strokeWidth={1.5} />
-                  <span>Tải ứng dụng</span>
-                </button>
-                <button className="flex items-center gap-3 px-5 py-3 hover:bg-[#f8f9fa] text-left text-sm text-[#4a5568]">
-                  <Building className="w-5 h-5" strokeWidth={1.5} />
-                  <span>Hợp tác cùng chúng tôi</span>
-                </button>
-                <button className="flex items-center gap-3 px-5 py-3 hover:bg-[#f8f9fa] text-left text-sm text-[#4a5568]">
-                  <HelpCircle className="w-5 h-5" strokeWidth={1.5} />
-                  <span>Liên hệ hỗ trợ</span>
-                </button>
-                <button className="flex items-center gap-3 px-5 py-3 hover:bg-[#f8f9fa] text-left text-sm text-[#4a5568]">
-                  <ShieldCheck className="w-5 h-5" strokeWidth={1.5} />
-                  <span>Chính sách bảo mật</span>
-                </button>
-                <button className="flex items-center gap-3 px-5 py-3 hover:bg-[#f8f9fa] text-left text-sm text-[#4a5568]">
-                  <BadgeInfo className="w-5 h-5" strokeWidth={1.5} />
-                  <span>Về VietTrack</span>
-                </button>
-              </div>
-            </div>
+        {/* Logo & Tên nền tảng - Căn giữa hoàn toàn */}
+        <Link to="/" className="flex items-center gap-2.5 md:gap-3 shrink-0 group">
+          <VietTrackLogoMark
+            size={isScrolled ? 36 : 46}
+            className="transition-all duration-300 group-hover:scale-105 drop-shadow-sm"
+          />
+          <div className="flex flex-col items-start leading-none">
+            <span
+              className={`font-black font-display tracking-tight transition-all duration-300 ${
+                isScrolled ? 'text-[19px] md:text-[22px]' : 'text-[22px] md:text-[26px]'
+              } ${isSolid ? 'text-[var(--color-ink-deep)]' : 'text-white drop-shadow-md'}`}
+            >
+              VietTrack
+            </span>
+            <span
+              className={`font-semibold tracking-wider uppercase mt-1 transition-all duration-300 ${
+                isScrolled ? 'text-[9px] md:text-[10px]' : 'text-[10px] md:text-[11px]'
+              } ${isSolid ? 'text-[#66716c]' : 'text-white/90 drop-shadow'}`}
+            >
+              Du Lịch Di Sản & Sinh Thái
+            </span>
           </div>
-        </div>
-      )}
-    </>
-  )
+        </Link>
+      </div>
+    </header>
+  );
 }

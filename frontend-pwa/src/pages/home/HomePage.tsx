@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react"
 import { Link } from "react-router-dom"
 import SearchHub from "@/components/layout/SearchHub"
-import { MapPin, Heart, Star, Check, Handshake, Tag, Headphones, ShieldCheck, Mountain, Tent, Ticket, CheckCircle2, Lock, Sparkles } from "lucide-react"
+import { MapPin, Heart, Star, Check, Handshake, Tag, Headphones, ShieldCheck, Mountain, Tent } from "lucide-react"
 import { fetchHomeData } from "@/services/homeService"
 import { HomeResponseDto, PlaceSummaryDto } from "@/types/home"
 
@@ -131,23 +131,18 @@ export default function HomePage() {
   return (
     <div className="w-full flex flex-col">
       {/* 1. Hero Section */}
-      <section className="relative z-30 w-full min-h-[640px] md:min-h-[720px] flex items-start justify-center pt-[150px] md:pt-[170px] pb-16 md:pb-24">
+      <section className="relative z-30 w-full min-h-[600px] md:min-h-[660px] flex items-start justify-center pt-[130px] md:pt-[150px] pb-16 md:pb-20">
         <div 
           className="absolute inset-0 z-0 bg-cover bg-center"
           style={{ backgroundImage: `url('https://images.unsplash.com/photo-1528127269322-539801943592?q=80&w=2000&auto=format&fit=crop')` }}
         >
           {/* Overlay gradient */}
           <div className="absolute inset-0 bg-gradient-to-b from-[#0f2d3c]/85 via-[#0f2d3c]/45 to-transparent"></div>
-          {/* Bottom glow */}
-          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-white/30 via-white/10 to-transparent pointer-events-none"></div>
+          {/* Bottom white glow & fade matching other pages */}
+          <div className="absolute inset-x-0 bottom-0 h-24 md:h-32 bg-gradient-to-t from-[var(--color-canvas)] via-[var(--color-canvas)]/60 to-transparent pointer-events-none"></div>
         </div>
 
         <div className="relative z-30 flex flex-col items-center text-center px-4 max-w-5xl w-full">
-          <div className="inline-flex items-center gap-2 bg-white/20 text-white backdrop-blur-md mb-6 px-4 py-1.5 rounded-md text-xs font-semibold shadow-sm border border-white/20">
-            <Sparkles className="w-3.5 h-3.5 text-[#52d967]" />
-            <span>Nền tảng du lịch sinh thái & trải nghiệm bản địa hàng đầu</span>
-          </div>
-
           <h1 className="text-4xl md:text-5xl lg:text-[54px] font-bold font-display text-white leading-tight mb-5 tracking-tight flex flex-col items-center">
             <span>Khám Phá Việt Nam</span>
             <span className="text-2xl md:text-3xl lg:text-4xl font-normal text-white/95 mt-2 tracking-normal">
@@ -165,62 +160,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 2. Offer / Voucher Section (Màu nền Đỏ Ruby & Cam Hoàng Hôn nổi bật, phông chữ & màu chữ vàng kim độc đáo) */}
-      <section className="relative z-10 max-w-[1280px] mx-auto w-full px-4 md:px-8 py-8 md:py-10">
-        <div className="bg-gradient-to-br from-[#881337] via-[#991b1b] to-[#c2410c] rounded-lg p-6 md:p-8 text-white shadow-[0_15px_35px_rgba(153,27,27,0.35)] border-2 border-[#fde047] ring-4 ring-[#fde047]/20 relative overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-6">
-          {/* Background ambient glowing rays & lights */}
-          <div className="absolute -right-20 -top-20 w-72 h-72 bg-[#fbbf24]/25 rounded-full blur-3xl pointer-events-none"></div>
-          <div className="absolute -left-20 -bottom-20 w-72 h-72 bg-[#f97316]/30 rounded-full blur-3xl pointer-events-none"></div>
-          <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:20px_20px] opacity-10 pointer-events-none"></div>
 
-          <div className="flex-1 text-center lg:text-left relative z-10">
-            {/* Badge ưu đãi nổi bật */}
-            <div className="inline-flex items-center gap-2 bg-[#fef08a] text-[#881337] border-2 border-white/80 px-3.5 py-1.5 rounded-md text-xs font-black uppercase tracking-wider shadow-md mb-3.5">
-              <Ticket className="w-4 h-4 text-[#991b1b]" />
-              <span>SIÊU ƯU ĐÃI THÀNH VIÊN MỚI</span>
-              <Sparkles className="w-3.5 h-3.5 text-[#b45309]" />
-            </div>
-            
-            {/* Tiêu đề kết hợp phông chữ & màu chữ vàng hoàng kim nổi bật */}
-            <h2 className="text-2xl md:text-3xl lg:text-[36px] font-black tracking-tight text-white leading-tight">
-              GIẢM NGAY <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#fffbeb] via-[#fde047] to-[#fb923c] font-black text-3xl md:text-5xl lg:text-6xl drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]">25%</span> CHO CHUYẾN ĐI ĐẦU TIÊN
-            </h2>
-
-            {/* Mô tả & Khung mã Coupon */}
-            <div className="mt-3 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3">
-              <p className="text-[#fef2f2] text-sm md:text-base leading-relaxed font-normal">
-                Nhập mã ưu đãi độc quyền khi thanh toán:
-              </p>
-              <div className="inline-flex items-center gap-2 bg-black/25 backdrop-blur-md px-3.5 py-1 rounded-md border-2 border-dashed border-[#fde047] shadow-inner">
-                <span className="text-[#fde047] font-mono font-black text-sm md:text-base tracking-widest">VIETJOURNEY25</span>
-              </div>
-            </div>
-
-            <p className="text-[#fed7aa] text-xs md:text-sm mt-2 font-medium">
-              * Áp dụng ngay cho mọi homestay sinh thái, tour khám phá và ẩm thực bản địa.
-            </p>
-          </div>
-
-          <div className="w-full lg:w-[440px] shrink-0 relative z-10 flex flex-col gap-3">
-            <div className="flex flex-col sm:flex-row items-center p-1.5 bg-white rounded-md shadow-2xl gap-2 sm:gap-0 border-2 border-[#fde047]">
-              <input 
-                type="email" 
-                placeholder="Nhập email để nhận mã giảm giá..." 
-                className="w-full flex-1 px-4 py-3 outline-none text-[#0f172a] font-semibold text-sm rounded-md placeholder:text-gray-400 bg-transparent"
-              />
-              <button className="w-full sm:w-auto bg-[#048c73] hover:bg-[#03725e] text-white px-6 py-3 rounded-md font-black text-sm tracking-wide uppercase shadow-md transition-all active:scale-95 whitespace-nowrap">
-                LẤY MÃ NGAY
-              </button>
-            </div>
-            
-            <div className="flex items-center justify-center lg:justify-start gap-4 text-[#fef08a] text-xs font-bold drop-shadow-sm">
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-[#fde047]" /> Áp dụng tự động</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-[#fde047]"></span>
-              <span className="flex items-center gap-1.5"><Lock className="w-3.5 h-3.5 text-[#fde047]" /> Bảo mật thông tin 100%</span>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* 3. Featured Destinations (Điểm Đến Tiêu Biểu Theo Mùa) */}
       <section className="bg-[#f8f9fa] py-14">

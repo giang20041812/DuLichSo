@@ -29,6 +29,9 @@ public class PlaceSummaryDto {
     private String address;
     
     // Virtual fields that will be parsed from attributes or assigned in service
+    private String categoryName;
+    private BigDecimal priceRefMax;
+    private String priceUnitNote;
     private String tagBadge;
     private String statsText;
     private List<String> amenities;

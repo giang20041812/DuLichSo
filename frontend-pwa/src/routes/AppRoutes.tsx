@@ -1,5 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
-import AppShell from '@/components/layout/AppShell';
+import SidebarLayout from '@/components/layout/SidebarLayout';
 import {
   HomePage,
   HomestayListPage,
@@ -24,16 +24,25 @@ import {
 export function AppRoutes() {
   return (
     <Routes>
-      {/* Khung ứng dụng chính với Navbar, SubNav, Footer và Bottom Nav */}
-      <Route element={<AppShell />}>
+      {/* Khung ứng dụng chính với Sidebar Layout */}
+      <Route element={<SidebarLayout />}>
         <Route index element={<HomePage />} />
-        <Route path="culture" element={<CultureFestivalPage />} />
-        <Route path="explore" element={<CultureFestivalPage />} />
+        
+        {/* Navigation via Sidebar */}
         <Route path="homestays" element={<HomestayListPage />} />
         <Route path="homestays/:id" element={<HomestayDetailPage />} />
-        <Route path="restaurants" element={<RestaurantListPage />} />
-        <Route path="food" element={<RestaurantListPage />} />
+        
+        <Route path="experiences" element={<CultureFestivalPage />} />
         <Route path="destinations" element={<DestinationListPage />} />
+        <Route path="restaurants" element={<RestaurantListPage />} />
+        
+        {/* Profile / Other standard layout pages */}
+        <Route path="profile" element={<UtilityListPage />} /> {/* Placeholder for now */}
+        
+        {/* Keep existing routes but map them properly or leave for later phases */}
+        <Route path="culture" element={<CultureFestivalPage />} />
+        <Route path="explore" element={<CultureFestivalPage />} />
+        <Route path="food" element={<RestaurantListPage />} />
         <Route path="transport" element={<TransportListPage />} />
         <Route path="services" element={<UtilityListPage />} />
         <Route path="photo" element={<UtilityListPage />} />
@@ -44,9 +53,7 @@ export function AppRoutes() {
       {/* Trang Đặt phòng dùng layout độc lập, chỉ có Logo và Tên */}
       <Route path="booking" element={<BookingPage />} />
 
-      {/* Dedicated Homestay, Room Availability & Fullscreen Map Routes */}
-      <Route path="homestay" element={<HomestayDetailPage />} />
-      <Route path="homestay/:slug" element={<HomestayDetailPage />} />
+      {/* Dedicated Homestay, Room Availability & Fullscreen Map Routes (No Sidebar for fullscreen) */}
       <Route path="homestay/:slug/availability" element={<RoomAvailabilityPage />} />
       <Route path="homestay/:slug/check-rooms" element={<RoomAvailabilityPage />} />
       <Route path="homestay/:slug/map" element={<FullScreenMapPage />} />

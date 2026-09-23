@@ -103,3 +103,44 @@ export const fetchNearbyPlaces = async (id: string, radius: number): Promise<imp
     return [];
   }
 };
+
+export const fetchPlaceReviews = async (id: string): Promise<import("../types/review").ReviewDto[]> => {
+  try {
+    const url = new URL(`/api/public/places/${id}/reviews`, window.location.origin);
+    const response = await fetch(url.toString());
+    if (!response.ok) return [];
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching place reviews:", error);
+    return [];
+  }
+};
+
+export const fetchRegionalDestinations = async (id: string, limit: number = 4): Promise<import("../types/homestay").HomestayDto[]> => {
+  try {
+    const url = new URL(`/api/public/places/${id}/destinations`, window.location.origin);
+    url.searchParams.append('limit', limit.toString());
+    const response = await fetch(url.toString());
+    if (!response.ok) return [];
+    const content = await response.json();
+    return (content || []).map((item: any) => ({
+      id: item.id?.toString(),
+      name: item.name,
+      description: item.description || '',
+      coverImageUrl: item.coverImageUrl || 'https://images.unsplash.com/photo-1542718610-a1d656d1884c?q=80',
+      district: item.regionName || item.address || '',
+      ratingScore: item.ratingAvg || 4.8,
+      ratingText: 'Tuyệt vời',
+      reviewCount: item.ratingCount || 12,
+      price: item.priceRefMin || 0,
+      address: item.address,
+      latitude: item.latitude,
+      longitude: item.longitude,
+      roomType: 'Điểm tham quan',
+      bedInfo: '',
+    }));
+  } catch (error) {
+    console.error("Error fetching regional destinations:", error);
+    return [];
+  }
+};

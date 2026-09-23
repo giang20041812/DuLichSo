@@ -58,6 +58,21 @@ public class PublicPlaceController {
         return ResponseEntity.ok(publicPlaceService.getNearbyPlaces(id, radius));
     }
 
+    @GetMapping("/{identifier}/destinations")
+    public ResponseEntity<List<PlaceSummaryDto>> getRegionalDestinations(
+            @PathVariable("identifier") String identifier,
+            @RequestParam(value = "limit", defaultValue = "4") int limit) {
+        Long id = identifier.matches("^\\d+$") ? Long.parseLong(identifier) : 1L;
+        return ResponseEntity.ok(publicPlaceService.getRegionalDestinations(id, limit));
+    }
+
+    @GetMapping("/{identifier}/reviews")
+    public ResponseEntity<List<com.dulichso.bookingapi.dto.ReviewDto>> getPlaceReviews(
+            @PathVariable("identifier") String identifier) {
+        Long id = identifier.matches("^\\d+$") ? Long.parseLong(identifier) : 1L;
+        return ResponseEntity.ok(publicPlaceService.getPlaceReviews(id));
+    }
+
     @GetMapping("/{slug}/rooms")
     public ResponseEntity<List<RoomTypeDetailDto>> getPlaceRooms(@PathVariable("slug") String slug) {
         return ResponseEntity.ok(placeDetailService.getPlaceRooms(slug));

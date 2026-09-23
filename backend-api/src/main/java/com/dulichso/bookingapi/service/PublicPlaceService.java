@@ -39,6 +39,7 @@ public class PublicPlaceService {
     private final RoomTypeMediaRepository roomTypeMediaRepository;
     private final PlaceAmenityRepository placeAmenityRepository;
     private final com.dulichso.bookingapi.repository.PlaceContactRepository placeContactRepository;
+    private final com.dulichso.bookingapi.repository.ReviewRepository reviewRepository;
 
     @Transactional(readOnly = true)
     public Page<PlaceSummaryDto> getPlaces(CategoryKind kind, BigDecimal minPrice, BigDecimal maxPrice, BigDecimal minRating, List<String> amenities, LocalDate checkIn, LocalDate checkOut, Pageable pageable) {
@@ -162,6 +163,63 @@ public class PublicPlaceService {
                 .name(p.getName())
                 .kind(com.dulichso.bookingapi.entity.enums.CategoryKind.valueOf(p.getKind()))
                 .distance(p.getDistance())
+                .latitude(p.getLatitude())
+                .longitude(p.getLongitude())
+                .address(p.getAddress())
+                .build()
+        ).collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<PlaceSummaryDto> getRegionalDestinations(Long placeId, int limit) {
+        Place place = placeRepository.findById(placeId)
+                .orElseThrow(() -> new RuntimeException("Place not found with id: " + placeId));
+
+        Long regionId = place.getRegion() != null ? place.getRegion().getId() : null;
+        List<Place> destinations = placeRepository.findRegionalDestinations(placeId, regionId, limit > 0 ? limit : 4);
+        
+        // Nếu cùng region ít hơn 4 điểm, tìm mở rộng không giới hạn region
+        if (destinations.size() < 4) {
+            destinations = placeRepository.findRegionalDestinations(placeId, null, 4);
+        }
+
+        return destinations.stream().map(p -> {
+            List<String> images = placeMediaRepository.findPublicUrlsByPlaceId(p.getId());
+            String coverImage = (images != null && !images.isEmpty()) ? images.get(0) : 
+                (p.getAttributes() != null && p.getAttributes().containsKey("coverImageUrl") ? (String) p.getAttributes().get("coverImageUrl") : null);
+
+            return PlaceSummaryDto.builder()
+                    .id(p.getId())
+                    .slug(p.getSlug())
+                    .name(p.getName())
+                    .kind(p.getKind())
+                    .categoryName(p.getCategory() != null ? p.getCategory().getName() : null)
+                    .regionName(p.getRegion() != null ? p.getRegion().getName() : null)
+                    .address(p.getAddress())
+                    .latitude(p.getLatitude())
+                    .longitude(p.getLongitude())
+                    .coverImageUrl(coverImage)
+                    .ratingAvg(p.getRatingAvg())
+                    .ratingCount(p.getRatingCount())
+                    .priceRefMin(p.getPriceRefMin())
+                    .priceRefMax(p.getPriceRefMax())
+                    .priceUnitNote(p.getPriceUnitNote())
+                    .build();
+        }).collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<com.dulichso.bookingapi.dto.ReviewDto> getPlaceReviews(Long placeId) {
+        List<com.dulichso.bookingapi.entity.Review> reviews = 
+            reviewRepository.findByPlaceIdAndStatusWithBooking(placeId, com.dulichso.bookingapi.entity.enums.ReviewStatus.VISIBLE);
+
+        return reviews.stream().map(r -> com.dulichso.bookingapi.dto.ReviewDto.builder()
+                .id(r.getId())
+                .placeId(r.getPlace().getId())
+                .rating(r.getRating())
+                .content(r.getContent())
+                .guestName(r.getBooking() != null ? r.getBooking().getGuestName() : "Khách du lịch")
+                .createdAt(r.getCreatedAt())
                 .build()
         ).collect(Collectors.toList());
     }

@@ -67,8 +67,15 @@ public class PublicFestivalServiceImpl implements PublicFestivalService {
                         nextEnd.getDayOfMonth(), nextEnd.getMonthValue(), nextEnd.getYear());
             }
 
-            // Gợi ý ảnh theo slug
-            String coverUrl = getCoverUrlBySlug(f.getSlug());
+            // Ảnh bìa từ database entity với fallback
+            String coverUrl = f.getCoverImageUrl() != null && !f.getCoverImageUrl().isBlank()
+                    ? f.getCoverImageUrl()
+                    : "https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1200&q=80";
+
+            // Địa điểm tổ chức từ database entity với fallback
+            String location = f.getLocation() != null && !f.getLocation().isBlank()
+                    ? f.getLocation()
+                    : (f.getRegion() != null ? f.getRegion().getName() : "Huyện Mù Cang Chải, Tỉnh Yên Bái");
 
             // Tách hoạt động từ suitableExperience
             List<String> activities = extractActivities(f.getSuitableExperience());
@@ -83,7 +90,7 @@ public class PublicFestivalServiceImpl implements PublicFestivalService {
                     .etiquetteDont(f.getEtiquetteDont())
                     .regionName(f.getRegion() != null ? f.getRegion().getName() : "Mù Cang Chải")
                     .coverImageUrl(coverUrl)
-                    .location(getLocationBySlug(f.getSlug()))
+                    .location(location)
                     .highlightTag(isCurrent ? "Đang Diễn Ra" : "Di Sản Văn Hóa")
                     .activities(activities)
                     .isCurrentSeason(isCurrent)
@@ -92,36 +99,6 @@ public class PublicFestivalServiceImpl implements PublicFestivalService {
                     .timeRange(timeRange)
                     .build();
         }).collect(Collectors.toList());
-    }
-
-    private String getCoverUrlBySlug(String slug) {
-        if ("mua-vang-kham-pha-ruong-bac-thang".equals(slug)) {
-            return "https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1200&q=80";
-        } else if ("mung-com-moi".equals(slug)) {
-            return "https://images.unsplash.com/photo-1542159040-3b03f0b2f059?auto=format&fit=crop&w=1200&q=80";
-        } else if ("festival-khen-mong".equals(slug)) {
-            return "https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=1200&q=80";
-        } else if ("hoa-to-day".equals(slug)) {
-            return "https://images.unsplash.com/photo-1522383225653-ed111181a951?auto=format&fit=crop&w=1200&q=80";
-        } else if ("gau-tao".equals(slug)) {
-            return "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80";
-        }
-        return "https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1200&q=80";
-    }
-
-    private String getLocationBySlug(String slug) {
-        if ("mua-vang-kham-pha-ruong-bac-thang".equals(slug)) {
-            return "Đồi Mâm Xôi, Đồi Móng Ngựa, La Pán Tẩn";
-        } else if ("mung-com-moi".equals(slug)) {
-            return "Bản Lìm Mông, Tú Lệ & Bản Nậm Khắt";
-        } else if ("festival-khen-mong".equals(slug)) {
-            return "Trung tâm Thị trấn Mù Cang Chải";
-        } else if ("hoa-to-day".equals(slug)) {
-            return "Xã Nậm Khắt, Púng Luông, La Pán Tẩn";
-        } else if ("gau-tao".equals(slug)) {
-            return "Bản Dế Xu Phình & Bản Chế Cu Nha";
-        }
-        return "Huyện Mù Cang Chải, Tỉnh Yên Bái";
     }
 
     private List<String> extractActivities(String exp) {

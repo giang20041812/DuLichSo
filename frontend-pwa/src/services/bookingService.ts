@@ -30,3 +30,33 @@ export async function getBookingByCode(bookingCode: string): Promise<BookingResp
 
   return response.json() as Promise<BookingResponseDto>;
 }
+
+export async function fetchBookedDatesByRoom(roomTypeId: number, startDate?: string, endDate?: string): Promise<import('../types/booking').BookedDateRangeDto[]> {
+  try {
+    const url = new URL(`/api/public/bookings/rooms/${roomTypeId}/booked-dates`, window.location.origin);
+    if (startDate) url.searchParams.append('startDate', startDate);
+    if (endDate) url.searchParams.append('endDate', endDate);
+
+    const response = await fetch(url.toString());
+    if (!response.ok) return [];
+    return (await response.json()) as import('../types/booking').BookedDateRangeDto[];
+  } catch (error) {
+    console.warn("fetchBookedDatesByRoom failed, fallback to empty list:", error);
+    return [];
+  }
+}
+
+export async function fetchBookedDatesByPlace(placeId: number, startDate?: string, endDate?: string): Promise<import('../types/booking').BookedDateRangeDto[]> {
+  try {
+    const url = new URL(`/api/public/bookings/places/${placeId}/booked-dates`, window.location.origin);
+    if (startDate) url.searchParams.append('startDate', startDate);
+    if (endDate) url.searchParams.append('endDate', endDate);
+
+    const response = await fetch(url.toString());
+    if (!response.ok) return [];
+    return (await response.json()) as import('../types/booking').BookedDateRangeDto[];
+  } catch (error) {
+    console.warn("fetchBookedDatesByPlace failed, fallback to empty list:", error);
+    return [];
+  }
+}

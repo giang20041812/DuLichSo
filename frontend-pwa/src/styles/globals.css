@@ -1,10 +1,11 @@
 @import "tailwindcss";
 
 @theme {
-  /* === VietTrack — Fresh Eco Nature Palette (Green, Light Green & Aqua) === */
+  /* === VietTrack — Fresh Eco Nature Palette (Deep Teal, Aqua, Green & Coral) === */
 
   /* Deep Teal — Primary (#048C73) */
-  --color-primary: var(--color-primary);
+  --color-primary: #048c73;
+  --color-primary-light: #7ef2dd;
   --color-primary-50:  #edfbf7;
   --color-primary-100: #d1f6ec;
   --color-primary-200: #a7ecdc;
@@ -16,8 +17,9 @@
   --color-primary-800: #06483d;
   --color-primary-900: #063c33;
 
-  /* Bright Aqua / Turquoise — Secondary (#3DC9D9) */
-  --color-secondary: var(--color-secondary);
+  /* Bright Aqua / Turquoise — Secondary (#06B6D4) */
+  --color-secondary: #06b6d4;
+  --color-secondary-light: #cffafe;
   --color-secondary-50:  #f0fbfd;
   --color-secondary-100: #dbf6fa;
   --color-secondary-200: #bbf0f6;
@@ -29,8 +31,9 @@
   --color-secondary-800: #236c77;
   --color-secondary-900: #215963;
 
-  /* Leaf Green — Accent (#52D967) */
-  --color-accent: var(--color-accent);
+  /* Leaf Green — Accent (#10B981) */
+  --color-accent: #10b981;
+  --color-accent-light: #d1fae5;
   --color-accent-50:  #effcf2;
   --color-accent-100: #d9f9e0;
   --color-accent-200: #b5f2c3;
@@ -42,19 +45,28 @@
   --color-accent-800: #1a6127;
   --color-accent-900: #174f22;
 
-  --color-primary-light: var(--color-primary-light);
-  --color-accent-light: var(--color-accent-light);
+  /* Tropical Sun — Golden Amber (#F59E0B) */
+  --color-sun: #f59e0b;
+  --color-sun-light: #fef3c7;
 
-  --color-canvas: var(--color-canvas);
-  --color-surface: var(--color-surface);
+  /* Tropical Sunset — Coral (#F97316) */
+  --color-coral: #f97316;
+  --color-coral-hover: #ea580c;
+  --color-coral-light: #ffedd5;
 
-  --color-ink: var(--color-ink);
-  --color-ink-deep: var(--color-ink-deep);
-  --color-muted: var(--color-muted);
+  /* Backgrounds */
+  --color-canvas: #f6faf8;
+  --color-surface: #ffffff;
 
-  --color-success: var(--color-success);
-  --color-warning: var(--color-warning);
-  --color-danger: var(--color-danger);
+  /* Ink / Text */
+  --color-ink: #1f2937;
+  --color-ink-deep: #0a2e26;
+  --color-muted: #59766e;
+
+  /* Feedback */
+  --color-success: #048c73;
+  --color-warning: #f59e0b;
+  --color-danger: #e05252;
 
   --font-display: "Plus Jakarta Sans", sans-serif;
   --font-body: "Inter", sans-serif;
@@ -65,8 +77,9 @@
   --radius-lg: 8px;
   --radius-full: 9999px;
 
-  --shadow-xs: 0 0 0 1px rgba(97, 98, 117, 0.18);
-  --shadow-sm: 0 1px 2px rgba(13, 43, 38, 0.06);
+  --shadow-2xs: 0 1px 2px rgba(13, 43, 38, 0.04);
+  --shadow-xs: 0 1px 2px rgba(13, 43, 38, 0.06);
+  --shadow-sm: 0 2px 4px rgba(13, 43, 38, 0.06);
   --shadow-md: 0 4px 16px rgba(13, 43, 38, 0.08);
   --shadow-lg: 0 12px 32px rgba(13, 43, 38, 0.14);
 }
