@@ -1,10 +1,12 @@
 export type CategoryKind = 
   | 'ATTRACTION' 
   | 'HOMESTAY' 
-  | 'EXPERIENCE' 
-  | 'TRANSPORT' 
   | 'RESTAURANT' 
-  | 'LOCAL_SPECIALTY' 
+  | 'CUISINE'
+  | 'PHOTO'
+  | 'RENTAL'
+  | 'TRANSPORT' 
+  | 'SERVICE'
   | 'CULTURE';
 
 export interface CategoryDto {

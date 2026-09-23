@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { HomeResponseDto, PlaceSummaryDto } from '../types/home';
+import { FestivalDto } from '../types/festival';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -63,11 +64,11 @@ export const fetchHomeData = async (): Promise<HomeResponseDto> => {
       }
     }
 
-    // Ensure specialties (FOOD)
+    // Ensure specialties (CUISINE)
     let specialties = data.specialties || [];
     if (specialties.length < 4) {
       try {
-        const foodRes = await axios.get<PageResponse<PlaceSummaryDto>>(`${API_BASE_URL}/public/places?kind=FOOD&size=10`);
+        const foodRes = await axios.get<PageResponse<PlaceSummaryDto>>(`${API_BASE_URL}/public/places?kind=CUISINE&size=10`);
         if (foodRes.data && foodRes.data.content && foodRes.data.content.length > 0) {
           const enriched = foodRes.data.content.map(enrichPlace);
           specialties = enriched;
@@ -86,5 +87,15 @@ export const fetchHomeData = async (): Promise<HomeResponseDto> => {
   } catch (error) {
     console.error('Error fetching home data:', error);
     throw error;
+  }
+};
+
+export const fetchFestivals = async (): Promise<FestivalDto[]> => {
+  try {
+    const res = await axios.get<FestivalDto[]>(`${API_BASE_URL}/public/festivals`);
+    return res.data || [];
+  } catch (error) {
+    console.warn('Could not fetch festivals:', error);
+    return [];
   }
 };

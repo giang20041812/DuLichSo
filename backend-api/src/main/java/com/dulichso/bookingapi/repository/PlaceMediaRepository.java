@@ -12,8 +12,18 @@ import java.util.List;
 @Repository
 public interface PlaceMediaRepository extends JpaRepository<PlaceMedia, PlaceMediaId> {
 
-    @Query("SELECT pm.media.publicUrl FROM PlaceMedia pm " +
-           "WHERE pm.place.id = :placeId " +
-           "ORDER BY CASE WHEN pm.role = com.dulichso.bookingapi.entity.enums.MediaRole.COVER THEN 0 ELSE 1 END, pm.sortOrder ASC")
+    @Query("""
+           SELECT pm.media.publicUrl FROM PlaceMedia pm
+           WHERE pm.place.id = :placeId
+           ORDER BY CASE WHEN pm.role = com.dulichso.bookingapi.entity.enums.MediaRole.COVER THEN 0 ELSE 1 END, pm.sortOrder ASC
+           """)
     List<String> findPublicUrlsByPlaceId(@Param("placeId") Long placeId);
+
+    @Query("""
+           SELECT pm FROM PlaceMedia pm
+           JOIN FETCH pm.media
+           WHERE pm.place.id = :placeId
+           ORDER BY CASE WHEN pm.role = com.dulichso.bookingapi.entity.enums.MediaRole.COVER THEN 0 ELSE 1 END, pm.sortOrder ASC
+           """)
+    List<PlaceMedia> findByPlaceIdWithMedia(@Param("placeId") Long placeId);
 }

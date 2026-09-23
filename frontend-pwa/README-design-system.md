@@ -1,6 +1,6 @@
-# VietJourney Design System
+# VietTrack Design System
 
-Đây là tài liệu hướng dẫn cho hệ thống Design System của dự án **VietJourney**.
+Đây là tài liệu hướng dẫn cho hệ thống Design System của dự án **VietTrack**.
 Hệ thống được xây dựng dựa trên nguyên lý *Single Source of Truth* bằng CSS Variables,
 tích hợp với Tailwind CSS v4 và shadcn/ui.
 

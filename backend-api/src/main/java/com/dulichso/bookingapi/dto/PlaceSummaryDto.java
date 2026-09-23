@@ -24,6 +24,9 @@ public class PlaceSummaryDto {
     private Integer ratingCount;
     private java.util.Map<String, Object> attributes;
     private CategoryKind kind;
+    private BigDecimal latitude;
+    private BigDecimal longitude;
+    private String address;
     
     // Virtual fields that will be parsed from attributes or assigned in service
     private String tagBadge;
@@ -31,6 +34,7 @@ public class PlaceSummaryDto {
     private List<String> amenities;
     private List<String> highlights;
     private String durationText;
+    private List<PlaceDetailDto.ContactItemDto> contacts;
     
     public PlaceSummaryDto(Long id, String slug, String name, String regionName, String coverImageUrl, 
                            String description, BigDecimal priceRefMin, BigDecimal ratingAvg, Integer ratingCount, 
@@ -46,5 +50,25 @@ public class PlaceSummaryDto {
         this.ratingCount = ratingCount;
         this.attributes = attributes;
         this.kind = kind;
+    }
+
+    public PlaceSummaryDto(Long id, String slug, String name, String regionName, String coverImageUrl, 
+                           String description, BigDecimal priceRefMin, BigDecimal ratingAvg, Integer ratingCount, 
+                           java.util.Map<String, Object> attributes, CategoryKind kind,
+                           BigDecimal latitude, BigDecimal longitude, String address) {
+        this.id = id;
+        this.slug = slug;
+        this.name = name;
+        this.regionName = regionName;
+        this.coverImageUrl = coverImageUrl;
+        this.description = description;
+        this.priceRefMin = priceRefMin;
+        this.ratingAvg = ratingAvg;
+        this.ratingCount = ratingCount;
+        this.attributes = attributes;
+        this.kind = kind;
+        this.latitude = latitude;
+        this.longitude = longitude;
+        this.address = address;
     }
 }

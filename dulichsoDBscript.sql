@@ -85,7 +85,7 @@ CREATE INDEX idx_region_path ON region (path);   -- B-Tree hỗ trợ sẵn LIKE
 -- 1.2 Danh mục (UC-15). Phẳng 1 cấp, Admin quản lý.
 CREATE TABLE category (
     id            BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    kind          ENUM('HOMESTAY','FOOD','ATTRACTION','EXPERIENCE','TRANSPORT','SERVICE','CULTURE') NOT NULL,
+    kind          ENUM('HOMESTAY','RESTAURANT','CUISINE','ATTRACTION','PHOTO','RENTAL','TRANSPORT','SERVICE','CULTURE') NOT NULL,
     slug          VARCHAR(191) NOT NULL UNIQUE,
     name          VARCHAR(255) NOT NULL,
     description   TEXT,
@@ -206,8 +206,8 @@ CREATE TABLE place (
     id                  BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     slug                VARCHAR(191) NOT NULL UNIQUE,  -- UC-02 truy cập bằng id hoặc slug
     category_id         BIGINT UNSIGNED NOT NULL,
-    kind                ENUM('HOMESTAY','FOOD','ATTRACTION','EXPERIENCE','TRANSPORT','SERVICE','CULTURE') NOT NULL,
-    provider_id         BIGINT UNSIGNED NULL,          -- BR-06
+    kind                ENUM('HOMESTAY','RESTAURANT','CUISINE','ATTRACTION','PHOTO','RENTAL','TRANSPORT','SERVICE','CULTURE') NOT NULL,
+    provider_id         BIGINT UNSIGNED NULL,          -- BR-06: 1 Provider có thể sở hữu/vận hành NHIỀU Place (Quan hệ 1 - N)
 
     name                VARCHAR(255) NOT NULL,
     name_norm           VARCHAR(255) NOT NULL,         -- BR-19, set bằng vn_norm(name)
@@ -791,22 +791,31 @@ DELIMITER ;
 -- 13. GỢI Ý DỮ LIỆU MẪU
 -- ============================================================================
 INSERT INTO category (kind, slug, name, sort_order) VALUES
-  ('HOMESTAY',  'luu-tru',   'Lưu trú / Homestay', 1),
-  ('FOOD',      'an-uong',   'Ăn uống',            2),
-  ('ATTRACTION','diem-den',  'Điểm đến',           3),
-  ('EXPERIENCE','trai-nghiem','Trải nghiệm',       4),
-  ('TRANSPORT', 'di-chuyen', 'Di chuyển',          5),
-  ('SERVICE',   'dich-vu',   'Dịch vụ',            6),
-  ('CULTURE',   'van-hoa',   'Văn hóa',            7);
+  ('HOMESTAY',   'luu-tru',   'Lưu trú / Homestay',               1),
+  ('RESTAURANT', 'nha-hang',  'Nhà hàng & Quán ăn',               2),
+  ('CUISINE',    'am-thuc',   'Ẩm thực & Món ngon bản địa',       3),
+  ('ATTRACTION', 'diem-den',  'Điểm đến & Thắng cảnh',            4),
+  ('PHOTO',      'chup-anh',  'Điểm & Dịch vụ Chụp ảnh',          5),
+  ('RENTAL',     'thue-do',   'Cho thuê trang phục & Phương tiện',6),
+  ('TRANSPORT',  'di-chuyen', 'Di chuyển',                        7),
+  ('SERVICE',    'dich-vu',   'Dịch vụ',                          8),
+  ('CULTURE',    'van-hoa',   'Văn hóa',                          9);
 
 INSERT INTO amenity (code, name, scope, is_essential) VALUES
-  ('HOT_WATER',    'Nước nóng',      'PLACE', TRUE),
-  ('HEATER',       'Sưởi / điều hòa ấm','PLACE', TRUE),
-  ('BACKUP_POWER', 'Điện dự phòng',  'PLACE', TRUE),
-  ('STABLE_WATER', 'Nước ổn định',   'PLACE', TRUE),
-  ('WIFI',         'Wifi',           'PLACE', FALSE),
-  ('PARKING',      'Bãi đỗ xe',      'PLACE', FALSE),
-  ('RESTAURANT',   'Nhà hàng tại chỗ','PLACE',FALSE);
+  ('HOT_WATER',         'Nước nóng',                 'PLACE', TRUE),
+  ('HEATER',            'Sưởi / điều hòa ấm',        'PLACE', TRUE),
+  ('BACKUP_POWER',      'Điện dự phòng',             'PLACE', TRUE),
+  ('STABLE_WATER',      'Nước ổn định',              'PLACE', TRUE),
+  ('WIFI',              'Wifi',                      'PLACE', FALSE),
+  ('PARKING',           'Bãi đỗ xe',                 'PLACE', FALSE),
+  ('RESTAURANT',        'Nhà hàng tại chỗ',          'PLACE', FALSE),
+  ('AIR_CONDITIONING',  'Điều hòa không khí',        'ROOM',  FALSE),
+  ('BALCONY',           'Ban công view núi / ruộng', 'ROOM',  FALSE),
+  ('KITCHEN',           'Bếp nấu tự do',             'PLACE', FALSE),
+  ('BATHTUB',           'Bồn tắm ngâm thảo dược',    'ROOM',  FALSE),
+  ('BBQ_AREA',          'Sân nướng BBQ ngoài trời',  'PLACE', FALSE),
+  ('MOTORBIKE_RENTAL',  'Cho thuê xe máy',           'PLACE', FALSE),
+  ('FIREPLACE',         'Lò sưởi củi sinh hoạt chung','PLACE',FALSE);
 
 INSERT INTO payment_gateway (code, name) VALUES
   ('VNPAY',   'VNPay'),

@@ -59,16 +59,19 @@ public class PublicHomeServiceImpl implements PublicHomeService {
         ).getContent());
         enrichPlaceSummaries(homestays);
 
-        // Fetch Featured Tours (EXPERIENCE)
-        List<PlaceSummaryDto> tours = new ArrayList<>(publicPlaceService.getPlaces(
-                CategoryKind.EXPERIENCE, null, null, null, null, null, null, PageRequest.of(0, 8)
-        ).getContent());
-        enrichPlaceSummaries(tours);
+        // Fetch Featured Tours / Experiences (bỏ Experience tour theo yêu cầu, fallback rỗng)
+        List<PlaceSummaryDto> tours = new ArrayList<>();
 
-        // Fetch Specialties (FOOD)
+        // Fetch Specialties / Cuisines (CUISINE)
         List<PlaceSummaryDto> specialties = new ArrayList<>(publicPlaceService.getPlaces(
-                CategoryKind.FOOD, null, null, null, null, null, null, PageRequest.of(0, 8)
+                CategoryKind.CUISINE, null, null, null, null, null, null, PageRequest.of(0, 8)
         ).getContent());
+        // Nếu chưa có CUISINE thì fallback sang RESTAURANT
+        if (specialties.isEmpty()) {
+            specialties.addAll(publicPlaceService.getPlaces(
+                    CategoryKind.RESTAURANT, null, null, null, null, null, null, PageRequest.of(0, 8)
+            ).getContent());
+        }
         enrichPlaceSummaries(specialties);
 
         return HomeResponseDto.builder()
@@ -102,8 +105,7 @@ public class PublicHomeServiceImpl implements PublicHomeService {
             dto.setAmenities(List.of("Wi-fi miễn phí", "Gần trung tâm", "Cảnh quan đẹp"));
             dto.setHighlights(List.of("Trải nghiệm tuyệt vời", "Dịch vụ tận tâm", "Giá tốt"));
             
-            // Add a mock original price for tours to show the discount UI
-            if (dto.getKind() == CategoryKind.EXPERIENCE || dto.getKind() == CategoryKind.TRANSPORT) {
+            if (dto.getKind() == CategoryKind.TRANSPORT || dto.getKind() == CategoryKind.RENTAL) {
                 if (dto.getPriceRefMin() != null) {
                     dto.setTagBadge("Khuyến mãi");
                 }

@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Crosshair, User, FlaskConical } from 'lucide-react';
-import { MapContextData, MapViewerScenario } from '../types/integrations/google-maps';
-import { fetchMapContext } from '../services/placeService';
-import InteractiveMapView from '../components/map/InteractiveMapView';
-import MapSlideUpSheet from '../components/map/MapSlideUpSheet';
+import { MapContextData, MapViewerScenario } from '@/types/integrations/google-maps';
+import { fetchMapContext } from '@/services/placeService';
+import InteractiveMapView from '@/components/map/InteractiveMapView';
+import MapSlideUpSheet from '@/components/map/MapSlideUpSheet';
 
 export default function FullScreenMapPage() {
   const { slug = 'ban-lim-mong-eco-lodge' } = useParams<{ slug: string }>();

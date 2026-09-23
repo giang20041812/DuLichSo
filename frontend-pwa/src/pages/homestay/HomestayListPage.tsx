@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { fetchHomestays, HomestayFilterParams } from '../services/homestayService';
-import { HomestayDto } from '../types/homestay';
-import SearchHub from '../components/layout/SearchHub';
-import { PriceSlider } from '../components/ui/price-slider';
-import { Badge } from '../components/ui/badge';
-import { Button } from '../components/ui/button';
+import { fetchHomestays, HomestayFilterParams } from '@/services/homestayService';
+import { HomestayDto } from '@/types/homestay';
+import SearchHub from '@/components/layout/SearchHub';
+import { PriceSlider } from '@/components/ui/price-slider';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { MapPin, Heart, Check, SlidersHorizontal, Star, ChevronLeft, ChevronRight, X } from 'lucide-react';
 
 const AMENITIES = [

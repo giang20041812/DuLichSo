@@ -56,6 +56,10 @@ export const fetchHomestays = async (params?: HomestayFilterParams): Promise<Hom
         price: item.priceRefMin || 0,
         priceDetails: attrs.priceDetails || undefined,
         taxesAndFeesIncluded: attrs.taxesAndFeesIncluded === true,
+        address: item.address || undefined,
+        latitude: item.latitude || undefined,
+        longitude: item.longitude || undefined,
+        contacts: item.contacts || [],
       };
     });
   } catch (error) {

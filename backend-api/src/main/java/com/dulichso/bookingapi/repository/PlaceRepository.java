@@ -19,14 +19,16 @@ import java.util.Optional;
 public interface PlaceRepository extends JpaRepository<Place, Long>, JpaSpecificationExecutor<Place> {
 
 
-    @Query(value = "SELECT id, name, kind, " +
-            "( 6371 * acos( cos( radians(:lat) ) * cos( radians( latitude ) ) * cos( radians( longitude ) - radians(:lng) ) + sin( radians(:lat) ) * sin( radians( latitude ) ) ) ) AS distance " +
-            "FROM place " +
-            "WHERE visibility = 'PUBLISHED' AND is_deleted = false AND id != :placeId AND latitude IS NOT NULL AND longitude IS NOT NULL " +
-            "AND kind != 'HOMESTAY' AND kind != 'HOTEL' " +
-            "HAVING distance <= :radius " +
-            "ORDER BY distance " +
-            "LIMIT :limit", nativeQuery = true)
+    @Query(value = """
+            SELECT id, name, kind, latitude, longitude, address,
+            ( 6371 * acos( cos( radians(:lat) ) * cos( radians( latitude ) ) * cos( radians( longitude ) - radians(:lng) ) + sin( radians(:lat) ) * sin( radians( latitude ) ) ) ) AS distance
+            FROM place
+            WHERE visibility = 'PUBLISHED' AND is_deleted = false AND id != :placeId AND latitude IS NOT NULL AND longitude IS NOT NULL
+            AND kind != 'HOMESTAY' AND kind != 'HOTEL'
+            HAVING distance <= :radius
+            ORDER BY distance
+            LIMIT :limit
+            """, nativeQuery = true)
     List<NearbyPlaceProjection> findNearbyPlaces(
             @Param("lat") BigDecimal lat,
             @Param("lng") BigDecimal lng,

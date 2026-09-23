@@ -32,12 +32,12 @@ import {
   PartnerHomestayStatsDto,
   PlaceVisibility,
   PlaceOperationStatus,
-} from '../types/partner';
+} from '@/types/partner';
 import {
   fetchPartnerHomestays,
   updateHomestayStatus,
   createQuickHomestay,
-} from '../services/partnerHomestayService';
+} from '@/services/partnerHomestayService';
 
 export default function PartnerDashboardPage() {
   const navigate = useNavigate();

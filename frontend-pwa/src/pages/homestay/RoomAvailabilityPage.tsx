@@ -18,7 +18,7 @@ import {
   Mountain,
   Bath
 } from 'lucide-react';
-import { RoomAvailabilityItem } from '../types/room';
+import { RoomAvailabilityItem } from '@/types/room';
 
 export default function RoomAvailabilityPage() {
   const { slug = 'ban-lim-mong-eco-lodge' } = useParams<{ slug: string }>();

@@ -20,8 +20,8 @@ import {
   Mountain,
   RefreshCw,
 } from 'lucide-react';
-import { portalLogin } from '../services/authService';
-import { PortalLoginResponse, AuthErrorResponse } from '../types/user';
+import { portalLogin } from '@/services/authService';
+import { PortalLoginResponse, AuthErrorResponse } from '@/types/user';
 
 interface ScenarioDef {
   id: number;

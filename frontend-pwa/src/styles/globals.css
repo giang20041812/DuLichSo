@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  /* === VietJourney — Fresh Eco Nature Palette (Green, Light Green & Aqua) === */
+  /* === VietTrack — Fresh Eco Nature Palette (Green, Light Green & Aqua) === */
 
   /* Deep Teal — Primary (#048C73) */
   --color-primary: var(--color-primary);
@@ -73,7 +73,7 @@
 
   @layer base {
   :root {
-    /* === VietJourney — Eco Tropical Glow Palette === */
+    /* === VietTrack — Eco Tropical Glow Palette === */
 
     /* Brand Core */
     --color-primary:        #048c73; /* Deep Teal - Header, nút chính, liên kết */
@@ -117,6 +117,10 @@
     --transition-fast: 120ms cubic-bezier(0.2, 0.8, 0.2, 1);
     --transition-base: 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
     --transition-slow: 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  html {
+    scroll-behavior: auto;
   }
 
   body {

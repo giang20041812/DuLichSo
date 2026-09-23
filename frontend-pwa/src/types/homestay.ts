@@ -2,7 +2,7 @@
 
 export type PlaceOperationStatus = 'OPERATING' | 'TEMPORARILY_CLOSED' | 'PERMANENTLY_CLOSED';
 export type PlaceVerificationStatus = 'UNVERIFIED' | 'COMMUNITY_VERIFIED' | 'OFFICIAL_VERIFIED';
-export type ContactChannel = 'PHONE' | 'EMAIL' | 'ZALO' | 'FACEBOOK' | 'WEBSITE';
+export type ContactChannel = 'PHONE' | 'EMAIL' | 'ZALO' | 'FACEBOOK' | 'WEBSITE' | 'TIKTOK' | 'YOUTUBE' | 'GOOGLE_MAPS' | 'OTHER';
 export type AmenityValue = 'YES' | 'NO' | 'OPTIONAL' | 'UNVERIFIED';
 export type HighlightType = 'PRO' | 'CON' | 'TIP';
 
@@ -116,6 +116,12 @@ export interface HomestayDto {
   price: number;
   priceDetails?: string; // e.g. "Giá cho 1 đêm, 2 người lớn"
   taxesAndFeesIncluded?: boolean;
+
+  // Real Contacts & Location for List View
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  contacts?: PlaceContactItem[];
 }
 
 import { RoomTypeDto } from './room';
@@ -140,6 +146,8 @@ export interface HomestayDetailDto {
   images: string[];
   amenities: string[];
   rooms: RoomTypeDto[];
+  contacts?: PlaceContactItem[];
+  highlights?: PlaceHighlightItem[];
 }
 
 export interface NearbyPlaceDto {

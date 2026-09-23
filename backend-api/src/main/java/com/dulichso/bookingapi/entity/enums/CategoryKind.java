@@ -1,5 +1,5 @@
 package com.dulichso.bookingapi.entity.enums;
 
 public enum CategoryKind {
-    HOMESTAY, FOOD, ATTRACTION, EXPERIENCE, TRANSPORT, SERVICE, CULTURE
+    HOMESTAY, RESTAURANT, CUISINE, ATTRACTION, PHOTO, RENTAL, TRANSPORT, SERVICE, CULTURE
 }

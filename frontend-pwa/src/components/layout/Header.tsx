@@ -4,6 +4,7 @@ import {
   Compass, Menu, X, Download, HelpCircle, ShieldCheck, BadgeInfo, Building,
   Home, BedDouble, MapPin, Utensils, Sparkles, Bus, Layers 
 } from "lucide-react"
+import { VietTrackLogoMark } from "../ui/logo"
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -11,7 +12,18 @@ export default function Header() {
   const location = useLocation();
 
   // Tất cả các trang có hero banner đều dùng header transparent
-  const hasHeroImage = location.pathname === '/' || location.pathname.startsWith('/homestays') || location.pathname.startsWith('/destinations') || location.pathname.startsWith('/tours');
+  const hasHeroImage = location.pathname === '/' || 
+    location.pathname.startsWith('/culture') || 
+    location.pathname.startsWith('/explore') || 
+    location.pathname.startsWith('/homestays') || 
+    location.pathname.startsWith('/restaurants') || 
+    location.pathname.startsWith('/food') || 
+    location.pathname.startsWith('/destinations') || 
+    location.pathname.startsWith('/transport') || 
+    location.pathname.startsWith('/services') || 
+    location.pathname.startsWith('/photo') || 
+    location.pathname.startsWith('/rental') || 
+    location.pathname.startsWith('/tours');
 
   const openMobileMenu = () => {
     setDrawerMounted(true);
@@ -52,14 +64,15 @@ export default function Header() {
 
         {/* Row 1: Logo căn giữa */}
         <div className="relative max-w-[1280px] mx-auto w-full px-4 md:px-8 pt-4 pb-2 flex items-center justify-center">
-          {/* Logo & Tên nền tảng - Căn giữa hoàn toàn */}
-          <Link to="/" className="flex items-center gap-2.5 md:gap-3 shrink-0 group">
-            <div className={`backdrop-blur-sm p-2 rounded-md shadow-sm transition-transform group-hover:scale-105 ${hasHeroImage ? 'bg-white/20 text-white border border-white/30' : 'bg-[var(--color-primary)] text-white'}`}>
-              <Compass className="w-6 h-6 md:w-7 md:h-7" />
-            </div>
-            <div className="flex flex-col items-center sm:items-start">
-              <span className={`text-[22px] md:text-[26px] font-bold font-display leading-none tracking-tight ${hasHeroImage ? 'text-white drop-shadow-md' : 'text-[var(--color-ink-deep)]'}`}>
-                VietJourney
+          {/* Logo & Tên nền tảng - Căn giữa hoàn toàn, không khung vuông, icon to nổi bật */}
+          <Link to="/" className="flex items-center gap-3 md:gap-3.5 shrink-0 group">
+            <VietTrackLogoMark size={54} className="transition-transform group-hover:scale-105 drop-shadow-md" />
+            <div className="flex flex-col items-start">
+              <span className={`text-[24px] md:text-[28px] font-black font-display leading-none tracking-tight ${hasHeroImage ? 'text-white drop-shadow-md' : 'text-[var(--color-ink-deep)]'}`}>
+                VietTrack
+              </span>
+              <span className={`text-[10px] md:text-[11px] font-semibold tracking-wider uppercase mt-1.5 ${hasHeroImage ? 'text-white/90 drop-shadow' : 'text-[#66716c]'}`}>
+                Du Lịch Di Sản & Sinh Thái
               </span>
             </div>
           </Link>
@@ -81,9 +94,9 @@ export default function Header() {
               <Home className="w-3.5 h-3.5" />
               <span>Trang chủ</span>
             </Link>
-            <Link to="/explore" className={getNavLinkClass('/explore')}>
+            <Link to="/culture" className={getNavLinkClass('/culture')}>
               <Compass className="w-3.5 h-3.5" />
-              <span>Khám phá</span>
+              <span>Văn hóa</span>
             </Link>
             <Link to="/homestays" className={getNavLinkClass('/homestays')}>
               <BedDouble className="w-3.5 h-3.5" />
@@ -125,9 +138,12 @@ export default function Header() {
           {/* Drawer Content */}
           <div className={`relative w-full max-w-[300px] bg-white h-full flex flex-col shadow-2xl ${mobileMenuOpen ? 'drawer-slide-in' : 'drawer-slide-out'}`}>
             <div className="flex justify-between items-center p-4 border-b border-[#66716c]/10">
-              <div className="flex items-center gap-2">
-                <Compass className="w-5 h-5 text-[var(--color-primary)]" />
-                <span className="text-lg font-bold font-display text-[#0f2d3c]">VietJourney</span>
+              <div className="flex items-center gap-3">
+                <VietTrackLogoMark size={36} />
+                <div className="flex flex-col leading-none">
+                  <span className="text-xl font-bold font-display text-[#0f2d3c]">VietTrack</span>
+                  <span className="text-[9px] font-semibold text-[#66716c] uppercase tracking-wider mt-1">Du Lịch Di Sản & Sinh Thái</span>
+                </div>
               </div>
               <button onClick={closeMobileMenu} className="p-2 text-[#66716c] hover:text-[#0f2d3c]">
                 <X className="w-5 h-5" />
@@ -140,9 +156,9 @@ export default function Header() {
                   <Home className="w-4 h-4 text-[#048c73]" />
                   <span>Trang chủ</span>
                 </Link>
-                <Link to="/explore" onClick={closeMobileMenu} className="flex items-center gap-3 px-5 py-2.5 text-sm font-medium text-[#0f2d3c] hover:bg-[#edfbf7] hover:text-[#048c73] transition-colors">
+                <Link to="/culture" onClick={closeMobileMenu} className="flex items-center gap-3 px-5 py-2.5 text-sm font-medium text-[#0f2d3c] hover:bg-[#edfbf7] hover:text-[#048c73] transition-colors">
                   <Compass className="w-4 h-4 text-[#048c73]" />
-                  <span>Khám phá</span>
+                  <span>Văn hóa</span>
                 </Link>
                 <Link to="/homestays" onClick={closeMobileMenu} className="flex items-center gap-3 px-5 py-2.5 text-sm font-medium text-[#0f2d3c] hover:bg-[#edfbf7] hover:text-[#048c73] transition-colors">
                   <BedDouble className="w-4 h-4 text-[#048c73]" />
@@ -189,7 +205,7 @@ export default function Header() {
                 </button>
                 <button className="flex items-center gap-3 px-5 py-3 hover:bg-[#f8f9fa] text-left text-sm text-[#4a5568]">
                   <BadgeInfo className="w-5 h-5" strokeWidth={1.5} />
-                  <span>Về VietJourney</span>
+                  <span>Về VietTrack</span>
                 </button>
               </div>
             </div>

@@ -20,10 +20,10 @@ import {
   Sparkles,
   X
 } from 'lucide-react';
-import SearchHub from '../components/layout/SearchHub';
-import { getHomestayById, fetchNearbyPlaces } from '../services/homestayService';
-import { HomestayDetailDto, RoomTypeDto, NearbyPlaceDto } from '../types/homestay';
-import { Button } from '../components/ui/button';
+import SearchHub from '@/components/layout/SearchHub';
+import { getHomestayById, fetchNearbyPlaces } from '@/services/homestayService';
+import { HomestayDetailDto, RoomTypeDto, NearbyPlaceDto } from '@/types/homestay';
+import { Button } from '@/components/ui/button';
 
 export default function HomestayDetailPage() {
   const { id, slug } = useParams<{ id?: string; slug?: string }>();

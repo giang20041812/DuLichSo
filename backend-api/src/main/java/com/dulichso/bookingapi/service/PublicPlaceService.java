@@ -23,7 +23,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,13 +38,30 @@ public class PublicPlaceService {
     private final RoomTypeRepository roomTypeRepository;
     private final RoomTypeMediaRepository roomTypeMediaRepository;
     private final PlaceAmenityRepository placeAmenityRepository;
+    private final com.dulichso.bookingapi.repository.PlaceContactRepository placeContactRepository;
 
     @Transactional(readOnly = true)
     public Page<PlaceSummaryDto> getPlaces(CategoryKind kind, BigDecimal minPrice, BigDecimal maxPrice, BigDecimal minRating, List<String> amenities, LocalDate checkIn, LocalDate checkOut, Pageable pageable) {
-        Specification<Place> spec = PlaceSpecification.filterPublicPlaces(kind, minPrice, maxPrice, minRating, checkIn, checkOut);
+        Specification<Place> spec = PlaceSpecification.filterPublicPlaces(kind, minPrice, maxPrice, minRating, amenities, checkIn, checkOut);
         
         Page<Place> placesPage = placeRepository.findAll(spec, pageable);
         
+        List<Long> placeIds = placesPage.getContent().stream().map(Place::getId).collect(Collectors.toList());
+        Map<Long, List<PlaceDetailDto.ContactItemDto>> contactsByPlaceId = new java.util.HashMap<>();
+        if (!placeIds.isEmpty()) {
+            List<com.dulichso.bookingapi.entity.PlaceContact> contacts = placeContactRepository.findByPlaceIdInAndIsPublicTrue(placeIds);
+            for (com.dulichso.bookingapi.entity.PlaceContact c : contacts) {
+                contactsByPlaceId.computeIfAbsent(c.getPlace().getId(), k -> new ArrayList<>())
+                        .add(PlaceDetailDto.ContactItemDto.builder()
+                                .id(c.getId())
+                                .channel(c.getChannel())
+                                .value(c.getValue())
+                                .isPublic(c.getIsPublic())
+                                .sortOrder(c.getSortOrder())
+                                .build());
+            }
+        }
+
         return placesPage.map(p -> {
             List<String> mediaUrls = placeMediaRepository.findPublicUrlsByPlaceId(p.getId());
             String coverUrl = (mediaUrls != null && !mediaUrls.isEmpty()) ? mediaUrls.get(0) : null;
@@ -50,7 +69,7 @@ public class PublicPlaceService {
                 coverUrl = (String) p.getAttributes().get("coverImageUrl");
             }
 
-            return new PlaceSummaryDto(
+            PlaceSummaryDto dto = new PlaceSummaryDto(
                     p.getId(),
                     p.getSlug(),
                     p.getName(),
@@ -61,8 +80,13 @@ public class PublicPlaceService {
                     p.getRatingAvg(),
                     p.getRatingCount(),
                     p.getAttributes(),
-                    p.getKind()
+                    p.getKind(),
+                    p.getLatitude(),
+                    p.getLongitude(),
+                    p.getAddress()
             );
+            dto.setContacts(contactsByPlaceId.getOrDefault(p.getId(), Collections.emptyList()));
+            return dto;
         });
     }
 

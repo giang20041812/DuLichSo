@@ -1,6 +1,7 @@
-import { ShieldCheck, Leaf, Compass } from "lucide-react"
+import { ShieldCheck, Leaf } from "lucide-react"
 import { Button } from "../ui/button"
 import { Input } from "../ui/input"
+import { VietTrackLogo } from "../ui/logo"
 
 export default function Footer() {
   return (
@@ -10,13 +11,7 @@ export default function Footer() {
         {/* Column 1: Brand & Info (Luôn hiển thị cả trên mobile & desktop) */}
         <div className="md:col-span-3">
           <div className="flex flex-col mb-3 md:mb-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-md bg-[#048c73] flex items-center justify-center text-white shadow-sm">
-                <Compass className="w-5 h-5" />
-              </div>
-              <span className="text-2xl font-bold font-display text-[#048c73] leading-none tracking-tight">VietJourney</span>
-            </div>
-            <span className="text-[10px] font-bold text-[#66716c] tracking-widest uppercase mt-1">Khám Phá Việt Nam</span>
+            <VietTrackLogo size={48} textColor="text-[#048c73]" />
           </div>
           <p className="text-[#66716c] text-sm leading-relaxed mb-0 md:mb-6">
             Sứ mệnh đồng hành cùng du khách khám phá vẻ đẹp thuần khiết, bảo tồn di sản văn hóa bản địa và thúc đẩy du lịch sinh thái bền vững trên dải đất hình chữ S.
@@ -96,7 +91,7 @@ export default function Footer() {
             <ShieldCheck className="w-3.5 h-3.5" /> Đã Đăng Ký Bộ Công Thương
           </div>
           <p className="text-[11px] text-[#66716c]">
-            &copy; {new Date().getFullYear()} VietJourney. Bảo lưu mọi quyền.
+            &copy; {new Date().getFullYear()} VietTrack. Bảo lưu mọi quyền.
           </p>
         </div>
         

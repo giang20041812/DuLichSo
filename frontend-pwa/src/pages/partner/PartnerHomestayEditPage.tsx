@@ -24,8 +24,8 @@ import {
   Save,
   HelpCircle,
 } from 'lucide-react';
-import { PartnerHomestayDetailDto } from '../types/partner';
-import { fetchPartnerHomestayDetail, savePartnerHomestayDetail } from '../services/partnerHomestayService';
+import { PartnerHomestayDetailDto } from '@/types/partner';
+import { fetchPartnerHomestayDetail, savePartnerHomestayDetail } from '@/services/partnerHomestayService';
 
 const AVAILABLE_AMENITIES = [
   { id: 'wifi', name: 'Wifi tốc độ cao', icon: Wifi },

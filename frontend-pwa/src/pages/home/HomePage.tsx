@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from "react"
 import { Link } from "react-router-dom"
-import SearchHub from "../components/layout/SearchHub"
+import SearchHub from "@/components/layout/SearchHub"
 import { MapPin, Heart, Star, Check, Handshake, Tag, Headphones, ShieldCheck, Mountain, Tent, Ticket, CheckCircle2, Lock, Sparkles } from "lucide-react"
-import { fetchHomeData } from "../services/homeService"
-import { HomeResponseDto, PlaceSummaryDto } from "../types/home"
+import { fetchHomeData } from "@/services/homeService"
+import { HomeResponseDto, PlaceSummaryDto } from "@/types/home"
 
 
 

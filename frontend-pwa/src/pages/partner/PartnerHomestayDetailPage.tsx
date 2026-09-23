@@ -26,11 +26,11 @@ import {
   PartnerHomestayDetailDto,
   PlaceVisibility,
   PlaceOperationStatus,
-} from '../types/partner';
+} from '@/types/partner';
 import {
   fetchPartnerHomestayDetail,
   updateHomestayStatus,
-} from '../services/partnerHomestayService';
+} from '@/services/partnerHomestayService';
 
 export default function PartnerHomestayDetailPage() {
   const { id } = useParams<{ id: string }>();

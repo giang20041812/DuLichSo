@@ -44,7 +44,7 @@ public class PublicPlaceController {
     @GetMapping("/{identifier}")
     public ResponseEntity<PlaceDetailDto> getPlaceDetail(@PathVariable("identifier") String identifier) {
         if (identifier.matches("^\\d+$")) {
-            return ResponseEntity.ok(publicPlaceService.getPlaceDetail(Long.parseLong(identifier)));
+            return ResponseEntity.ok(placeDetailService.getPlaceDetailById(Long.parseLong(identifier)));
         } else {
             return ResponseEntity.ok(placeDetailService.getPlaceDetail(identifier));
         }

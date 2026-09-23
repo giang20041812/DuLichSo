@@ -8,6 +8,7 @@ import java.util.List;
 
 public interface PlaceDetailService {
     PlaceDetailDto getPlaceDetail(String slug);
+    PlaceDetailDto getPlaceDetailById(Long id);
     List<RoomTypeDetailDto> getPlaceRooms(String slug);
     MapContextDto getMapContext(String slug);
 }

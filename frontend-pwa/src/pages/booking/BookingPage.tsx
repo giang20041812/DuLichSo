@@ -22,9 +22,9 @@ import {
   Banknote,
   Phone
 } from 'lucide-react';
-import { BookingNavigationState, BookingResponseDto } from '../types/booking';
-import { createBooking } from '../services/bookingService';
-import { Button } from '../components/ui/button';
+import { BookingNavigationState, BookingResponseDto } from '@/types/booking';
+import { createBooking } from '@/services/bookingService';
+import { Button } from '@/components/ui/button';
 
 // Định dạng ISO YYYY-MM-DD -> 'Thứ 5, 24 thg 9'
 function formatISODate(isoDate: string): string {

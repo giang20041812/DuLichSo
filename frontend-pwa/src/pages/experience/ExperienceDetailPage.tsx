@@ -18,8 +18,8 @@ import {
   Home,
   Compass
 } from 'lucide-react';
-import { ExperienceDetail } from '../types/itinerary';
-import { fetchExperienceDetail } from '../services/experienceService';
+import { ExperienceDetail } from '@/types/itinerary';
+import { fetchExperienceDetail } from '@/services/experienceService';
 
 export default function ExperienceDetailPage() {
   const { slug = 'trai-nghiem-gia-com-nep-tu-le' } = useParams<{ slug: string }>();
