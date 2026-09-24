@@ -48,12 +48,14 @@ public class Notification {
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private NotificationStatus status = NotificationStatus.PENDING;
     
     @Column(name = "error_message", length = 500)
     private String errorMessage;
     
     @Column(name = "created_at", nullable = false, updatable = false)
+    @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
     @Column(name = "sent_at")
     private LocalDateTime sentAt;

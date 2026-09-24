@@ -1,0 +1,34 @@
+package com.dulichso.bookingapi.entity;
+
+import com.dulichso.bookingapi.entity.enums.AccountStatus;
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "traveler")
+@Data @NoArgsConstructor @AllArgsConstructor @Builder
+public class Traveler {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    @Column(nullable = false, unique = true)
+    private String email;
+    @Column(unique = true, length = 32)
+    private String phone;
+    @Column(name = "password_hash")
+    private String passwordHash;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private AccountStatus status = AccountStatus.ACTIVE;
+    @Column(name = "full_name")
+    private String fullName;
+    @Column(name = "picture_url", length = 1000)
+    private String pictureUrl;
+    @Column(name = "last_login_at")
+    private LocalDateTime lastLoginAt;
+    @Column(name = "created_at", nullable = false, updatable = false)
+    @Builder.Default
+    private LocalDateTime createdAt = LocalDateTime.now();
+}

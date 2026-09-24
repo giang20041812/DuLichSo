@@ -1,4 +1,5 @@
 import { PlaceContactItem } from '../types/homestay';
+import { apiOrigin } from '@/lib/apiBase';
 
 export interface RestaurantDto {
   id: string;
@@ -85,7 +86,7 @@ interface RawBackendPageResponse {
 
 export const fetchRestaurants = async (params?: RestaurantFilterParams): Promise<RestaurantDto[]> => {
   try {
-    const url = new URL('/api/public/places', window.location.origin);
+    const url = new URL('/api/public/places', apiOrigin());
     url.searchParams.append('kind', 'RESTAURANT');
     url.searchParams.append('size', '50'); // Lấy danh sách đầy đủ để lọc & phân trang
 

@@ -23,5 +23,6 @@ public class PlaceOpeningHour {
     private LocalTime closeTime;
     
     @Column(name = "is_closed", nullable = false)
+    @Builder.Default
     private Boolean isClosed = false;
 }

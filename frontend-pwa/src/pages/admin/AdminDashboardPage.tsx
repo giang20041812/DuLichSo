@@ -1,4 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import AccountsPanel from '@/components/admin/AccountsPanel';
+import PlacesPanel from '@/components/admin/PlacesPanel';
+import OverviewPanel from '@/components/admin/OverviewPanel';
+import BookingsPanel from '@/components/admin/BookingsPanel';
 import { useNavigate } from 'react-router-dom';
 import {
   ShieldCheck,
@@ -6,35 +10,24 @@ import {
   ArrowLeft,
   Users,
   BarChart3,
-  Settings,
   Plus,
-  Search,
   CheckCircle,
   AlertTriangle,
-  Eye,
-  EyeOff,
-  KeyRound,
   RefreshCw,
   Building2,
   MapPin,
   DollarSign,
+  CalendarCheck,
   X,
 } from 'lucide-react';
 import { adminService } from '@/services/adminService';
 import type {
-  AdminAccountDto,
   AdminProviderSummaryDto,
-  AdminPlaceSummaryDto,
   AdminDashboardSummaryDto,
-  AccountRole,
-  AccountStatus,
   ProviderStatus,
-  PlaceVisibility,
-  PlaceVerificationStatus,
-  CategoryKind,
 } from '@/types/admin';
 
-type AdminTab = 'dashboard' | 'accounts' | 'providers' | 'places' | 'finance';
+type AdminTab = 'dashboard' | 'accounts' | 'providers' | 'places' | 'bookings' | 'finance';
 
 export default function AdminDashboardPage() {
   const navigate = useNavigate();
@@ -47,12 +40,10 @@ export default function AdminDashboardPage() {
 
   // 1. Dashboard State
   const [dashboardData, setDashboardData] = useState<AdminDashboardSummaryDto | null>(null);
+  const [dashboardError, setDashboardError] = useState(false);
 
   // 2. Accounts State
-  const [accounts, setAccounts] = useState<AdminAccountDto[]>([]);
-  const [accountRoleFilter, setAccountRoleFilter] = useState<AccountRole | ''>('');
-  const [accountStatusFilter, setAccountStatusFilter] = useState<AccountStatus | ''>('');
-  const [accountKeyword, setAccountKeyword] = useState('');
+  const [accountsRefreshKey, setAccountsRefreshKey] = useState(0);
   const [showCreateAdminModal, setShowCreateAdminModal] = useState(false);
   const [newAdminForm, setNewAdminForm] = useState({
     email: '',
@@ -67,6 +58,9 @@ export default function AdminDashboardPage() {
   const [providers, setProviders] = useState<AdminProviderSummaryDto[]>([]);
   const [providerStatusFilter, setProviderStatusFilter] = useState<ProviderStatus | ''>('');
   const [showCreateProviderModal, setShowCreateProviderModal] = useState(false);
+  const [providerStatusTarget, setProviderStatusTarget] = useState<{ id: number; name: string; status: ProviderStatus } | null>(null);
+  const [providerStatusReason, setProviderStatusReason] = useState('');
+  const [providerStatusError, setProviderStatusError] = useState('');
   const [newProviderForm, setNewProviderForm] = useState({
     name: '',
     contactName: '',
@@ -81,11 +75,6 @@ export default function AdminDashboardPage() {
   });
 
   // 4. Places State
-  const [places, setPlaces] = useState<AdminPlaceSummaryDto[]>([]);
-  const [placeKeyword, setPlaceKeyword] = useState('');
-  const [placeVisibilityFilter, setPlaceVisibilityFilter] = useState<PlaceVisibility | ''>('');
-  const [placeVerificationFilter, setPlaceVerificationFilter] = useState<PlaceVerificationStatus | ''>('');
-  const [placeKindFilter, setPlaceKindFilter] = useState<CategoryKind | ''>('');
 
   // 5. Finance State
   const [revenueData, setRevenueData] = useState<{
@@ -122,68 +111,10 @@ export default function AdminDashboardPage() {
   const loadDashboard = async () => {
     try {
       setLoading(true);
-      const data = await adminService.getDashboardSummary();
-      setDashboardData(data);
+      setDashboardError(false);
+      setDashboardData(await adminService.getDashboardSummary());
     } catch {
-      // Fallback data if backend is offline or empty
-      setDashboardData({
-        totalPlaces: 42,
-        unverifiedPlaces: 6,
-        totalProviders: 18,
-        activeProviders: 15,
-        suspendedProviders: 3,
-        totalAccounts: 64,
-        activeAccounts: 58,
-        monthlyBookingsCount: 1280,
-        monthlyRevenue: 345000000,
-        pendingRefundsCount: 2,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadAccounts = async () => {
-    try {
-      setLoading(true);
-      const data = await adminService.getAccounts({
-        role: accountRoleFilter ? accountRoleFilter : undefined,
-        status: accountStatusFilter ? accountStatusFilter : undefined,
-        keyword: accountKeyword ? accountKeyword : undefined,
-      });
-      setAccounts(data);
-    } catch {
-      // Fallback
-      setAccounts([
-        {
-          id: 1001,
-          email: 'admin@taybactrails.vn',
-          phone: '0988888888',
-          fullName: 'Nguyễn Quản Trị Viên',
-          role: 'ADMIN',
-          status: 'ACTIVE',
-          createdAt: '2026-01-01T08:00:00',
-        },
-        {
-          id: 1002,
-          email: 'ncc@taybactrails.vn',
-          phone: '0912345678',
-          fullName: 'Giàng A Páo',
-          role: 'PROVIDER',
-          status: 'ACTIVE',
-          providerName: 'Bản Lìm Mông Eco Lodge',
-          createdAt: '2026-02-15T09:30:00',
-        },
-        {
-          id: 1003,
-          email: 'inactive_user@taybactrails.vn',
-          phone: '0901234567',
-          fullName: 'Trần Văn Khóa',
-          role: 'CUSTOMER',
-          status: 'INACTIVE',
-          createdAt: '2026-03-01T10:00:00',
-        },
-      ]);
+      setDashboardError(true);
     } finally {
       setLoading(false);
     }
@@ -230,56 +161,6 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const loadPlaces = async () => {
-    try {
-      setLoading(true);
-      const data = await adminService.getPlaces({
-        keyword: placeKeyword ? placeKeyword : undefined,
-        visibility: placeVisibilityFilter ? placeVisibilityFilter : undefined,
-        verification: placeVerificationFilter ? placeVerificationFilter : undefined,
-        kind: placeKindFilter ? placeKindFilter : undefined,
-      });
-      setPlaces(data.content);
-    } catch {
-      setPlaces([
-        {
-          id: 1,
-          slug: 'ban-lim-mong-eco-lodge',
-          name: 'Bản Lìm Mông Eco Lodge',
-          kind: 'HOMESTAY',
-          providerName: 'Bản Lìm Mông Eco Lodge',
-          regionName: 'Mù Cang Chải',
-          address: 'Bản Lìm Mông, Xã Cao Phạ, Mù Cang Chải',
-          visibility: 'PUBLISHED',
-          operationStatus: 'OPERATING',
-          verification: 'VERIFIED',
-          lastVerifiedAt: '2026-03-01',
-          ratingAvg: 4.9,
-          ratingCount: 86,
-          createdAt: '2026-02-15T09:30:00',
-          updatedAt: '2026-03-10T14:20:00',
-        },
-        {
-          id: 2,
-          slug: 'doi-mam-xoi-la-pan-tan',
-          name: 'Đồi Mâm Xôi La Pán Tẩn',
-          kind: 'ATTRACTION',
-          regionName: 'Mù Cang Chải',
-          address: 'Bản Háng Tày, Xã La Pán Tẩn',
-          visibility: 'PUBLISHED',
-          operationStatus: 'OPERATING',
-          verification: 'UNVERIFIED',
-          ratingAvg: 4.8,
-          ratingCount: 142,
-          createdAt: '2026-01-10T08:00:00',
-          updatedAt: '2026-01-10T08:00:00',
-        },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const loadFinance = async () => {
     try {
       setLoading(true);
@@ -317,34 +198,13 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     if (activeTab === 'dashboard') loadDashboard();
-    else if (activeTab === 'accounts') loadAccounts();
     else if (activeTab === 'providers') loadProviders();
-    else if (activeTab === 'places') loadPlaces();
     else if (activeTab === 'finance') loadFinance();
   }, [activeTab]);
 
   // ─────────────────────────────────────────────
   // Action Handlers
   // ─────────────────────────────────────────────
-  const handleToggleAccountStatus = async (account: AdminAccountDto) => {
-    if (currentUser?.accountId === account.id) {
-      showNotification('error', 'Bạn không thể tự vô hiệu hoá tài khoản của chính mình!');
-      return;
-    }
-    const nextStatus: AccountStatus = account.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-    try {
-      await adminService.updateAccountStatus(account.id, {
-        status: nextStatus,
-        reason: 'Quản trị viên thao tác đổi trạng thái trên giao diện Portal',
-      });
-      showNotification('success', `Đã cập nhật trạng thái tài khoản sang ${nextStatus}`);
-      loadAccounts();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Không thể cập nhật trạng thái tài khoản.';
-      showNotification('error', msg);
-    }
-  };
-
   const handleCreateAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -352,7 +212,7 @@ export default function AdminDashboardPage() {
       showNotification('success', 'Đã tạo tài khoản Quản trị viên mới thành công!');
       setShowCreateAdminModal(false);
       setNewAdminForm({ email: '', phone: '', fullName: '', password: '' });
-      loadAccounts();
+      setAccountsRefreshKey((k) => k + 1);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Lỗi khi tạo tài khoản Admin.';
       showNotification('error', msg);
@@ -401,46 +261,31 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const handleUpdateProviderStatus = async (id: number, status: ProviderStatus) => {
+  const openProviderStatusDialog = (id: number, name: string, status: ProviderStatus) => {
+    setProviderStatusTarget({ id, name, status });
+    setProviderStatusReason('');
+    setProviderStatusError('');
+  };
+
+  const handleUpdateProviderStatus = async () => {
+    if (!providerStatusTarget) return;
+    const { id, status } = providerStatusTarget;
+    const reason = providerStatusReason.trim();
+    if (status !== 'ACTIVE' && !reason) {
+      setProviderStatusError('Vui lòng nhập lý do.');
+      return;
+    }
     try {
       await adminService.updateProviderStatus(id, {
         status,
-        reason: 'Admin cập nhật trạng thái NCC trên Portal',
+        reason: reason || 'Admin mở lại tài khoản đối tác',
       });
       showNotification('success', `Đã đổi trạng thái đối tác sang ${status}`);
+      setProviderStatusTarget(null);
       loadProviders();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Lỗi cập nhật trạng thái đối tác.';
-      showNotification('error', msg);
-    }
-  };
-
-  const handleUpdatePlaceVerification = async (id: number, verification: PlaceVerificationStatus) => {
-    try {
-      await adminService.updatePlaceVerification(id, {
-        verification,
-        reason: 'Admin cập nhật trạng thái kiểm duyệt nội dung',
-      });
-      showNotification('success', `Đã cập nhật kiểm duyệt điểm đến sang ${verification}`);
-      loadPlaces();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Lỗi cập nhật kiểm duyệt.';
-      showNotification('error', msg);
-    }
-  };
-
-  const handleTogglePlaceVisibility = async (place: AdminPlaceSummaryDto) => {
-    const nextVis: PlaceVisibility = place.visibility === 'PUBLISHED' ? 'UNPUBLISHED' : 'PUBLISHED';
-    try {
-      await adminService.updatePlaceVisibility(place.id, {
-        visibility: nextVis,
-        reason: 'Admin can thiệp ẩn/hiện khẩn cấp',
-      });
-      showNotification('success', `Đã đổi trạng thái hiển thị sang ${nextVis}`);
-      loadPlaces();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Lỗi đổi trạng thái hiển thị.';
-      showNotification('error', msg);
+      const serverMsg = (err as { response?: { data?: { message?: string } } }).response?.data?.message;
+      setProviderStatusError(serverMsg || 'Lỗi cập nhật trạng thái đối tác.');
     }
   };
 
@@ -496,10 +341,8 @@ export default function AdminDashboardPage() {
               type="button"
               onClick={() => {
                 if (activeTab === 'dashboard') loadDashboard();
-                else if (activeTab === 'accounts') loadAccounts();
-                else if (activeTab === 'providers') loadProviders();
-                else if (activeTab === 'places') loadPlaces();
-                else if (activeTab === 'finance') loadFinance();
+                            else if (activeTab === 'providers') loadProviders();
+                            else if (activeTab === 'finance') loadFinance();
               }}
               className="p-2 text-slate-600 hover:text-[var(--color-primary,#048C73)] hover:bg-slate-50 rounded-md border border-slate-200 transition-colors"
               title="Làm mới dữ liệu"
@@ -591,6 +434,19 @@ export default function AdminDashboardPage() {
 
           <button
             type="button"
+            onClick={() => setActiveTab('bookings')}
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-md transition-all border-b-2 whitespace-nowrap cursor-pointer ${
+              activeTab === 'bookings'
+                ? 'border-[var(--color-primary,#048C73)] text-[var(--color-primary,#048C73)] bg-white shadow-xs'
+                : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/60'
+            }`}
+          >
+            <CalendarCheck className="w-4 h-4" />
+            <span>Đặt phòng</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveTab('finance')}
             className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-md transition-all border-b-2 whitespace-nowrap cursor-pointer ${
               activeTab === 'finance'
@@ -605,239 +461,24 @@ export default function AdminDashboardPage() {
 
         {/* Tab 1: Dashboard Tổng quan */}
         {activeTab === 'dashboard' && (
-          <div className="flex flex-col gap-5">
-            {/* Metric Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-              <div className="bg-white rounded-lg p-4 border border-slate-200 shadow-xs flex items-center gap-3.5">
-                <div className="w-11 h-11 rounded-md bg-[var(--color-primary-subtle,#E6F4F1)] text-[var(--color-primary,#048C73)] flex items-center justify-center shrink-0">
-                  <MapPin className="w-5 h-5" />
-                </div>
-                <div>
-                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                    Điểm đến toàn sàn
-                  </span>
-                  <p className="text-xl font-bold text-slate-800">
-                    {dashboardData?.totalPlaces ?? 0}
-                  </p>
-                  <p className="text-[11px] text-amber-600 font-medium">
-                    {dashboardData?.unverifiedPlaces ?? 0} chưa xác thực
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg p-4 border border-slate-200 shadow-xs flex items-center gap-3.5">
-                <div className="w-11 h-11 rounded-md bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
-                  <Building2 className="w-5 h-5" />
-                </div>
-                <div>
-                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                    Đối tác / NCC
-                  </span>
-                  <p className="text-xl font-bold text-slate-800">
-                    {dashboardData?.totalProviders ?? 0}
-                  </p>
-                  <p className="text-[11px] text-emerald-600 font-medium">
-                    {dashboardData?.activeProviders ?? 0} hoạt động / {dashboardData?.suspendedProviders ?? 0} đình chỉ
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg p-4 border border-slate-200 shadow-xs flex items-center gap-3.5">
-                <div className="w-11 h-11 rounded-md bg-purple-50 text-purple-700 flex items-center justify-center shrink-0">
-                  <Users className="w-5 h-5" />
-                </div>
-                <div>
-                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                    Tài khoản người dùng
-                  </span>
-                  <p className="text-xl font-bold text-slate-800">
-                    {dashboardData?.totalAccounts ?? 0}
-                  </p>
-                  <p className="text-[11px] text-slate-500 font-medium">
-                    {dashboardData?.activeAccounts ?? 0} đang hoạt động
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg p-4 border border-slate-200 shadow-xs flex items-center gap-3.5">
-                <div className="w-11 h-11 rounded-md bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
-                  <DollarSign className="w-5 h-5" />
-                </div>
-                <div>
-                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                    Đặt phòng tháng này
-                  </span>
-                  <p className="text-xl font-bold text-slate-800">
-                    {dashboardData?.monthlyBookingsCount ?? 0} lượt
-                  </p>
-                  <p className="text-[11px] text-emerald-600 font-medium">
-                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
-                      dashboardData?.monthlyRevenue ?? 0
-                    )}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Banner Quyền Quản trị */}
-            <div className="bg-white rounded-lg p-5 border border-slate-200 shadow-xs flex flex-col gap-2">
-              <div className="flex items-center gap-2 text-sm font-bold text-[var(--color-ink-deep,#0f2d3c)]">
-                <Settings className="w-4 h-4 text-[var(--color-primary,#048C73)]" />
-                <span>Trạng thái kiểm soát nghiệp vụ thời gian thực</span>
-              </div>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Hệ thống xác thực JWT và phân quyền đa cấp RBAC (<strong>ROLE_ADMIN</strong>). Mọi thao tác thay đổi trạng thái, cập nhật tài khoản, duyệt điểm đến và hoàn tiền được tự động ghi nhận vào <strong>Audit Log</strong> phục vụ truy xuất trách nhiệm an toàn thông tin.
-              </p>
-            </div>
-          </div>
+          <OverviewPanel
+            data={dashboardData}
+            loading={loading}
+            error={dashboardError}
+            onRetry={loadDashboard}
+            onNavigate={setActiveTab}
+          />
         )}
 
         {/* Tab 2: Quản lý Tài khoản */}
         {activeTab === 'accounts' && (
-          <div className="bg-white rounded-lg border border-slate-200 shadow-xs p-4 flex flex-col gap-4">
-            {/* Filter Bar */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-2 flex-1">
-                <div className="relative flex-1 min-w-[200px]">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                  <input
-                    type="text"
-                    value={accountKeyword}
-                    onChange={(e) => setAccountKeyword(e.target.value)}
-                    placeholder="Tìm theo tên, email, SĐT..."
-                    className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-200 rounded-md focus:outline-hidden focus:border-[var(--color-primary,#048C73)]"
-                  />
-                </div>
-                <select
-                  value={accountRoleFilter}
-                  onChange={(e) => setAccountRoleFilter(e.target.value as AccountRole | '')}
-                  className="px-3 py-1.5 text-xs border border-slate-200 rounded-md bg-white focus:outline-hidden"
-                >
-                  <option value="">Tất cả vai trò</option>
-                  <option value="ADMIN">ADMIN</option>
-                  <option value="PROVIDER">PROVIDER (NCC)</option>
-                  <option value="CUSTOMER">CUSTOMER (Khách)</option>
-                </select>
-                <select
-                  value={accountStatusFilter}
-                  onChange={(e) => setAccountStatusFilter(e.target.value as AccountStatus | '')}
-                  className="px-3 py-1.5 text-xs border border-slate-200 rounded-md bg-white focus:outline-hidden"
-                >
-                  <option value="">Tất cả trạng thái</option>
-                  <option value="ACTIVE">Hoạt động (ACTIVE)</option>
-                  <option value="INACTIVE">Vô hiệu hóa (INACTIVE)</option>
-                </select>
-                <button
-                  type="button"
-                  onClick={loadAccounts}
-                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-md transition-colors"
-                >
-                  Lọc
-                </button>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setShowCreateAdminModal(true)}
-                className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[var(--color-primary,#048C73)] text-white text-xs font-semibold rounded-md hover:bg-[#03705C] transition-colors shadow-xs"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Tạo Admin mới</span>
-              </button>
-            </div>
-
-            {/* Table */}
-            <div className="overflow-x-auto border border-slate-200 rounded-md">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
-                    <th className="py-2.5 px-3">ID</th>
-                    <th className="py-2.5 px-3">Họ tên & Email</th>
-                    <th className="py-2.5 px-3">Số điện thoại</th>
-                    <th className="py-2.5 px-3">Vai trò</th>
-                    <th className="py-2.5 px-3">Cơ sở liên kết</th>
-                    <th className="py-2.5 px-3">Trạng thái</th>
-                    <th className="py-2.5 px-3 text-right">Hành động</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {accounts.map((acc) => (
-                    <tr key={acc.id} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="py-2.5 px-3 font-mono text-slate-500">#{acc.id}</td>
-                      <td className="py-2.5 px-3">
-                        <div className="font-semibold text-slate-800">{acc.fullName}</div>
-                        <div className="text-slate-500 text-[11px]">{acc.email}</div>
-                      </td>
-                      <td className="py-2.5 px-3 text-slate-600">{acc.phone || '—'}</td>
-                      <td className="py-2.5 px-3">
-                        <span
-                          className={`px-2 py-0.5 rounded-sm text-[10px] font-bold ${
-                            acc.role === 'ADMIN'
-                              ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                              : acc.role === 'PROVIDER'
-                              ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                              : 'bg-slate-100 text-slate-700'
-                          }`}
-                        >
-                          {acc.role}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3 text-slate-600">
-                        {acc.providerName ? (
-                          <span className="text-[11px] text-[var(--color-primary,#048C73)] font-medium">
-                            {acc.providerName}
-                          </span>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                      <td className="py-2.5 px-3">
-                        <span
-                          className={`px-2 py-0.5 rounded-sm text-[10px] font-bold ${
-                            acc.status === 'ACTIVE'
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              : 'bg-rose-50 text-rose-700 border border-rose-200'
-                          }`}
-                        >
-                          {acc.status}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => setResetPassModal({ id: acc.id, email: acc.email })}
-                            className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-md transition-colors"
-                            title="Đặt lại mật khẩu"
-                          >
-                            <KeyRound className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleToggleAccountStatus(acc)}
-                            className={`px-2 py-1 text-[11px] font-semibold rounded-md border transition-colors ${
-                              acc.status === 'ACTIVE'
-                                ? 'border-rose-200 text-rose-700 hover:bg-rose-50'
-                                : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
-                            }`}
-                          >
-                            {acc.status === 'ACTIVE' ? 'Khoá' : 'Mở'}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {accounts.length === 0 && (
-                    <tr>
-                      <td colSpan={7} className="py-8 text-center text-slate-400 text-xs">
-                        Không tìm thấy tài khoản nào khớp điều kiện.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <AccountsPanel
+            currentAccountId={currentUser?.accountId}
+            refreshKey={accountsRefreshKey}
+            onCreateAdmin={() => setShowCreateAdminModal(true)}
+            onResetPassword={setResetPassModal}
+            notify={showNotification}
+          />
         )}
 
         {/* Tab 3: Quản lý Đối tác / NCC */}
@@ -926,7 +567,7 @@ export default function AdminDashboardPage() {
                           {p.status !== 'ACTIVE' && (
                             <button
                               type="button"
-                              onClick={() => handleUpdateProviderStatus(p.id, 'ACTIVE')}
+                              onClick={() => openProviderStatusDialog(p.id, p.name, 'ACTIVE')}
                               className="px-2 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-md text-[11px] font-semibold transition-colors"
                             >
                               Kích hoạt
@@ -935,7 +576,7 @@ export default function AdminDashboardPage() {
                           {p.status !== 'SUSPENDED' && (
                             <button
                               type="button"
-                              onClick={() => handleUpdateProviderStatus(p.id, 'SUSPENDED')}
+                              onClick={() => openProviderStatusDialog(p.id, p.name, 'SUSPENDED')}
                               className="px-2 py-1 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-md text-[11px] font-semibold transition-colors"
                             >
                               Đình chỉ
@@ -944,7 +585,7 @@ export default function AdminDashboardPage() {
                           {p.status !== 'TERMINATED' && (
                             <button
                               type="button"
-                              onClick={() => handleUpdateProviderStatus(p.id, 'TERMINATED')}
+                              onClick={() => openProviderStatusDialog(p.id, p.name, 'TERMINATED')}
                               className="px-2 py-1 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-md text-[11px] font-semibold transition-colors"
                             >
                               Chấm dứt
@@ -968,172 +609,10 @@ export default function AdminDashboardPage() {
         )}
 
         {/* Tab 4: Kiểm duyệt Điểm đến */}
-        {activeTab === 'places' && (
-          <div className="bg-white rounded-lg border border-slate-200 shadow-xs p-4 flex flex-col gap-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative flex-1 min-w-[200px]">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                <input
-                  type="text"
-                  value={placeKeyword}
-                  onChange={(e) => setPlaceKeyword(e.target.value)}
-                  placeholder="Tìm kiếm điểm đến theo tên, slug, địa chỉ..."
-                  className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-200 rounded-md focus:outline-hidden focus:border-[var(--color-primary,#048C73)]"
-                />
-              </div>
+        {activeTab === 'places' && <PlacesPanel notify={showNotification} />}
 
-              <select
-                value={placeKindFilter}
-                onChange={(e) => setPlaceKindFilter(e.target.value as CategoryKind | '')}
-                className="px-3 py-1.5 text-xs border border-slate-200 rounded-md bg-white focus:outline-hidden"
-              >
-                <option value="">Tất cả loại hình</option>
-                <option value="HOMESTAY">HOMESTAY</option>
-                <option value="HOTEL">HOTEL</option>
-                <option value="RESTAURANT">RESTAURANT</option>
-                <option value="ATTRACTION">ATTRACTION</option>
-                <option value="ACTIVITY">ACTIVITY</option>
-                <option value="TRANSPORT">TRANSPORT</option>
-              </select>
-
-              <select
-                value={placeVerificationFilter}
-                onChange={(e) => setPlaceVerificationFilter(e.target.value as PlaceVerificationStatus | '')}
-                className="px-3 py-1.5 text-xs border border-slate-200 rounded-md bg-white focus:outline-hidden"
-              >
-                <option value="">Tất cả trạng thái xác thực</option>
-                <option value="VERIFIED">Đã xác thực (VERIFIED)</option>
-                <option value="UNVERIFIED">Chưa xác thực (UNVERIFIED)</option>
-                <option value="NEEDS_UPDATE">Cần cập nhật (NEEDS_UPDATE)</option>
-                <option value="ARCHIVED">Lưu trữ (ARCHIVED)</option>
-              </select>
-
-              <select
-                value={placeVisibilityFilter}
-                onChange={(e) => setPlaceVisibilityFilter(e.target.value as PlaceVisibility | '')}
-                className="px-3 py-1.5 text-xs border border-slate-200 rounded-md bg-white focus:outline-hidden"
-              >
-                <option value="">Tất cả hiển thị</option>
-                <option value="PUBLISHED">Công khai (PUBLISHED)</option>
-                <option value="UNPUBLISHED">Đã ẩn (UNPUBLISHED)</option>
-                <option value="DRAFT">Bản nháp (DRAFT)</option>
-              </select>
-
-              <button
-                type="button"
-                onClick={loadPlaces}
-                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-md transition-colors"
-              >
-                Lọc
-              </button>
-            </div>
-
-            <div className="overflow-x-auto border border-slate-200 rounded-md">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
-                    <th className="py-2.5 px-3">ID</th>
-                    <th className="py-2.5 px-3">Tên Điểm đến</th>
-                    <th className="py-2.5 px-3">Loại hình</th>
-                    <th className="py-2.5 px-3">NCC / Khu vực</th>
-                    <th className="py-2.5 px-3">Hiển thị</th>
-                    <th className="py-2.5 px-3">Xác thực</th>
-                    <th className="py-2.5 px-3 text-right">Kiểm duyệt</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {places.map((place) => (
-                    <tr key={place.id} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="py-2.5 px-3 font-mono text-slate-500">#{place.id}</td>
-                      <td className="py-2.5 px-3">
-                        <div className="font-bold text-slate-800">{place.name}</div>
-                        <div className="text-slate-400 text-[11px] font-mono">{place.slug}</div>
-                      </td>
-                      <td className="py-2.5 px-3">
-                        <span className="px-2 py-0.5 rounded-sm bg-slate-100 text-slate-700 text-[10px] font-bold">
-                          {place.kind}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3 text-slate-600">
-                        <div>{place.providerName || 'Hệ thống du lịch'}</div>
-                        <div className="text-[11px] text-slate-400">{place.regionName || place.address}</div>
-                      </td>
-                      <td className="py-2.5 px-3">
-                        <span
-                          className={`px-2 py-0.5 rounded-sm text-[10px] font-bold ${
-                            place.visibility === 'PUBLISHED'
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              : 'bg-slate-100 text-slate-600 border border-slate-200'
-                          }`}
-                        >
-                          {place.visibility}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3">
-                        <span
-                          className={`px-2 py-0.5 rounded-sm text-[10px] font-bold ${
-                            place.verification === 'VERIFIED'
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              : place.verification === 'NEEDS_UPDATE'
-                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                              : place.verification === 'ARCHIVED'
-                              ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                              : 'bg-slate-100 text-slate-600 border border-slate-200'
-                          }`}
-                        >
-                          {place.verification}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {place.verification !== 'VERIFIED' && (
-                            <button
-                              type="button"
-                              onClick={() => handleUpdatePlaceVerification(place.id, 'VERIFIED')}
-                              className="px-2 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-md text-[11px] font-semibold transition-colors"
-                              title="Duyệt xác thực điểm đến"
-                            >
-                              Duyệt
-                            </button>
-                          )}
-                          {place.verification !== 'NEEDS_UPDATE' && (
-                            <button
-                              type="button"
-                              onClick={() => handleUpdatePlaceVerification(place.id, 'NEEDS_UPDATE')}
-                              className="px-2 py-1 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-md text-[11px] font-semibold transition-colors"
-                              title="Yêu cầu NCC cập nhật lại nội dung"
-                            >
-                              Bổ sung
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => handleTogglePlaceVisibility(place)}
-                            className="p-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-md transition-colors"
-                            title={place.visibility === 'PUBLISHED' ? 'Ẩn khẩn cấp' : 'Công khai'}
-                          >
-                            {place.visibility === 'PUBLISHED' ? (
-                              <EyeOff className="w-3.5 h-3.5 text-rose-600" />
-                            ) : (
-                              <Eye className="w-3.5 h-3.5 text-emerald-600" />
-                            )}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {places.length === 0 && (
-                    <tr>
-                      <td colSpan={7} className="py-8 text-center text-slate-400 text-xs">
-                        Không tìm thấy điểm đến nào.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+        {/* Tab: Đặt phòng */}
+        {activeTab === 'bookings' && <BookingsPanel />}
 
         {/* Tab 5: Tài chính & Hoàn tiền */}
         {activeTab === 'finance' && (
@@ -1338,6 +817,59 @@ export default function AdminDashboardPage() {
       )}
 
       {/* Modal 2: Tạo NCC mới + tài khoản 1 bước */}
+      {providerStatusTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60">
+          <div className="w-full max-w-md rounded-lg bg-white border border-slate-200 shadow-xl p-5 flex flex-col gap-3">
+            <h3 className="text-base font-bold text-slate-800">
+              {providerStatusTarget.status === 'ACTIVE'
+                ? 'Mở lại đối tác'
+                : providerStatusTarget.status === 'SUSPENDED'
+                ? 'Đình chỉ đối tác'
+                : 'Chấm dứt đối tác'}
+            </h3>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              <strong>{providerStatusTarget.name}</strong>
+              {providerStatusTarget.status === 'ACTIVE'
+                ? ' sẽ đăng nhập và thao tác lại bình thường.'
+                : ' sẽ thấy màn hình thông báo bị đình chỉ và không thể thao tác gì cho đến khi được mở lại.'}
+            </p>
+            <label className="text-xs font-semibold text-slate-700" htmlFor="provider-status-reason">
+              Lý do {providerStatusTarget.status !== 'ACTIVE' && <span className="text-rose-600">*</span>}
+            </label>
+            <textarea
+              id="provider-status-reason"
+              rows={3}
+              value={providerStatusReason}
+              onChange={(e) => setProviderStatusReason(e.target.value)}
+              className="w-full px-3 py-2 text-xs border border-slate-200 rounded-md focus:outline-hidden focus:border-[var(--color-primary,#048C73)]"
+            />
+            {providerStatusError && <p className="text-xs text-rose-600">{providerStatusError}</p>}
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setProviderStatusTarget(null)}
+                className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-md"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleUpdateProviderStatus}
+                className={`px-4 py-2 text-xs font-semibold text-white rounded-md ${
+                  providerStatusTarget.status === 'ACTIVE'
+                    ? 'bg-[var(--color-primary,#048C73)] hover:bg-[#03705C]'
+                    : providerStatusTarget.status === 'SUSPENDED'
+                    ? 'bg-amber-600 hover:bg-amber-700'
+                    : 'bg-rose-600 hover:bg-rose-700'
+                }`}
+              >
+                Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showCreateProviderModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
           <div className="bg-white border border-slate-200 rounded-lg shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">

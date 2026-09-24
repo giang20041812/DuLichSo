@@ -1,4 +1,5 @@
 import { CreateBookingRequest, BookingResponseDto } from '../types/booking';
+import { apiOrigin } from '@/lib/apiBase';
 
 export async function createBooking(request: CreateBookingRequest): Promise<BookingResponseDto> {
   const response = await fetch('/api/public/bookings', {
@@ -33,7 +34,7 @@ export async function getBookingByCode(bookingCode: string): Promise<BookingResp
 
 export async function fetchBookedDatesByRoom(roomTypeId: number, startDate?: string, endDate?: string): Promise<import('../types/booking').BookedDateRangeDto[]> {
   try {
-    const url = new URL(`/api/public/bookings/rooms/${roomTypeId}/booked-dates`, window.location.origin);
+    const url = new URL(`/api/public/bookings/rooms/${roomTypeId}/booked-dates`, apiOrigin());
     if (startDate) url.searchParams.append('startDate', startDate);
     if (endDate) url.searchParams.append('endDate', endDate);
 
@@ -48,7 +49,7 @@ export async function fetchBookedDatesByRoom(roomTypeId: number, startDate?: str
 
 export async function fetchBookedDatesByPlace(placeId: number, startDate?: string, endDate?: string): Promise<import('../types/booking').BookedDateRangeDto[]> {
   try {
-    const url = new URL(`/api/public/bookings/places/${placeId}/booked-dates`, window.location.origin);
+    const url = new URL(`/api/public/bookings/places/${placeId}/booked-dates`, apiOrigin());
     if (startDate) url.searchParams.append('startDate', startDate);
     if (endDate) url.searchParams.append('endDate', endDate);
 

@@ -35,8 +35,39 @@ public class AdminPlaceController {
             @RequestParam(required = false) PlaceVisibility visibility,
             @RequestParam(required = false) PlaceVerificationStatus verification,
             @RequestParam(required = false) CategoryKind kind,
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(adminPlaceService.getPlaces(keyword, visibility, verification, kind, pageable));
+            @RequestParam(required = false) Long providerId,
+            @RequestParam(required = false) Long regionId,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate createdFrom,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate createdTo,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(adminPlaceService.getPlaces(keyword, visibility, verification, kind,
+                providerId, regionId, createdFrom, createdTo, sortBy, sortDir, page, size));
+    }
+
+    /** GET /api/v1/admin/places/summary — số điểm đến theo trạng thái xác thực (cho chip đếm). */
+    @GetMapping("/summary")
+    public ResponseEntity<java.util.Map<String, Long>> getSummary() {
+        return ResponseEntity.ok(adminPlaceService.countByVerification());
+    }
+
+    /** PATCH /api/v1/admin/places/verification/bulk — duyệt / từ chối hàng loạt. */
+    @PatchMapping("/verification/bulk")
+    public ResponseEntity<java.util.Map<String, Integer>> bulkVerification(
+            @RequestBody BulkVerificationRequest request,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        Long callerId = principal != null ? principal.accountId() : null;
+        int updated = adminPlaceService.bulkUpdateVerification(request.ids(), request.verification(), request.reason(), callerId);
+        return ResponseEntity.ok(java.util.Map.of("updated", updated));
+    }
+
+    public record BulkVerificationRequest(java.util.List<Long> ids, PlaceVerificationStatus verification, String reason) {}
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<java.util.Map<String, Object>> handleBadRequest(IllegalArgumentException ex) {
+        return ResponseEntity.badRequest().body(java.util.Map.of("status", 400, "message", ex.getMessage()));
     }
 
     /**

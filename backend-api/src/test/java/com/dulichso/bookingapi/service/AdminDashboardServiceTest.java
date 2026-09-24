@@ -49,6 +49,12 @@ class AdminDashboardServiceTest {
     @Mock
     private AdminFinanceService adminFinanceService;
 
+    @Mock
+    private com.dulichso.bookingapi.repository.TravelerRepository travelerRepository;
+
+    @Mock
+    private com.dulichso.bookingapi.repository.SosRequestRepository sosRequestRepository;
+
     private AdminDashboardService service;
 
     @BeforeEach
@@ -59,7 +65,9 @@ class AdminDashboardServiceTest {
                 accountRepository,
                 bookingRepository,
                 refundRepository,
-                adminFinanceService
+                adminFinanceService,
+                travelerRepository,
+                sosRequestRepository
         );
     }
 

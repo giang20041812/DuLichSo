@@ -22,8 +22,11 @@ export { default as UtilityListPage } from './services/UtilityListPage';
 
 // Portal & Management
 export { default as PortalLoginPage } from './portal/PortalLoginPage';
+export { default as RegisterPage } from './auth/RegisterPage';
+export { default as ProviderSuspendedPage } from './portal/ProviderSuspendedPage';
 export { default as AdminDashboardPage } from './admin/AdminDashboardPage';
 export { default as PartnerDashboardPage } from './partner/PartnerDashboardPage';
+export { default as PartnerBookingsPage } from './partner/PartnerBookingsPage';
 export { default as PartnerHomestayDetailPage } from './partner/PartnerHomestayDetailPage';
 export { default as PartnerHomestayEditPage } from './partner/PartnerHomestayEditPage';
 

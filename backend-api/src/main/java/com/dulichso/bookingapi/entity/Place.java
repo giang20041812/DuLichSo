@@ -62,13 +62,16 @@ public class Place {
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private PlaceVisibility visibility = PlaceVisibility.DRAFT;
     
     @Enumerated(EnumType.STRING)
     @Column(name = "operation_status", nullable = false)
+    @Builder.Default
     private PlaceOperationStatus operationStatus = PlaceOperationStatus.OPERATING;
     
     @Column(name = "is_deleted", nullable = false)
+    @Builder.Default
     private Boolean isDeleted = false;
     
     @Column(name = "is_suitable_by_time", nullable = false)
@@ -82,6 +85,7 @@ public class Place {
     
     @Enumerated(EnumType.STRING)
     @Column(name = "source_type", nullable = false)
+    @Builder.Default
     private SourceType sourceType = SourceType.PUBLIC_TRUSTED;
     
     @Column(name = "source_name")
@@ -91,6 +95,7 @@ public class Place {
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private PlaceVerificationStatus verification = PlaceVerificationStatus.UNVERIFIED;
     
     @Column(name = "last_verified_at")
@@ -103,6 +108,7 @@ public class Place {
     @Column(name = "rating_avg", precision = 3, scale = 2)
     private BigDecimal ratingAvg;
     @Column(name = "rating_count", nullable = false)
+    @Builder.Default
     private Integer ratingCount = 0;
     
     @JdbcTypeCode(SqlTypes.JSON)
@@ -110,8 +116,10 @@ public class Place {
     private Map<String, Object> attributes;
     
     @Column(name = "created_at", nullable = false, updatable = false)
+    @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
     @Column(name = "updated_at", nullable = false)
+    @Builder.Default
     private LocalDateTime updatedAt = LocalDateTime.now();
     
     @ManyToOne(fetch = FetchType.LAZY)

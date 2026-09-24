@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Home, 
@@ -17,7 +16,6 @@ import {
   LogOut
 } from 'lucide-react';
 import { VietTrackLogoMark } from '../ui/logo';
-import { RegisterModal } from '../auth/RegisterModal';
 
 export interface SidebarProps {
   isDesktopOpen: boolean;
@@ -39,14 +37,20 @@ const navItems = [
 export default function Sidebar({ isDesktopOpen, isMobileOpen, onCloseMobile }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const [isRegisterOpen, setIsRegisterOpen] = useState(false);
 
   const rawUser = typeof window !== 'undefined' ? localStorage.getItem('portal_user') : null;
-  const currentUser = rawUser ? JSON.parse(rawUser) : null;
+  const rawTraveler = typeof window !== 'undefined' ? localStorage.getItem('traveler_user') : null;
+  const currentUser = rawUser
+    ? JSON.parse(rawUser)
+    : rawTraveler
+      ? { ...JSON.parse(rawTraveler), role: 'TRAVELER' }
+      : null;
 
   const handleLogout = () => {
     localStorage.removeItem('portal_token');
     localStorage.removeItem('portal_user');
+    localStorage.removeItem('traveler_token');
+    localStorage.removeItem('traveler_user');
     navigate('/login');
   };
 
@@ -115,7 +119,7 @@ export default function Sidebar({ isDesktopOpen, isMobileOpen, onCloseMobile }: 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5 min-w-0">
                   <div className="w-6 h-6 rounded-md bg-[var(--color-primary-subtle,#E6F4F1)] text-[var(--color-primary,#048C73)] flex items-center justify-center text-xs font-bold shrink-0">
-                    {currentUser.role === 'ADMIN' ? 'AD' : 'NCC'}
+                    {currentUser.role === 'ADMIN' ? 'AD' : currentUser.role === 'TRAVELER' ? (currentUser.fullName || 'K').charAt(0).toUpperCase() : 'NCC'}
                   </div>
                   <span className="text-xs font-semibold text-slate-800 truncate" title={currentUser.fullName || currentUser.email}>
                     {currentUser.fullName || currentUser.email}
@@ -130,7 +134,7 @@ export default function Sidebar({ isDesktopOpen, isMobileOpen, onCloseMobile }: 
                   <LogOut className="w-3.5 h-3.5" />
                 </button>
               </div>
-              <button
+              {currentUser.role !== 'TRAVELER' && <button
                 type="button"
                 onClick={() => {
                   navigate(currentUser.role === 'ADMIN' ? '/admin' : '/partner');
@@ -139,7 +143,7 @@ export default function Sidebar({ isDesktopOpen, isMobileOpen, onCloseMobile }: 
                 className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 bg-[var(--color-primary,#048C73)] text-white text-xs font-semibold rounded-md hover:bg-[#03705C] transition-colors shadow-xs"
               >
                 <span>Vào Cổng {currentUser.role === 'ADMIN' ? 'Quản trị' : 'Đối tác'}</span>
-              </button>
+              </button>}
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-1.5">
@@ -157,7 +161,7 @@ export default function Sidebar({ isDesktopOpen, isMobileOpen, onCloseMobile }: 
               <button 
                 type="button"
                 onClick={() => {
-                  setIsRegisterOpen(true);
+                  navigate('/register');
                   if (isMobile) onCloseMobile();
                 }}
                 className="flex items-center justify-center gap-1.5 px-2.5 py-2 bg-white border border-gray-300 text-[var(--color-ink-deep,#0f2d3c)] text-xs font-bold rounded-md hover:border-[var(--color-primary,#048C73)] hover:text-[var(--color-primary,#048C73)] transition-colors shadow-xs cursor-pointer"
@@ -230,11 +234,6 @@ export default function Sidebar({ isDesktopOpen, isMobileOpen, onCloseMobile }: 
         {renderFooterActions(true)}
       </aside>
 
-      <RegisterModal
-        isOpen={isRegisterOpen}
-        onClose={() => setIsRegisterOpen(false)}
-        onSuccessLogin={() => navigate('/login')}
-      />
     </>
   );
 }

@@ -1,6 +1,10 @@
 package com.dulichso.bookingapi.security;
 
+import com.dulichso.bookingapi.entity.Account;
 import com.dulichso.bookingapi.entity.enums.AccountRole;
+import com.dulichso.bookingapi.entity.enums.AccountStatus;
+import com.dulichso.bookingapi.entity.enums.ProviderStatus;
+import com.dulichso.bookingapi.repository.AccountRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -26,9 +30,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     private final JwtUtils jwtUtils;
+    private final AccountRepository accountRepository;
 
-    public JwtAuthenticationFilter(JwtUtils jwtUtils) {
+    public JwtAuthenticationFilter(JwtUtils jwtUtils, AccountRepository accountRepository) {
         this.jwtUtils = jwtUtils;
+        this.accountRepository = accountRepository;
     }
 
     @Override
@@ -47,6 +53,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         roleStr.startsWith("ROLE_") ? roleStr.substring(5) : roleStr
                 );
 
+                // NCC bị đình chỉ / chấm dứt (hoặc tài khoản bị vô hiệu hóa) mất quyền ngay,
+                // kể cả khi đang giữ token còn hạn.
+                if (role == AccountRole.PROVIDER && isProviderBlocked(username)) {
+                    rejectSuspended(response);
+                    return;
+                }
+
                 // accountId không lưu trong token — nếu cần phải query DB,
                 // nhưng để giữ stateless ta để null, service sẽ dùng identifier nếu cần.
                 UserPrincipal principal = new UserPrincipal(null, username, role, null);
@@ -62,6 +75,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private boolean isProviderBlocked(String identifier) {
+        Account account = accountRepository.findByIdentifier(identifier).orElse(null);
+        if (account == null) return false; // tài khoản mẫu QA không có trong DB: giữ hành vi cũ
+        if (account.getStatus() != AccountStatus.ACTIVE) return true;
+        return account.getProvider() == null || account.getProvider().getStatus() != ProviderStatus.ACTIVE;
+    }
+
+    private void rejectSuspended(HttpServletResponse response) throws IOException {
+        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().write("{\"status\":403,\"errorCode\":\"PROVIDER_SUSPENDED\","
+                + "\"message\":\"Tài khoản của bạn đang bị đình chỉ. Vui lòng liên hệ để được mở lại.\"}");
     }
 
     private String extractToken(HttpServletRequest request) {

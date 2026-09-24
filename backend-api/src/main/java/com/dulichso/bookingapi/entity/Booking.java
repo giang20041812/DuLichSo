@@ -55,6 +55,7 @@ public class Booking {
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private BookingStatus status = BookingStatus.PENDING;
     
     @Column(name = "hold_expires_at")
@@ -64,6 +65,7 @@ public class Booking {
     
     @Column(nullable = false, columnDefinition = "CHAR(3)")
     @org.hibernate.annotations.JdbcTypeCode(java.sql.Types.CHAR)
+    @Builder.Default
     private String currency = "VND";
     @Column(name = "total_amount", nullable = false)
     private BigDecimal totalAmount;
@@ -77,6 +79,7 @@ public class Booking {
     private Map<String, Object> policySnapshot;
     
     @Column(name = "created_at", nullable = false, updatable = false)
+    @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
     @Column(name = "confirmed_at")
     private LocalDateTime confirmedAt;

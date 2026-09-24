@@ -28,13 +28,49 @@ public class AdminAccountService {
         this.auditLogService = auditLogService;
     }
 
+    private static final java.util.Set<String> ACCOUNT_SORT_FIELDS = java.util.Set.of("createdAt", "lastLoginAt", "fullName", "email");
+
     @Transactional(readOnly = true)
-    public List<AccountDto> getAccounts(AccountRole role, AccountStatus status, String keyword) {
-        String kw = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
-        return accountRepository.searchAccounts(role, status, kw)
-                .stream()
-                .map(this::mapToDto)
-                .toList();
+    public org.springframework.data.domain.Page<AccountDto> getAccounts(
+            AccountRole role, AccountStatus status, String keyword,
+            com.dulichso.bookingapi.entity.enums.ProviderStatus providerStatus,
+            java.time.LocalDate createdFrom, java.time.LocalDate createdTo,
+            String sortBy, String sortDir, int page, int size) {
+
+        String kw = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim().toLowerCase() : null;
+        String sortField = ACCOUNT_SORT_FIELDS.contains(sortBy) ? sortBy : "createdAt";
+        org.springframework.data.domain.Sort sort = org.springframework.data.domain.Sort.by(
+                "asc".equalsIgnoreCase(sortDir)
+                        ? org.springframework.data.domain.Sort.Direction.ASC
+                        : org.springframework.data.domain.Sort.Direction.DESC,
+                sortField);
+        org.springframework.data.domain.Pageable pageable =
+                org.springframework.data.domain.PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100), sort);
+
+        org.springframework.data.jpa.domain.Specification<Account> spec = (root, query, cb) -> {
+            java.util.List<jakarta.persistence.criteria.Predicate> ps = new java.util.ArrayList<>();
+            jakarta.persistence.criteria.Join<Object, Object> provider = null;
+            if (query != null && query.getResultType() != Long.class && query.getResultType() != long.class) {
+                provider = (jakarta.persistence.criteria.Join<Object, Object>) (jakarta.persistence.criteria.Join<?, ?>)
+                        root.fetch("provider", jakarta.persistence.criteria.JoinType.LEFT);
+            } else if (providerStatus != null) {
+                provider = root.join("provider", jakarta.persistence.criteria.JoinType.LEFT);
+            }
+            if (role != null) ps.add(cb.equal(root.get("role"), role));
+            if (status != null) ps.add(cb.equal(root.get("status"), status));
+            if (providerStatus != null && provider != null) ps.add(cb.equal(provider.get("status"), providerStatus));
+            if (kw != null) {
+                String like = "%" + kw.replace("%", "\\%").replace("_", "\\_") + "%";
+                ps.add(cb.or(
+                        cb.like(cb.lower(root.get("fullName")), like),
+                        cb.like(cb.lower(root.get("email")), like),
+                        cb.like(root.get("phone"), like)));
+            }
+            if (createdFrom != null) ps.add(cb.greaterThanOrEqualTo(root.get("createdAt"), createdFrom.atStartOfDay()));
+            if (createdTo != null) ps.add(cb.lessThan(root.get("createdAt"), createdTo.plusDays(1).atStartOfDay()));
+            return cb.and(ps.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+        return accountRepository.findAll(spec, pageable).map(this::mapToDto);
     }
 
     @Transactional(readOnly = true)

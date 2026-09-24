@@ -30,6 +30,7 @@ public class HomestayProfile {
     private CancellationPolicy currentPolicy;
     
     @Column(name = "updated_at", nullable = false)
+    @Builder.Default
     private LocalDateTime updatedAt = LocalDateTime.now();
     
     @PreUpdate

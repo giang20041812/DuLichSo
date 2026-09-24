@@ -52,10 +52,11 @@ class AdminAccountServiceTest {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        when(accountRepository.searchAccounts(AccountRole.ADMIN, AccountStatus.ACTIVE, "test"))
-                .thenReturn(List.of(acc));
+        when(accountRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), any(org.springframework.data.domain.Pageable.class)))
+                .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(acc)));
 
-        List<AccountDto> result = service.getAccounts(AccountRole.ADMIN, AccountStatus.ACTIVE, "test");
+        List<AccountDto> result = service.getAccounts(
+                AccountRole.ADMIN, AccountStatus.ACTIVE, "test", null, null, null, "createdAt", "desc", 0, 20).getContent();
         assertEquals(1, result.size());
         assertEquals("admin@taybactrails.vn", result.get(0).getEmail());
     }

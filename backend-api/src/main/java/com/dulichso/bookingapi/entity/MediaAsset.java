@@ -39,5 +39,6 @@ public class MediaAsset {
     private Long uploadedBy; // Should be Account relation, but keeping simple
     
     @Column(name = "created_at", nullable = false, updatable = false)
+    @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 }

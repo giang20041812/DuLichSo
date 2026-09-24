@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
-  User,
   ShieldCheck,
   Building,
   MapPin,
@@ -198,8 +197,8 @@ export default function PartnerHomestayEditPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f4f6f8] text-[#1e293b] flex flex-col items-center pb-24 font-sans">
-      <div className="w-full max-w-[460px] flex flex-col gap-3.5 px-3 pt-3">
+    <div className="flex flex-col pb-24 lg:pb-8">
+      <div className="w-full max-w-[760px] flex flex-col gap-4">
         {/* Header Bar */}
         <header className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2.5">
@@ -207,12 +206,12 @@ export default function PartnerHomestayEditPage() {
               type="button"
               onClick={() => navigate('/partner')}
               aria-label="Quay lại danh sách"
-              className="w-9 h-9 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-100 transition-colors shadow-xs"
+              className="w-9 h-9 rounded-md bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-100 transition-colors shadow-xs"
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
             <div className="flex flex-col text-left">
-              <h1 className="text-base font-black text-[#0c3828] leading-tight">
+              <h1 className="text-base font-black text-ink-deep leading-tight">
                 {isCreatingNew ? 'Tạo Homestay Mới' : 'Tạo / Chỉnh Sửa'}
               </h1>
               <span className="text-xs text-slate-500 font-medium leading-tight line-clamp-1">
@@ -220,20 +219,11 @@ export default function PartnerHomestayEditPage() {
               </span>
             </div>
           </div>
-
-          <button
-            type="button"
-            onClick={() => navigate('/portal/login')}
-            aria-label="Tài khoản"
-            className="w-9 h-9 rounded-full bg-[#0c3828] text-white flex items-center justify-center shadow-xs"
-          >
-            <User className="w-4 h-4 text-white" />
-          </button>
         </header>
 
         {/* Action Toast */}
         {saveToast && (
-          <div className="bg-slate-900 text-white text-xs px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 animate-in fade-in duration-200">
+          <div className="bg-slate-900 text-white text-xs px-4 py-2.5 rounded-md shadow-lg flex items-center gap-2 animate-in fade-in duration-200">
             <Info className="w-4 h-4 text-emerald-400 shrink-0" />
             <span>{saveToast}</span>
           </div>
@@ -241,20 +231,20 @@ export default function PartnerHomestayEditPage() {
 
         {/* Loading state indicator */}
         {isLoading && (
-          <div className="bg-white/80 backdrop-blur-xs rounded-2xl p-4 flex items-center justify-center gap-2 text-slate-500 border border-slate-200">
+          <div className="bg-white/80 backdrop-blur-xs rounded-lg p-4 flex items-center justify-center gap-2 text-slate-500 border border-slate-200">
             <div className="w-5 h-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
             <span className="text-xs font-medium">Đang nạp dữ liệu homestay...</span>
           </div>
         )}
 
         {/* QA Sandbox (UC-10 Nghiệm Thu) */}
-        <div className="bg-[#eef5fe] border border-[#d2e3fc] rounded-2xl p-3 shadow-xs">
+        <div className="bg-secondary-50 border border-secondary-200 rounded-lg p-3 shadow-xs">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span className="text-sm">🧪</span>
-              <span className="text-xs font-bold text-[#0f2d3c]">QA SANDBOX (UC-10 NGHIỆM THU)</span>
+              <span className="text-xs font-bold text-ink-deep">QA SANDBOX (UC-10 NGHIỆM THU)</span>
             </div>
-            <span className="text-[11px] font-bold bg-[#0c3828] text-white px-2 py-0.5 rounded-md">
+            <span className="text-[11px] font-bold bg-primary text-white px-2 py-0.5 rounded-md">
               Chế độ: {isCreatingNew ? 'Tạo mới' : 'Chỉnh sửa'}
             </span>
           </div>
@@ -263,9 +253,9 @@ export default function PartnerHomestayEditPage() {
             <button
               type="button"
               onClick={() => applySandboxScenario(1)}
-              className={`text-[11px] px-3 py-1.5 rounded-full font-medium transition-all whitespace-nowrap cursor-pointer ${
+              className={`text-[11px] px-3 py-1.5 rounded-md font-medium transition-all whitespace-nowrap cursor-pointer ${
                 sandboxScenario === 1
-                  ? 'bg-[#0a3828] text-white shadow-xs font-semibold'
+                  ? 'bg-primary text-white shadow-xs font-semibold'
                   : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
               }`}
             >
@@ -275,7 +265,7 @@ export default function PartnerHomestayEditPage() {
             <button
               type="button"
               onClick={() => applySandboxScenario(2)}
-              className={`text-[11px] px-3 py-1.5 rounded-full font-medium transition-all whitespace-nowrap cursor-pointer ${
+              className={`text-[11px] px-3 py-1.5 rounded-md font-medium transition-all whitespace-nowrap cursor-pointer ${
                 sandboxScenario === 2
                   ? 'bg-amber-800 text-white shadow-xs font-semibold'
                   : 'bg-white text-amber-800 border border-amber-300 hover:bg-amber-50'
@@ -287,7 +277,7 @@ export default function PartnerHomestayEditPage() {
             <button
               type="button"
               onClick={() => applySandboxScenario(3)}
-              className={`text-[11px] px-3 py-1.5 rounded-full font-medium transition-all whitespace-nowrap cursor-pointer ${
+              className={`text-[11px] px-3 py-1.5 rounded-md font-medium transition-all whitespace-nowrap cursor-pointer ${
                 sandboxScenario === 3
                   ? 'bg-rose-700 text-white shadow-xs font-semibold'
                   : 'bg-white text-rose-700 border border-rose-300 hover:bg-rose-50'
@@ -299,17 +289,17 @@ export default function PartnerHomestayEditPage() {
         </div>
 
         {/* Ownership Badge Card */}
-        <div className="bg-white rounded-3xl p-4 shadow-xs border border-slate-100 flex flex-col gap-2">
+        <div className="bg-white rounded-lg p-4 shadow-xs border border-slate-100 flex flex-col gap-2">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-md bg-emerald-50 text-emerald-800 flex items-center justify-center">
                 <Building className="w-4 h-4" />
               </div>
               <div>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                   Đơn vị chủ quản
                 </span>
-                <span className="text-xs font-extrabold text-[#0c3828]">{formData.cooperativeName}</span>
+                <span className="text-xs font-extrabold text-ink-deep">{formData.cooperativeName}</span>
               </div>
             </div>
             <span className="text-[11px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
@@ -318,7 +308,7 @@ export default function PartnerHomestayEditPage() {
           </div>
 
           <div className="flex items-center gap-1.5 mt-1">
-            <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
+            <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-md text-[10px] font-bold">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
               Phân quyền: Nhà cung ứng (NCC)
             </span>
@@ -333,10 +323,10 @@ export default function PartnerHomestayEditPage() {
         {/* Form Container */}
         <form onSubmit={handleSave} className="flex flex-col gap-3.5">
           {/* SECTION 1: THÔNG TIN CƠ BẢN */}
-          <div className="bg-white rounded-3xl p-4 shadow-xs border border-slate-100 flex flex-col gap-3">
+          <div className="bg-white rounded-lg p-4 shadow-xs border border-slate-100 flex flex-col gap-3">
             <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
               <FileText className="w-4 h-4 text-emerald-700" />
-              <h2 className="text-sm font-bold text-[#0c3828]">1. Thông tin cơ bản</h2>
+              <h2 className="text-sm font-bold text-ink-deep">1. Thông tin cơ bản</h2>
             </div>
 
             {/* Tên Homestay */}
@@ -355,7 +345,7 @@ export default function PartnerHomestayEditPage() {
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="Ví dụ: Bản Lìm Mông Eco Lodge"
-                className="w-full p-2.5 rounded-xl border border-slate-200 bg-[#f8fafc] text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0c3828]"
+                className="w-full p-2.5 rounded-md border border-slate-200 bg-canvas text-xs font-semibold text-slate-800 focus:outline-none focus:border-primary"
               />
             </div>
 
@@ -375,7 +365,7 @@ export default function PartnerHomestayEditPage() {
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Chia sẻ về nét đẹp văn hóa, phong cảnh, lịch sử nếp nhà sàn..."
-                className="w-full p-2.5 rounded-xl border border-slate-200 bg-[#f8fafc] text-xs text-slate-800 focus:outline-none focus:border-[#0c3828] leading-relaxed"
+                className="w-full p-2.5 rounded-md border border-slate-200 bg-canvas text-xs text-slate-800 focus:outline-none focus:border-primary leading-relaxed"
               />
             </div>
 
@@ -393,7 +383,7 @@ export default function PartnerHomestayEditPage() {
                   value={formData.contactPhone}
                   onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
                   placeholder="0912 345 678"
-                  className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 bg-[#f8fafc] text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0c3828]"
+                  className="w-full pl-9 pr-3 py-2.5 rounded-md border border-slate-200 bg-canvas text-xs font-semibold text-slate-800 focus:outline-none focus:border-primary"
                 />
               </div>
             </div>
@@ -411,17 +401,17 @@ export default function PartnerHomestayEditPage() {
                   value={formData.contactEmail || ''}
                   onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
                   placeholder="limmongecolodge@taybactrails.vn"
-                  className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 bg-[#f8fafc] text-xs text-slate-800 focus:outline-none focus:border-[#0c3828]"
+                  className="w-full pl-9 pr-3 py-2.5 rounded-md border border-slate-200 bg-canvas text-xs text-slate-800 focus:outline-none focus:border-primary"
                 />
               </div>
             </div>
           </div>
 
           {/* SECTION 2: VỊ TRÍ & TỌA ĐỘ BẢN ĐỒ */}
-          <div className="bg-white rounded-3xl p-4 shadow-xs border border-slate-100 flex flex-col gap-3">
+          <div className="bg-white rounded-lg p-4 shadow-xs border border-slate-100 flex flex-col gap-3">
             <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
               <MapPin className="w-4 h-4 text-emerald-700" />
-              <h2 className="text-sm font-bold text-[#0c3828]">2. Vị trí & Tọa độ bản đồ</h2>
+              <h2 className="text-sm font-bold text-ink-deep">2. Vị trí & Tọa độ bản đồ</h2>
             </div>
 
             {/* Khu vực hành chính */}
@@ -433,7 +423,7 @@ export default function PartnerHomestayEditPage() {
                 id="region-select"
                 value={formData.regionName}
                 onChange={(e) => setFormData({ ...formData, regionName: e.target.value })}
-                className="w-full p-2.5 rounded-xl border border-slate-200 bg-[#f8fafc] text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0c3828]"
+                className="w-full p-2.5 rounded-md border border-slate-200 bg-canvas text-xs font-semibold text-slate-800 focus:outline-none focus:border-primary"
               >
                 <option value="Xã Cao Phạ, Huyện Mù Cang Chải, Tỉnh Yên Bái">
                   Xã Cao Phạ, Huyện Mù Cang Chải, Tỉnh Yên Bái
@@ -462,15 +452,15 @@ export default function PartnerHomestayEditPage() {
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 placeholder="Bản Lìm Mông, Dưới chân đèo Khau Phạ"
-                className="w-full p-2.5 rounded-xl border border-slate-200 bg-[#f8fafc] text-xs text-slate-800 focus:outline-none focus:border-[#0c3828]"
+                className="w-full p-2.5 rounded-md border border-slate-200 bg-canvas text-xs text-slate-800 focus:outline-none focus:border-primary"
               />
             </div>
 
             {/* Tọa độ GPS Card */}
-            <div className="bg-[#f0f6fd] border border-[#d2e3fc] rounded-2xl p-3 flex flex-col gap-2.5">
+            <div className="bg-secondary-50 border border-secondary-200 rounded-lg p-3 flex flex-col gap-2.5">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-[#0f2d3c] flex items-center gap-1">
-                  <LocateFixed className="w-3.5 h-3.5 text-[#1a73e8]" />
+                <span className="text-xs font-bold text-ink-deep flex items-center gap-1">
+                  <LocateFixed className="w-3.5 h-3.5 text-secondary-700" />
                   Tọa độ GPS chuẩn xác (MAP-CU-01)
                 </span>
                 <button
@@ -479,7 +469,7 @@ export default function PartnerHomestayEditPage() {
                     setFormData((prev) => ({ ...prev, latitude: 21.751214, longitude: 104.31842 }));
                     showToast('Đã lấy tọa độ định vị GPS hiện tại!');
                   }}
-                  className="text-[10px] font-bold text-[#1a73e8] bg-white border border-[#c3d9fb] px-2.5 py-1 rounded-full hover:bg-blue-50 cursor-pointer"
+                  className="text-[10px] font-bold text-secondary-700 bg-white border border-secondary-200 px-2.5 py-1 rounded-md hover:bg-blue-50 cursor-pointer"
                 >
                   Tự động lấy GPS
                 </button>
@@ -515,15 +505,15 @@ export default function PartnerHomestayEditPage() {
               </div>
 
               {/* Map Preview Mockup Box */}
-              <div className="relative h-24 rounded-xl overflow-hidden border border-slate-200 shadow-inner">
+              <div className="relative h-24 rounded-md overflow-hidden border border-slate-200 shadow-inner">
                 <img
                   src="https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=600&q=80"
                   alt="Bản đồ định vị"
                   className="w-full h-full object-cover opacity-85"
                 />
                 <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
-                  <div className="bg-[#0c3828] text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-md flex items-center gap-1.5 animate-bounce">
-                    <MapPin className="w-3.5 h-3.5 text-[#a3e635]" />
+                  <div className="bg-primary text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-md flex items-center gap-1.5 animate-bounce">
+                    <MapPin className="w-3.5 h-3.5 text-primary-light" />
                     <span>{formData.latitude.toFixed(6)} - {formData.longitude.toFixed(6)}</span>
                   </div>
                 </div>
@@ -546,17 +536,17 @@ export default function PartnerHomestayEditPage() {
                 value={formData.accessNote || ''}
                 onChange={(e) => setFormData({ ...formData, accessNote: e.target.value })}
                 placeholder="Đường bê tông liên thôn, dốc vừa phải, ô tô 16 chỗ vào tận sân..."
-                className="w-full p-2.5 rounded-xl border border-slate-200 bg-[#f8fafc] text-xs text-slate-800 focus:outline-none focus:border-[#0c3828]"
+                className="w-full p-2.5 rounded-md border border-slate-200 bg-canvas text-xs text-slate-800 focus:outline-none focus:border-primary"
               />
             </div>
           </div>
 
           {/* SECTION 3: HÌNH ẢNH HOMESTAY */}
-          <div className="bg-white rounded-3xl p-4 shadow-xs border border-slate-100 flex flex-col gap-3">
+          <div className="bg-white rounded-lg p-4 shadow-xs border border-slate-100 flex flex-col gap-3">
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
               <div className="flex items-center gap-2">
                 <Camera className="w-4 h-4 text-emerald-700" />
-                <h2 className="text-sm font-bold text-[#0c3828]">3. Hình ảnh Homestay</h2>
+                <h2 className="text-sm font-bold text-ink-deep">3. Hình ảnh Homestay</h2>
               </div>
               <span className="text-[11px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
                 Đã tải 4/10
@@ -568,14 +558,14 @@ export default function PartnerHomestayEditPage() {
               <label className="font-semibold text-slate-700">
                 Ảnh bìa / Ảnh đại diện chính <span className="text-rose-600">*</span>
               </label>
-              <div className="relative h-40 rounded-2xl overflow-hidden border border-slate-200 group">
+              <div className="relative h-40 rounded-lg overflow-hidden border border-slate-200 group">
                 <img
                   src={formData.coverImageUrl}
                   alt="Ảnh đại diện chính"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
                 <div className="absolute top-2.5 left-2.5">
-                  <span className="bg-[#0a3828]/90 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-xs">
+                  <span className="bg-primary/90 text-white text-[10px] font-bold px-2.5 py-1 rounded-md flex items-center gap-1 shadow-xs">
                     ⭐ Ảnh đại diện chính
                   </span>
                 </div>
@@ -583,7 +573,7 @@ export default function PartnerHomestayEditPage() {
                   <button
                     type="button"
                     onClick={() => showToast('Mở trình tải ảnh lên Cloudflare Images (Direct Creator Upload)')}
-                    className="bg-black/60 backdrop-blur-xs text-white text-[11px] font-medium px-3 py-1.5 rounded-xl hover:bg-black/80 flex items-center gap-1.5 cursor-pointer shadow-xs"
+                    className="bg-black/60 backdrop-blur-xs text-white text-[11px] font-medium px-3 py-1.5 rounded-md hover:bg-black/80 flex items-center gap-1.5 cursor-pointer shadow-xs"
                   >
                     <Camera className="w-3.5 h-3.5" />
                     <span>Thay đổi ảnh</span>
@@ -599,14 +589,14 @@ export default function PartnerHomestayEditPage() {
               </label>
               <div className="grid grid-cols-4 gap-2">
                 {formData.galleryUrls?.map((url, idx) => (
-                  <div key={idx} className="relative h-18 rounded-xl overflow-hidden border border-slate-200">
+                  <div key={idx} className="relative h-18 rounded-md overflow-hidden border border-slate-200">
                     <img src={url} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover" />
                   </div>
                 ))}
                 <button
                   type="button"
                   onClick={() => showToast('Thêm ảnh trải nghiệm mới')}
-                  className="h-18 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 flex flex-col items-center justify-center text-slate-400 hover:border-emerald-600 hover:text-emerald-700 transition-colors cursor-pointer"
+                  className="h-18 rounded-md border-2 border-dashed border-slate-300 bg-slate-50 flex flex-col items-center justify-center text-slate-400 hover:border-emerald-600 hover:text-emerald-700 transition-colors cursor-pointer"
                 >
                   <Camera className="w-4 h-4" />
                   <span className="text-[10px] font-bold mt-0.5">+ Thêm ảnh</span>
@@ -619,10 +609,10 @@ export default function PartnerHomestayEditPage() {
           </div>
 
           {/* SECTION 4: TIỆN ÍCH & KHUÔN VIÊN */}
-          <div className="bg-white rounded-3xl p-4 shadow-xs border border-slate-100 flex flex-col gap-3">
+          <div className="bg-white rounded-lg p-4 shadow-xs border border-slate-100 flex flex-col gap-3">
             <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
               <Sparkles className="w-4 h-4 text-emerald-700" />
-              <h2 className="text-sm font-bold text-[#0c3828]">4. Tiện ích & Khuôn viên Homestay</h2>
+              <h2 className="text-sm font-bold text-ink-deep">4. Tiện ích & Khuôn viên Homestay</h2>
             </div>
 
             <p className="text-[11px] text-slate-500 leading-relaxed">
@@ -638,7 +628,7 @@ export default function PartnerHomestayEditPage() {
                     key={am.id}
                     type="button"
                     onClick={() => toggleAmenity(am.name)}
-                    className={`p-2.5 rounded-xl border text-xs font-medium flex items-center justify-between transition-colors cursor-pointer ${
+                    className={`p-2.5 rounded-md border text-xs font-medium flex items-center justify-between transition-colors cursor-pointer ${
                       isChecked
                         ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-semibold'
                         : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
@@ -656,10 +646,10 @@ export default function PartnerHomestayEditPage() {
           </div>
 
           {/* SECTION 5: QUY ĐỊNH & CHÍNH SÁCH */}
-          <div className="bg-white rounded-3xl p-4 shadow-xs border border-slate-100 flex flex-col gap-3">
+          <div className="bg-white rounded-lg p-4 shadow-xs border border-slate-100 flex flex-col gap-3">
             <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
               <ShieldCheck className="w-4 h-4 text-emerald-700" />
-              <h2 className="text-sm font-bold text-[#0c3828]">5. Quy định & Chính sách</h2>
+              <h2 className="text-sm font-bold text-ink-deep">5. Quy định & Chính sách</h2>
             </div>
 
             <div className="grid grid-cols-2 gap-2 text-xs">
@@ -672,7 +662,7 @@ export default function PartnerHomestayEditPage() {
                   type="text"
                   value={formData.checkInFrom}
                   onChange={(e) => setFormData({ ...formData, checkInFrom: e.target.value })}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 bg-[#f8fafc] text-xs font-bold text-center text-slate-800"
+                  className="w-full p-2.5 rounded-md border border-slate-200 bg-canvas text-xs font-bold text-center text-slate-800"
                 />
               </div>
               <div className="flex flex-col gap-1">
@@ -684,7 +674,7 @@ export default function PartnerHomestayEditPage() {
                   type="text"
                   value={formData.checkOutUntil}
                   onChange={(e) => setFormData({ ...formData, checkOutUntil: e.target.value })}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 bg-[#f8fafc] text-xs font-bold text-center text-slate-800"
+                  className="w-full p-2.5 rounded-md border border-slate-200 bg-canvas text-xs font-bold text-center text-slate-800"
                 />
               </div>
             </div>
@@ -699,14 +689,14 @@ export default function PartnerHomestayEditPage() {
                 rows={2}
                 value={formData.houseRules}
                 onChange={(e) => setFormData({ ...formData, houseRules: e.target.value })}
-                className="w-full p-2.5 rounded-xl border border-slate-200 bg-[#f8fafc] text-xs text-slate-800 focus:outline-none focus:border-[#0c3828]"
+                className="w-full p-2.5 rounded-md border border-slate-200 bg-canvas text-xs text-slate-800 focus:outline-none focus:border-primary"
               />
             </div>
 
             {/* Chính sách hủy phòng */}
-            <div className="bg-[#f0f6fd] border border-[#d2e3fc] rounded-2xl p-3 flex flex-col gap-1.5">
-              <span className="text-xs font-bold text-[#0f2d3c]">Chính sách hủy phòng hiện hành</span>
-              <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-800">
+            <div className="bg-secondary-50 border border-secondary-200 rounded-lg p-3 flex flex-col gap-1.5">
+              <span className="text-xs font-bold text-ink-deep">Chính sách hủy phòng hiện hành</span>
+              <div className="p-2.5 rounded-md bg-white border border-slate-200 text-xs font-bold text-slate-800">
                 {formData.cancellationPolicy}
               </div>
               <p className="text-[10px] text-slate-500 leading-relaxed mt-1">
@@ -717,13 +707,13 @@ export default function PartnerHomestayEditPage() {
           </div>
 
           {/* SECTION 6: QUẢN TRỊ TRẠNG THÁI HOMESTAY (UC-10) */}
-          <div className="bg-white rounded-3xl p-4 shadow-xs border border-slate-100 flex flex-col gap-3.5">
+          <div className="bg-white rounded-lg p-4 shadow-xs border border-slate-100 flex flex-col gap-3.5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-700" />
-                <h2 className="text-sm font-bold text-[#0c3828]">6. Quản trị trạng thái Homestay</h2>
+                <h2 className="text-sm font-bold text-ink-deep">6. Quản trị trạng thái Homestay</h2>
               </div>
-              <span className="text-[10px] font-bold text-[#1a73e8] bg-blue-50 px-2 py-0.5 rounded-md">
+              <span className="text-[10px] font-bold text-secondary-700 bg-blue-50 px-2 py-0.5 rounded-md">
                 Theo chuẩn UC-10
               </span>
             </div>
@@ -738,14 +728,14 @@ export default function PartnerHomestayEditPage() {
               </div>
 
               {/* Radio 1: Bản nháp */}
-              <label className="flex items-start gap-3 p-3 rounded-2xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
+              <label className="flex items-start gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer">
                 <input
                   type="radio"
                   name="visibility"
                   value="DRAFT"
                   checked={formData.visibility === 'DRAFT'}
                   onChange={() => setFormData({ ...formData, visibility: 'DRAFT' })}
-                  className="mt-0.5 accent-[#0c3828]"
+                  className="mt-0.5 accent-primary"
                 />
                 <div className="flex flex-col">
                   <span className="text-xs font-bold text-slate-800">Bản nháp (Draft)</span>
@@ -756,14 +746,14 @@ export default function PartnerHomestayEditPage() {
               </label>
 
               {/* Radio 2: Đang hiển thị */}
-              <label className="flex items-start gap-3 p-3 rounded-2xl border border-emerald-300 bg-emerald-50/50 hover:bg-emerald-50 cursor-pointer">
+              <label className="flex items-start gap-3 p-3 rounded-lg border border-emerald-300 bg-emerald-50/50 hover:bg-emerald-50 cursor-pointer">
                 <input
                   type="radio"
                   name="visibility"
                   value="PUBLISHED"
                   checked={formData.visibility === 'PUBLISHED'}
                   onChange={() => setFormData({ ...formData, visibility: 'PUBLISHED' })}
-                  className="mt-0.5 accent-[#0c3828]"
+                  className="mt-0.5 accent-primary"
                 />
                 <div className="flex flex-col">
                   <span className="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
@@ -777,14 +767,14 @@ export default function PartnerHomestayEditPage() {
               </label>
 
               {/* Radio 3: Ngừng hiển thị */}
-              <label className="flex items-start gap-3 p-3 rounded-2xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
+              <label className="flex items-start gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer">
                 <input
                   type="radio"
                   name="visibility"
                   value="UNPUBLISHED"
                   checked={formData.visibility === 'UNPUBLISHED'}
                   onChange={() => setFormData({ ...formData, visibility: 'UNPUBLISHED' })}
-                  className="mt-0.5 accent-[#0c3828]"
+                  className="mt-0.5 accent-primary"
                 />
                 <div className="flex flex-col">
                   <span className="text-xs font-bold text-slate-800">Ngừng hiển thị (Unpublished)</span>
@@ -808,9 +798,9 @@ export default function PartnerHomestayEditPage() {
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, operationStatus: 'OPERATING' })}
-                  className={`py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer ${
+                  className={`py-2.5 px-3 rounded-md border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer ${
                     formData.operationStatus === 'OPERATING'
-                      ? 'bg-[#0c3828] text-white border-[#0c3828] shadow-xs'
+                      ? 'bg-primary text-white border-primary shadow-xs'
                       : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
                   }`}
                 >
@@ -821,7 +811,7 @@ export default function PartnerHomestayEditPage() {
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, operationStatus: 'TEMP_CLOSED' })}
-                  className={`py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer ${
+                  className={`py-2.5 px-3 rounded-md border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer ${
                     formData.operationStatus === 'TEMP_CLOSED'
                       ? 'bg-rose-700 text-white border-rose-700 shadow-xs'
                       : 'bg-white text-rose-700 border-rose-200 hover:bg-rose-50'
@@ -839,8 +829,8 @@ export default function PartnerHomestayEditPage() {
             </div>
 
             {/* Policy Info Card */}
-            <div className="bg-[#eef5fe] border border-[#d2e3fc] rounded-2xl p-3 flex flex-col gap-1 text-xs">
-              <span className="font-bold text-[#0f2d3c]">Chính sách Phase 1: Không phê duyệt (No Approval)</span>
+            <div className="bg-secondary-50 border border-secondary-200 rounded-lg p-3 flex flex-col gap-1 text-xs">
+              <span className="font-bold text-ink-deep">Chính sách Phase 1: Không phê duyệt (No Approval)</span>
               <p className="text-[11px] text-slate-600 leading-relaxed">
                 Hệ thống tin cậy NCC địa phương, không yêu cầu bước duyệt chờ Admin. Homestay tự động hiển thị ra bên
                 ngoài khi đã hoàn thiện đủ thông tin bắt buộc (UC-10).
@@ -849,7 +839,7 @@ export default function PartnerHomestayEditPage() {
           </div>
 
           {/* Reminder Card */}
-          <div className="bg-amber-50 border border-amber-200 rounded-3xl p-3.5 flex items-start gap-2 text-xs text-amber-900 leading-relaxed">
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3.5 flex items-start gap-2 text-xs text-amber-900 leading-relaxed">
             <HelpCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
             <span>
               <strong>Lưu ý:</strong> Để hoàn tất điều kiện xuất bản và mở bán homestay, bạn cần tiếp tục thiết lập danh
@@ -859,13 +849,13 @@ export default function PartnerHomestayEditPage() {
           </div>
 
           {/* Bottom Fixed Action Bar */}
-          <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/80 p-3 shadow-2xl">
-            <div className="max-w-[460px] mx-auto flex flex-col gap-1.5">
+          <div className="fixed bottom-0 left-0 right-0 lg:left-[260px] z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/80 p-3 shadow-2xl">
+            <div className="max-w-[760px] mx-auto flex flex-col gap-1.5">
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => navigate('/partner')}
-                  className="py-3 px-4 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-100 transition-colors"
+                  className="py-3 px-4 rounded-md border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-100 transition-colors"
                 >
                   Hủy / Quay lại
                 </button>
@@ -873,13 +863,13 @@ export default function PartnerHomestayEditPage() {
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="flex-1 py-3 px-4 bg-[#0a3828] hover:bg-[#07281d] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all active:scale-[0.99] cursor-pointer"
+                  className="flex-1 py-3 px-4 bg-primary hover:bg-primary-700 text-white rounded-md font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all active:scale-[0.99] cursor-pointer"
                 >
                   {isSaving ? (
                     <span>Đang lưu dữ liệu...</span>
                   ) : (
                     <>
-                      <Save className="w-4 h-4 text-[#a3e635]" />
+                      <Save className="w-4 h-4 text-primary-light" />
                       <span>Lưu thay đổi</span>
                     </>
                   )}

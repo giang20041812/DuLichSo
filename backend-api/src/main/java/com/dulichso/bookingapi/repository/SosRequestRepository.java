@@ -18,6 +18,8 @@ public interface SosRequestRepository extends JpaRepository<SosRequest, Long> {
     @EntityGraph(attributePaths = {"assignedContact", "assignedContact.region"})
     List<SosRequest> findByStatusOrderByCreatedAtDesc(SosRequestStatus status);
 
+    long countByStatus(SosRequestStatus status);
+
     /**
      * Lấy tất cả SOS request, sắp xếp mới nhất trước, kèm assignedContact.
      */

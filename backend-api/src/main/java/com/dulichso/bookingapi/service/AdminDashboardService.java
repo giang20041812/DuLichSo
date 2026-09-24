@@ -1,6 +1,7 @@
 package com.dulichso.bookingapi.service;
 
 import com.dulichso.bookingapi.dto.admin.AdminDashboardDtos.AdminDashboardSummaryDto;
+import com.dulichso.bookingapi.dto.admin.AdminDashboardDtos.MonthlyRevenuePoint;
 import com.dulichso.bookingapi.dto.admin.AdminFinanceDtos.MonthlyRevenueItem;
 import com.dulichso.bookingapi.dto.admin.AdminFinanceDtos.RevenueSummaryDto;
 import com.dulichso.bookingapi.entity.enums.AccountStatus;
@@ -12,6 +13,8 @@ import com.dulichso.bookingapi.repository.BookingRepository;
 import com.dulichso.bookingapi.repository.PlaceRepository;
 import com.dulichso.bookingapi.repository.ProviderRepository;
 import com.dulichso.bookingapi.repository.RefundRepository;
+import com.dulichso.bookingapi.repository.SosRequestRepository;
+import com.dulichso.bookingapi.repository.TravelerRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,19 +34,25 @@ public class AdminDashboardService {
     private final BookingRepository bookingRepository;
     private final RefundRepository refundRepository;
     private final AdminFinanceService adminFinanceService;
+    private final TravelerRepository travelerRepository;
+    private final SosRequestRepository sosRequestRepository;
 
     public AdminDashboardService(PlaceRepository placeRepository,
                                  ProviderRepository providerRepository,
                                  AccountRepository accountRepository,
                                  BookingRepository bookingRepository,
                                  RefundRepository refundRepository,
-                                 AdminFinanceService adminFinanceService) {
+                                 AdminFinanceService adminFinanceService,
+                                 TravelerRepository travelerRepository,
+                                 SosRequestRepository sosRequestRepository) {
         this.placeRepository = placeRepository;
         this.providerRepository = providerRepository;
         this.accountRepository = accountRepository;
         this.bookingRepository = bookingRepository;
         this.refundRepository = refundRepository;
         this.adminFinanceService = adminFinanceService;
+        this.travelerRepository = travelerRepository;
+        this.sosRequestRepository = sosRequestRepository;
     }
 
     @Transactional(readOnly = true)
@@ -69,10 +78,24 @@ public class AdminDashboardService {
 
         // 5. Monthly Revenue
         BigDecimal monthlyRevenue = BigDecimal.ZERO;
+        List<MonthlyRevenuePoint> revenueTrend = new java.util.ArrayList<>();
         try {
             RevenueSummaryDto revenueSummary = adminFinanceService.getRevenueSummary();
             List<MonthlyRevenueItem> months = revenueSummary.getByMonth();
             if (months != null) {
+                java.time.YearMonth thisMonth = java.time.YearMonth.from(now);
+                for (int i = 5; i >= 0; i--) {
+                    java.time.YearMonth ym = thisMonth.minusMonths(i);
+                    MonthlyRevenueItem found = months.stream()
+                            .filter(m -> m.getYear() == ym.getYear() && m.getMonth() == ym.getMonthValue())
+                            .findFirst().orElse(null);
+                    revenueTrend.add(MonthlyRevenuePoint.builder()
+                            .year(ym.getYear())
+                            .month(ym.getMonthValue())
+                            .totalAmount(found != null && found.getTotalAmount() != null ? found.getTotalAmount() : BigDecimal.ZERO)
+                            .transactionCount(found != null ? found.getTransactionCount() : 0)
+                            .build());
+                }
                 int currentYear = now.getYear();
                 int currentMonth = now.getMonthValue();
                 for (MonthlyRevenueItem item : months) {
@@ -99,6 +122,14 @@ public class AdminDashboardService {
                 .monthlyBookingsCount(monthlyBookingsCount)
                 .monthlyRevenue(monthlyRevenue)
                 .pendingRefundsCount(pendingRefundsCount)
+                .terminatedProviders(providerRepository.countByStatus(ProviderStatus.TERMINATED))
+                .needsUpdatePlaces(placeRepository.countByVerificationAndIsDeletedFalse(PlaceVerificationStatus.NEEDS_UPDATE))
+                .pendingSosCount(sosRequestRepository.countByStatus(com.dulichso.bookingapi.entity.enums.SosRequestStatus.PENDING))
+                .totalTravelers(travelerRepository.count())
+                .newTravelers7d(travelerRepository.countByCreatedAtGreaterThanEqual(LocalDateTime.now().minusDays(7)))
+                .newTravelers30d(travelerRepository.countByCreatedAtGreaterThanEqual(LocalDateTime.now().minusDays(30)))
+                .lockedTravelers(travelerRepository.countByStatus(AccountStatus.INACTIVE))
+                .revenueTrend(revenueTrend)
                 .build();
     }
 }

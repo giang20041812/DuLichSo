@@ -19,16 +19,20 @@ public class RoomInventoryDay {
     @Column(name = "total_rooms", nullable = false)
     private Integer totalRooms;
     @Column(name = "held_rooms", nullable = false)
+    @Builder.Default
     private Integer heldRooms = 0;
     @Column(name = "confirmed_rooms", nullable = false)
+    @Builder.Default
     private Integer confirmedRooms = 0;
     @Column(name = "stop_sell", nullable = false)
+    @Builder.Default
     private Boolean stopSell = false;
     
     @Column(name = "available_rooms", insertable = false, updatable = false)
     private Integer availableRooms;
     
     @Column(name = "updated_at", nullable = false)
+    @Builder.Default
     private LocalDateTime updatedAt = LocalDateTime.now();
     
     @PreUpdate

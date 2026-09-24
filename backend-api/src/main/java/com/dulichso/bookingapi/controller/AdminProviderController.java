@@ -79,4 +79,9 @@ public class AdminProviderController {
         Long callerId = principal != null ? principal.accountId() : null;
         return ResponseEntity.ok(adminProviderService.updateProviderStatus(id, request, callerId));
     }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<java.util.Map<String, Object>> handleBadRequest(IllegalArgumentException ex) {
+        return ResponseEntity.badRequest().body(java.util.Map.of("status", 400, "message", ex.getMessage()));
+    }
 }

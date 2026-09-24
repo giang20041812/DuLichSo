@@ -57,7 +57,8 @@ class AdminPlaceServiceTest {
         Page<Place> page = new PageImpl<>(List.of(place), PageRequest.of(0, 10), 1);
         when(placeRepository.findAll(any(Specification.class), any(PageRequest.class))).thenReturn(page);
 
-        Page<AdminPlaceSummaryDto> result = service.getPlaces("lim mong", PlaceVisibility.PUBLISHED, PlaceVerificationStatus.VERIFIED, CategoryKind.HOMESTAY, PageRequest.of(0, 10));
+        Page<AdminPlaceSummaryDto> result = service.getPlaces("lim mong", PlaceVisibility.PUBLISHED, PlaceVerificationStatus.VERIFIED, CategoryKind.HOMESTAY,
+                null, null, null, null, "createdAt", "desc", 0, 10);
         assertEquals(1, result.getTotalElements());
         assertEquals("homestay-ban-lim-mong", result.getContent().get(0).getSlug());
     }

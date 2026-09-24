@@ -19,9 +19,12 @@ public class Amenity {
     private AmenityScope scope;
     
     @Column(name = "is_essential", nullable = false)
+    @Builder.Default
     private Boolean isEssential = false;
     @Column(name = "sort_order", nullable = false)
+    @Builder.Default
     private Integer sortOrder = 0;
     @Column(name = "is_active", nullable = false)
+    @Builder.Default
     private Boolean isActive = true;
 }

@@ -42,6 +42,7 @@ public class SosRequest {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private SosRequestStatus status = SosRequestStatus.PENDING;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -52,6 +53,7 @@ public class SosRequest {
     private String dispatchNote;
 
     @Column(name = "created_at", nullable = false, updatable = false)
+    @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 
     @Column(name = "resolved_at")

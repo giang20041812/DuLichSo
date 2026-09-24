@@ -22,8 +22,10 @@ public class PlaceContact {
     private String value;
     
     @Column(name = "is_public", nullable = false)
+    @Builder.Default
     private Boolean isPublic = true;
     
     @Column(name = "sort_order", nullable = false)
+    @Builder.Default
     private Integer sortOrder = 0;
 }

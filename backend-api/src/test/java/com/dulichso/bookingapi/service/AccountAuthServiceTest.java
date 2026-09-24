@@ -31,7 +31,7 @@ class AccountAuthServiceTest {
 
     @BeforeEach
     void setUp() {
-        authService = new AccountAuthService(accountRepository, jwtUtils);
+        authService = new AccountAuthService(accountRepository, jwtUtils, new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder(), true);
     }
 
     @Test
@@ -122,5 +122,23 @@ class AccountAuthServiceTest {
                 .build();
 
         assertThrows(RuntimeException.class, () -> authService.login(request));
+    }
+
+    @Test
+    @DisplayName("login: Tài khoản NCC lưu mật khẩu BCrypt (tạo qua Admin) đăng nhập được")
+    void login_BcryptPassword_Success() {
+        String hash = new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder().encode("Secret@123");
+        com.dulichso.bookingapi.entity.Provider provider = com.dulichso.bookingapi.entity.Provider.builder()
+                .id(5L).name("NCC Test").status(com.dulichso.bookingapi.entity.enums.ProviderStatus.ACTIVE).build();
+        com.dulichso.bookingapi.entity.Account acc = com.dulichso.bookingapi.entity.Account.builder()
+                .id(9L).email("bcrypt@ncc.vn").passwordHash(hash)
+                .role(com.dulichso.bookingapi.entity.enums.AccountRole.PROVIDER)
+                .status(com.dulichso.bookingapi.entity.enums.AccountStatus.ACTIVE).provider(provider).build();
+        org.mockito.Mockito.when(accountRepository.findByIdentifier("bcrypt@ncc.vn")).thenReturn(java.util.Optional.of(acc));
+        org.mockito.Mockito.when(jwtUtils.generateToken(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString())).thenReturn("tok");
+
+        var res = authService.login(com.dulichso.bookingapi.dto.auth.PortalAuthDtos.PortalLoginRequest.builder()
+                .identifier("bcrypt@ncc.vn").password("Secret@123").build());
+        org.junit.jupiter.api.Assertions.assertEquals("tok", res.getToken());
     }
 }
