@@ -24,7 +24,7 @@ interface PwaInstallModalProps {
 }
 
 export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClose }) => {
-  const { canInstall, isInstalled, isIos, platform, installApp } = usePwaInstall();
+  const { canInstall, isInstalled, isIos, installApp } = usePwaInstall();
   const [activeTab, setActiveTab] = useState<'quick' | 'ios' | 'android' | 'desktop'>('quick');
   const [isInstalling, setIsInstalling] = useState(false);
   const [copied, setCopied] = useState(false);

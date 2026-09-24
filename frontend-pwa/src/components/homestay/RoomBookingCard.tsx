@@ -148,33 +148,38 @@ export default function RoomBookingCard({
   // Gom các ngày đã kín thành các khoảng ngày hiển thị trực quan (VD: 26/09 → 28/09/2026: Kín 100%)
   const bookedRangesList = useMemo(() => {
     const dates = Object.keys(occupiedMap)
-      .filter((d) => d >= todayStr && occupiedMap[d] > 0)
+      .filter((d) => d >= todayStr && (occupiedMap[d] ?? 0) > 0)
       .sort();
 
     if (dates.length === 0) return [];
 
     const ranges: { start: string; end: string; maxOccupied: number; isFull: boolean }[] = [];
-    let currentStart = dates[0];
-    let prevDate = dates[0];
-    let maxOcc = occupiedMap[dates[0]];
+    const firstDate = dates[0];
+    if (!firstDate) return [];
+
+    let currentStart = firstDate;
+    let prevDate = firstDate;
+    let maxOcc = occupiedMap[firstDate] ?? 0;
     let isFull = maxOcc >= maxRooms;
 
     for (let i = 1; i < dates.length; i++) {
       const d = dates[i];
+      if (!d) continue;
       const prevMs = new Date(prevDate).getTime();
       const currMs = new Date(d).getTime();
       const diffDays = Math.round((currMs - prevMs) / 86400000);
+      const currOcc = occupiedMap[d] ?? 0;
 
       if (diffDays === 1) {
         prevDate = d;
-        maxOcc = Math.max(maxOcc, occupiedMap[d]);
-        if (occupiedMap[d] >= maxRooms) isFull = true;
+        maxOcc = Math.max(maxOcc, currOcc);
+        if (currOcc >= maxRooms) isFull = true;
       } else {
         const outDate = new Date(new Date(prevDate).getTime() + 86400000).toISOString().slice(0, 10);
         ranges.push({ start: currentStart, end: outDate, maxOccupied: maxOcc, isFull });
         currentStart = d;
         prevDate = d;
-        maxOcc = occupiedMap[d];
+        maxOcc = currOcc;
         isFull = maxOcc >= maxRooms;
       }
     }

@@ -10,7 +10,7 @@ export const PwaBanner: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') return undefined;
     const isDismissed = sessionStorage.getItem('pwa_banner_dismissed') === 'true';
     if (!isDismissed && !isInstalled) {
       // Delay 2 seconds to not disturb the initial page rendering
@@ -19,6 +19,7 @@ export const PwaBanner: React.FC = () => {
       }, 2000);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [isInstalled]);
 
   const handleDismiss = () => {

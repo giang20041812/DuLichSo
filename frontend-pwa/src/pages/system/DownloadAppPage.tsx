@@ -1,13 +1,11 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
   Download, 
   Smartphone, 
   Monitor, 
   Share2, 
-  PlusSquare, 
   CheckCircle2, 
   Sparkles, 
-  ShieldCheck, 
   Zap, 
   BellRing, 
   QrCode, 
@@ -15,7 +13,6 @@ import {
   Check, 
   Terminal, 
   Layers, 
-  ArrowRight,
   WifiOff
 } from 'lucide-react';
 import { usePwaInstall } from '@/hooks/usePwaInstall';
@@ -23,7 +20,7 @@ import { VietTrackLogoMark } from '@/components/ui/logo';
 import PwaInstallModal from '@/components/pwa/PwaInstallModal';
 
 export default function DownloadAppPage() {
-  const { canInstall, isInstalled, isIos, installApp } = usePwaInstall();
+  const { canInstall, isInstalled, installApp } = usePwaInstall();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeOsTab, setActiveOsTab] = useState<'ios' | 'android' | 'desktop'>('ios');
   const [copiedLink, setCopiedLink] = useState(false);
