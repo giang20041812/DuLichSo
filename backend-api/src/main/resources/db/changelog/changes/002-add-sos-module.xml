@@ -6,6 +6,11 @@
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
 
     <changeSet id="002-create-emergency-contact" author="dulichso">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="emergency_contact"/>
+            </not>
+        </preConditions>
         <createTable tableName="emergency_contact"
                      remarks="Đầu mối liên hệ khẩn cấp: cảnh sát, y tế, cứu hoả, hỗ trợ du lịch">
             <column name="id" type="BIGINT UNSIGNED" autoIncrement="true">
@@ -42,6 +47,11 @@
     </changeSet>
 
     <changeSet id="002-create-sos-request" author="dulichso">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="sos_request"/>
+            </not>
+        </preConditions>
         <createTable tableName="sos_request"
                      remarks="Yêu cầu SOS/cứu hộ khẩn cấp từ du khách">
             <column name="id" type="BIGINT UNSIGNED" autoIncrement="true">
