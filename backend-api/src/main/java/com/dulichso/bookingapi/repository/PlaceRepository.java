@@ -51,4 +51,8 @@ public interface PlaceRepository extends JpaRepository<Place, Long>, JpaSpecific
             @Param("placeId") Long placeId,
             @Param("regionId") Long regionId,
             @Param("limit") int limit);
+
+    long countByIsDeletedFalse();
+
+    long countByVerificationAndIsDeletedFalse(com.dulichso.bookingapi.entity.enums.PlaceVerificationStatus verification);
 }

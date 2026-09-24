@@ -5,9 +5,15 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
 
-    <!-- Include your changelog files here -->
+    <!-- Thêm cột cover image và location cho festival -->
     <include file="db/changelog/changes/001-add-festival-cover-image-and-location.xml"/>
     <include file="db/changelog/changes/002-add-suitable-by-time-and-booking-services.xml"/>
     <include file="db/changelog/changes/003-add-suitable-dates.xml"/>
+
+    <!-- Module SOS cứu hộ: emergency_contact, sos_request -->
+    <include file="db/changelog/changes/002-add-sos-module.xml"/>
+
+    <!-- Module Tài chính & Affiliate: affiliate_link, commission_ledger -->
+    <include file="db/changelog/changes/003-add-finance-module.xml"/>
 
 </databaseChangeLog>

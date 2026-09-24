@@ -44,3 +44,7 @@ cloudinary:
   cloud-name: ${CLOUDINARY_CLOUD_NAME:your_cloud_name}
   api-key: ${CLOUDINARY_API_KEY:your_api_key}
   api-secret: ${CLOUDINARY_API_SECRET:your_api_secret}
+
+jwt:
+  secret: ${JWT_SECRET:dulichso-secret-key-must-be-at-least-256-bits-long-for-hs256-algorithm}
+  expiration-ms: ${JWT_EXPIRATION_MS:86400000}

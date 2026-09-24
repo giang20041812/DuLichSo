@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <changeSet id="002-create-emergency-contact" author="dulichso">
+        <createTable tableName="emergency_contact"
+                     remarks="Đầu mối liên hệ khẩn cấp: cảnh sát, y tế, cứu hoả, hỗ trợ du lịch">
+            <column name="id" type="BIGINT UNSIGNED" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="region_id" type="BIGINT UNSIGNED"/>
+            <column name="type" type="ENUM('POLICE','MEDICAL','FIRE','TOURISM_SUPPORT')">
+                <constraints nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="phone" type="VARCHAR(32)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="address" type="VARCHAR(500)"/>
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                baseTableName="emergency_contact" baseColumnNames="region_id"
+                referencedTableName="region" referencedColumnNames="id"
+                constraintName="fk_ec_region"
+                onDelete="SET NULL"/>
+
+        <createIndex tableName="emergency_contact" indexName="idx_ec_region">
+            <column name="region_id"/>
+        </createIndex>
+        <createIndex tableName="emergency_contact" indexName="idx_ec_type">
+            <column name="type"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="002-create-sos-request" author="dulichso">
+        <createTable tableName="sos_request"
+                     remarks="Yêu cầu SOS/cứu hộ khẩn cấp từ du khách">
+            <column name="id" type="BIGINT UNSIGNED" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="requester_name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="requester_phone" type="VARCHAR(32)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="latitude" type="DECIMAL(10,7)"/>
+            <column name="longitude" type="DECIMAL(10,7)"/>
+            <column name="type" type="ENUM('MEDICAL','SECURITY','ACCIDENT','LOST','OTHER')">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="TEXT"/>
+            <column name="status" type="ENUM('PENDING','DISPATCHED','RESOLVED','CANCELLED')"
+                    defaultValue="PENDING">
+                <constraints nullable="false"/>
+            </column>
+            <column name="assigned_contact_id" type="BIGINT UNSIGNED"/>
+            <column name="dispatch_note" type="VARCHAR(500)"/>
+            <column name="created_at" type="DATETIME" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="resolved_at" type="DATETIME"/>
+        </createTable>
+
+        <addForeignKeyConstraint
+                baseTableName="sos_request" baseColumnNames="assigned_contact_id"
+                referencedTableName="emergency_contact" referencedColumnNames="id"
+                constraintName="fk_sos_contact"
+                onDelete="SET NULL"/>
+
+        <createIndex tableName="sos_request" indexName="idx_sos_status">
+            <column name="status"/>
+        </createIndex>
+        <createIndex tableName="sos_request" indexName="idx_sos_created_at">
+            <column name="created_at" descending="true"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
