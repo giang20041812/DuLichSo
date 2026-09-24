@@ -302,13 +302,13 @@ export default function BookingPage() {
       return;
     }
 
-    let defaultName = `Dịch vụ quanh đây: ${place.name}`;
+    let defaultName = `Tư vấn dịch vụ thêm: ${place.name}`;
     if (place.kind === 'TRANSPORT') {
-      defaultName = `Hỗ trợ đưa đón / di chuyển: ${place.name}`;
+      defaultName = `Tư vấn đưa đón / di chuyển: ${place.name}`;
     } else if (place.kind === 'FOOD' || place.kind === 'RESTAURANT' || place.kind === 'CUISINE') {
-      defaultName = `Hỗ trợ đặt bàn / ẩm thực: ${place.name}`;
+      defaultName = `Tư vấn đặt bàn / ẩm thực: ${place.name}`;
     } else if (place.kind === 'ATTRACTION') {
-      defaultName = `Hỗ trợ hướng dẫn tham quan: ${place.name}`;
+      defaultName = `Tư vấn tham quan / trải nghiệm: ${place.name}`;
     }
 
     setAddingPlaceModal({
@@ -953,10 +953,10 @@ export default function BookingPage() {
                         <div className="w-8 h-8 rounded-md bg-[#edfbf7] text-[var(--color-primary)] flex items-center justify-center shrink-0">
                           <Compass className="w-4 h-4" />
                         </div>
-                        <h2 className="text-lg font-bold text-[var(--color-ink-deep)]">Địa điểm & Dịch vụ quanh đây</h2>
+                        <h2 className="text-lg font-bold text-[var(--color-ink-deep)]">Tư vấn dịch vụ thêm</h2>
                       </div>
                       <p className="text-xs text-gray-500 mt-1">
-                        Khám phá điểm đến quanh đây và nhấn <strong>"+ Thêm vào booking"</strong> để homestay chuẩn bị đón tiếp
+                        Khám phá điểm đến quanh đây và nhấn <strong>"+ Thêm vào booking"</strong> để homestay tư vấn dịch vụ thêm và chuẩn bị chu đáo trước khi nhận phòng
                       </p>
                     </div>
 
@@ -1134,16 +1134,16 @@ export default function BookingPage() {
                           <Sparkles className="w-4 h-4" />
                         </div>
                         <h3 className="text-base font-bold text-[var(--color-ink-deep)]">
-                          Dịch vụ quanh đây đính kèm ({serviceItems.length})
+                          Dịch vụ tư vấn thêm đính kèm ({serviceItems.length})
                         </h3>
                       </div>
                       <span className="text-[11px] font-bold bg-[#edfbf7] text-[var(--color-primary)] px-2 py-0.5 rounded-sm border border-[var(--color-primary)]/30">
-                        Miễn phí đính kèm
+                        Miễn phí tư vấn
                       </span>
                     </div>
 
                     <p className="text-xs text-gray-500 mb-3">
-                      Các dịch vụ/yêu cầu dưới đây sẽ được gửi trực tiếp đến chủ homestay để chuẩn bị trước khi bạn đến nhận phòng.
+                      Các dịch vụ/yêu cầu tư vấn thêm dưới đây sẽ được gửi trực tiếp đến chủ homestay để tư vấn và chuẩn bị trước khi bạn đến nhận phòng.
                     </p>
 
                     <div className="space-y-2.5">
@@ -1467,7 +1467,7 @@ export default function BookingPage() {
                         <div className="p-2.5 bg-[#edfbf7] rounded-md border border-[#048c73]/30 space-y-1">
                           <div className="font-bold text-xs text-[#048c73] flex items-center gap-1">
                             <Sparkles className="w-3.5 h-3.5" />
-                            Đã thêm {serviceItems.length} dịch vụ quanh đây:
+                            Đã thêm {serviceItems.length} dịch vụ tư vấn thêm:
                           </div>
                           <ul className="text-[11px] text-gray-700 space-y-0.5 list-disc list-inside pl-1">
                             {serviceItems.map((s, idx) => (
@@ -1649,7 +1649,7 @@ export default function BookingPage() {
                   <Sparkles className="w-4 h-4" />
                 </div>
                 <h3 className="font-bold text-base text-[var(--color-ink-deep)]">
-                  Thêm dịch vụ vào đơn đặt phòng
+                  Tư vấn thêm dịch vụ vào đơn đặt phòng
                 </h3>
               </div>
               <button

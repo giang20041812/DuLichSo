@@ -208,7 +208,7 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
                 <button
                   type="button"
                   onClick={() => setIsDropdownOpen((v) => !v)}
-                  className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md transition-all cursor-pointer border ${
+                  className={`flex items-center gap-1.5 sm:gap-2 p-1 sm:px-2.5 sm:py-1.5 rounded-md transition-all cursor-pointer border ${
                     isSolid
                       ? 'bg-white/90 border-gray-200 hover:border-[var(--color-primary)] hover:bg-[#edfbf7]/50 shadow-xs'
                       : 'bg-white/15 backdrop-blur-md border-white/30 text-white hover:bg-white/25 shadow-xs'
@@ -228,7 +228,7 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
                     </div>
                   )}
                   <span
-                    className={`text-xs font-bold max-w-[110px] md:max-w-[140px] truncate ${
+                    className={`hidden sm:inline text-xs font-bold max-w-[110px] md:max-w-[140px] truncate ${
                       isSolid ? 'text-gray-900' : 'text-white drop-shadow-sm'
                     }`}
                     title={user.fullName || user.email}
@@ -236,7 +236,7 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
                     {user.fullName || user.email.split('@')[0]}
                   </span>
                   <ChevronDown
-                    className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                    className={`hidden sm:inline-block w-3.5 h-3.5 transition-transform duration-200 ${
                       isDropdownOpen ? 'rotate-180' : ''
                     } ${isSolid ? 'text-gray-500' : 'text-white/90'}`}
                   />
@@ -273,11 +273,14 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
                     <div className="py-1">
                       <button
                         type="button"
-                        onClick={handleOpenBookings}
+                        onClick={() => {
+                          setIsDropdownOpen(false);
+                          navigate('/bookings');
+                        }}
                         className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-gray-700 hover:bg-[#edfbf7] hover:text-[var(--color-primary)] transition-colors text-left cursor-pointer"
                       >
                         <Calendar className="w-4 h-4 text-[var(--color-primary)] shrink-0" />
-                        <span>Danh sách đặt phòng của tôi</span>
+                        <span>Chuyến đi & Đơn đặt phòng</span>
                       </button>
 
                       <button

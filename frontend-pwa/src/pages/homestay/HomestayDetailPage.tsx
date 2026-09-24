@@ -10,8 +10,6 @@ import {
   Car,
   Wind,
   Utensils,
-  Users,
-  Maximize,
   Mountain,
   Bus,
   Sparkles,
@@ -45,7 +43,7 @@ import { BookedDateRangeDto } from '@/types/booking';
 import { ReviewDto } from '@/types/review';
 import { Button } from '@/components/ui/button';
 import OpenStreetMapView, { OsmMarkerItem } from '@/components/map/OpenStreetMapView';
-import RoomAvailabilityCalendar from '@/components/homestay/RoomAvailabilityCalendar';
+import RoomBookingCard from '@/components/homestay/RoomBookingCard';
 
 // Helper tính khoảng cách Haversine chính xác theo OpenStreetMap / GPS tọa độ
 function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -89,17 +87,17 @@ export default function HomestayDetailPage() {
   // Booked dates
   const [bookedDates, setBookedDates] = useState<BookedDateRangeDto[]>([]);
 
-  // Active dates selection for room booking
-  const [checkInDate, setCheckInDate] = useState<string>(() => {
+  // Default initial dates for room booking cards
+  const initialCheckInDate = useMemo(() => {
     const d = new Date();
     d.setDate(d.getDate() + 2);
     return d.toISOString().slice(0, 10);
-  });
-  const [checkOutDate, setCheckOutDate] = useState<string>(() => {
+  }, []);
+  const initialCheckOutDate = useMemo(() => {
     const d = new Date();
     d.setDate(d.getDate() + 3);
     return d.toISOString().slice(0, 10);
-  });
+  }, []);
 
   // Selected place for focusing map in modal
   const [selectedMapTarget, setSelectedMapTarget] = useState<{ lat: number; lng: number; zoom: number } | null>(null);
@@ -241,13 +239,6 @@ export default function HomestayDetailPage() {
 
     return list;
   }, [homestay, filteredNearbyPlaces]);
-
-  // Compute nights
-  const nightsCount = useMemo(() => {
-    if (!checkInDate || !checkOutDate) return 1;
-    const diff = new Date(checkOutDate).getTime() - new Date(checkInDate).getTime();
-    return Math.max(1, Math.round(diff / (1000 * 60 * 60 * 24)));
-  }, [checkInDate, checkOutDate]);
 
   // Sắp xếp ưu tiên các điểm du lịch nổi bật theo mùa (isSuitableByTime = true) lên trên đầu
   const sortedRegionalDestinations = useMemo(() => {
@@ -463,122 +454,16 @@ export default function HomestayDetailPage() {
           </div>
 
           <div className="flex flex-col gap-6">
-            {homestay.rooms.map((room: RoomTypeDto) => {
-              const roomBookedDates = bookedDates.filter(
-                (b) => b.roomTypeId === Number(room.id)
-              );
-
-              return (
-                <div
-                  key={room.id}
-                  className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-2xs hover:shadow-xs transition-shadow p-4 md:p-5"
-                >
-                  <div className="flex flex-col lg:flex-row gap-5">
-                    
-                    {/* Ảnh & Thông số phòng */}
-                    <div className="w-full lg:w-[300px] shrink-0 flex flex-col gap-2.5">
-                      <div className="h-[200px] rounded-md overflow-hidden relative border border-gray-200 bg-gray-100">
-                        <img
-                          src={room.images[0] || homestay.images[0]}
-                          alt={room.name}
-                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                        />
-                        <div className="absolute bottom-2 left-2 bg-black/60 text-white text-[11px] font-medium px-2 py-0.5 rounded-sm">
-                          {room.images.length || 1} ảnh
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2 text-xs text-[var(--color-muted)] font-medium">
-                        <div className="flex items-center gap-1 bg-gray-50 p-2 rounded-md border border-gray-100">
-                          <Users className="w-3.5 h-3.5 text-[var(--color-primary)]" />
-                          <span>Tối đa {room.maxOccupancy} khách</span>
-                        </div>
-                        <div className="flex items-center gap-1 bg-gray-50 p-2 rounded-md border border-gray-100">
-                          <Maximize className="w-3.5 h-3.5 text-[var(--color-primary)]" />
-                          <span>{room.areaSqm || 25} m²</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Lịch phòng & Chi tiết giá */}
-                    <div className="flex-1 flex flex-col justify-between">
-                      <div>
-                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 mb-3">
-                          <div>
-                            <h3 className="font-bold text-lg text-[var(--color-ink-deep)]">{room.name}</h3>
-                            <p className="text-xs text-gray-500 mt-0.5">
-                              {room.description || 'Không gian ấm cúng, thiết kế bản địa hài hòa'}
-                            </p>
-                          </div>
-                          <div className="sm:text-right shrink-0">
-                            <span className="text-xl md:text-2xl font-black text-[var(--color-coral)]">
-                              {new Intl.NumberFormat('vi-VN').format(room.basePrice)}đ
-                            </span>
-                            <span className="text-xs text-[var(--color-muted)] font-medium"> /đêm</span>
-                          </div>
-                        </div>
-
-                        {/* Calendar */}
-                        <div className="bg-gray-50/70 p-3.5 rounded-md border border-gray-200 mb-3.5">
-                          <RoomAvailabilityCalendar
-                            bookedDates={roomBookedDates}
-                            totalRoomCount={room.totalRoomCount || 2}
-                            selectedCheckIn={checkInDate}
-                            selectedCheckOut={checkOutDate}
-                            onSelectDates={(inDate, outDate) => {
-                              setCheckInDate(inDate);
-                              setCheckOutDate(outDate);
-                            }}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Footer CTA */}
-                      <div className="flex flex-col sm:flex-row items-center justify-between pt-3 border-t border-gray-100 gap-3">
-                        <div className="text-xs text-gray-600 font-medium">
-                          Khoảng ngày: <strong className="text-[var(--color-ink-deep)]">{checkInDate}</strong> → <strong className="text-[var(--color-ink-deep)]">{checkOutDate}</strong> ({nightsCount} đêm)
-                        </div>
-
-                        <Button
-                          onClick={() => {
-                            navigate('/booking', {
-                              state: {
-                                placeId: homestay.id,
-                                placeName: homestay.name,
-                                placeAddress: homestay.address || homestay.district,
-                                placeRating: homestay.ratingAvg,
-                                placeReviewCount: homestay.ratingCount,
-                                coverImageUrl: homestay.images?.[0] || '',
-                                latitude: homestay.latitude,
-                                longitude: homestay.longitude,
-                                roomTypeId: Number(room.id),
-                                roomTypeName: room.name,
-                                basePrice: room.basePrice,
-                                originalPrice: Math.round(room.basePrice * 1.25),
-                                totalRoomCount: room.totalRoomCount,
-                                maxOccupancy: room.maxOccupancy,
-                                bedInfo: '1 giường đôi lớn',
-                                hasBreakfast: false,
-                                freeCancellation: true,
-                                checkIn: checkInDate,
-                                checkOut: checkOutDate,
-                                nights: nightsCount,
-                                guestCount: 2,
-                                roomCount: 1,
-                              },
-                            });
-                          }}
-                          className="w-full sm:w-auto font-bold rounded-md py-2.5 px-6 bg-[var(--color-coral)] hover:bg-[var(--color-coral-hover)] text-white shadow-2xs transition-colors text-sm cursor-pointer"
-                        >
-                          Đặt phòng ({new Intl.NumberFormat('vi-VN').format(room.basePrice * nightsCount)}đ)
-                        </Button>
-                      </div>
-
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            {homestay.rooms.map((room: RoomTypeDto) => (
+              <RoomBookingCard
+                key={room.id}
+                room={room}
+                homestay={homestay}
+                bookedDates={bookedDates}
+                defaultCheckIn={initialCheckInDate}
+                defaultCheckOut={initialCheckOutDate}
+              />
+            ))}
           </div>
         </div>
 

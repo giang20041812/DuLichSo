@@ -29,6 +29,29 @@ public class PublicBookingController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/my-bookings")
+    public ResponseEntity<java.util.List<BookingResponseDto>> getMyBookings(
+            @RequestParam(value = "email", required = false) String email,
+            @RequestParam(value = "phone", required = false) String phone,
+            @RequestParam(value = "codes", required = false) java.util.List<String> codes) {
+        return ResponseEntity.ok(bookingService.findMyBookings(email, phone, codes));
+    }
+
+    @PostMapping("/{bookingCode}/review")
+    public ResponseEntity<com.dulichso.bookingapi.dto.ReviewDto> createBookingReview(
+            @PathVariable("bookingCode") String bookingCode,
+            @Valid @RequestBody com.dulichso.bookingapi.dto.CreateReviewRequest request) {
+        com.dulichso.bookingapi.dto.ReviewDto review = bookingService.createBookingReview(bookingCode, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(review);
+    }
+
+    @GetMapping("/{bookingCode}/review")
+    public ResponseEntity<com.dulichso.bookingapi.dto.ReviewDto> getBookingReview(
+            @PathVariable("bookingCode") String bookingCode) {
+        com.dulichso.bookingapi.dto.ReviewDto review = bookingService.getBookingReview(bookingCode);
+        return ResponseEntity.ok(review);
+    }
+
     @GetMapping("/rooms/{roomTypeId}/booked-dates")
     public ResponseEntity<java.util.List<com.dulichso.bookingapi.dto.BookedDateRangeDto>> getBookedDatesByRoomType(
             @PathVariable("roomTypeId") Long roomTypeId,

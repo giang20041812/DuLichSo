@@ -9,6 +9,8 @@ export { default as FullScreenMapPage } from './homestay/FullScreenMapPage';
 
 // Booking
 export { default as BookingPage } from './booking/BookingPage';
+export { default as UserBookingListPage } from './booking/UserBookingListPage';
+export { default as UserBookingDetailPage } from './booking/UserBookingDetailPage';
 
 // Experience & Culture
 export { default as ExperienceDetailPage } from './experience/ExperienceDetailPage';

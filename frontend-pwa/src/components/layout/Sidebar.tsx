@@ -9,6 +9,7 @@ import {
   Sparkles, 
   Bus, 
   Layers, 
+  Calendar,
   ShieldCheck, 
   HelpCircle, 
   X, 
@@ -31,8 +32,9 @@ export interface SidebarProps {
 
 const navItems = [
   { id: 'home', path: '/', label: 'Trang chủ', icon: <Home className="w-5 h-5" /> },
-  { id: 'culture', path: '/culture', label: 'Văn hóa & Lễ hội', icon: <Compass className="w-5 h-5" /> },
   { id: 'homestays', path: '/homestays', label: 'Lưu trú / Homestay', icon: <BedDouble className="w-5 h-5" /> },
+  { id: 'bookings', path: '/bookings', label: 'Chuyến đi của tôi', icon: <Calendar className="w-5 h-5" /> },
+  { id: 'culture', path: '/culture', label: 'Văn hóa & Lễ hội', icon: <Compass className="w-5 h-5" /> },
   { id: 'destinations', path: '/destinations', label: 'Địa điểm du lịch', icon: <MapPin className="w-5 h-5" /> },
   { id: 'restaurants', path: '/restaurants', label: 'Ẩm thực địa phương', icon: <Utensils className="w-5 h-5" /> },
   { id: 'tours', path: '/tours', label: 'Trải nghiệm du lịch', icon: <Sparkles className="w-5 h-5" /> },

@@ -531,20 +531,21 @@ export default function SearchHub() {
   return (
     <div ref={searchRef} className="w-full relative z-30 flex flex-col md:flex-row items-center gap-2 md:gap-2.5 p-2.5 md:p-3 rounded-lg bg-white/95 backdrop-blur-md shadow-xl border border-white/80 transition-all text-left">
       
-      {/* ---------------- 1. ĐỊA ĐIỂM (3 PHẦN: TỈNH, PHƯỜNG/XÃ, ĐỊA ĐIỂM TỪ DB) ---------------- */}
-      <div 
-        className={`flex-[1.6] w-full min-w-0 bg-white rounded-md shadow-xs border px-3.5 h-[58px] flex items-center gap-3 cursor-pointer transition-all relative ${
-          activeTab === 'destination' 
-            ? 'z-40 border-[#048c73] ring-2 ring-[#048c73]/20 bg-[#edfbf7]/20' 
-            : 'z-20 border-gray-200 hover:border-[#048c73]'
-        }`}
-        onClick={() => setActiveTab('destination')}
-      >
-        <MapPin className="text-[#048c73] w-5 h-5 ml-0.5 shrink-0" />
-        <div className="flex flex-col justify-center flex-1 min-w-0">
-          <span className="text-[10px] font-bold text-[#66716c] uppercase tracking-wider mb-0.5">
-            Điểm đến · Tỉnh · Xã · Địa điểm
-          </span>
+      {/* ---------------- 1. ĐỊA ĐIỂM + ĐỊNH VỊ GẦN TÔI (HÀNG 1 TRÊN MOBILE) ---------------- */}
+      <div className="w-full md:w-auto md:flex-[1.6] flex items-center gap-2 min-w-0">
+        <div 
+          className={`flex-1 min-w-0 bg-white rounded-md shadow-xs border px-3 sm:px-3.5 h-[52px] sm:h-[58px] flex items-center gap-2.5 sm:gap-3 cursor-pointer transition-all relative ${
+            activeTab === 'destination' 
+              ? 'z-40 border-[#048c73] ring-2 ring-[#048c73]/20 bg-[#edfbf7]/20' 
+              : 'z-20 border-gray-200 hover:border-[#048c73]'
+          }`}
+          onClick={() => setActiveTab('destination')}
+        >
+          <MapPin className="text-[#048c73] w-5 h-5 shrink-0" />
+          <div className="flex flex-col justify-center flex-1 min-w-0">
+            <span className="text-[10px] font-bold text-[#66716c] uppercase tracking-wider mb-0.5 truncate">
+              Điểm đến · Tỉnh · Xã · Địa điểm
+            </span>
           <span className="text-sm font-bold text-[#0a2e26] truncate">
             {destinationDisplay}
           </span>
@@ -812,38 +813,39 @@ export default function SearchHub() {
             )}
           </div>
         )}
-      </div>
-
-      {/* ---------------- 2. NÚT "GẦN TÔI" ---------------- */}
-      <button
-        onClick={handleNearMe}
-        disabled={isLocating}
-        className="h-[58px] px-3.5 bg-gradient-to-r from-emerald-50 to-teal-50 border border-teal-200 hover:border-[#048c73] hover:bg-teal-100/60 text-[#048c73] rounded-md transition-all flex items-center gap-2 shrink-0 group shadow-xs cursor-pointer active:scale-95 disabled:opacity-60"
-        title="Tự động nhận diện Tỉnh / Xã hiện tại của bạn qua OpenStreetMap và chọn điểm du lịch gần bạn"
-      >
-        {isLocating ? (
-          <Loader2 className="w-5 h-5 text-[#048c73] animate-spin shrink-0" />
-        ) : (
-          <LocateFixed className="w-5 h-5 text-[#048c73] group-hover:scale-110 transition-transform shrink-0" />
-        )}
-        <div className="flex flex-col text-left">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-teal-700">Định vị</span>
-          <span className="text-xs font-bold text-[#0a2e26] whitespace-nowrap">
-            {locationStatus ? locationStatus : (isLocating ? "Đang tìm..." : "Gần tôi")}
-          </span>
         </div>
-      </button>
+
+        {/* ---------------- 2. NÚT "GẦN TÔI" ---------------- */}
+        <button
+          onClick={handleNearMe}
+          disabled={isLocating}
+          className="h-[52px] sm:h-[58px] px-3 sm:px-3.5 bg-gradient-to-r from-emerald-50 to-teal-50 border border-teal-200 hover:border-[#048c73] hover:bg-teal-100/60 text-[#048c73] rounded-md transition-all flex items-center gap-1.5 sm:gap-2 shrink-0 group shadow-xs cursor-pointer active:scale-95 disabled:opacity-60"
+          title="Tự động nhận diện Tỉnh / Xã hiện tại của bạn qua OpenStreetMap và chọn điểm du lịch gần bạn"
+        >
+          {isLocating ? (
+            <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 text-[#048c73] animate-spin shrink-0" />
+          ) : (
+            <LocateFixed className="w-4 h-4 sm:w-5 sm:h-5 text-[#048c73] group-hover:scale-110 transition-transform shrink-0" />
+          )}
+          <div className="flex flex-col text-left">
+            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-teal-700">Định vị</span>
+            <span className="text-[11px] sm:text-xs font-bold text-[#0a2e26] whitespace-nowrap">
+              {locationStatus ? locationStatus : (isLocating ? "Đang tìm..." : "Gần tôi")}
+            </span>
+          </div>
+        </button>
+      </div>
 
       {/* ---------------- 3. NGÀY ĐI (CHỈ LỌC 1 NGÀY DUY NHẤT) ---------------- */}
       <div 
-        className={`flex-1 w-full min-w-0 bg-white rounded-md shadow-xs border px-3.5 h-[58px] flex items-center gap-3 cursor-pointer transition-all relative ${
+        className={`flex-1 w-full min-w-0 bg-white rounded-md shadow-xs border px-3 sm:px-3.5 h-[52px] sm:h-[58px] flex items-center gap-2.5 sm:gap-3 cursor-pointer transition-all relative ${
           activeTab === 'dates' 
             ? 'z-40 border-[#048c73] ring-2 ring-[#048c73]/20 bg-[#edfbf7]/20' 
             : 'z-20 border-gray-200 hover:border-[#048c73]'
         }`}
         onClick={() => setActiveTab('dates')}
       >
-        <Calendar className="text-[#048c73] w-5 h-5 ml-0.5 shrink-0" />
+        <Calendar className="text-[#048c73] w-5 h-5 shrink-0" />
         <div className="flex flex-col justify-center flex-1 min-w-0">
           <span className="text-[10px] font-bold text-[#66716c] uppercase tracking-wider mb-0.5">Ngày đi</span>
           <span className="text-sm font-bold text-[#0a2e26] truncate">
@@ -855,10 +857,10 @@ export default function SearchHub() {
       </div>
 
       {/* ---------------- 4. BUTTONS: BỎ LỌC & TÌM KIẾM ---------------- */}
-      <div className="flex items-center gap-2 w-full md:w-auto mt-1 md:mt-0 shrink-0">
+      <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
         <button 
           onClick={handleClear}
-          className="h-[58px] w-[54px] flex items-center justify-center bg-white border border-gray-200 hover:border-[#048c73] text-gray-400 hover:text-[#048c73] rounded-md transition-colors shrink-0 shadow-xs"
+          className="h-[52px] sm:h-[58px] w-[50px] sm:w-[54px] flex items-center justify-center bg-white border border-gray-200 hover:border-[#048c73] text-gray-400 hover:text-[#048c73] rounded-md transition-colors shrink-0 shadow-xs active:scale-95 cursor-pointer"
           title="Bỏ lọc / Đặt lại"
         >
           <X className="w-5 h-5" strokeWidth={2.2} />
@@ -866,7 +868,7 @@ export default function SearchHub() {
 
         <Button 
           onClick={handleSearch}
-          className="h-[58px] flex-1 md:flex-none md:px-8 bg-gradient-to-r from-[#048c73] to-[#03725e] hover:from-[#03725e] hover:to-[#025a4a] text-white font-bold rounded-md shadow-md shadow-teal-900/20 hover:shadow-teal-900/35 hover:-translate-y-0.5 transition-all active:scale-95 flex items-center justify-center gap-2 text-[16px]"
+          className="h-[52px] sm:h-[58px] flex-1 md:flex-none md:px-8 bg-gradient-to-r from-[#048c73] to-[#03725e] hover:from-[#03725e] hover:to-[#025a4a] text-white font-bold rounded-md shadow-md shadow-teal-900/20 hover:shadow-teal-900/35 hover:-translate-y-0.5 transition-all active:scale-95 flex items-center justify-center gap-2 text-[15px] sm:text-[16px] cursor-pointer"
         >
           <Search className="w-5 h-5 text-[#7ef2dd]" strokeWidth={2.5} />
           Tìm kiếm

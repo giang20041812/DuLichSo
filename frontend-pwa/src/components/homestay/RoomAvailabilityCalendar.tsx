@@ -5,6 +5,7 @@ import { BookedDateRangeDto } from '@/types/booking';
 interface RoomAvailabilityCalendarProps {
   bookedDates: BookedDateRangeDto[];
   totalRoomCount?: number;
+  requestedRoomCount?: number; // Số lượng phòng khách đang chọn
   selectedCheckIn?: string; // YYYY-MM-DD
   selectedCheckOut?: string; // YYYY-MM-DD
   onSelectDates?: (checkIn: string, checkOut: string) => void;
@@ -14,6 +15,7 @@ interface RoomAvailabilityCalendarProps {
 export default function RoomAvailabilityCalendar({
   bookedDates = [],
   totalRoomCount = 1,
+  requestedRoomCount = 1,
   selectedCheckIn,
   selectedCheckOut,
   onSelectDates,
@@ -61,17 +63,29 @@ export default function RoomAvailabilityCalendar({
   // Temporary selection state for range picking
   const [pickingStart, setPickingStart] = useState<string | null>(null);
 
-  const isDateBooked = (dateStr: string): boolean => {
-    const occupied = occupiedCountPerDate[dateStr] || 0;
-    return occupied >= Math.max(1, totalRoomCount);
-  };
+  const totalRooms = Math.max(1, totalRoomCount);
+  const neededRooms = Math.max(1, requestedRoomCount);
 
-  const isDatePast = (dateStr: string): boolean => {
-    return dateStr < todayStr;
+  const getDayAvailability = (dateStr: string) => {
+    const occupied = occupiedCountPerDate[dateStr] || 0;
+    const available = Math.max(0, totalRooms - occupied);
+    const isPast = dateStr < todayStr;
+    const isFullyBooked = available <= 0;
+    const isNotEnough = !isFullyBooked && available < neededRooms;
+    const isBooked = isFullyBooked || isNotEnough;
+    return { occupied, available, isPast, isFullyBooked, isNotEnough, isBooked };
   };
 
   const handleDateClick = (dateStr: string) => {
-    if (isDatePast(dateStr) || isDateBooked(dateStr)) return;
+    const { isPast, isBooked, isFullyBooked, isNotEnough, available } = getDayAvailability(dateStr);
+    if (isPast || isBooked) {
+      if (isFullyBooked) {
+        alert(`Ngày ${dateStr} đã kín toàn bộ ${totalRooms} phòng.`);
+      } else if (isNotEnough) {
+        alert(`Ngày ${dateStr} chỉ còn ${available} phòng trống, không đủ ${neededRooms} phòng bạn đang chọn.`);
+      }
+      return;
+    }
 
     if (!pickingStart) {
       // Start picking
@@ -79,8 +93,10 @@ export default function RoomAvailabilityCalendar({
     } else {
       // Picked end date
       if (dateStr > pickingStart) {
-        // Check if any date in between is booked
+        // Check if any date in between is booked or does not have enough rooms
         let hasConflict = false;
+        let conflictDate = '';
+        let conflictAvailable = 0;
         const cur = new Date(pickingStart);
         const end = new Date(dateStr);
         while (cur < end) {
@@ -88,8 +104,11 @@ export default function RoomAvailabilityCalendar({
           const m = String(cur.getMonth() + 1).padStart(2, '0');
           const d = String(cur.getDate()).padStart(2, '0');
           const key = `${y}-${m}-${d}`;
-          if (isDateBooked(key)) {
+          const check = getDayAvailability(key);
+          if (check.isBooked) {
             hasConflict = true;
+            conflictDate = key;
+            conflictAvailable = check.available;
             break;
           }
           cur.setDate(cur.getDate() + 1);
@@ -98,7 +117,7 @@ export default function RoomAvailabilityCalendar({
         if (!hasConflict) {
           onSelectDates?.(pickingStart, dateStr);
         } else {
-          // If conflict, reset with new start
+          alert(`Đêm ${conflictDate} chỉ còn ${conflictAvailable}/${totalRooms} phòng trống (bạn đang chọn ${neededRooms} phòng). Vui lòng chọn khoảng ngày khác!`);
           setPickingStart(dateStr);
           return;
         }
@@ -129,8 +148,7 @@ export default function RoomAvailabilityCalendar({
 
     for (let d = 1; d <= totalDays; d++) {
       const dayStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      const isPast = isDatePast(dayStr);
-      const isBooked = isDateBooked(dayStr);
+      const { isPast, isBooked, isFullyBooked, isNotEnough, available, occupied } = getDayAvailability(dayStr);
       const isToday = dayStr === todayStr;
 
       // Selection state check
@@ -145,14 +163,27 @@ export default function RoomAvailabilityCalendar({
 
       if (isPast) {
         cellStyle = "text-gray-300 line-through cursor-not-allowed bg-gray-50/50";
-      } else if (isBooked) {
-        cellStyle = "bg-rose-50 text-rose-500 font-bold cursor-not-allowed border border-rose-200";
-        cellBadge = <span className="absolute bottom-0.5 text-[8px] text-rose-600 font-bold leading-none">Kín</span>;
+      } else if (isFullyBooked) {
+        cellStyle = "bg-rose-50 text-rose-400 font-bold cursor-not-allowed border border-rose-200 line-through";
+        cellBadge = <span className="absolute bottom-0.5 text-[8px] text-rose-600 font-extrabold leading-none">Kín</span>;
+      } else if (isNotEnough) {
+        cellStyle = "bg-amber-50 text-amber-700 font-semibold cursor-not-allowed border border-amber-200";
+        cellBadge = <span className="absolute bottom-0.5 text-[8px] text-amber-700 font-bold leading-none">Còn {available}</span>;
       } else if (isSelectedStart || isSelectedEnd) {
         cellStyle = "bg-[var(--color-coral)] text-white font-extrabold shadow-sm scale-105 z-10";
       } else if (isInSelectedRange) {
         cellStyle = "bg-[var(--color-coral)]/15 text-[var(--color-coral)] font-bold";
+      } else if (totalRooms > 1 && !isPast) {
+        cellBadge = <span className="absolute bottom-0.5 text-[8px] text-emerald-700/80 font-medium leading-none">Còn {available}</span>;
       }
+
+      const cellTitle = isPast
+        ? 'Ngày trong quá khứ'
+        : isFullyBooked
+        ? `Đã kín toàn bộ ${totalRooms} phòng (${occupied} đã đặt)`
+        : isNotEnough
+        ? `Chỉ còn ${available} phòng trống, không đủ ${neededRooms} phòng bạn chọn`
+        : `Còn ${available}/${totalRooms} phòng trống · Bấm để chọn`;
 
       days.push(
         <button
@@ -161,7 +192,7 @@ export default function RoomAvailabilityCalendar({
           disabled={isPast || isBooked}
           onClick={() => handleDateClick(dayStr)}
           className={`h-8 md:h-9 w-full flex flex-col items-center justify-center rounded-md relative text-xs md:text-sm transition-all ${cellStyle} ${isToday && !isSelectedStart && !isBooked ? 'ring-1 ring-[var(--color-primary)] font-bold text-[var(--color-primary)]' : ''}`}
-          title={isBooked ? 'Đã có khách đặt kín phòng ngày này' : isPast ? 'Ngày trong quá khứ' : `Chọn ngày ${dayStr}`}
+          title={cellTitle}
         >
           <span>{d}</span>
           {cellBadge}
@@ -209,9 +240,12 @@ export default function RoomAvailabilityCalendar({
   return (
     <div className={`flex flex-col gap-3 ${className}`}>
       {/* Calendar Navigation Header */}
-      <div className="flex items-center justify-between">
-        <div className="text-xs md:text-sm font-bold text-[var(--color-ink-deep)] flex items-center gap-2">
-          <span>Trạng thái phòng theo ngày</span>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div className="text-xs md:text-sm font-bold text-[var(--color-ink-deep)] flex flex-wrap items-center gap-2">
+          <span>Lịch trống & Tình trạng đặt</span>
+          <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-sm">
+            Đang đối soát: {neededRooms} phòng
+          </span>
           {pickingStart && (
             <span className="text-xs font-semibold text-[var(--color-coral)] bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-md">
               Đã chọn nhận phòng: {pickingStart} · Bấm ngày trả phòng
@@ -219,7 +253,7 @@ export default function RoomAvailabilityCalendar({
           )}
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0">
           <button
             type="button"
             disabled={isPrevDisabled}
@@ -259,6 +293,14 @@ export default function RoomAvailabilityCalendar({
             </div>
             <span>Đã kín phòng</span>
           </div>
+          {neededRooms > 1 && (
+            <div className="flex items-center gap-1.5">
+              <div className="w-3.5 h-3.5 rounded-sm bg-amber-50 border border-amber-300 text-amber-700 flex items-center justify-center text-[9px] font-bold">
+                !
+              </div>
+              <span>Không đủ {neededRooms} phòng</span>
+            </div>
+          )}
           <div className="flex items-center gap-1.5">
             <div className="w-3.5 h-3.5 rounded-sm bg-[var(--color-coral)] text-white flex items-center justify-center">
               <Check className="w-2.5 h-2.5" />
@@ -268,7 +310,7 @@ export default function RoomAvailabilityCalendar({
         </div>
 
         <span className="text-[11px] text-gray-400">
-          * Bấm ngày nhận phòng và trả phòng để đặt
+          * Bấm ngày nhận phòng và ngày trả phòng trực tiếp trên lịch
         </span>
       </div>
     </div>
