@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
+import type { StatusTone } from './StatusBadge';
 
 export function FilterSearch({
   value,
@@ -37,7 +38,34 @@ export function FilterSearch({
 export interface ChipOption<T extends string> {
   value: T | '';
   label: string;
+  /** Màu ngữ nghĩa của chip; bỏ trống = màu thương hiệu. */
+  tone?: StatusTone;
 }
+
+const CHIP_ACTIVE: Record<StatusTone, string> = {
+  success: 'border-accent bg-accent/15 text-primary-700 shadow-sm',
+  warning: 'border-sun bg-sun/20 text-amber-700 shadow-sm',
+  danger: 'border-danger bg-danger/10 text-danger shadow-sm',
+  info: 'border-secondary bg-secondary/15 text-secondary-700 shadow-sm',
+  brand: 'border-primary bg-primary text-white shadow-sm',
+  neutral: 'border-muted/50 bg-muted/10 text-ink shadow-sm',
+};
+const CHIP_HOVER: Record<StatusTone, string> = {
+  success: 'hover:border-accent/60 hover:bg-accent/5',
+  warning: 'hover:border-sun/60 hover:bg-sun/10',
+  danger: 'hover:border-danger/50 hover:bg-danger/5',
+  info: 'hover:border-secondary/60 hover:bg-secondary/5',
+  brand: 'hover:border-primary/50 hover:bg-primary-50',
+  neutral: 'hover:border-muted/50 hover:bg-hover',
+};
+const CHIP_DOT: Record<StatusTone, string> = {
+  success: 'bg-accent',
+  warning: 'bg-sun',
+  danger: 'bg-danger',
+  info: 'bg-secondary',
+  brand: 'bg-primary',
+  neutral: 'bg-muted/60',
+};
 
 /** Nhóm chip chọn một giá trị; `value: ''` là "Tất cả". */
 export function ChipGroup<T extends string>({
@@ -56,6 +84,7 @@ export function ChipGroup<T extends string>({
       <span className="mr-1 text-[11px] font-semibold uppercase tracking-wide text-muted">{label}</span>
       {options.map((o) => {
         const active = o.value === value;
+        const tone: StatusTone = o.tone ?? 'brand';
         return (
           <button
             key={o.value || 'all'}
@@ -63,12 +92,11 @@ export function ChipGroup<T extends string>({
             role="radio"
             aria-checked={active}
             onClick={() => onChange(o.value)}
-            className={`h-7 rounded-md border px-2.5 text-xs font-medium transition-all duration-200 ${
-              active
-                ? 'border-primary bg-primary-50 text-primary'
-                : 'border-border bg-white text-muted hover:border-primary/40 hover:text-primary'
+            className={`inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-all duration-200 active:scale-95 ${
+              active ? CHIP_ACTIVE[tone] : `border-border bg-white text-muted ${CHIP_HOVER[tone]}`
             }`}
           >
+            {o.tone && <span className={`h-1.5 w-1.5 rounded-full ${active && tone === 'brand' ? 'bg-white' : CHIP_DOT[tone]}`} />}
             {o.label}
           </button>
         );

@@ -3,6 +3,10 @@ import AccountsPanel from '@/components/admin/AccountsPanel';
 import PlacesPanel from '@/components/admin/PlacesPanel';
 import OverviewPanel from '@/components/admin/OverviewPanel';
 import BookingsPanel from '@/components/admin/BookingsPanel';
+import ProvidersPanel from '@/components/admin/ProvidersPanel';
+import { StatusBadge } from '@/components/admin/StatusBadge';
+import { actionButtonClass } from '@/components/admin/statusStyles';
+import type { StatusTone } from '@/components/admin/StatusBadge';
 import { useNavigate } from 'react-router-dom';
 import {
   ShieldCheck,
@@ -10,7 +14,6 @@ import {
   ArrowLeft,
   Users,
   BarChart3,
-  Plus,
   CheckCircle,
   AlertTriangle,
   RefreshCw,
@@ -19,6 +22,7 @@ import {
   DollarSign,
   CalendarCheck,
   X,
+  type LucideIcon,
 } from 'lucide-react';
 import { adminService } from '@/services/adminService';
 import type {
@@ -28,6 +32,37 @@ import type {
 } from '@/types/admin';
 
 type AdminTab = 'dashboard' | 'accounts' | 'providers' | 'places' | 'bookings' | 'finance';
+
+const vnd = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 });
+
+const REFUND_STATUS: Record<'PENDING' | 'PROCESSED' | 'REJECTED', { tone: StatusTone; label: string }> = {
+  PENDING: { tone: 'warning', label: 'Chờ duyệt' },
+  PROCESSED: { tone: 'success', label: 'Đã hoàn tiền' },
+  REJECTED: { tone: 'danger', label: 'Đã từ chối' },
+};
+
+function FinanceCard({ label, value, tone }: { label: string; value: string; tone: string }) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-border bg-white p-4 shadow-[var(--shadow-card)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[var(--shadow-card-hover)]">
+      <span className={`flex h-10 w-10 items-center justify-center rounded-md ${tone}`}>
+        <DollarSign className="h-5 w-5" />
+      </span>
+      <div>
+        <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">{label}</div>
+        <div className="font-display text-lg font-bold text-ink-deep">{value}</div>
+      </div>
+    </div>
+  );
+}
+
+const TABS: { key: AdminTab; label: string; icon: LucideIcon }[] = [
+  { key: 'dashboard', label: 'Tổng quan', icon: BarChart3 },
+  { key: 'accounts', label: 'Tài khoản', icon: Users },
+  { key: 'providers', label: 'Đối tác / NCC', icon: Building2 },
+  { key: 'places', label: 'Kiểm duyệt điểm đến', icon: MapPin },
+  { key: 'bookings', label: 'Đặt phòng', icon: CalendarCheck },
+  { key: 'finance', label: 'Tài chính', icon: DollarSign },
+];
 
 export default function AdminDashboardPage() {
   const navigate = useNavigate();
@@ -56,7 +91,7 @@ export default function AdminDashboardPage() {
 
   // 3. Providers State
   const [providers, setProviders] = useState<AdminProviderSummaryDto[]>([]);
-  const [providerStatusFilter, setProviderStatusFilter] = useState<ProviderStatus | ''>('');
+  const [providersError, setProvidersError] = useState(false);
   const [showCreateProviderModal, setShowCreateProviderModal] = useState(false);
   const [providerStatusTarget, setProviderStatusTarget] = useState<{ id: number; name: string; status: ProviderStatus } | null>(null);
   const [providerStatusReason, setProviderStatusReason] = useState('');
@@ -82,6 +117,7 @@ export default function AdminDashboardPage() {
     totalTransactions: number;
     byMonth: Array<{ year: number; month: number; totalAmount: number; transactionCount: number }>;
   } | null>(null);
+  const [financeError, setFinanceError] = useState(false);
   const [refunds, setRefunds] = useState<
     Array<{
       id: number;
@@ -123,74 +159,31 @@ export default function AdminDashboardPage() {
   const loadProviders = async () => {
     try {
       setLoading(true);
-      const data = await adminService.getProviders(
-        providerStatusFilter ? providerStatusFilter : undefined
-      );
-      setProviders(data);
+      setProvidersError(false);
+      setProviders(await adminService.getProviders());
     } catch {
-      setProviders([
-        {
-          id: 2001,
-          name: 'Bản Lìm Mông Eco Lodge',
-          contactName: 'Giàng A Páo',
-          contactPhone: '0912345678',
-          contactEmail: 'ncc@taybactrails.vn',
-          address: 'Bản Lìm Mông, Xã Cao Phạ, Mù Cang Chải',
-          status: 'ACTIVE',
-          placeCount: 4,
-          accountCount: 2,
-          createdAt: '2026-02-15T09:30:00',
-          updatedAt: '2026-03-10T14:20:00',
-        },
-        {
-          id: 2002,
-          name: 'Mù Cang Chải Ecolodge',
-          contactName: 'Hoàng Thị Mẩy',
-          contactPhone: '0987654321',
-          contactEmail: 'may@ecolodge.vn',
-          address: 'Bản Hua Khắt, Xã Nậm Khắt, Mù Cang Chải',
-          status: 'ACTIVE',
-          placeCount: 6,
-          accountCount: 3,
-          createdAt: '2026-01-20T11:00:00',
-          updatedAt: '2026-02-28T16:45:00',
-        },
-      ]);
+      setProvidersError(true);
     } finally {
       setLoading(false);
     }
   };
 
+  const refreshActiveTab = () => {
+    if (activeTab === 'dashboard') loadDashboard();
+    else if (activeTab === 'providers') loadProviders();
+    else if (activeTab === 'finance') loadFinance();
+    else setAccountsRefreshKey((k) => k + 1);
+  };
+
   const loadFinance = async () => {
     try {
       setLoading(true);
-      const [rev, ref] = await Promise.all([
-        adminService.getRevenueSummary(),
-        adminService.getRefunds(false),
-      ]);
+      setFinanceError(false);
+      const [rev, ref] = await Promise.all([adminService.getRevenueSummary(), adminService.getRefunds(false)]);
       setRevenueData(rev);
       setRefunds(ref);
     } catch {
-      setRevenueData({
-        grandTotal: 1250000000,
-        totalTransactions: 680,
-        byMonth: [
-          { year: 2026, month: 1, totalAmount: 280000000, transactionCount: 150 },
-          { year: 2026, month: 2, totalAmount: 410000000, transactionCount: 220 },
-          { year: 2026, month: 3, totalAmount: 560000000, transactionCount: 310 },
-        ],
-      });
-      setRefunds([
-        {
-          id: 101,
-          bookingCode: 'MCC-BK-20260312-001',
-          amount: 1450000,
-          reason: 'Khách hủy phòng do thời tiết sạt lở',
-          type: 'FULL_REFUND',
-          status: 'PENDING',
-          requestedAt: '2026-03-15T10:20:00',
-        },
-      ]);
+      setFinanceError(true);
     } finally {
       setLoading(false);
     }
@@ -312,152 +305,91 @@ export default function AdminDashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg-canvas,#F6FAF8)] text-slate-800 font-sans p-4 sm:p-6">
-      <div className="max-w-7xl mx-auto flex flex-col gap-5">
-        {/* Header */}
-        <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white rounded-lg p-4 shadow-xs border border-slate-200">
+    <div className="min-h-screen bg-canvas font-sans text-ink">
+      <header className="sticky top-0 z-30 border-b border-border bg-white/90 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => navigate('/')}
-              className="p-2 rounded-md hover:bg-slate-100 text-slate-600 transition-colors"
-              title="Về Trang chủ"
+              className="rounded-md p-2 text-muted transition-colors hover:bg-hover hover:text-primary"
+              title="Về trang chủ"
+              aria-label="Về trang chủ"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="h-4 w-4" />
             </button>
-            <div>
-              <h1 className="text-base sm:text-lg font-bold text-[var(--color-ink-deep,#0f2d3c)] flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-[var(--color-primary,#048C73)]" />
-                Cổng Quản Trị Hệ Thống Du Lịch Số
-              </h1>
-              <p className="text-xs text-slate-500">
-                Phiên làm việc: <strong className="text-slate-700">{currentUser?.fullName || 'Quản trị viên'}</strong> ({currentUser?.email || 'admin@taybactrails.vn'}) — Vai trò <span className="px-1.5 py-0.5 rounded-sm bg-emerald-50 text-emerald-700 font-semibold text-[10px]">ADMIN</span>
-              </p>
+            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-white shadow-[var(--shadow-teal)]">
+              <ShieldCheck className="h-5 w-5" />
+            </div>
+            <div className="leading-tight">
+              <h1 className="font-display text-sm font-bold text-ink-deep sm:text-base">Quản trị hệ thống</h1>
+              <p className="text-[11px] text-muted">Du Lịch Số</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <div className="flex items-center gap-2">
+            <div className="hidden text-right leading-tight sm:block">
+              <div className="text-xs font-semibold text-ink-deep">{currentUser?.fullName || 'Quản trị viên'}</div>
+              <div className="text-[11px] text-muted">{currentUser?.email}</div>
+            </div>
             <button
               type="button"
-              onClick={() => {
-                if (activeTab === 'dashboard') loadDashboard();
-                            else if (activeTab === 'providers') loadProviders();
-                            else if (activeTab === 'finance') loadFinance();
-              }}
-              className="p-2 text-slate-600 hover:text-[var(--color-primary,#048C73)] hover:bg-slate-50 rounded-md border border-slate-200 transition-colors"
+              onClick={refreshActiveTab}
+              className="rounded-md border border-border p-2 text-muted transition-colors hover:border-primary/40 hover:text-primary"
               title="Làm mới dữ liệu"
+              aria-label="Làm mới dữ liệu"
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
             <button
               type="button"
               onClick={handleLogout}
-              className="flex items-center gap-1.5 text-xs bg-rose-50 text-rose-700 hover:bg-rose-100 px-3.5 py-2 rounded-md font-semibold transition-colors cursor-pointer border border-rose-200/60"
+              className="flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-xs font-semibold text-muted transition-colors hover:border-danger/40 hover:bg-danger/5 hover:text-danger"
             >
-              <LogOut className="w-4 h-4" />
-              <span>Đăng xuất</span>
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Đăng xuất</span>
             </button>
           </div>
-        </header>
+        </div>
 
-        {/* Thông báo Alert */}
+        <nav className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-4 sm:px-6" aria-label="Điều hướng quản trị">
+          {TABS.map(({ key, label, icon: Icon }) => {
+            const active = activeTab === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setActiveTab(key)}
+                aria-current={active ? 'page' : undefined}
+                className={`relative flex cursor-pointer items-center gap-2 whitespace-nowrap px-3 py-3 text-xs font-semibold transition-colors duration-200 ${
+                  active ? 'text-primary' : 'text-muted hover:text-ink-deep'
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+                <span
+                  className={`absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-primary transition-all duration-300 ${
+                    active ? 'scale-x-100 opacity-100' : 'scale-x-0 opacity-0'
+                  }`}
+                />
+              </button>
+            );
+          })}
+        </nav>
+      </header>
+
+      <main className="mx-auto flex max-w-7xl flex-col gap-5 p-4 sm:p-6">
         {message && (
           <div
-            className={`p-3 rounded-md text-xs font-medium border flex items-center gap-2 animate-in fade-in duration-200 ${
-              message.type === 'success'
-                ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                : 'bg-rose-50 border-rose-200 text-rose-800'
+            role="status"
+            className={`flex items-center gap-2 rounded-md border px-3 py-2.5 text-xs font-medium animate-in fade-in duration-200 ${
+              message.type === 'success' ? 'border-accent/40 bg-accent/10 text-primary-700' : 'border-danger/30 bg-danger/10 text-danger'
             }`}
           >
-            {message.type === 'success' ? (
-              <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-            ) : (
-              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-            )}
+            {message.type === 'success' ? <CheckCircle className="h-4 w-4 shrink-0" /> : <AlertTriangle className="h-4 w-4 shrink-0" />}
             <span>{message.text}</span>
           </div>
         )}
-
-        {/* Tab Navigation */}
-        <div className="flex items-center gap-1 border-b border-slate-200 overflow-x-auto pb-0.5">
-          <button
-            type="button"
-            onClick={() => setActiveTab('dashboard')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-md transition-all border-b-2 whitespace-nowrap cursor-pointer ${
-              activeTab === 'dashboard'
-                ? 'border-[var(--color-primary,#048C73)] text-[var(--color-primary,#048C73)] bg-white shadow-xs'
-                : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/60'
-            }`}
-          >
-            <BarChart3 className="w-4 h-4" />
-            <span>Tổng quan (Dashboard)</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('accounts')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-md transition-all border-b-2 whitespace-nowrap cursor-pointer ${
-              activeTab === 'accounts'
-                ? 'border-[var(--color-primary,#048C73)] text-[var(--color-primary,#048C73)] bg-white shadow-xs'
-                : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/60'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            <span>Quản lý Tài khoản</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('providers')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-md transition-all border-b-2 whitespace-nowrap cursor-pointer ${
-              activeTab === 'providers'
-                ? 'border-[var(--color-primary,#048C73)] text-[var(--color-primary,#048C73)] bg-white shadow-xs'
-                : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/60'
-            }`}
-          >
-            <Building2 className="w-4 h-4" />
-            <span>Quản lý Đối tác / NCC</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('places')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-md transition-all border-b-2 whitespace-nowrap cursor-pointer ${
-              activeTab === 'places'
-                ? 'border-[var(--color-primary,#048C73)] text-[var(--color-primary,#048C73)] bg-white shadow-xs'
-                : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/60'
-            }`}
-          >
-            <MapPin className="w-4 h-4" />
-            <span>Kiểm duyệt Điểm đến</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('bookings')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-md transition-all border-b-2 whitespace-nowrap cursor-pointer ${
-              activeTab === 'bookings'
-                ? 'border-[var(--color-primary,#048C73)] text-[var(--color-primary,#048C73)] bg-white shadow-xs'
-                : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/60'
-            }`}
-          >
-            <CalendarCheck className="w-4 h-4" />
-            <span>Đặt phòng</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('finance')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-md transition-all border-b-2 whitespace-nowrap cursor-pointer ${
-              activeTab === 'finance'
-                ? 'border-[var(--color-primary,#048C73)] text-[var(--color-primary,#048C73)] bg-white shadow-xs'
-                : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/60'
-            }`}
-          >
-            <DollarSign className="w-4 h-4" />
-            <span>Tài chính & Hoàn tiền</span>
-          </button>
-        </div>
 
         {/* Tab 1: Dashboard Tổng quan */}
         {activeTab === 'dashboard' && (
@@ -483,129 +415,15 @@ export default function AdminDashboardPage() {
 
         {/* Tab 3: Quản lý Đối tác / NCC */}
         {activeTab === 'providers' && (
-          <div className="bg-white rounded-lg border border-slate-200 shadow-xs p-4 flex flex-col gap-4">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <select
-                  value={providerStatusFilter}
-                  onChange={(e) => setProviderStatusFilter(e.target.value as ProviderStatus | '')}
-                  className="px-3 py-1.5 text-xs border border-slate-200 rounded-md bg-white focus:outline-hidden"
-                >
-                  <option value="">Tất cả trạng thái NCC</option>
-                  <option value="ACTIVE">Đang hoạt động (ACTIVE)</option>
-                  <option value="SUSPENDED">Đang đình chỉ (SUSPENDED)</option>
-                  <option value="TERMINATED">Chấm dứt (TERMINATED)</option>
-                </select>
-                <button
-                  type="button"
-                  onClick={loadProviders}
-                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-md transition-colors"
-                >
-                  Lọc
-                </button>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setShowCreateProviderModal(true)}
-                className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[var(--color-primary,#048C73)] text-white text-xs font-semibold rounded-md hover:bg-[#03705C] transition-colors shadow-xs"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Tạo Đối tác NCC mới (1 bước)</span>
-              </button>
-            </div>
-
-            <div className="overflow-x-auto border border-slate-200 rounded-md">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
-                    <th className="py-2.5 px-3">ID</th>
-                    <th className="py-2.5 px-3">Tên cơ sở / Đối tác</th>
-                    <th className="py-2.5 px-3">Đại diện & Liên hệ</th>
-                    <th className="py-2.5 px-3">Địa chỉ</th>
-                    <th className="py-2.5 px-3 text-center">Điểm đến</th>
-                    <th className="py-2.5 px-3 text-center">Tài khoản</th>
-                    <th className="py-2.5 px-3">Trạng thái</th>
-                    <th className="py-2.5 px-3 text-right">Đổi trạng thái</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {providers.map((p) => (
-                    <tr key={p.id} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="py-2.5 px-3 font-mono text-slate-500">#{p.id}</td>
-                      <td className="py-2.5 px-3 font-bold text-slate-800">{p.name}</td>
-                      <td className="py-2.5 px-3">
-                        <div className="text-slate-800 font-medium">{p.contactName || '—'}</div>
-                        <div className="text-slate-500 text-[11px]">
-                          {p.contactPhone} {p.contactEmail ? `• ${p.contactEmail}` : ''}
-                        </div>
-                      </td>
-                      <td className="py-2.5 px-3 text-slate-600 max-w-[200px] truncate" title={p.address}>
-                        {p.address || '—'}
-                      </td>
-                      <td className="py-2.5 px-3 text-center font-bold text-[var(--color-primary,#048C73)]">
-                        {p.placeCount}
-                      </td>
-                      <td className="py-2.5 px-3 text-center font-semibold text-slate-700">
-                        {p.accountCount}
-                      </td>
-                      <td className="py-2.5 px-3">
-                        <span
-                          className={`px-2 py-0.5 rounded-sm text-[10px] font-bold ${
-                            p.status === 'ACTIVE'
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              : p.status === 'SUSPENDED'
-                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                              : 'bg-rose-50 text-rose-700 border border-rose-200'
-                          }`}
-                        >
-                          {p.status}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          {p.status !== 'ACTIVE' && (
-                            <button
-                              type="button"
-                              onClick={() => openProviderStatusDialog(p.id, p.name, 'ACTIVE')}
-                              className="px-2 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-md text-[11px] font-semibold transition-colors"
-                            >
-                              Kích hoạt
-                            </button>
-                          )}
-                          {p.status !== 'SUSPENDED' && (
-                            <button
-                              type="button"
-                              onClick={() => openProviderStatusDialog(p.id, p.name, 'SUSPENDED')}
-                              className="px-2 py-1 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-md text-[11px] font-semibold transition-colors"
-                            >
-                              Đình chỉ
-                            </button>
-                          )}
-                          {p.status !== 'TERMINATED' && (
-                            <button
-                              type="button"
-                              onClick={() => openProviderStatusDialog(p.id, p.name, 'TERMINATED')}
-                              className="px-2 py-1 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-md text-[11px] font-semibold transition-colors"
-                            >
-                              Chấm dứt
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {providers.length === 0 && (
-                    <tr>
-                      <td colSpan={8} className="py-8 text-center text-slate-400 text-xs">
-                        Chưa có Đối tác NCC nào.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <ProvidersPanel
+            providers={providers}
+            loading={loading}
+            error={providersError}
+            onReload={loadProviders}
+            onCreate={() => setShowCreateProviderModal(true)}
+            onChangeStatus={openProviderStatusDialog}
+            notify={showNotification}
+          />
         )}
 
         {/* Tab 4: Kiểm duyệt Điểm đến */}
@@ -617,104 +435,57 @@ export default function AdminDashboardPage() {
         {/* Tab 5: Tài chính & Hoàn tiền */}
         {activeTab === 'finance' && (
           <div className="flex flex-col gap-5">
-            {/* Doanh thu Overview */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-              <div className="bg-white rounded-lg p-4 border border-slate-200 shadow-xs">
-                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                  Tổng Doanh Thu Sàn
-                </span>
-                <p className="text-xl font-bold text-slate-800 mt-1">
-                  {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
-                    revenueData?.grandTotal ?? 0
-                  )}
-                </p>
+            {financeError && (
+              <div role="alert" className="rounded-md border border-danger/30 bg-danger/5 p-3 text-xs text-danger">
+                Không tải được dữ liệu tài chính. Vui lòng thử lại.
               </div>
-
-              <div className="bg-white rounded-lg p-4 border border-slate-200 shadow-xs">
-                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                  Tổng Giao Dịch Thành Công
-                </span>
-                <p className="text-xl font-bold text-slate-800 mt-1">
-                  {revenueData?.totalTransactions ?? 0} giao dịch
-                </p>
-              </div>
-
-              <div className="bg-white rounded-lg p-4 border border-slate-200 shadow-xs">
-                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                  Yêu Cầu Hoàn Tiền Chờ Duyệt
-                </span>
-                <p className="text-xl font-bold text-amber-600 mt-1">
-                  {refunds.filter((r) => r.status === 'PENDING').length} ca
-                </p>
-              </div>
+            )}
+            <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-3">
+              <FinanceCard tone="bg-primary-50 text-primary" label="Tổng doanh thu sàn" value={vnd.format(revenueData?.grandTotal ?? 0)} />
+              <FinanceCard tone="bg-secondary/10 text-secondary-700" label="Giao dịch thành công" value={`${revenueData?.totalTransactions ?? 0} giao dịch`} />
+              <FinanceCard tone="bg-sun/15 text-amber-700" label="Hoàn tiền chờ duyệt" value={`${refunds.filter((r) => r.status === 'PENDING').length} yêu cầu`} />
             </div>
 
-            {/* Bảng yêu cầu hoàn tiền */}
-            <div className="bg-white rounded-lg border border-slate-200 shadow-xs p-4 flex flex-col gap-3">
-              <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-[var(--color-primary,#048C73)]" />
-                <span>Danh sách yêu cầu hoàn tiền (Refunds)</span>
+            <section className="flex flex-col gap-3 rounded-lg border border-border bg-white p-4 shadow-[var(--shadow-card)]">
+              <h3 className="flex items-center gap-2 font-display text-sm font-bold text-ink-deep">
+                <DollarSign className="h-4 w-4 text-primary" />
+                Yêu cầu hoàn tiền
               </h3>
-
-              <div className="overflow-x-auto border border-slate-200 rounded-md">
-                <table className="w-full text-left border-collapse text-xs">
+              <div className="overflow-x-auto rounded-md border border-border">
+                <table className="w-full border-collapse text-left text-xs">
                   <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
-                      <th className="py-2.5 px-3">Mã Đặt Phòng</th>
-                      <th className="py-2.5 px-3">Số tiền</th>
-                      <th className="py-2.5 px-3">Lý do</th>
-                      <th className="py-2.5 px-3">Loại</th>
-                      <th className="py-2.5 px-3">Trạng thái</th>
-                      <th className="py-2.5 px-3">Thời gian</th>
-                      <th className="py-2.5 px-3 text-right">Thao tác</th>
+                    <tr className="border-b border-border bg-canvas text-[11px] font-semibold uppercase tracking-wide text-muted">
+                      <th className="px-3 py-2.5">Mã đặt phòng</th>
+                      <th className="px-3 py-2.5">Số tiền</th>
+                      <th className="px-3 py-2.5">Lý do</th>
+                      <th className="px-3 py-2.5">Loại</th>
+                      <th className="px-3 py-2.5">Trạng thái</th>
+                      <th className="px-3 py-2.5">Thời gian</th>
+                      <th className="px-3 py-2.5 text-right">Thao tác</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-border/70">
                     {refunds.map((ref) => (
-                      <tr key={ref.id} className="hover:bg-slate-50/70 transition-colors">
-                        <td className="py-2.5 px-3 font-mono font-bold text-[var(--color-primary,#048C73)]">
-                          {ref.bookingCode}
-                        </td>
-                        <td className="py-2.5 px-3 font-semibold text-slate-800">
-                          {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
-                            ref.amount
-                          )}
-                        </td>
-                        <td className="py-2.5 px-3 text-slate-600 max-w-[200px] truncate" title={ref.reason}>
+                      <tr key={ref.id} className="transition-colors duration-200 hover:bg-primary-50/40">
+                        <td className="px-3 py-2.5 font-mono font-semibold text-primary">{ref.bookingCode}</td>
+                        <td className="px-3 py-2.5 font-semibold text-ink-deep">{vnd.format(ref.amount)}</td>
+                        <td className="max-w-[200px] truncate px-3 py-2.5 text-muted" title={ref.reason}>
                           {ref.reason}
                         </td>
-                        <td className="py-2.5 px-3 text-slate-600 font-mono text-[11px]">{ref.type}</td>
-                        <td className="py-2.5 px-3">
-                          <span
-                            className={`px-2 py-0.5 rounded-sm text-[10px] font-bold ${
-                              ref.status === 'PROCESSED'
-                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                : ref.status === 'PENDING'
-                                ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                                : 'bg-rose-50 text-rose-700 border border-rose-200'
-                            }`}
-                          >
-                            {ref.status}
-                          </span>
+                        <td className="px-3 py-2.5 font-mono text-[11px] text-muted">{ref.type}</td>
+                        <td className="px-3 py-2.5">
+                          <StatusBadge tone={REFUND_STATUS[ref.status].tone} pulse={ref.status === 'PENDING'}>
+                            {REFUND_STATUS[ref.status].label}
+                          </StatusBadge>
                         </td>
-                        <td className="py-2.5 px-3 text-slate-500 text-[11px]">
-                          {new Date(ref.requestedAt).toLocaleString('vi-VN')}
-                        </td>
-                        <td className="py-2.5 px-3 text-right">
+                        <td className="px-3 py-2.5 text-[11px] text-muted">{new Date(ref.requestedAt).toLocaleString('vi-VN')}</td>
+                        <td className="px-3 py-2.5 text-right">
                           {ref.status === 'PENDING' && (
                             <div className="flex items-center justify-end gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => handleApproveRefund(ref.id)}
-                                className="px-2 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-md text-[11px] font-semibold transition-colors"
-                              >
+                              <button type="button" onClick={() => handleApproveRefund(ref.id)} className={actionButtonClass('success')}>
                                 Duyệt
                               </button>
-                              <button
-                                type="button"
-                                onClick={() => handleRejectRefund(ref.id)}
-                                className="px-2 py-1 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-md text-[11px] font-semibold transition-colors"
-                              >
+                              <button type="button" onClick={() => handleRejectRefund(ref.id)} className={actionButtonClass('danger')}>
                                 Từ chối
                               </button>
                             </div>
@@ -724,7 +495,7 @@ export default function AdminDashboardPage() {
                     ))}
                     {refunds.length === 0 && (
                       <tr>
-                        <td colSpan={7} className="py-8 text-center text-slate-400 text-xs">
+                        <td colSpan={7} className="py-10 text-center text-xs text-muted">
                           Hiện không có yêu cầu hoàn tiền nào.
                         </td>
                       </tr>
@@ -732,10 +503,10 @@ export default function AdminDashboardPage() {
                   </tbody>
                 </table>
               </div>
-            </div>
+            </section>
           </div>
         )}
-      </div>
+      </main>
 
       {/* Modal 1: Tạo Admin mới */}
       {showCreateAdminModal && (

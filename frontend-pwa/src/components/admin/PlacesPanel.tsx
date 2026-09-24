@@ -21,6 +21,9 @@ import {
   type ChipOption,
   type SortOption,
 } from './AdminFilters';
+import { StatusBadge } from './StatusBadge';
+import type { StatusTone } from './StatusBadge';
+import { actionButtonClass } from './statusStyles';
 
 interface PlacesPanelProps {
   notify: (type: 'success' | 'error', text: string) => void;
@@ -36,9 +39,9 @@ const VERIFICATION_LABEL: Record<PlaceVerificationStatus, string> = {
 };
 const VISIBILITY_OPTIONS: ChipOption<PlaceVisibility>[] = [
   { value: '', label: 'Tất cả' },
-  { value: 'PUBLISHED', label: 'Công khai' },
-  { value: 'UNPUBLISHED', label: 'Đã ẩn' },
-  { value: 'DRAFT', label: 'Bản nháp' },
+  { value: 'PUBLISHED', label: 'Công khai', tone: 'success' },
+  { value: 'UNPUBLISHED', label: 'Đã ẩn', tone: 'neutral' },
+  { value: 'DRAFT', label: 'Bản nháp', tone: 'warning' },
 ];
 const KIND_OPTIONS: ChipOption<CategoryKind>[] = [
   { value: '', label: 'Tất cả' },
@@ -57,12 +60,11 @@ const SORT_OPTIONS: SortOption[] = [
   { value: 'name:asc', label: 'Tên A → Z' },
 ];
 
-const pill = (cls: string) => `rounded-sm border px-2 py-0.5 text-[10px] font-bold ${cls}`;
-const VERIFICATION_TONE: Record<PlaceVerificationStatus, string> = {
-  VERIFIED: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  UNVERIFIED: 'border-border bg-canvas text-muted',
-  NEEDS_UPDATE: 'border-amber-200 bg-amber-50 text-amber-700',
-  ARCHIVED: 'border-rose-200 bg-rose-50 text-rose-700',
+const VERIFICATION_TONE: Record<PlaceVerificationStatus, StatusTone> = {
+  VERIFIED: 'success',
+  UNVERIFIED: 'neutral',
+  NEEDS_UPDATE: 'warning',
+  ARCHIVED: 'danger',
 };
 
 type PendingAction =
@@ -148,6 +150,7 @@ export default function PlacesPanel({ notify }: PlacesPanelProps) {
     ...(Object.keys(VERIFICATION_LABEL) as PlaceVerificationStatus[]).map((v) => ({
       value: v,
       label: `${VERIFICATION_LABEL[v]}${summary ? ` (${summary[v] ?? 0})` : ''}`,
+      tone: VERIFICATION_TONE[v],
     })),
   ];
 
@@ -209,7 +212,7 @@ export default function PlacesPanel({ notify }: PlacesPanelProps) {
 
   return (
     <div className="flex flex-col gap-4 rounded-lg border border-border bg-white p-4 shadow-xs">
-      <div className="flex flex-col gap-3 rounded-md border border-border bg-canvas/60 p-3">
+      <div className="flex flex-col gap-3 rounded-lg border border-border border-l-4 border-l-primary bg-primary-50/40 p-3">
         <div className="flex flex-wrap items-center gap-3">
           <FilterSearch value={keyword} onChange={resetPage(setKeyword)} placeholder="Tìm theo tên, slug, địa chỉ hoặc nhà cung cấp..." />
           <SortSelect value={sort} options={SORT_OPTIONS} onChange={resetPage(setSort)} />
@@ -300,25 +303,19 @@ export default function PlacesPanel({ notify }: PlacesPanelProps) {
                   <div className="font-mono text-[11px] text-muted">#{place.id} · {place.slug}</div>
                 </td>
                 <td className={th}>
-                  <span className={pill('border-border bg-canvas text-ink')}>{place.kind}</span>
+                  <StatusBadge tone="info">{place.kind}</StatusBadge>
                 </td>
                 <td className={`${th} text-ink`}>
                   <div>{place.providerName || 'Hệ thống du lịch'}</div>
                   <div className="text-[11px] text-muted">{place.regionName || place.address}</div>
                 </td>
                 <td className={th}>
-                  <span
-                    className={pill(
-                      place.visibility === 'PUBLISHED'
-                        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                        : 'border-border bg-canvas text-muted',
-                    )}
-                  >
+                  <StatusBadge tone={place.visibility === 'PUBLISHED' ? 'success' : 'neutral'}>
                     {place.visibility === 'PUBLISHED' ? 'Công khai' : place.visibility === 'DRAFT' ? 'Bản nháp' : 'Đã ẩn'}
-                  </span>
+                  </StatusBadge>
                 </td>
                 <td className={th}>
-                  <span className={pill(VERIFICATION_TONE[place.verification])}>{VERIFICATION_LABEL[place.verification]}</span>
+                  <StatusBadge tone={VERIFICATION_TONE[place.verification]} pulse={place.verification === 'UNVERIFIED'}>{VERIFICATION_LABEL[place.verification]}</StatusBadge>
                 </td>
                 <td className={`${th} text-right`}>
                   <div className="flex items-center justify-end gap-1.5">
@@ -326,7 +323,7 @@ export default function PlacesPanel({ notify }: PlacesPanelProps) {
                       <button
                         type="button"
                         onClick={() => ask({ type: 'verification', ids: [place.id], label: place.name, verification: 'VERIFIED' })}
-                        className="rounded-md bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100"
+                        className={actionButtonClass('success')}
                       >
                         Duyệt
                       </button>
@@ -335,7 +332,7 @@ export default function PlacesPanel({ notify }: PlacesPanelProps) {
                       <button
                         type="button"
                         onClick={() => ask({ type: 'verification', ids: [place.id], label: place.name, verification: 'NEEDS_UPDATE' })}
-                        className="rounded-md bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700 hover:bg-amber-100"
+                        className={actionButtonClass('warning')}
                       >
                         Bổ sung
                       </button>

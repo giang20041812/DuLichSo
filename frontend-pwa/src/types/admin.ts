@@ -112,6 +112,16 @@ export interface AdminProviderSummaryDto {
   updatedAt: string;
 }
 
+/** Khớp AdminProviderDtos.ProviderAccountDto (backend). Không có mật khẩu: backend chỉ lưu băm BCrypt. */
+export interface ProviderAccountDto {
+  id: number;
+  email: string;
+  phone?: string | null;
+  fullName: string;
+  status: string | null;
+  lastLoginAt?: string | null;
+}
+
 export interface CreateProviderWithAccountRequest {
   name: string;
   contactName?: string;

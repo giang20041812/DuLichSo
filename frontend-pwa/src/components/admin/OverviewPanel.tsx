@@ -33,10 +33,10 @@ export default function OverviewPanel({ data, loading, error, onRetry, onNavigat
   }
 
   const attention: { key: string; label: string; count: number; icon: ReactNode; tone: string; target: OverviewTarget }[] = [
-    { key: 'unverified', label: 'Điểm đến chờ duyệt', count: data.unverifiedPlaces, icon: <MapPin className="h-4 w-4" />, tone: 'text-amber-700 bg-amber-50', target: 'places' },
-    { key: 'needsUpdate', label: 'Điểm đến cần NCC bổ sung', count: data.needsUpdatePlaces, icon: <MapPin className="h-4 w-4" />, tone: 'text-amber-700 bg-amber-50', target: 'places' },
-    { key: 'suspended', label: 'NCC đang bị đình chỉ', count: data.suspendedProviders, icon: <Building2 className="h-4 w-4" />, tone: 'text-coral bg-coral-light', target: 'providers' },
-    { key: 'refunds', label: 'Yêu cầu hoàn tiền chờ xử lý', count: data.pendingRefundsCount, icon: <Undo2 className="h-4 w-4" />, tone: 'text-secondary-700 bg-secondary-50', target: 'finance' },
+    { key: 'unverified', label: 'Điểm đến chờ duyệt', count: data.unverifiedPlaces, icon: <MapPin className="h-4 w-4" />, tone: 'text-amber-700 bg-sun/15', target: 'places' },
+    { key: 'needsUpdate', label: 'Điểm đến cần NCC bổ sung', count: data.needsUpdatePlaces, icon: <MapPin className="h-4 w-4" />, tone: 'text-amber-700 bg-sun/15', target: 'places' },
+    { key: 'suspended', label: 'NCC đang bị đình chỉ', count: data.suspendedProviders, icon: <Building2 className="h-4 w-4" />, tone: 'text-danger bg-danger/10', target: 'providers' },
+    { key: 'refunds', label: 'Yêu cầu hoàn tiền chờ xử lý', count: data.pendingRefundsCount, icon: <Undo2 className="h-4 w-4" />, tone: 'text-secondary-700 bg-secondary/10', target: 'finance' },
   ];
   const openItems = attention.filter((a) => a.count > 0);
 
@@ -48,14 +48,14 @@ export default function OverviewPanel({ data, loading, error, onRetry, onNavigat
       {/* Chỉ số chính */}
       <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard icon={<MapPin className="h-5 w-5" />} tone="bg-primary-50 text-primary" label="Điểm đến toàn sàn" value={data.totalPlaces} sub={`${data.unverifiedPlaces} chờ duyệt`} onClick={() => onNavigate('places')} />
-        <StatCard icon={<Building2 className="h-5 w-5" />} tone="bg-secondary-50 text-secondary-700" label="Đối tác / NCC" value={data.totalProviders} sub={`${data.activeProviders} hoạt động · ${data.suspendedProviders} đình chỉ · ${data.terminatedProviders} chấm dứt`} onClick={() => onNavigate('providers')} />
-        <StatCard icon={<Users className="h-5 w-5" />} tone="bg-purple-50 text-purple-700" label="Khách du lịch" value={data.totalTravelers} sub={`+${data.newTravelers7d} tuần này · +${data.newTravelers30d} trong 30 ngày`} onClick={() => onNavigate('accounts')} />
-        <StatCard icon={<Wallet className="h-5 w-5" />} tone="bg-sun-light text-sun" label="Đặt phòng tháng này" value={`${data.monthlyBookingsCount} lượt`} sub={vnd.format(data.monthlyRevenue ?? 0)} onClick={() => onNavigate('finance')} />
+        <StatCard icon={<Building2 className="h-5 w-5" />} tone="bg-secondary/10 text-secondary-700" label="Đối tác / NCC" value={data.totalProviders} sub={`${data.activeProviders} hoạt động · ${data.suspendedProviders} đình chỉ · ${data.terminatedProviders} chấm dứt`} onClick={() => onNavigate('providers')} />
+        <StatCard icon={<Users className="h-5 w-5" />} tone="bg-accent/10 text-primary-700" label="Khách du lịch" value={data.totalTravelers} sub={`+${data.newTravelers7d} tuần này · +${data.newTravelers30d} trong 30 ngày`} onClick={() => onNavigate('accounts')} />
+        <StatCard icon={<Wallet className="h-5 w-5" />} tone="bg-sun/15 text-amber-700" label="Đặt phòng tháng này" value={`${data.monthlyBookingsCount} lượt`} sub={vnd.format(data.monthlyRevenue ?? 0)} onClick={() => onNavigate('finance')} />
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         {/* Doanh thu 6 tháng */}
-        <section className="rounded-lg border border-border bg-white p-4 shadow-xs lg:col-span-2" aria-label="Doanh thu 6 tháng gần nhất">
+        <section className="rounded-lg border border-border bg-white p-4 shadow-[var(--shadow-card)] lg:col-span-2" aria-label="Doanh thu 6 tháng gần nhất">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="font-display text-sm font-bold text-ink-deep">Doanh thu 6 tháng gần nhất</h3>
             <button type="button" onClick={onRetry} aria-label="Tải lại" className="text-muted hover:text-primary">
@@ -81,10 +81,10 @@ export default function OverviewPanel({ data, loading, error, onRetry, onNavigat
         </section>
 
         {/* Cần xử lý */}
-        <section className="rounded-lg border border-border bg-white p-4 shadow-xs" aria-label="Cần xử lý">
+        <section className="rounded-lg border border-border bg-white p-4 shadow-[var(--shadow-card)]" aria-label="Cần xử lý">
           <h3 className="mb-3 font-display text-sm font-bold text-ink-deep">Cần xử lý</h3>
           {openItems.length === 0 ? (
-            <p className="py-8 text-center text-xs text-muted">Không có việc tồn đọng. 🎉</p>
+            <p className="py-8 text-center text-xs text-muted">Không có việc tồn đọng.</p>
           ) : (
             <ul className="flex flex-col gap-2">
               {openItems.map((a) => (
@@ -137,7 +137,7 @@ function StatCard({
     <button
       type="button"
       onClick={onClick}
-      className="flex items-start gap-3.5 rounded-lg border border-border bg-white p-4 text-left shadow-[var(--shadow-card)] transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[var(--shadow-card-hover)]"
+      className="flex items-start gap-3.5 rounded-lg border border-border bg-white p-4 text-left shadow-[var(--shadow-card)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[var(--shadow-card-hover)]"
     >
       <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-md ${tone}`}>{icon}</span>
       <span className="min-w-0">

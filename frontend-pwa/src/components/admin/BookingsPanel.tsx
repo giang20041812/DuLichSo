@@ -14,6 +14,8 @@ import {
   type ChipOption,
   type SortOption,
 } from './AdminFilters';
+import { StatusBadge } from './StatusBadge';
+import type { StatusTone } from './StatusBadge';
 
 const PAGE_SIZE = 15;
 
@@ -27,16 +29,17 @@ const STATUS_LABEL: Record<BookingStatus, string> = {
   COMPLETED: 'Hoàn tất',
   NO_SHOW: 'Khách không đến',
 };
-const STATUS_TONE: Record<BookingStatus, string> = {
-  PENDING: 'border-amber-200 bg-amber-50 text-amber-700',
-  AWAITING_PAYMENT: 'border-secondary-200 bg-secondary-50 text-secondary-700',
-  CONFIRMED: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  COMPLETED: 'border-primary/30 bg-primary-50 text-primary',
-  REJECTED: 'border-rose-200 bg-rose-50 text-rose-700',
-  CANCELLED: 'border-rose-200 bg-rose-50 text-rose-700',
-  EXPIRED: 'border-border bg-canvas text-muted',
-  NO_SHOW: 'border-border bg-canvas text-muted',
+const STATUS_TONE: Record<BookingStatus, StatusTone> = {
+  PENDING: 'warning',
+  AWAITING_PAYMENT: 'info',
+  CONFIRMED: 'success',
+  COMPLETED: 'brand',
+  REJECTED: 'danger',
+  CANCELLED: 'danger',
+  EXPIRED: 'neutral',
+  NO_SHOW: 'neutral',
 };
+const isPendingStatus = (s: BookingStatus) => s === 'PENDING' || s === 'AWAITING_PAYMENT';
 const SORT_OPTIONS: SortOption[] = [
   { value: 'createdAt:desc', label: 'Đặt gần đây' },
   { value: 'createdAt:asc', label: 'Đặt lâu nhất' },
@@ -48,7 +51,6 @@ const SORT_OPTIONS: SortOption[] = [
 const vnd = (n?: number | null) => (n == null ? '—' : new Intl.NumberFormat('vi-VN').format(n) + 'đ');
 const date = (d?: string | null) => (d ? new Date(d).toLocaleDateString('vi-VN') : '—');
 const dateTime = (d?: string | null) => (d ? new Date(d).toLocaleString('vi-VN') : '—');
-const pill = (cls: string) => `rounded-sm border px-2 py-0.5 text-[10px] font-bold ${cls}`;
 
 interface BookingsPanelProps {
   /** 'admin': toàn hệ thống; 'partner': chỉ đơn của nhà cung cấp đang đăng nhập. */
@@ -132,6 +134,7 @@ export default function BookingsPanel({ scope = 'admin' }: BookingsPanelProps) {
     ...(Object.keys(STATUS_LABEL) as BookingStatus[]).map((s) => ({
       value: s,
       label: `${STATUS_LABEL[s]}${summary ? ` (${summary[s] ?? 0})` : ''}`,
+      tone: STATUS_TONE[s],
     })),
   ];
 
@@ -140,7 +143,7 @@ export default function BookingsPanel({ scope = 'admin' }: BookingsPanelProps) {
 
   return (
     <div className="flex flex-col gap-4 rounded-lg border border-border bg-white p-4 shadow-xs">
-      <div className="flex flex-col gap-3 rounded-md border border-border bg-canvas/60 p-3">
+      <div className="flex flex-col gap-3 rounded-lg border border-border border-l-4 border-l-primary bg-primary-50/40 p-3">
         <div className="flex flex-wrap items-center gap-3">
           <FilterSearch
             value={keyword}
@@ -224,7 +227,7 @@ export default function BookingsPanel({ scope = 'admin' }: BookingsPanelProps) {
                 </td>
                 <td className={`${th} text-right font-semibold text-ink-deep`}>{vnd(b.totalAmount)}</td>
                 <td className={th}>
-                  <span className={pill(STATUS_TONE[b.status])}>{STATUS_LABEL[b.status]}</span>
+                  <StatusBadge tone={STATUS_TONE[b.status]} pulse={isPendingStatus(b.status)}>{STATUS_LABEL[b.status]}</StatusBadge>
                 </td>
                 <td className={`${th} text-muted`}>{dateTime(b.createdAt)}</td>
               </tr>
@@ -254,7 +257,7 @@ export default function BookingsPanel({ scope = 'admin' }: BookingsPanelProps) {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <span className={`${pill(STATUS_TONE[selected.status])} w-fit`}>{STATUS_LABEL[selected.status]}</span>
+            <StatusBadge tone={STATUS_TONE[selected.status]} pulse={isPendingStatus(selected.status)} className="w-fit">{STATUS_LABEL[selected.status]}</StatusBadge>
 
             <Section title="Khách hàng">
               <p className="text-sm font-bold text-ink-deep">{selected.guestName}</p>

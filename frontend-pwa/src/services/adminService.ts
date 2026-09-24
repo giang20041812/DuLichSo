@@ -6,6 +6,7 @@ import type {
   UpdateAccountStatusRequest,
   ResetPasswordRequest,
   AdminProviderSummaryDto,
+  ProviderAccountDto,
   CreateProviderWithAccountRequest,
   UpdateProviderRequest,
   UpdateProviderStatusRequest,
@@ -104,6 +105,11 @@ export const adminService = {
       ...getAuthHeaders(),
       params: status ? { status } : undefined,
     });
+    return res.data;
+  },
+
+  async getProviderAccounts(id: number): Promise<ProviderAccountDto[]> {
+    const res = await axios.get<ProviderAccountDto[]>(`${API_BASE}/providers/${id}/accounts`, getAuthHeaders());
     return res.data;
   },
 

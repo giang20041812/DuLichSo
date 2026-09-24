@@ -62,7 +62,7 @@ export default function Sidebar({
     if (onCloseDesktop) onCloseDesktop();
   };
 
-  const [authTick, setAuthTick] = useState(0);
+  const [, setAuthTick] = useState(0);
 
   useEffect(() => {
     const handleAuthChange = () => setAuthTick((t) => t + 1);

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { KeyRound, Plus, RefreshCw } from 'lucide-react';
+import { KeyRound, Lock, Plus, RefreshCw, Unlock } from 'lucide-react';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { adminService } from '@/services/adminService';
 import type {
@@ -22,6 +22,8 @@ import {
   type ChipOption,
   type SortOption,
 } from './AdminFilters';
+import { StatusBadge } from './StatusBadge';
+import { actionButtonClass } from './statusStyles';
 
 type AccountKind = 'STAFF' | 'TRAVELER';
 
@@ -38,24 +40,24 @@ const PAGE_SIZE = 15;
 
 const STATUS_OPTIONS: ChipOption<AccountStatus>[] = [
   { value: '', label: 'Tất cả' },
-  { value: 'ACTIVE', label: 'Hoạt động' },
-  { value: 'INACTIVE', label: 'Bị khóa' },
+  { value: 'ACTIVE', label: 'Hoạt động', tone: 'success' },
+  { value: 'INACTIVE', label: 'Bị khóa', tone: 'danger' },
 ];
 const ROLE_OPTIONS: ChipOption<AccountRole>[] = [
   { value: '', label: 'Tất cả' },
-  { value: 'ADMIN', label: 'Admin' },
-  { value: 'PROVIDER', label: 'Nhà cung cấp' },
+  { value: 'ADMIN', label: 'Admin', tone: 'brand' },
+  { value: 'PROVIDER', label: 'Nhà cung cấp', tone: 'info' },
 ];
 const PROVIDER_STATUS_OPTIONS: ChipOption<ProviderStatus>[] = [
   { value: '', label: 'Tất cả' },
-  { value: 'ACTIVE', label: 'Hoạt động' },
-  { value: 'SUSPENDED', label: 'Đình chỉ' },
-  { value: 'TERMINATED', label: 'Chấm dứt' },
+  { value: 'ACTIVE', label: 'Hoạt động', tone: 'success' },
+  { value: 'SUSPENDED', label: 'Đình chỉ', tone: 'warning' },
+  { value: 'TERMINATED', label: 'Chấm dứt', tone: 'danger' },
 ];
 const SIGNUP_OPTIONS: ChipOption<TravelerSignupMethod>[] = [
   { value: '', label: 'Tất cả' },
-  { value: 'GOOGLE', label: 'Google' },
-  { value: 'EMAIL', label: 'Email' },
+  { value: 'GOOGLE', label: 'Google', tone: 'info' },
+  { value: 'EMAIL', label: 'Email', tone: 'neutral' },
 ];
 const SORT_OPTIONS: SortOption[] = [
   { value: 'createdAt:desc', label: 'Mới tạo nhất' },
@@ -64,7 +66,6 @@ const SORT_OPTIONS: SortOption[] = [
   { value: 'fullName:asc', label: 'Tên A → Z' },
 ];
 
-const pill = (cls: string) => `rounded-sm border px-2 py-0.5 text-[10px] font-bold ${cls}`;
 const formatDate = (iso?: string | null) => (iso ? new Date(iso).toLocaleString('vi-VN') : '—');
 
 export default function AccountsPanel({ currentAccountId, refreshKey = 0, onCreateAdmin, onResetPassword, notify }: AccountsPanelProps) {
@@ -224,7 +225,7 @@ export default function AccountsPanel({ currentAccountId, refreshKey = 0, onCrea
       </div>
 
       {/* Bộ lọc */}
-      <div className="flex flex-col gap-3 rounded-md border border-border bg-canvas/60 p-3">
+      <div className="flex flex-col gap-3 rounded-lg border border-border border-l-4 border-l-primary bg-primary-50/40 p-3">
         <div className="flex flex-wrap items-center gap-3">
           <FilterSearch
             value={keyword}
@@ -296,9 +297,9 @@ export default function AccountsPanel({ currentAccountId, refreshKey = 0, onCrea
                   </td>
                   <td className={`${th} text-ink`}>{acc.phone || '—'}</td>
                   <td className={th}>
-                    <span className={pill(acc.role === 'ADMIN' ? 'border-purple-200 bg-purple-50 text-purple-700' : 'border-secondary-200 bg-secondary-50 text-secondary-700')}>
+                    <StatusBadge tone={acc.role === 'ADMIN' ? 'brand' : 'info'}>
                       {acc.role === 'ADMIN' ? 'ADMIN' : 'NCC'}
-                    </span>
+                    </StatusBadge>
                   </td>
                   <td className={`${th} text-[11px] font-medium text-primary`}>{acc.providerName || '—'}</td>
                   <td className={`${th} text-muted`}>{formatDate(acc.lastLoginAt)}</td>
@@ -357,9 +358,9 @@ export default function AccountsPanel({ currentAccountId, refreshKey = 0, onCrea
                   </td>
                   <td className={`${th} text-ink`}>{t.phone || '—'}</td>
                   <td className={th}>
-                    <span className={pill(t.signupMethod === 'GOOGLE' ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-border bg-canvas text-muted')}>
+                    <StatusBadge tone={t.signupMethod === 'GOOGLE' ? 'info' : 'neutral'}>
                       {t.signupMethod === 'GOOGLE' ? 'Google' : 'Email'}
-                    </span>
+                    </StatusBadge>
                   </td>
                   <td className={`${th} text-muted`}>{formatDate(t.createdAt)}</td>
                   <td className={`${th} text-muted`}>{formatDate(t.lastLoginAt)}</td>
@@ -402,24 +403,13 @@ export default function AccountsPanel({ currentAccountId, refreshKey = 0, onCrea
 }
 
 function StatusPill({ status }: { status: AccountStatus }) {
-  return (
-    <span className={pill(status === 'ACTIVE' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-rose-200 bg-rose-50 text-rose-700')}>
-      {status === 'ACTIVE' ? 'Hoạt động' : 'Bị khóa'}
-    </span>
-  );
+  return <StatusBadge tone={status === 'ACTIVE' ? 'success' : 'danger'}>{status === 'ACTIVE' ? 'Hoạt động' : 'Bị khóa'}</StatusBadge>;
 }
 
 function LockButton({ status, onClick }: { status: AccountStatus; onClick: () => void }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`rounded-md border px-2 py-1 text-[11px] font-semibold transition-colors ${
-        status === 'ACTIVE'
-          ? 'border-rose-200 text-rose-700 hover:bg-rose-50'
-          : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
-      }`}
-    >
+    <button type="button" onClick={onClick} className={actionButtonClass(status === 'ACTIVE' ? 'danger' : 'success')}>
+      {status === 'ACTIVE' ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
       {status === 'ACTIVE' ? 'Khóa' : 'Mở khóa'}
     </button>
   );

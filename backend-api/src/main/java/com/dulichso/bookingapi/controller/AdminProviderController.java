@@ -36,6 +36,11 @@ public class AdminProviderController {
      * GET /api/v1/admin/providers/{id}
      * Xem chi tiết 1 NCC.
      */
+    @GetMapping("/{id}/accounts")
+    public ResponseEntity<List<ProviderAccountDto>> getProviderAccounts(@PathVariable Long id) {
+        return ResponseEntity.ok(adminProviderService.getProviderAccounts(id));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ProviderSummaryDto> getProviderById(@PathVariable Long id) {
         return ResponseEntity.ok(adminProviderService.getProviderById(id));

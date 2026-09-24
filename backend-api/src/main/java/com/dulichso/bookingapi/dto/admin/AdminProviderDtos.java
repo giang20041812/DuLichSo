@@ -85,4 +85,18 @@ public class AdminProviderDtos {
         private ProviderStatus status;
         private String reason;
     }
+
+    /** Thông tin đăng nhập của tài khoản NCC. Không bao giờ chứa mật khẩu (chỉ lưu băm BCrypt). */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class ProviderAccountDto {
+        private Long id;
+        private String email;
+        private String phone;
+        private String fullName;
+        private String status;
+        private LocalDateTime lastLoginAt;
+    }
 }
