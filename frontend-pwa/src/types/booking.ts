@@ -40,6 +40,7 @@ export interface BookingResponseDto {
   placeId: number;
   placeName: string;
   placeAddress: string;
+  coverImageUrl?: string | null;
   roomTypeId: number;
   roomTypeName: string;
   checkIn: string;   // YYYY-MM-DD

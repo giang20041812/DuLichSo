@@ -3,14 +3,14 @@ spring:
     name: booking-api
   
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/dulichso}
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:giang2004}
+    url: ${DB_URL:jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:dulichso}?useSSL=true&allowPublicKeyRetrieval=true&sessionVariables=sql_require_primary_key=0}
+    username: ${DB_USERNAME:${MYSQL_USER:root}}
+    password: ${DB_PASSWORD:${MYSQL_PASSWORD:giang2004}}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: ${JPA_DDL_AUTO:validate}
     show-sql: true
     properties:
       hibernate:

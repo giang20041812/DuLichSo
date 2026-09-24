@@ -8,6 +8,8 @@ import {
   RoomAvailabilityPage,
   FullScreenMapPage,
   BookingPage,
+  UserBookingListPage,
+  UserBookingDetailPage,
   ExperienceDetailPage,
   CultureFestivalPage,
   DestinationListPage,
@@ -35,6 +37,11 @@ export function AppRoutes() {
         {/* Navigation via Sidebar */}
         <Route path="homestays" element={<HomestayListPage />} />
         <Route path="homestays/:id" element={<HomestayDetailPage />} />
+        
+        {/* User Bookings Management */}
+        <Route path="bookings" element={<UserBookingListPage />} />
+        <Route path="my-bookings" element={<UserBookingListPage />} />
+        <Route path="bookings/:bookingCode" element={<UserBookingDetailPage />} />
         
         <Route path="experiences" element={<CultureFestivalPage />} />
         <Route path="destinations" element={<DestinationListPage />} />

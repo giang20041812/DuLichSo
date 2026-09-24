@@ -20,6 +20,7 @@ public class BookingResponseDto {
     private Long placeId;
     private String placeName;
     private String placeAddress;
+    private String coverImageUrl;
     private Long roomTypeId;
     private String roomTypeName;
     private LocalDate checkIn;

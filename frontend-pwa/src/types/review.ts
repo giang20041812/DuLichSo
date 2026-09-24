@@ -6,3 +6,9 @@ export interface ReviewDto {
   guestName: string;
   createdAt: string;
 }
+
+export interface CreateReviewRequest {
+  rating: number; // 1 -> 5
+  content: string;
+}
+

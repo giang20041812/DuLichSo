@@ -35,6 +35,8 @@ public class BookingServiceImpl implements BookingService {
     private final RoomInventoryDayRepository roomInventoryDayRepository;
     private final PlaceRepository placeRepository;
     private final RoomTypeRepository roomTypeRepository;
+    private final ReviewRepository reviewRepository;
+    private final PlaceMediaRepository placeMediaRepository;
 
     private static final SecureRandom RANDOM = new SecureRandom();
 
@@ -202,6 +204,112 @@ public class BookingServiceImpl implements BookingService {
         return mapToResponseDto(booking, booking.getPlace(), booking.getRoomType(), unitPrice, nights);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<BookingResponseDto> findMyBookings(String email, String phone, List<String> codes) {
+        String cleanEmail = (email != null && !email.trim().isBlank()) ? email.trim() : null;
+        String cleanPhone = (phone != null && !phone.trim().isBlank()) ? phone.trim() : null;
+
+        List<Booking> bookings = new ArrayList<>();
+        if (cleanEmail != null || cleanPhone != null) {
+            bookings.addAll(bookingRepository.findByGuestEmailOrPhone(cleanEmail, cleanPhone));
+        }
+
+        if (codes != null && !codes.isEmpty()) {
+            List<String> validCodes = codes.stream()
+                    .filter(c -> c != null && !c.trim().isBlank())
+                    .map(String::trim)
+                    .distinct()
+                    .collect(Collectors.toList());
+            if (!validCodes.isEmpty()) {
+                List<Booking> byCodes = bookingRepository.findByBookingCodes(validCodes);
+                for (Booking b : byCodes) {
+                    if (bookings.stream().noneMatch(existing -> existing.getId().equals(b.getId()))) {
+                        bookings.add(b);
+                    }
+                }
+            }
+        }
+
+        // Sắp xếp theo ngày tạo mới nhất
+        bookings.sort((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()));
+
+        return bookings.stream().map(b -> {
+            int nights = (int) ChronoUnit.DAYS.between(b.getCheckIn(), b.getCheckOut());
+            BigDecimal unitPrice = b.getRoomType().getBasePrice() != null ? b.getRoomType().getBasePrice() : BigDecimal.ZERO;
+            return mapToResponseDto(b, b.getPlace(), b.getRoomType(), unitPrice, nights);
+        }).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public com.dulichso.bookingapi.dto.ReviewDto createBookingReview(String bookingCode, com.dulichso.bookingapi.dto.CreateReviewRequest request) {
+        Booking booking = bookingRepository.findByBookingCode(bookingCode)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn đặt phòng với mã: " + bookingCode));
+
+        if (booking.getStatus() != BookingStatus.COMPLETED) {
+            throw new IllegalStateException("Chỉ những chuyến đi đã hoàn thành (COMPLETED) mới có thể gửi đánh giá.");
+        }
+
+        if (reviewRepository.existsByBookingId(booking.getId())) {
+            throw new IllegalStateException("Đơn đặt phòng này đã được gửi đánh giá trước đó.");
+        }
+
+        Place place = booking.getPlace();
+
+        Review review = Review.builder()
+                .place(place)
+                .booking(booking)
+                .rating(request.getRating())
+                .content(request.getContent() != null ? request.getContent().trim() : "")
+                .status(com.dulichso.bookingapi.entity.enums.ReviewStatus.VISIBLE)
+                .editableUntil(LocalDateTime.now().plusDays(7))
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        Review savedReview = reviewRepository.save(review);
+
+        // Cập nhật rating trung bình và tổng số đánh giá của Place
+        int currentCount = place.getRatingCount() != null ? place.getRatingCount() : 0;
+        BigDecimal currentAvg = place.getRatingAvg() != null ? place.getRatingAvg() : BigDecimal.ZERO;
+
+        BigDecimal totalPoints = currentAvg.multiply(BigDecimal.valueOf(currentCount)).add(BigDecimal.valueOf(request.getRating()));
+        int newCount = currentCount + 1;
+        BigDecimal newAvg = totalPoints.divide(BigDecimal.valueOf(newCount), 2, java.math.RoundingMode.HALF_UP);
+
+        place.setRatingCount(newCount);
+        place.setRatingAvg(newAvg);
+        placeRepository.save(place);
+
+        return com.dulichso.bookingapi.dto.ReviewDto.builder()
+                .id(savedReview.getId())
+                .placeId(place.getId())
+                .rating(savedReview.getRating())
+                .content(savedReview.getContent())
+                .guestName(booking.getGuestName())
+                .createdAt(savedReview.getCreatedAt())
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public com.dulichso.bookingapi.dto.ReviewDto getBookingReview(String bookingCode) {
+        Booking booking = bookingRepository.findByBookingCode(bookingCode)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn đặt phòng với mã: " + bookingCode));
+
+        return reviewRepository.findByBookingIdWithDetails(booking.getId())
+                .map(r -> com.dulichso.bookingapi.dto.ReviewDto.builder()
+                        .id(r.getId())
+                        .placeId(r.getPlace().getId())
+                        .rating(r.getRating())
+                        .content(r.getContent())
+                        .guestName(r.getBooking() != null ? r.getBooking().getGuestName() : booking.getGuestName())
+                        .createdAt(r.getCreatedAt())
+                        .build())
+                .orElse(null);
+    }
+
     private BookingResponseDto mapToResponseDto(Booking booking, Place place, RoomType roomType, BigDecimal unitPrice, int nights) {
         List<BookingResponseDto.ServiceItemDto> serviceItemDtos = Collections.emptyList();
         if (booking.getServiceItems() != null && !booking.getServiceItems().isEmpty()) {
@@ -216,12 +324,23 @@ public class BookingServiceImpl implements BookingService {
             ).collect(Collectors.toList());
         }
 
+        String coverUrl = null;
+        try {
+            List<String> mediaUrls = placeMediaRepository.findPublicUrlsByPlaceId(place.getId());
+            if (mediaUrls != null && !mediaUrls.isEmpty()) {
+                coverUrl = mediaUrls.get(0);
+            }
+        } catch (Exception e) {
+            log.warn("Không thể tải ảnh cho placeId: {}", place.getId());
+        }
+
         return BookingResponseDto.builder()
                 .id(booking.getId())
                 .bookingCode(booking.getBookingCode())
                 .placeId(place.getId())
                 .placeName(place.getName())
                 .placeAddress(place.getAddress())
+                .coverImageUrl(coverUrl)
                 .roomTypeId(roomType.getId())
                 .roomTypeName(roomType.getName())
                 .checkIn(booking.getCheckIn())
