@@ -3,11 +3,19 @@ export type BookingStatus =
   | 'PENDING'
   | 'AWAITING_PAYMENT'
   | 'CONFIRMED'
-  | 'REJECTED'
-  | 'CANCELLED'
-  | 'EXPIRED'
+  | 'CHECKED_IN'
+  | 'CHECKED_OUT'
   | 'COMPLETED'
+  | 'REFUNDED'
+  | 'CANCELLED'
+  | 'REJECTED'
+  | 'EXPIRED'
   | 'NO_SHOW';
+
+export interface CancelBookingRequest {
+  reason: string;
+  note?: string;
+}
 
 export interface BookingServiceItemDto {
   id?: number;

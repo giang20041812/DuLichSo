@@ -80,7 +80,9 @@ public class SecurityConfig {
                 "https://*.ngrok.io",
                 "https://*.ngrok-free.dev",
                 "https://*.loca.lt",
-                "https://*.trycloudflare.com"
+                "https://*.trycloudflare.com",
+                "https://*.vercel.app",
+                "https://*.onrender.com"
         ));
         if (allowedOrigins != null) {
             for (String o : allowedOrigins) {

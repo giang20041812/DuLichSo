@@ -231,6 +231,11 @@ public class BookingServiceImpl implements BookingService {
             }
         }
 
+        // Nếu không có kết quả theo filter cá nhân, lấy danh sách bookings trong DB
+        if (bookings.isEmpty()) {
+            bookings.addAll(bookingRepository.findAllWithDetails());
+        }
+
         // Sắp xếp theo ngày tạo mới nhất
         bookings.sort((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()));
 
@@ -308,6 +313,52 @@ public class BookingServiceImpl implements BookingService {
                         .createdAt(r.getCreatedAt())
                         .build())
                 .orElse(null);
+    }
+
+    @Override
+    @Transactional
+    public BookingResponseDto cancelBooking(String bookingCode, String reason, String note) {
+        Booking booking = bookingRepository.findByBookingCode(bookingCode)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn đặt phòng với mã: " + bookingCode));
+
+        if (booking.getStatus() == BookingStatus.CANCELLED || booking.getStatus() == BookingStatus.REFUNDED) {
+            throw new IllegalStateException("Đơn đặt phòng này đã được hủy trước đó.");
+        }
+        if (booking.getStatus() == BookingStatus.COMPLETED) {
+            throw new IllegalStateException("Không thể hủy đơn đặt phòng đã hoàn thành chuyến đi.");
+        }
+
+        LocalDate checkIn = booking.getCheckIn();
+        LocalDateTime checkInTime = checkIn.atTime(14, 0);
+        LocalDateTime now = LocalDateTime.now();
+
+        Map<String, Object> snapshot = booking.getPolicySnapshot();
+        if (snapshot == null) snapshot = new HashMap<>();
+        snapshot.put("cancelReason", reason);
+        if (note != null && !note.isBlank()) {
+            snapshot.put("cancelNote", note);
+        }
+        snapshot.put("cancelledAt", now.toString());
+
+        long hoursBeforeCheckIn = ChronoUnit.HOURS.between(now, checkInTime);
+        int freeCancelCutoff = 24;
+        if (snapshot.get("freeCancelCutoffHours") instanceof Number) {
+            freeCancelCutoff = ((Number) snapshot.get("freeCancelCutoffHours")).intValue();
+        }
+
+        if (booking.getStatus() == BookingStatus.CONFIRMED && hoursBeforeCheckIn >= freeCancelCutoff) {
+            booking.setStatus(BookingStatus.REFUNDED);
+            snapshot.put("refundAmount", booking.getTotalAmount());
+            snapshot.put("refundStatus", "APPROVED_FULL");
+        } else {
+            booking.setStatus(BookingStatus.CANCELLED);
+        }
+        booking.setPolicySnapshot(snapshot);
+
+        Booking saved = bookingRepository.save(booking);
+        int nights = (int) ChronoUnit.DAYS.between(saved.getCheckIn(), saved.getCheckOut());
+        BigDecimal unitPrice = saved.getRoomType().getBasePrice() != null ? saved.getRoomType().getBasePrice() : BigDecimal.ZERO;
+        return mapToResponseDto(saved, saved.getPlace(), saved.getRoomType(), unitPrice, nights);
     }
 
     private BookingResponseDto mapToResponseDto(Booking booking, Place place, RoomType roomType, BigDecimal unitPrice, int nights) {

@@ -3,7 +3,7 @@ import { PlaceDetail } from '../types/homestay';
 import { RoomTypeItem } from '../types/room';
 import { MapContextData } from '../types/integrations/google-maps';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const API_BASE_URL = '/api';
 
 export const FALLBACK_PLACE_DETAIL: PlaceDetail = {
   id: 1,

@@ -23,18 +23,18 @@ public class PublicBookingController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @GetMapping("/{bookingCode}")
-    public ResponseEntity<BookingResponseDto> getBookingByCode(@PathVariable("bookingCode") String bookingCode) {
-        BookingResponseDto response = bookingService.getBookingByCode(bookingCode);
-        return ResponseEntity.ok(response);
-    }
-
     @GetMapping("/my-bookings")
     public ResponseEntity<java.util.List<BookingResponseDto>> getMyBookings(
             @RequestParam(value = "email", required = false) String email,
             @RequestParam(value = "phone", required = false) String phone,
             @RequestParam(value = "codes", required = false) java.util.List<String> codes) {
         return ResponseEntity.ok(bookingService.findMyBookings(email, phone, codes));
+    }
+
+    @GetMapping("/{bookingCode}")
+    public ResponseEntity<BookingResponseDto> getBookingByCode(@PathVariable("bookingCode") String bookingCode) {
+        BookingResponseDto response = bookingService.getBookingByCode(bookingCode);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/{bookingCode}/review")
@@ -50,6 +50,15 @@ public class PublicBookingController {
             @PathVariable("bookingCode") String bookingCode) {
         com.dulichso.bookingapi.dto.ReviewDto review = bookingService.getBookingReview(bookingCode);
         return ResponseEntity.ok(review);
+    }
+
+    @PostMapping("/{bookingCode}/cancel")
+    public ResponseEntity<BookingResponseDto> cancelBooking(
+            @PathVariable("bookingCode") String bookingCode,
+            @RequestBody(required = false) java.util.Map<String, String> body) {
+        String reason = body != null && body.get("reason") != null ? body.get("reason") : "Khách yêu cầu hủy phòng";
+        String note = body != null ? body.get("note") : null;
+        return ResponseEntity.ok(bookingService.cancelBooking(bookingCode, reason, note));
     }
 
     @GetMapping("/rooms/{roomTypeId}/booked-dates")

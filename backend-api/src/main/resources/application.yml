@@ -28,7 +28,7 @@ spring:
 app:
   cors:
     # Origin của frontend, cách nhau bởi dấu phẩy. KHÔNG dùng * (AGENTS.md).
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000,https://du-lich-so-o5a9-jx5r27akq-du-lich-so.vercel.app}
   # Tài khoản mẫu QA (admin@taybactrails.vn / ncc@taybactrails.vn...) — CHỈ bật khi dev. Production phải để false.
   qa-mock-accounts: ${APP_QA_MOCK_ACCOUNTS:false}
   feature-flags:

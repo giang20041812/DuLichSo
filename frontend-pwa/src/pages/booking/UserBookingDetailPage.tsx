@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -17,12 +17,16 @@ import {
   BedDouble,
   ExternalLink,
   Sparkles,
-  Info
+  Info,
+  Ban,
+  Home,
+  Check
 } from 'lucide-react';
 import { getBookingByCode, fetchBookingReview } from '@/services/bookingService';
 import type { BookingResponseDto, BookingStatus } from '@/types/booking';
 import type { ReviewDto } from '@/types/review';
 import BookingReviewModal from '@/components/booking/BookingReviewModal';
+import BookingCancelModal from '@/components/booking/BookingCancelModal';
 
 export default function UserBookingDetailPage() {
   const { bookingCode } = useParams<{ bookingCode: string }>();
@@ -35,8 +39,10 @@ export default function UserBookingDetailPage() {
 
   // Modal đánh giá
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  // Modal hủy đơn
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
 
-  const loadBookingData = async () => {
+  const loadBookingData = useCallback(async () => {
     if (!bookingCode) return;
     setIsLoading(true);
     setErrorMsg(null);
@@ -59,11 +65,11 @@ export default function UserBookingDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [bookingCode]);
 
   useEffect(() => {
     loadBookingData();
-  }, [bookingCode]);
+  }, [loadBookingData]);
 
   const getStatusBadge = (status: BookingStatus) => {
     switch (status) {
@@ -79,6 +85,30 @@ export default function UserBookingDetailPage() {
             </div>
           </div>
         );
+      case 'CHECKED_IN':
+        return (
+          <div className="flex items-center gap-2 p-3 bg-teal-50 border border-teal-200 rounded-md text-teal-800 text-xs sm:text-sm font-semibold">
+            <Home className="w-5 h-5 text-teal-600 shrink-0" />
+            <div>
+              <span className="font-bold">Đang lưu trú tại homestay</span>
+              <p className="text-xs text-teal-700 font-normal mt-0.5">
+                Quý khách đang trong kỳ nghỉ. Chúc quý khách có trải nghiệm tuyệt vời!
+              </p>
+            </div>
+          </div>
+        );
+      case 'CHECKED_OUT':
+        return (
+          <div className="flex items-center gap-2 p-3 bg-indigo-50 border border-indigo-200 rounded-md text-indigo-800 text-xs sm:text-sm font-semibold">
+            <Check className="w-5 h-5 text-indigo-600 shrink-0" />
+            <div>
+              <span className="font-bold">Đã hoàn tất trả phòng</span>
+              <p className="text-xs text-indigo-700 font-normal mt-0.5">
+                Quý khách đã trả phòng thành công. Cảm ơn quý khách đã lưu trú!
+              </p>
+            </div>
+          </div>
+        );
       case 'COMPLETED':
         return (
           <div className="flex items-center gap-2 p-3 bg-[#E6F4F1] border border-[#048C73]/20 rounded-md text-[var(--color-primary)] text-xs sm:text-sm font-semibold">
@@ -87,6 +117,18 @@ export default function UserBookingDetailPage() {
               <span className="font-bold">Kỳ nghỉ đã hoàn thành!</span>
               <p className="text-xs text-slate-600 font-normal mt-0.5">
                 Cảm ơn bạn đã lựa chọn trải nghiệm du lịch cộng đồng cùng chúng tôi.
+              </p>
+            </div>
+          </div>
+        );
+      case 'REFUNDED':
+        return (
+          <div className="flex items-center gap-2 p-3 bg-purple-50 border border-purple-200 rounded-md text-purple-800 text-xs sm:text-sm font-semibold">
+            <CreditCard className="w-5 h-5 text-purple-600 shrink-0" />
+            <div>
+              <span className="font-bold">Đơn đặt phòng đã được hoàn tiền</span>
+              <p className="text-xs text-purple-700 font-normal mt-0.5">
+                Số tiền hoàn đã được xử lý và chuyển trả vào tài khoản theo đúng chính sách hoàn hủy.
               </p>
             </div>
           </div>
@@ -465,6 +507,20 @@ export default function UserBookingDetailPage() {
                   'Miễn phí hủy phòng trước 48h trước ngày nhận phòng. Sau thời gian này sẽ áp dụng phí phạt theo quy định của chỗ nghỉ.'
                 )}
               </p>
+
+              {/* Nút hủy đơn nếu trạng thái cho phép */}
+              {['PENDING', 'CONFIRMED', 'AWAITING_PAYMENT'].includes(booking.status) && (
+                <div className="pt-3 border-t border-gray-100">
+                  <button
+                    type="button"
+                    onClick={() => setIsCancelModalOpen(true)}
+                    className="w-full py-2 px-3 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-md transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
+                  >
+                    <Ban className="w-3.5 h-3.5" />
+                    <span>Hủy đặt phòng theo chính sách</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -481,6 +537,19 @@ export default function UserBookingDetailPage() {
           onSuccess={(newReview) => {
             setExistingReview(newReview);
             setIsReviewModalOpen(false);
+          }}
+        />
+      )}
+
+      {/* Modal hủy phòng theo chính sách */}
+      {isCancelModalOpen && booking && (
+        <BookingCancelModal
+          isOpen={isCancelModalOpen}
+          onClose={() => setIsCancelModalOpen(false)}
+          booking={booking}
+          onSuccess={(updated) => {
+            setBooking(updated);
+            setIsCancelModalOpen(false);
           }}
         />
       )}

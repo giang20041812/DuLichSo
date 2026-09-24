@@ -2,7 +2,7 @@ import axios from 'axios';
 import { HomeResponseDto, PlaceSummaryDto } from '../types/home';
 import { FestivalDto } from '../types/festival';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const API_BASE_URL = '/api';
 
 interface PageResponse<T> {
   content: T[];
