@@ -61,6 +61,20 @@ public class PublicBookingController {
         return ResponseEntity.ok(bookingService.cancelBooking(bookingCode, reason, note));
     }
 
+    @PutMapping("/{bookingCode}")
+    public ResponseEntity<BookingResponseDto> updateBooking(
+            @PathVariable("bookingCode") String bookingCode,
+            @Valid @RequestBody com.dulichso.bookingapi.dto.UpdateBookingDetailsRequest request) {
+        BookingResponseDto response = bookingService.updateBookingDetails(bookingCode, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{bookingCode}/change-requests")
+    public ResponseEntity<java.util.List<com.dulichso.bookingapi.dto.BookingChangeRequestDto>> getBookingChangeRequests(
+            @PathVariable("bookingCode") String bookingCode) {
+        return ResponseEntity.ok(bookingService.getChangeRequestsByBookingCode(bookingCode));
+    }
+
     @GetMapping("/rooms/{roomTypeId}/booked-dates")
     public ResponseEntity<java.util.List<com.dulichso.bookingapi.dto.BookedDateRangeDto>> getBookedDatesByRoomType(
             @PathVariable("roomTypeId") Long roomTypeId,
@@ -76,4 +90,15 @@ public class PublicBookingController {
             @RequestParam(value = "endDate", required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate endDate) {
         return ResponseEntity.ok(bookingService.getBookedDatesByPlace(placeId, startDate, endDate));
     }
+
+    @GetMapping("/rooms/{roomTypeId}/check-availability")
+    public ResponseEntity<com.dulichso.bookingapi.dto.CheckAvailabilityResponse> checkAvailability(
+            @PathVariable("roomTypeId") Long roomTypeId,
+            @RequestParam("checkIn") @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate checkIn,
+            @RequestParam("checkOut") @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate checkOut,
+            @RequestParam(value = "roomCount", defaultValue = "1") int roomCount,
+            @RequestParam(value = "excludeBookingCode", required = false) String excludeBookingCode) {
+        return ResponseEntity.ok(bookingService.checkAvailability(roomTypeId, checkIn, checkOut, roomCount, excludeBookingCode));
+    }
 }
+

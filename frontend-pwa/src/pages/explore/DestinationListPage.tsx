@@ -15,7 +15,6 @@ import {
   RotateCcw, 
   Map, 
   Sparkles,
-  Search,
   Compass,
   Mountain,
   Ticket
@@ -36,7 +35,6 @@ export default function DestinationListPage() {
   const [destinations, setDestinations] = useState<DestinationDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<'recommended' | 'price_asc' | 'price_desc' | 'rating_desc'>('recommended');
-  const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
   
   const [filters, setFilters] = useState<DestinationFilterParams>(() => {
     const initial: DestinationFilterParams = {};
@@ -74,7 +72,6 @@ export default function DestinationListPage() {
   };
 
   const handleClearFilters = () => {
-    setSearchTerm('');
     setFilters({});
     setSearchParams(new URLSearchParams(), { replace: true });
     setCurrentPage(1);
@@ -86,7 +83,6 @@ export default function DestinationListPage() {
     const scenics = searchParams.get('scenics');
     const maxPrice = searchParams.get('maxPrice');
     
-    setSearchTerm(q || '');
     setFilters({
       keyword: q || undefined,
       minRating: minRating ? Number(minRating) : undefined,
@@ -246,46 +242,9 @@ export default function DestinationListPage() {
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold font-display text-white tracking-tight mb-3 drop-shadow-md">
             Điểm Đến & Thắng Cảnh Mù Cang Chải
           </h1>
-          <p className="text-white/90 text-sm md:text-base font-body max-w-2xl mx-auto mb-6 drop-shadow-sm">
+          <p className="text-white/90 text-sm md:text-base font-body max-w-2xl mx-auto drop-shadow-sm">
             Chiêm ngưỡng những kiệt tác ruộng bậc thang Mâm Xôi, Móng Ngựa, thác Pú Nhu, đèo Khau Phạ và những cánh rừng trúc bạt ngàn mây phủ.
           </p>
-
-          {/* Quick Search */}
-          <div className="w-full max-w-2xl mx-auto bg-white/95 backdrop-blur-md rounded-lg p-2 shadow-xl border border-white/60 flex items-center gap-2">
-            <div className="flex-1 flex items-center gap-2.5 px-3 py-1.5">
-              <Search className="w-5 h-5 text-[var(--color-primary)] shrink-0" />
-              <input 
-                type="text"
-                placeholder="Tìm Đồi Mâm Xôi, Móng Ngựa, Khau Phạ, Thác Pú Nhu..."
-                className="w-full bg-transparent text-sm md:text-base font-medium text-[var(--color-ink-deep)] placeholder:text-gray-400 outline-none"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleFilterChange({ keyword: searchTerm.trim() || undefined });
-                  }
-                }}
-              />
-              {searchTerm && (
-                <button 
-                  onClick={() => {
-                    setSearchTerm('');
-                    handleFilterChange({ keyword: undefined });
-                  }} 
-                  className="p-1 text-gray-400 hover:text-gray-600"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-            <Button 
-              variant="primary"
-              className="rounded-md font-bold px-5 h-11 bg-[var(--color-primary)] hover:bg-[var(--color-primary-600)] text-white text-sm shrink-0"
-              onClick={() => handleFilterChange({ keyword: searchTerm.trim() || undefined })}
-            >
-              Khám Phá
-            </Button>
-          </div>
         </div>
       </section>
 
@@ -418,7 +377,6 @@ export default function DestinationListPage() {
               {filters.keyword && (
                 <button 
                   onClick={() => {
-                    setSearchTerm('');
                     handleFilterChange({ keyword: undefined });
                   }}
                   className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-[var(--color-primary)] bg-[var(--color-primary-50)] text-[var(--color-primary-700)] text-xs font-semibold shadow-2xs transition-all hover:bg-[var(--color-primary-100)]"
@@ -525,7 +483,7 @@ export default function DestinationListPage() {
                         >
                           <div>
                             <div className="relative w-full h-[220px] overflow-hidden bg-gray-100">
-                              <Link to={`/homestays/${dest.id}`} className="block w-full h-full">
+                              <Link to={`/destinations/${dest.id}`} className="block w-full h-full">
                                 <img 
                                   src={dest.coverImageUrl} 
                                   alt={dest.name} 
@@ -555,7 +513,7 @@ export default function DestinationListPage() {
 
                             <div className="p-4 flex flex-col gap-2.5">
                               <div>
-                                <Link to={`/homestays/${dest.id}`}>
+                                <Link to={`/destinations/${dest.id}`}>
                                   <h3 className="text-lg font-bold text-[var(--color-ink-deep)] hover:text-[var(--color-primary)] transition-colors leading-snug line-clamp-1">
                                     {dest.name}
                                   </h3>
@@ -600,12 +558,12 @@ export default function DestinationListPage() {
                                 Chỉ đường
                               </a>
 
-                              <Link to={`/homestays/${dest.id}`}>
+                              <Link to={`/destinations/${dest.id}`}>
                                 <Button 
                                   variant="primary" 
                                   className="rounded-md font-bold h-9 px-3.5 text-xs bg-[var(--color-primary)] hover:bg-[var(--color-primary-600)]"
                                 >
-                                  Chi tiết
+                                  Xem chi tiết
                                 </Button>
                               </Link>
                             </div>

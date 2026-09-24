@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type { AdminBookingDto, BookingSearchParams, BookingStatusSummary, PageResponse } from '../types/admin';
+import type { BookingStatus } from '../types/booking';
 
 const API_BASE = '/api/v1/partner/bookings';
 
@@ -17,6 +18,11 @@ export const partnerBookingService = {
 
   async getSummary(): Promise<BookingStatusSummary> {
     const res = await axios.get<BookingStatusSummary>(`${API_BASE}/summary`, authHeaders());
+    return res.data;
+  },
+
+  async updateStatus(id: number, status: BookingStatus, reason?: string): Promise<AdminBookingDto> {
+    const res = await axios.put<AdminBookingDto>(`${API_BASE}/${id}/status`, { status, reason }, authHeaders());
     return res.data;
   },
 };

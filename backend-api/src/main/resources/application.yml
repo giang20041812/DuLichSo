@@ -3,7 +3,7 @@ spring:
     name: booking-api
   
   datasource:
-    url: ${DB_URL:jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:dulichso}?useSSL=true&allowPublicKeyRetrieval=true&sessionVariables=sql_require_primary_key=0}
+    url: ${DB_URL:jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:dulichso}?useSSL=true&allowPublicKeyRetrieval=true&useUnicode=true&characterEncoding=UTF-8&sessionVariables=sql_require_primary_key=0}
     username: ${DB_USERNAME:${MYSQL_USER:root}}
     password: ${DB_PASSWORD:${MYSQL_PASSWORD:giang2004}}
     driver-class-name: com.mysql.cj.jdbc.Driver

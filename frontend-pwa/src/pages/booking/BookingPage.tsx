@@ -36,6 +36,7 @@ import { fetchNearbyPlaces, getHomestayById } from '@/services/homestayService';
 import { getCurrentCustomer } from '@/services/authService';
 import { NearbyPlaceDto } from '@/types/homestay';
 import { Button } from '@/components/ui/button';
+import { VietTrackLogoMark } from '@/components/ui/logo';
 import OpenStreetMapView, { OsmMarkerItem } from '@/components/map/OpenStreetMapView';
 
 // Helper tính khoảng cách Haversine chuẩn theo tọa độ GPS/OSM
@@ -470,11 +471,9 @@ export default function BookingPage() {
       <header className="w-full bg-white border-b border-gray-200/90 sticky top-0 z-40 shadow-xs">
         <div className="max-w-[1180px] mx-auto px-4 md:px-6 h-16 flex items-center">
           <Link to="/" className="flex items-center gap-2.5 md:gap-3 group">
-            <div className="p-2 rounded-md bg-[var(--color-primary)] text-white shadow-xs transition-transform group-hover:scale-105">
-              <Compass className="w-5 h-5 md:w-6 md:h-6" />
-            </div>
-            <span className="text-xl md:text-2xl font-bold font-display leading-none tracking-tight text-[var(--color-ink-deep)]">
-              VietJourney
+            <VietTrackLogoMark size={38} className="transition-transform group-hover:scale-105" />
+            <span className="text-xl md:text-2xl font-black font-display leading-none tracking-tight text-[var(--color-ink-deep)]">
+              Đi Du Lịch
             </span>
           </Link>
         </div>

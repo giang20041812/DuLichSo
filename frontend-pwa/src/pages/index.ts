@@ -15,7 +15,9 @@ export { default as UserBookingDetailPage } from './booking/UserBookingDetailPag
 // Experience & Culture
 export { default as ExperienceDetailPage } from './experience/ExperienceDetailPage';
 export { default as CultureFestivalPage } from './explore/CultureFestivalPage';
+export { default as FestivalDetailPage } from './explore/FestivalDetailPage';
 export { default as DestinationListPage } from './explore/DestinationListPage';
+export { default as PlaceDetailPage } from './explore/PlaceDetailPage';
 
 // Local Services (Dining, Transport, Utilities)
 export { default as RestaurantListPage } from './services/RestaurantListPage';

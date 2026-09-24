@@ -12,7 +12,9 @@ import {
   UserBookingDetailPage,
   ExperienceDetailPage,
   CultureFestivalPage,
+  FestivalDetailPage,
   DestinationListPage,
+  PlaceDetailPage,
   RestaurantListPage,
   TransportListPage,
   UtilityListPage,
@@ -44,21 +46,33 @@ export function AppRoutes() {
         <Route path="bookings/:bookingCode" element={<UserBookingDetailPage />} />
         
         <Route path="experiences" element={<CultureFestivalPage />} />
+        <Route path="experiences/:slug" element={<FestivalDetailPage />} />
+        <Route path="festivals/:slug" element={<FestivalDetailPage />} />
         <Route path="destinations" element={<DestinationListPage />} />
+        <Route path="destinations/:identifier" element={<PlaceDetailPage />} />
+        <Route path="places/:identifier" element={<PlaceDetailPage />} />
         <Route path="restaurants" element={<RestaurantListPage />} />
+        <Route path="restaurants/:identifier" element={<PlaceDetailPage />} />
         
         {/* Profile / Other standard layout pages */}
         <Route path="profile" element={<UtilityListPage />} /> {/* Placeholder for now */}
         
         {/* Keep existing routes but map them properly or leave for later phases */}
         <Route path="culture" element={<CultureFestivalPage />} />
+        <Route path="culture/:slug" element={<FestivalDetailPage />} />
         <Route path="explore" element={<CultureFestivalPage />} />
+        <Route path="explore/:slug" element={<FestivalDetailPage />} />
         <Route path="food" element={<RestaurantListPage />} />
+        <Route path="food/:identifier" element={<PlaceDetailPage />} />
         <Route path="tours" element={<CultureFestivalPage />} />
         <Route path="transport" element={<TransportListPage />} />
+        <Route path="transport/:identifier" element={<PlaceDetailPage />} />
         <Route path="services" element={<UtilityListPage />} />
+        <Route path="services/:identifier" element={<PlaceDetailPage />} />
         <Route path="photo" element={<UtilityListPage />} />
+        <Route path="photo/:identifier" element={<PlaceDetailPage />} />
         <Route path="rental" element={<UtilityListPage />} />
+        <Route path="rental/:identifier" element={<PlaceDetailPage />} />
         <Route path="design-system" element={<DesignSystemPage />} />
       </Route>
 

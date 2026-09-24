@@ -3,6 +3,7 @@ package com.dulichso.bookingapi.service.impl;
 import com.dulichso.bookingapi.dto.BookingResponseDto;
 import com.dulichso.bookingapi.dto.CreateBookingRequest;
 import com.dulichso.bookingapi.entity.*;
+import com.dulichso.bookingapi.entity.enums.ActorType;
 import com.dulichso.bookingapi.entity.enums.BookingStatus;
 import com.dulichso.bookingapi.entity.keys.BookingNightId;
 import com.dulichso.bookingapi.entity.keys.RoomInventoryDayId;
@@ -37,6 +38,9 @@ public class BookingServiceImpl implements BookingService {
     private final RoomTypeRepository roomTypeRepository;
     private final ReviewRepository reviewRepository;
     private final PlaceMediaRepository placeMediaRepository;
+    private final BookingChangeRequestRepository bookingChangeRequestRepository;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+    private final com.dulichso.bookingapi.service.NotificationService notificationService;
 
     private static final SecureRandom RANDOM = new SecureRandom();
 
@@ -346,6 +350,10 @@ public class BookingServiceImpl implements BookingService {
             freeCancelCutoff = ((Number) snapshot.get("freeCancelCutoffHours")).intValue();
         }
 
+        booking.setClosedAt(now);
+        booking.setCloseReason(reason != null && !reason.isBlank() ? reason : "Khách yêu cầu hủy phòng");
+        booking.setClosedByActor(ActorType.CUSTOMER);
+
         if (booking.getStatus() == BookingStatus.CONFIRMED && hoursBeforeCheckIn >= freeCancelCutoff) {
             booking.setStatus(BookingStatus.REFUNDED);
             snapshot.put("refundAmount", booking.getTotalAmount());
@@ -356,6 +364,13 @@ public class BookingServiceImpl implements BookingService {
         booking.setPolicySnapshot(snapshot);
 
         Booking saved = bookingRepository.save(booking);
+        if (saved.getStatus() == BookingStatus.REFUNDED) {
+            try {
+                notificationService.notifyBookingStatusChange(saved, BookingStatus.REFUNDED, reason);
+            } catch (Exception ex) {
+                log.warn("Không thể gửi thông báo REFUNDED cho booking {}: {}", saved.getBookingCode(), ex.getMessage());
+            }
+        }
         int nights = (int) ChronoUnit.DAYS.between(saved.getCheckIn(), saved.getCheckOut());
         BigDecimal unitPrice = saved.getRoomType().getBasePrice() != null ? saved.getRoomType().getBasePrice() : BigDecimal.ZERO;
         return mapToResponseDto(saved, saved.getPlace(), saved.getRoomType(), unitPrice, nights);
@@ -385,12 +400,24 @@ public class BookingServiceImpl implements BookingService {
             log.warn("Không thể tải ảnh cho placeId: {}", place.getId());
         }
 
+        List<com.dulichso.bookingapi.dto.BookingChangeRequestDto> changeRequestDtos = Collections.emptyList();
+        try {
+            List<BookingChangeRequest> crList = bookingChangeRequestRepository.findByBookingIdOrderByCreatedAtDesc(booking.getId());
+            if (crList != null && !crList.isEmpty()) {
+                changeRequestDtos = crList.stream().map(this::toChangeRequestDto).collect(Collectors.toList());
+            }
+        } catch (Exception e) {
+            log.warn("Không thể tải change requests cho bookingId: {}", booking.getId());
+        }
+
         return BookingResponseDto.builder()
                 .id(booking.getId())
                 .bookingCode(booking.getBookingCode())
                 .placeId(place.getId())
                 .placeName(place.getName())
                 .placeAddress(place.getAddress())
+                .latitude(place.getLatitude())
+                .longitude(place.getLongitude())
                 .coverImageUrl(coverUrl)
                 .roomTypeId(roomType.getId())
                 .roomTypeName(roomType.getName())
@@ -411,7 +438,346 @@ public class BookingServiceImpl implements BookingService {
                 .holdExpiresAt(booking.getHoldExpiresAt())
                 .policySnapshot(booking.getPolicySnapshot())
                 .serviceItems(serviceItemDtos)
+                .changeRequests(changeRequestDtos)
                 .build();
+    }
+
+    private com.dulichso.bookingapi.dto.BookingChangeRequestDto toChangeRequestDto(BookingChangeRequest cr) {
+        return com.dulichso.bookingapi.dto.BookingChangeRequestDto.builder()
+                .id(cr.getId())
+                .bookingId(cr.getBooking() != null ? cr.getBooking().getId() : null)
+                .bookingCode(cr.getBooking() != null ? cr.getBooking().getBookingCode() : null)
+                .status(cr.getStatus())
+                .guestName(cr.getGuestName())
+                .guestPhone(cr.getGuestPhone())
+                .guestEmail(cr.getGuestEmail())
+                .guestNote(cr.getGuestNote())
+                .checkIn(cr.getCheckIn())
+                .checkOut(cr.getCheckOut())
+                .roomCount(cr.getRoomCount())
+                .guestCount(cr.getGuestCount())
+                .reason(cr.getReason())
+                .rejectionReason(cr.getRejectionReason())
+                .reviewedBy(cr.getReviewedBy())
+                .reviewedAt(cr.getReviewedAt())
+                .createdAt(cr.getCreatedAt())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public BookingResponseDto updateBookingDetails(String bookingCode, com.dulichso.bookingapi.dto.UpdateBookingDetailsRequest request) {
+        Booking booking = bookingRepository.findByBookingCode(bookingCode)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn đặt phòng với mã: " + bookingCode));
+
+        if (booking.getStatus() == BookingStatus.PENDING) {
+            // Trường hợp PENDING: Được phép thay đổi trực tiếp
+            applyDirectBookingChanges(booking, request);
+            Booking saved = bookingRepository.save(booking);
+
+            int nights = (int) ChronoUnit.DAYS.between(saved.getCheckIn(), saved.getCheckOut());
+            BigDecimal unitPrice = saved.getRoomType().getBasePrice() != null ? saved.getRoomType().getBasePrice() : BigDecimal.ZERO;
+            return mapToResponseDto(saved, saved.getPlace(), saved.getRoomType(), unitPrice, nights);
+        } else if (booking.getStatus() == BookingStatus.CONFIRMED) {
+            // Trường hợp CONFIRMED: Tạo yêu cầu gửi nhà quản lý duyệt
+            String serviceItemsJson = null;
+            if (request.getServiceItems() != null && !request.getServiceItems().isEmpty()) {
+                try {
+                    serviceItemsJson = objectMapper.writeValueAsString(request.getServiceItems());
+                } catch (Exception e) {
+                    log.error("Lỗi serialize serviceItems: {}", e.getMessage());
+                }
+            }
+
+            BookingChangeRequest changeReq = BookingChangeRequest.builder()
+                    .booking(booking)
+                    .status(com.dulichso.bookingapi.entity.enums.BookingChangeStatus.PENDING)
+                    .guestName(request.getGuestName() != null ? request.getGuestName().trim() : booking.getGuestName())
+                    .guestPhone(request.getGuestPhone() != null ? request.getGuestPhone().trim() : booking.getGuestPhone())
+                    .guestEmail(request.getGuestEmail() != null ? request.getGuestEmail().trim() : booking.getGuestEmail())
+                    .guestNote(request.getGuestNote() != null ? request.getGuestNote().trim() : booking.getGuestNote())
+                    .checkIn(request.getCheckIn() != null ? request.getCheckIn() : booking.getCheckIn())
+                    .checkOut(request.getCheckOut() != null ? request.getCheckOut() : booking.getCheckOut())
+                    .roomCount(request.getRoomCount() != null ? request.getRoomCount() : booking.getRoomCount())
+                    .guestCount(request.getGuestCount() != null ? request.getGuestCount() : booking.getGuestCount())
+                    .reason(request.getReason() != null ? request.getReason().trim() : "Khách yêu cầu đổi thông tin đơn phòng")
+                    .serviceItemsJson(serviceItemsJson)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            bookingChangeRequestRepository.save(changeReq);
+            log.info("Đã tạo yêu cầu thay đổi booking {} chờ quản lý duyệt", bookingCode);
+
+            int nights = (int) ChronoUnit.DAYS.between(booking.getCheckIn(), booking.getCheckOut());
+            BigDecimal unitPrice = booking.getRoomType().getBasePrice() != null ? booking.getRoomType().getBasePrice() : BigDecimal.ZERO;
+            return mapToResponseDto(booking, booking.getPlace(), booking.getRoomType(), unitPrice, nights);
+        } else {
+            throw new IllegalStateException("Không thể chỉnh sửa đơn đặt phòng ở trạng thái " + booking.getStatus());
+        }
+    }
+
+    private void applyDirectBookingChanges(Booking booking, com.dulichso.bookingapi.dto.UpdateBookingDetailsRequest request) {
+        if (request.getGuestName() != null && !request.getGuestName().isBlank()) {
+            booking.setGuestName(request.getGuestName().trim());
+        }
+        if (request.getGuestPhone() != null && !request.getGuestPhone().isBlank()) {
+            booking.setGuestPhone(request.getGuestPhone().trim());
+        }
+        if (request.getGuestEmail() != null) {
+            booking.setGuestEmail(request.getGuestEmail().trim());
+        }
+        if (request.getGuestNote() != null) {
+            booking.setGuestNote(request.getGuestNote().trim());
+        }
+
+        LocalDate newCheckIn = request.getCheckIn() != null ? request.getCheckIn() : booking.getCheckIn();
+        LocalDate newCheckOut = request.getCheckOut() != null ? request.getCheckOut() : booking.getCheckOut();
+        int newRoomCount = request.getRoomCount() != null ? request.getRoomCount() : booking.getRoomCount();
+        int newGuestCount = request.getGuestCount() != null ? request.getGuestCount() : booking.getGuestCount();
+
+        boolean datesOrRoomsChanged = !newCheckIn.equals(booking.getCheckIn())
+                || !newCheckOut.equals(booking.getCheckOut())
+                || newRoomCount != booking.getRoomCount();
+
+        if (datesOrRoomsChanged) {
+            if (!newCheckOut.isAfter(newCheckIn)) {
+                throw new IllegalArgumentException("Ngày trả phòng phải sau ngày nhận phòng.");
+            }
+
+            RoomType roomType = booking.getRoomType();
+            int totalCapacity = roomType.getTotalRoomCount() != null ? roomType.getTotalRoomCount() : 5;
+
+            // 1. Nhả tồn kho ngày cũ
+            for (LocalDate d = booking.getCheckIn(); d.isBefore(booking.getCheckOut()); d = d.plusDays(1)) {
+                final LocalDate stayDate = d;
+                roomInventoryDayRepository.findByIdForUpdate(roomType.getId(), stayDate).ifPresent(inv -> {
+                    int held = inv.getHeldRooms() != null ? inv.getHeldRooms() : 0;
+                    inv.setHeldRooms(Math.max(0, held - booking.getRoomCount()));
+                    roomInventoryDayRepository.save(inv);
+                });
+            }
+
+            // 2. Giữ tồn kho ngày mới
+            for (LocalDate d = newCheckIn; d.isBefore(newCheckOut); d = d.plusDays(1)) {
+                final LocalDate stayDate = d;
+                RoomInventoryDay inv = roomInventoryDayRepository.findByIdForUpdate(roomType.getId(), stayDate)
+                        .orElseGet(() -> {
+                            RoomInventoryDay newInv = RoomInventoryDay.builder()
+                                    .id(new RoomInventoryDayId(roomType.getId(), stayDate))
+                                    .roomType(roomType)
+                                    .totalRooms(totalCapacity)
+                                    .heldRooms(0)
+                                    .confirmedRooms(0)
+                                    .stopSell(false)
+                                    .updatedAt(LocalDateTime.now())
+                                    .build();
+                            return roomInventoryDayRepository.saveAndFlush(newInv);
+                        });
+
+                if (Boolean.TRUE.equals(inv.getStopSell())) {
+                    throw new IllegalStateException("Phòng đã tạm ngừng nhận khách vào ngày: " + stayDate);
+                }
+
+                int occupied = (inv.getHeldRooms() != null ? inv.getHeldRooms() : 0)
+                        + (inv.getConfirmedRooms() != null ? inv.getConfirmedRooms() : 0);
+                int available = inv.getTotalRooms() - occupied;
+                if (available < newRoomCount) {
+                    throw new IllegalStateException("Không đủ phòng trống vào ngày " + stayDate + ". Chỉ còn " + Math.max(0, available) + " phòng.");
+                }
+
+                inv.setHeldRooms((inv.getHeldRooms() != null ? inv.getHeldRooms() : 0) + newRoomCount);
+                roomInventoryDayRepository.save(inv);
+            }
+
+            // 3. Cập nhật lại booking_night
+            bookingNightRepository.deleteByBookingId(booking.getId());
+            BigDecimal unitPrice = roomType.getBasePrice() != null ? roomType.getBasePrice() : BigDecimal.valueOf(500000);
+            for (LocalDate d = newCheckIn; d.isBefore(newCheckOut); d = d.plusDays(1)) {
+                BookingNight night = BookingNight.builder()
+                        .id(new BookingNightId(booking.getId(), d))
+                        .booking(booking)
+                        .unitPrice(unitPrice)
+                        .roomCount(newRoomCount)
+                        .build();
+                bookingNightRepository.save(night);
+            }
+
+            long nightsCount = ChronoUnit.DAYS.between(newCheckIn, newCheckOut);
+            BigDecimal newTotal = unitPrice.multiply(BigDecimal.valueOf(nightsCount)).multiply(BigDecimal.valueOf(newRoomCount));
+
+            booking.setCheckIn(newCheckIn);
+            booking.setCheckOut(newCheckOut);
+            booking.setRoomCount(newRoomCount);
+            booking.setTotalAmount(newTotal);
+        }
+
+        booking.setGuestCount(newGuestCount);
+
+        // Cập nhật các dịch vụ tư vấn đính kèm (nếu có gửi lên)
+        if (request.getServiceItems() != null) {
+            booking.getServiceItems().clear();
+            for (CreateBookingRequest.ServiceItemRequest itemReq : request.getServiceItems()) {
+                BookingServiceItem item = BookingServiceItem.builder()
+                        .booking(booking)
+                        .serviceName(itemReq.getServiceName())
+                        .serviceCode(itemReq.getServiceCode())
+                        .note(itemReq.getNote())
+                        .isIncluded(itemReq.getIsIncluded() != null ? itemReq.getIsIncluded() : true)
+                        .build();
+                booking.getServiceItems().add(item);
+            }
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<com.dulichso.bookingapi.dto.BookingChangeRequestDto> getChangeRequestsByBookingCode(String bookingCode) {
+        return bookingChangeRequestRepository.findByBookingCodeOrderByCreatedAtDesc(bookingCode)
+                .stream()
+                .map(this::toChangeRequestDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public BookingResponseDto reviewBookingChangeRequest(Long changeRequestId, boolean approved, String rejectionReason, Long reviewerId) {
+        BookingChangeRequest changeReq = bookingChangeRequestRepository.findById(changeRequestId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy yêu cầu thay đổi với ID: " + changeRequestId));
+
+        if (changeReq.getStatus() != com.dulichso.bookingapi.entity.enums.BookingChangeStatus.PENDING) {
+            throw new IllegalStateException("Yêu cầu này đã được xử lý trước đó với trạng thái: " + changeReq.getStatus());
+        }
+
+        Booking booking = changeReq.getBooking();
+        LocalDateTime now = LocalDateTime.now();
+
+        if (approved) {
+            changeReq.setStatus(com.dulichso.bookingapi.entity.enums.BookingChangeStatus.APPROVED);
+            changeReq.setReviewedBy(reviewerId);
+            changeReq.setReviewedAt(now);
+
+            // Cập nhật thông tin sang booking
+            com.dulichso.bookingapi.dto.UpdateBookingDetailsRequest req = com.dulichso.bookingapi.dto.UpdateBookingDetailsRequest.builder()
+                    .guestName(changeReq.getGuestName())
+                    .guestPhone(changeReq.getGuestPhone())
+                    .guestEmail(changeReq.getGuestEmail())
+                    .guestNote(changeReq.getGuestNote())
+                    .checkIn(changeReq.getCheckIn())
+                    .checkOut(changeReq.getCheckOut())
+                    .roomCount(changeReq.getRoomCount())
+                    .guestCount(changeReq.getGuestCount())
+                    .build();
+
+            // Nếu thay đổi ngày/phòng ở CONFIRMED, chuyển đổi tồn kho confirmed_rooms
+            LocalDate oldCheckIn = booking.getCheckIn();
+            LocalDate oldCheckOut = booking.getCheckOut();
+            int oldRooms = booking.getRoomCount();
+
+            LocalDate newCheckIn = changeReq.getCheckIn() != null ? changeReq.getCheckIn() : oldCheckIn;
+            LocalDate newCheckOut = changeReq.getCheckOut() != null ? changeReq.getCheckOut() : oldCheckOut;
+            int newRooms = changeReq.getRoomCount() != null ? changeReq.getRoomCount() : oldRooms;
+
+            boolean datesOrRoomsChanged = !newCheckIn.equals(oldCheckIn) || !newCheckOut.equals(oldCheckOut) || newRooms != oldRooms;
+            if (datesOrRoomsChanged) {
+                if (!newCheckOut.isAfter(newCheckIn)) {
+                    throw new IllegalArgumentException("Ngày trả phòng phải sau ngày nhận phòng.");
+                }
+                RoomType roomType = booking.getRoomType();
+                int totalCapacity = roomType.getTotalRoomCount() != null ? roomType.getTotalRoomCount() : 5;
+
+                // Nhả confirmed_rooms cũ
+                for (LocalDate d = oldCheckIn; d.isBefore(oldCheckOut); d = d.plusDays(1)) {
+                    final LocalDate stayDate = d;
+                    roomInventoryDayRepository.findByIdForUpdate(roomType.getId(), stayDate).ifPresent(inv -> {
+                        int conf = inv.getConfirmedRooms() != null ? inv.getConfirmedRooms() : 0;
+                        inv.setConfirmedRooms(Math.max(0, conf - oldRooms));
+                        roomInventoryDayRepository.save(inv);
+                    });
+                }
+
+                // Giữ confirmed_rooms mới
+                for (LocalDate d = newCheckIn; d.isBefore(newCheckOut); d = d.plusDays(1)) {
+                    final LocalDate stayDate = d;
+                    RoomInventoryDay inv = roomInventoryDayRepository.findByIdForUpdate(roomType.getId(), stayDate)
+                            .orElseGet(() -> {
+                                RoomInventoryDay newInv = RoomInventoryDay.builder()
+                                        .id(new RoomInventoryDayId(roomType.getId(), stayDate))
+                                        .roomType(roomType)
+                                        .totalRooms(totalCapacity)
+                                        .heldRooms(0)
+                                        .confirmedRooms(0)
+                                        .stopSell(false)
+                                        .updatedAt(LocalDateTime.now())
+                                        .build();
+                                return roomInventoryDayRepository.saveAndFlush(newInv);
+                            });
+
+                    inv.setConfirmedRooms((inv.getConfirmedRooms() != null ? inv.getConfirmedRooms() : 0) + newRooms);
+                    roomInventoryDayRepository.save(inv);
+                }
+
+                bookingNightRepository.deleteByBookingId(booking.getId());
+                BigDecimal unitPrice = roomType.getBasePrice() != null ? roomType.getBasePrice() : BigDecimal.valueOf(500000);
+                for (LocalDate d = newCheckIn; d.isBefore(newCheckOut); d = d.plusDays(1)) {
+                    BookingNight night = BookingNight.builder()
+                            .id(new BookingNightId(booking.getId(), d))
+                            .booking(booking)
+                            .unitPrice(unitPrice)
+                            .roomCount(newRooms)
+                            .build();
+                    bookingNightRepository.save(night);
+                }
+
+                long nightsCount = ChronoUnit.DAYS.between(newCheckIn, newCheckOut);
+                BigDecimal newTotal = unitPrice.multiply(BigDecimal.valueOf(nightsCount)).multiply(BigDecimal.valueOf(newRooms));
+                booking.setCheckIn(newCheckIn);
+                booking.setCheckOut(newCheckOut);
+                booking.setRoomCount(newRooms);
+                booking.setTotalAmount(newTotal);
+            }
+
+            if (changeReq.getGuestName() != null) booking.setGuestName(changeReq.getGuestName());
+            if (changeReq.getGuestPhone() != null) booking.setGuestPhone(changeReq.getGuestPhone());
+            if (changeReq.getGuestEmail() != null) booking.setGuestEmail(changeReq.getGuestEmail());
+            if (changeReq.getGuestNote() != null) booking.setGuestNote(changeReq.getGuestNote());
+            if (changeReq.getGuestCount() != null) booking.setGuestCount(changeReq.getGuestCount());
+
+            // Áp dụng cập nhật serviceItems nếu có lưu trong change request
+            if (changeReq.getServiceItemsJson() != null && !changeReq.getServiceItemsJson().isBlank()) {
+                try {
+                    List<CreateBookingRequest.ServiceItemRequest> reqItems = objectMapper.readValue(
+                            changeReq.getServiceItemsJson(),
+                            new com.fasterxml.jackson.core.type.TypeReference<List<CreateBookingRequest.ServiceItemRequest>>() {}
+                    );
+                    booking.getServiceItems().clear();
+                    for (CreateBookingRequest.ServiceItemRequest itemReq : reqItems) {
+                        BookingServiceItem item = BookingServiceItem.builder()
+                                .booking(booking)
+                                .serviceName(itemReq.getServiceName())
+                                .serviceCode(itemReq.getServiceCode())
+                                .note(itemReq.getNote())
+                                .isIncluded(itemReq.getIsIncluded() != null ? itemReq.getIsIncluded() : true)
+                                .build();
+                        booking.getServiceItems().add(item);
+                    }
+                } catch (Exception e) {
+                    log.error("Lỗi parse serviceItemsJson khi quản lý duyệt change request {}: {}", changeRequestId, e.getMessage());
+                }
+            }
+
+            bookingRepository.save(booking);
+        } else {
+            changeReq.setStatus(com.dulichso.bookingapi.entity.enums.BookingChangeStatus.REJECTED);
+            changeReq.setRejectionReason(rejectionReason != null && !rejectionReason.isBlank() ? rejectionReason : "Nhà quản lý từ chối yêu cầu thay đổi.");
+            changeReq.setReviewedBy(reviewerId);
+            changeReq.setReviewedAt(now);
+        }
+
+        bookingChangeRequestRepository.save(changeReq);
+
+        int nights = (int) ChronoUnit.DAYS.between(booking.getCheckIn(), booking.getCheckOut());
+        BigDecimal unitPrice = booking.getRoomType().getBasePrice() != null ? booking.getRoomType().getBasePrice() : BigDecimal.ZERO;
+        return mapToResponseDto(booking, booking.getPlace(), booking.getRoomType(), unitPrice, nights);
     }
 
     @Override
@@ -446,6 +812,102 @@ public class BookingServiceImpl implements BookingService {
         ).collect(java.util.stream.Collectors.toList());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public com.dulichso.bookingapi.dto.CheckAvailabilityResponse checkAvailability(
+            Long roomTypeId, LocalDate checkIn, LocalDate checkOut, int roomCount, String excludeBookingCode) {
+        if (checkIn == null || checkOut == null) {
+            return com.dulichso.bookingapi.dto.CheckAvailabilityResponse.builder()
+                    .available(false)
+                    .requestedRooms(roomCount)
+                    .minAvailableRooms(0)
+                    .message("Ngày nhận phòng và trả phòng không được để trống.")
+                    .build();
+        }
+        if (!checkOut.isAfter(checkIn)) {
+            return com.dulichso.bookingapi.dto.CheckAvailabilityResponse.builder()
+                    .available(false)
+                    .requestedRooms(roomCount)
+                    .minAvailableRooms(0)
+                    .message("Ngày trả phòng phải sau ngày nhận phòng.")
+                    .build();
+        }
+        if (roomCount <= 0) {
+            return com.dulichso.bookingapi.dto.CheckAvailabilityResponse.builder()
+                    .available(false)
+                    .requestedRooms(roomCount)
+                    .minAvailableRooms(0)
+                    .message("Số lượng phòng yêu cầu tối thiểu là 1.")
+                    .build();
+        }
+
+        RoomType roomType = roomTypeRepository.findById(roomTypeId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy hạng phòng với ID: " + roomTypeId));
+
+        int totalCapacity = roomType.getTotalRoomCount() != null ? roomType.getTotalRoomCount() : 5;
+
+        // Tìm booking được loại trừ nếu có
+        Booking excludeBooking = null;
+        if (excludeBookingCode != null && !excludeBookingCode.trim().isBlank()) {
+            excludeBooking = bookingRepository.findByBookingCode(excludeBookingCode.trim()).orElse(null);
+        }
+
+        int minAvailable = Integer.MAX_VALUE;
+
+        for (LocalDate d = checkIn; d.isBefore(checkOut); d = d.plusDays(1)) {
+            final LocalDate stayDate = d;
+            RoomInventoryDay inv = roomInventoryDayRepository.findById(new RoomInventoryDayId(roomTypeId, stayDate))
+                    .orElse(null);
+
+            if (inv != null && Boolean.TRUE.equals(inv.getStopSell())) {
+                return com.dulichso.bookingapi.dto.CheckAvailabilityResponse.builder()
+                        .available(false)
+                        .requestedRooms(roomCount)
+                        .minAvailableRooms(0)
+                        .message("Phòng đã tạm ngừng nhận khách vào ngày: " + stayDate)
+                        .build();
+            }
+
+            int occupied = 0;
+            if (inv != null) {
+                occupied = (inv.getHeldRooms() != null ? inv.getHeldRooms() : 0)
+                        + (inv.getConfirmedRooms() != null ? inv.getConfirmedRooms() : 0);
+            }
+
+            // Nếu ngày này đang được giữ bởi chính booking đang chỉnh sửa, không tính số phòng đó là occupied
+            if (excludeBooking != null
+                    && !stayDate.isBefore(excludeBooking.getCheckIn())
+                    && stayDate.isBefore(excludeBooking.getCheckOut())
+                    && excludeBooking.getRoomType().getId().equals(roomTypeId)) {
+                occupied = Math.max(0, occupied - excludeBooking.getRoomCount());
+            }
+
+            int dayTotal = (inv != null && inv.getTotalRooms() != null) ? inv.getTotalRooms() : totalCapacity;
+            int available = Math.max(0, dayTotal - occupied);
+
+            if (available < minAvailable) {
+                minAvailable = available;
+            }
+
+            if (available < roomCount) {
+                return com.dulichso.bookingapi.dto.CheckAvailabilityResponse.builder()
+                        .available(false)
+                        .requestedRooms(roomCount)
+                        .minAvailableRooms(available)
+                        .message("Ngày " + stayDate + " chỉ còn trống " + available + " phòng (yêu cầu " + roomCount + " phòng). Vui lòng chọn ngày khác!")
+                        .build();
+            }
+        }
+
+        int finalMin = minAvailable == Integer.MAX_VALUE ? totalCapacity : minAvailable;
+        return com.dulichso.bookingapi.dto.CheckAvailabilityResponse.builder()
+                .available(true)
+                .requestedRooms(roomCount)
+                .minAvailableRooms(finalMin)
+                .message("Phòng khả dụng! Hiện còn " + finalMin + " phòng trống cho khoảng thời gian này.")
+                .build();
+    }
+
     private String generateUniqueBookingCode() {
         for (int i = 0; i < 10; i++) {
             int codeNumber = 100000 + RANDOM.nextInt(900000);
@@ -455,5 +917,47 @@ public class BookingServiceImpl implements BookingService {
             }
         }
         return "VJ-" + System.currentTimeMillis();
+    }
+
+    @Override
+    @Transactional
+    public BookingResponseDto updateBookingStatus(Long bookingId, BookingStatus newStatus, String reason, Long actorAccountId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn đặt phòng với ID: " + bookingId));
+
+        if (newStatus == BookingStatus.CONFIRMED) {
+            booking.setStatus(BookingStatus.CONFIRMED);
+            booking.setConfirmedAt(LocalDateTime.now());
+            try {
+                notificationService.notifyBookingStatusChange(booking, BookingStatus.CONFIRMED, reason);
+            } catch (Exception ex) {
+                log.warn("Không thể gửi thông báo CONFIRMED: {}", ex.getMessage());
+            }
+        } else if (newStatus == BookingStatus.REJECTED) {
+            booking.setStatus(BookingStatus.REJECTED);
+            booking.setClosedAt(LocalDateTime.now());
+            booking.setCloseReason(reason != null && !reason.isBlank() ? reason : "Đối tác/Quản lý từ chối đơn đặt phòng.");
+            try {
+                notificationService.notifyBookingStatusChange(booking, BookingStatus.REJECTED, reason);
+            } catch (Exception ex) {
+                log.warn("Không thể gửi thông báo REJECTED: {}", ex.getMessage());
+            }
+        } else if (newStatus == BookingStatus.REFUNDED) {
+            booking.setStatus(BookingStatus.REFUNDED);
+            booking.setClosedAt(LocalDateTime.now());
+            booking.setCloseReason(reason != null && !reason.isBlank() ? reason : "Hoàn tiền đơn đặt phòng.");
+            try {
+                notificationService.notifyBookingStatusChange(booking, BookingStatus.REFUNDED, reason);
+            } catch (Exception ex) {
+                log.warn("Không thể gửi thông báo REFUNDED: {}", ex.getMessage());
+            }
+        } else {
+            booking.setStatus(newStatus);
+        }
+
+        Booking saved = bookingRepository.save(booking);
+        int nights = (int) ChronoUnit.DAYS.between(saved.getCheckIn(), saved.getCheckOut());
+        BigDecimal unitPrice = saved.getRoomType().getBasePrice() != null ? saved.getRoomType().getBasePrice() : BigDecimal.ZERO;
+        return mapToResponseDto(saved, saved.getPlace(), saved.getRoomType(), unitPrice, nights);
     }
 }

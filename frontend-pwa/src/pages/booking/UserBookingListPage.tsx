@@ -26,7 +26,6 @@ import {
 import { getCurrentCustomer } from '@/services/authService';
 import {
   fetchMyBookings,
-  getUserSavedBookings,
   getReviewedBookingCodes,
   markBookingAsReviewed
 } from '@/services/bookingService';
@@ -80,29 +79,28 @@ export default function UserBookingListPage() {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const localBookings = getUserSavedBookings();
-      const localCodes = localBookings.map((b) => b.bookingCode);
+      // Dọn dẹp key mock data cũ trong browser
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('user_recent_bookings');
+      }
+
+      // Ưu tiên email đã đăng nhập, nếu chưa có thì dùng tài khoản chính vutrggiang@gmail.com
+      const targetEmail = currentUser?.email || 'vutrggiang@gmail.com';
 
       const serverBookings = await fetchMyBookings({
-        email: currentUser?.email,
+        email: targetEmail,
         phone: currentUser?.phone,
-        codes: localCodes,
       });
 
-      // Hợp nhất dữ liệu tránh trùng lặp
-      const map = new Map<string, BookingResponseDto>();
-      localBookings.forEach((b) => map.set(b.bookingCode, b));
-      serverBookings.forEach((b) => map.set(b.bookingCode, b));
-
-      const combined = Array.from(map.values()).sort(
+      const sorted = [...serverBookings].sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
 
-      setBookings(combined);
+      setBookings(sorted);
       setReviewedCodes(getReviewedBookingCodes());
     } catch (err) {
       console.error('Lỗi nạp danh sách đặt phòng:', err);
-      setBookings(getUserSavedBookings());
+      setBookings([]);
     } finally {
       setIsLoading(false);
     }
@@ -282,10 +280,10 @@ export default function UserBookingListPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F6FAF8] pb-16">
+    <div className="min-h-screen bg-[#F6FAF8] pt-14 sm:pt-16 pb-16">
       {/* Toast thông báo nổi */}
       {toastMessage && (
-        <div className="fixed top-20 right-4 z-50 max-w-md animate-in slide-in-from-top duration-300">
+        <div className="fixed top-32 right-4 z-[9999] max-w-md animate-in slide-in-from-top duration-300">
           <div className="flex items-center gap-2.5 p-3.5 rounded-md bg-white border border-emerald-200 shadow-xl text-emerald-800 text-xs font-semibold">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span className="flex-1">{toastMessage.text}</span>

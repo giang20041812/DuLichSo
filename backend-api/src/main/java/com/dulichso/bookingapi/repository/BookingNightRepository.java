@@ -10,4 +10,5 @@ import java.util.List;
 @Repository
 public interface BookingNightRepository extends JpaRepository<BookingNight, BookingNightId> {
     List<BookingNight> findByBookingId(Long bookingId);
+    void deleteByBookingId(Long bookingId);
 }

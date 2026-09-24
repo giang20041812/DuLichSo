@@ -45,7 +45,7 @@ INSERT INTO booking (
     (SELECT id FROM room_type WHERE place_id=(SELECT id FROM place WHERE slug='hello-mu-cang-chai-homestay' LIMIT 1) LIMIT 1),
     (SELECT provider_id FROM place WHERE slug='hello-mu-cang-chai-homestay' LIMIT 1),
     '2026-10-05', '2026-10-07', 1, 2,
-    'Vũ Trường Giang', '0987654321', 'giang20041812@gmail.com', 'Phòng tầng 2 view thung lũng lúa mâm xôi thoáng đãng.',
+    'Vũ Trường Giang', '0987654321', 'vutrggiang@gmail.com', 'Phòng tầng 2 view thung lũng lúa mâm xôi thoáng đãng.',
     'PENDING', 'VND', 1600000,
     JSON_OBJECT('policyName', 'Linh hoạt: Miễn phí hủy trước 48h', 'freeCancelCutoffHours', 48, 'description', 'Khách hủy trước 48h được hoàn 100% tiền cọc. Hủy trong vòng 48h tính phí 50% đêm đầu.'),
     '2026-09-24 08:30:00', '2026-09-25 08:30:00'
@@ -64,7 +64,7 @@ INSERT INTO booking (
     (SELECT id FROM room_type WHERE place_id=(SELECT id FROM place WHERE slug='mu-cang-chai-eco-lodge' LIMIT 1) LIMIT 1),
     (SELECT provider_id FROM place WHERE slug='mu-cang-chai-eco-lodge' LIMIT 1),
     '2026-10-12', '2026-10-15', 1, 2,
-    'Vũ Trường Giang', '0987654321', 'giang20041812@gmail.com', 'Cần hỗ trợ thuê xe máy giao nhận tại homestay.',
+    'Vũ Trường Giang', '0987654321', 'vutrggiang@gmail.com', 'Cần hỗ trợ thuê xe máy giao nhận tại homestay.',
     'CONFIRMED', 'VND', 3600000,
     JSON_OBJECT('policyName', 'Tiêu chuẩn: Miễn phí hủy trước 72h', 'freeCancelCutoffHours', 72, 'description', 'Hủy phòng trước 72h tính từ 14:00 ngày nhận phòng được hoàn 100%.'),
     '2026-09-22 14:15:00', '2026-09-22 15:00:00', '2026-09-23 14:15:00'
@@ -83,7 +83,7 @@ INSERT INTO booking (
     (SELECT id FROM room_type WHERE place_id=(SELECT id FROM place WHERE slug='do-gu-homestay' LIMIT 1) LIMIT 1),
     (SELECT provider_id FROM place WHERE slug='do-gu-homestay' LIMIT 1),
     '2026-09-23', '2026-09-25', 2, 4,
-    'Vũ Trường Giang', '0987654321', 'giang20041812@gmail.com', 'Đã nhận phòng, gia đình đang dùng cơm trưa tại nhà sàn.',
+    'Vũ Trường Giang', '0987654321', 'vutrggiang@gmail.com', 'Đã nhận phòng, gia đình đang dùng cơm trưa tại nhà sàn.',
     'CHECKED_IN', 'VND', 1300000,
     JSON_OBJECT('policyName', 'Tiêu chuẩn 24h', 'freeCancelCutoffHours', 24, 'description', 'Miễn phí hủy trước 24h.'),
     '2026-09-18 10:00:00', '2026-09-18 10:30:00'
@@ -102,7 +102,7 @@ INSERT INTO booking (
     (SELECT id FROM room_type WHERE place_id=(SELECT id FROM place WHERE slug='mu-cang-homestay' LIMIT 1) LIMIT 1),
     (SELECT provider_id FROM place WHERE slug='mu-cang-homestay' LIMIT 1),
     '2026-09-21', '2026-09-23', 1, 2,
-    'Vũ Trường Giang', '0987654321', 'giang20041812@gmail.com', 'Đã bàn giao chìa khóa 12h trưa nay.',
+    'Vũ Trường Giang', '0987654321', 'vutrggiang@gmail.com', 'Đã bàn giao chìa khóa 12h trưa nay.',
     'CHECKED_OUT', 'VND', 800000,
     JSON_OBJECT('policyName', 'Miễn phí hủy trước 48h', 'freeCancelCutoffHours', 48, 'description', 'Miễn phí hủy trước 48h nhận phòng.'),
     '2026-09-15 09:20:00', '2026-09-15 10:00:00'
@@ -121,7 +121,7 @@ INSERT INTO booking (
     (SELECT id FROM room_type WHERE place_id=(SELECT id FROM place WHERE slug='ngoc-thuy-homestay' LIMIT 1) LIMIT 1),
     (SELECT provider_id FROM place WHERE slug='ngoc-thuy-homestay' LIMIT 1),
     '2026-09-10', '2026-09-12', 1, 2,
-    'Vũ Trường Giang', '0987654321', 'giang20041812@gmail.com', 'Kỳ nghỉ hoàn hảo cùng gia đình.',
+    'Vũ Trường Giang', '0987654321', 'vutrggiang@gmail.com', 'Kỳ nghỉ hoàn hảo cùng gia đình.',
     'COMPLETED', 'VND', 1200000,
     JSON_OBJECT('policyName', 'Miễn phí hủy trước 48h', 'freeCancelCutoffHours', 48, 'description', 'Miễn phí hủy trước 48h nhận phòng.'),
     '2026-09-02 11:45:00', '2026-09-02 12:00:00', '2026-09-12 12:00:00', 'SYSTEM'
@@ -140,7 +140,7 @@ INSERT INTO booking (
     (SELECT id FROM room_type WHERE place_id=(SELECT id FROM place WHERE slug='mong-ngua-homestay' LIMIT 1) LIMIT 1),
     (SELECT provider_id FROM place WHERE slug='mong-ngua-homestay' LIMIT 1),
     '2026-08-15', '2026-08-17', 1, 2,
-    'Vũ Trường Giang', '0987654321', 'giang20041812@gmail.com', 'Chủ nhà rất nhiệt tình hỗ trợ đoàn.',
+    'Vũ Trường Giang', '0987654321', 'vutrggiang@gmail.com', 'Chủ nhà rất nhiệt tình hỗ trợ đoàn.',
     'COMPLETED', 'VND', 1400000,
     JSON_OBJECT('policyName', 'Tiêu chuẩn 24h', 'freeCancelCutoffHours', 24, 'description', 'Miễn phí hủy trước 24h nhận phòng.'),
     '2026-08-05 16:00:00', '2026-08-05 16:30:00', '2026-08-17 12:00:00', 'SYSTEM'
@@ -159,7 +159,7 @@ INSERT INTO booking (
     (SELECT id FROM room_type WHERE place_id=(SELECT id FROM place WHERE slug='la-pan-tan-homestay' LIMIT 1) LIMIT 1),
     (SELECT provider_id FROM place WHERE slug='la-pan-tan-homestay' LIMIT 1),
     '2026-09-18', '2026-09-20', 1, 2,
-    'Vũ Trường Giang', '0987654321', 'giang20041812@gmail.com', 'Đã hoàn tiền 100% qua cổng thanh toán SEPay do ảnh hưởng thời tiết.',
+    'Vũ Trường Giang', '0987654321', 'vutrggiang@gmail.com', 'Đã hoàn tiền 100% qua cổng thanh toán SEPay do ảnh hưởng thời tiết.',
     'REFUNDED', 'VND', 1500000,
     JSON_OBJECT('policyName', 'Linh hoạt thời tiết', 'freeCancelCutoffHours', 24, 'cancelReason', 'Thời tiết sạt lở đường lên Bản', 'refundAmount', 1500000, 'refundStatus', 'APPROVED_FULL', 'description', 'Hỗ trợ hoàn 100% trong trường hợp bão lũ.'),
     '2026-09-12 07:15:00', '2026-09-12 08:00:00', '2026-09-13 10:00:00', 'Thời tiết xấu / sự cố bất khả kháng', 'CUSTOMER'
@@ -178,7 +178,7 @@ INSERT INTO booking (
     (SELECT id FROM room_type WHERE place_id=(SELECT id FROM place WHERE slug='homestay-cuong-tu' LIMIT 1) LIMIT 1),
     (SELECT provider_id FROM place WHERE slug='homestay-cuong-tu' LIMIT 1),
     '2026-09-05', '2026-09-07', 1, 2,
-    'Vũ Trường Giang', '0987654321', 'giang20041812@gmail.com', 'Khách hủy trước 48h theo chính sách.',
+    'Vũ Trường Giang', '0987654321', 'vutrggiang@gmail.com', 'Khách hủy trước 48h theo chính sách.',
     'CANCELLED', 'VND', 1100000,
     JSON_OBJECT('policyName', 'Miễn phí hủy trước 48h', 'freeCancelCutoffHours', 48, 'cancelReason', 'Thay đổi kế hoạch du lịch cá nhân', 'description', 'Đã hủy thành công.'),
     '2026-08-28 09:00:00', '2026-08-29 14:00:00', 'Thay đổi kế hoạch du lịch cá nhân', 'CUSTOMER'

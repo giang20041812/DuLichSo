@@ -20,13 +20,19 @@ import {
   Info,
   Ban,
   Home,
-  Check
+  Check,
+  Edit3,
+  Compass,
 } from 'lucide-react';
 import { getBookingByCode, fetchBookingReview } from '@/services/bookingService';
 import type { BookingResponseDto, BookingStatus } from '@/types/booking';
 import type { ReviewDto } from '@/types/review';
 import BookingReviewModal from '@/components/booking/BookingReviewModal';
 import BookingCancelModal from '@/components/booking/BookingCancelModal';
+import BookingEditModal from '@/components/booking/BookingEditModal';
+import BookingServicesMapModal from '@/components/booking/BookingServicesMapModal';
+import { fetchNearbyPlaces } from '@/services/homestayService';
+import type { NearbyPlaceDto } from '@/types/homestay';
 
 export default function UserBookingDetailPage() {
   const { bookingCode } = useParams<{ bookingCode: string }>();
@@ -41,6 +47,11 @@ export default function UserBookingDetailPage() {
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   // Modal hủy đơn
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  // Modal thay đổi chi tiết booking
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  // Modal xem bản đồ dịch vụ tư vấn
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+  const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlaceDto[]>([]);
 
   const loadBookingData = useCallback(async () => {
     if (!bookingCode) return;
@@ -49,6 +60,15 @@ export default function UserBookingDetailPage() {
     try {
       const data = await getBookingByCode(bookingCode);
       setBooking(data);
+
+      // Tải danh sách địa điểm/dịch vụ lân cận để liên kết bản đồ
+      if (data.placeId) {
+        fetchNearbyPlaces(String(data.placeId), 15).then((places) => {
+          setNearbyPlaces(places);
+        }).catch((err) => {
+          console.warn('Lỗi load nearby places cho bản đồ booking:', err);
+        });
+      }
 
       // Nếu đơn đã hoàn thành, kiểm tra xem đã có đánh giá chưa
       if (data.status === 'COMPLETED') {
@@ -346,10 +366,22 @@ export default function UserBookingDetailPage() {
 
             {/* Thông tin phòng & ngày lưu trú */}
             <div className="bg-white rounded-lg border border-gray-200/90 p-5 space-y-4 shadow-xs">
-              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2 border-b border-gray-100 pb-3">
-                <BedDouble className="w-4 h-4 text-[var(--color-primary)]" />
-                Thông tin lưu trú
-              </h3>
+              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                  <BedDouble className="w-4 h-4 text-[var(--color-primary)]" />
+                  Thông tin lưu trú
+                </h3>
+                {['PENDING', 'CONFIRMED'].includes(booking.status) && (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditModalOpen(true)}
+                    className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold text-[var(--color-primary)] bg-[var(--color-primary)]/10 hover:bg-[var(--color-primary)] hover:text-white transition-all cursor-pointer"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span>{booking.status === 'PENDING' ? 'Thay đổi thông tin' : 'Gửi yêu cầu thay đổi'}</span>
+                  </button>
+                )}
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="p-3 bg-[#F6FAF8] rounded-md border border-gray-100">
@@ -388,21 +420,66 @@ export default function UserBookingDetailPage() {
                 </div>
               </div>
 
-              {/* Dịch vụ đi kèm */}
-              {booking.serviceItems && booking.serviceItems.length > 0 && (
-                <div className="pt-3 border-t border-gray-100 space-y-2">
-                  <span className="text-xs font-bold text-slate-800 block">Dịch vụ & Tiện ích đi kèm:</span>
-                  <div className="space-y-1.5">
+              {/* Dịch vụ tư vấn đã chọn */}
+              <div className="pt-3 border-t border-gray-100 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5 uppercase tracking-wider">
+                    <Compass className="w-4 h-4 text-[var(--color-primary)]" />
+                    <span>Các dịch vụ tư vấn đã chọn</span>
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {/* Nút xem bản đồ dịch vụ tư vấn */}
+                    {booking.serviceItems && booking.serviceItems.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setIsMapModalOpen(true)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold text-[var(--color-primary)] bg-[var(--color-primary)]/10 hover:bg-[var(--color-primary)] hover:text-white transition-colors cursor-pointer"
+                        title="Xem vị trí các dịch vụ trên bản đồ"
+                      >
+                        <MapPin className="w-3 h-3" />
+                        <span>Xem bản đồ dịch vụ</span>
+                      </button>
+                    )}
+                    <span className="text-[11px] font-bold text-[var(--color-primary)] bg-[var(--color-primary)]/10 px-2 py-0.5 rounded-sm">
+                      {booking.serviceItems && booking.serviceItems.length > 0
+                        ? `${booking.serviceItems.length} dịch vụ`
+                        : 'Mặc định'}
+                    </span>
+                  </div>
+                </div>
+
+                {booking.serviceItems && booking.serviceItems.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                     {booking.serviceItems.map((s, idx) => (
-                      <div key={idx} className="flex items-center gap-2 text-xs text-gray-700">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                        <span>{s.serviceName}</span>
-                        {s.note && <span className="text-gray-400 text-[11px]">({s.note})</span>}
+                      <div
+                        key={idx}
+                        className="flex items-start gap-2.5 p-2.5 rounded-md bg-[#F6FAF8] border border-[#048C73]/20 hover:border-[var(--color-primary)] transition-colors"
+                      >
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-xs font-bold text-slate-800 block truncate">
+                            {s.serviceName}
+                          </span>
+                          {s.note ? (
+                            <span className="text-[11px] text-gray-500 block mt-0.5 leading-snug">
+                              {s.note}
+                            </span>
+                          ) : (
+                            <span className="text-[11px] text-emerald-600 block mt-0.5 font-medium">
+                              ✓ Bao gồm theo tư vấn chuyến đi
+                            </span>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="p-3 bg-slate-50 border border-gray-200/60 rounded-md text-xs text-gray-500 flex items-center gap-2">
+                    <Info className="w-4 h-4 text-gray-400 shrink-0" />
+                    <span>Đơn đặt phòng này sử dụng các tiện ích tiêu chuẩn đi kèm theo hạng phòng.</span>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Thông tin khách hàng & Ghi chú */}
@@ -441,7 +518,101 @@ export default function UserBookingDetailPage() {
                   </p>
                 </div>
               )}
+
+              {/* Nút hành động thay đổi booking khi ở trạng thái PENDING hoặc CONFIRMED */}
+              {['PENDING', 'CONFIRMED'].includes(booking.status) && (
+                <div className="pt-3 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-amber-50/40 -mx-5 -mb-5 p-4 rounded-b-lg border-t border-amber-100">
+                  <div className="text-xs">
+                    <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                      <Edit3 className="w-3.5 h-3.5 text-[var(--color-primary)]" />
+                      <span>{booking.status === 'PENDING' ? 'Cần cập nhật lại thông tin?' : 'Muốn điều chỉnh chuyến đi?'}</span>
+                    </span>
+                    <p className="text-[11px] text-gray-500 mt-0.5">
+                      {booking.status === 'PENDING'
+                        ? 'Đơn đang chờ duyệt: Bạn có thể sửa trực tiếp thông tin liên hệ, thời gian, số phòng/khách.'
+                        : 'Đơn đã xác nhận: Mọi thay đổi sẽ được gửi đến nhà quản lý duyệt trước khi chấp thuận.'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditModalOpen(true)}
+                    className="px-4 py-2 text-xs font-bold text-white bg-[var(--color-primary)] hover:bg-[#03705C] rounded-md transition-all shadow-xs shrink-0 flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span>{booking.status === 'PENDING' ? 'Thay đổi thông tin' : 'Gửi yêu cầu thay đổi'}</span>
+                  </button>
+                </div>
+              )}
             </div>
+
+            {/* Danh sách các yêu cầu thay đổi đã gửi (nếu có) */}
+            {booking.changeRequests && booking.changeRequests.length > 0 && (
+              <div className="bg-white rounded-lg border border-gray-200/90 p-5 space-y-3 shadow-xs">
+                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2 border-b border-gray-100 pb-3">
+                  <Clock className="w-4 h-4 text-amber-600" />
+                  Lịch sử yêu cầu thay đổi
+                </h3>
+                <div className="space-y-3">
+                  {booking.changeRequests.map((cr) => (
+                    <div
+                      key={cr.id}
+                      className="p-3.5 rounded-md border text-xs space-y-2 bg-[#F6FAF8] border-gray-200"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-slate-700">
+                          Yêu cầu ngày: {new Date(cr.createdAt).toLocaleDateString('vi-VN')}
+                        </span>
+                        <span
+                          className={`px-2 py-0.5 rounded-sm text-[11px] font-bold ${
+                            cr.status === 'APPROVED'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : cr.status === 'REJECTED'
+                              ? 'bg-rose-100 text-rose-800'
+                              : 'bg-amber-100 text-amber-800'
+                          }`}
+                        >
+                          {cr.status === 'APPROVED'
+                            ? 'Đã chấp thuận'
+                            : cr.status === 'REJECTED'
+                            ? 'Từ chối'
+                            : 'Đang chờ quản lý duyệt'}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-gray-600 text-[11px]">
+                        {cr.checkIn && cr.checkOut && (
+                          <div>
+                            Thời gian mới: <strong>{cr.checkIn} → {cr.checkOut}</strong>
+                          </div>
+                        )}
+                        {cr.roomCount && cr.guestCount && (
+                          <div>
+                            Quy mô mới: <strong>{cr.roomCount} phòng • {cr.guestCount} khách</strong>
+                          </div>
+                        )}
+                        {cr.guestName && (
+                          <div>
+                            Người liên hệ: <strong>{cr.guestName} ({cr.guestPhone})</strong>
+                          </div>
+                        )}
+                      </div>
+
+                      {cr.reason && (
+                        <div className="text-[11px] text-gray-500 italic">
+                          Lý do yêu cầu: "{cr.reason}"
+                        </div>
+                      )}
+
+                      {cr.rejectionReason && cr.status === 'REJECTED' && (
+                        <div className="text-[11px] text-rose-600 bg-rose-50 p-2 rounded-sm border border-rose-100">
+                          Lý do từ chối: {cr.rejectionReason}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Cột phải: Chi tiết chi phí & Chính sách */}
@@ -508,6 +679,24 @@ export default function UserBookingDetailPage() {
                 )}
               </p>
 
+              {/* Nút thay đổi chi tiết đơn nếu trạng thái PENDING hoặc CONFIRMED */}
+              {['PENDING', 'CONFIRMED'].includes(booking.status) && (
+                <div className="pt-3 border-t border-gray-100">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditModalOpen(true)}
+                    className="w-full py-2 px-3 text-xs font-bold text-[var(--color-primary)] bg-[var(--color-primary)]/10 hover:bg-[var(--color-primary)] hover:text-white border border-[var(--color-primary)]/20 rounded-md transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span>
+                      {booking.status === 'PENDING'
+                        ? 'Thay đổi thông tin đặt phòng'
+                        : 'Gửi yêu cầu thay đổi phòng'}
+                    </span>
+                  </button>
+                </div>
+              )}
+
               {/* Nút hủy đơn nếu trạng thái cho phép */}
               {['PENDING', 'CONFIRMED', 'AWAITING_PAYMENT'].includes(booking.status) && (
                 <div className="pt-3 border-t border-gray-100">
@@ -552,6 +741,46 @@ export default function UserBookingDetailPage() {
             setIsCancelModalOpen(false);
           }}
         />
+      )}
+
+      {/* Modal chỉnh sửa chi tiết booking / gửi yêu cầu quản lý */}
+      {isEditModalOpen && booking && (
+        <BookingEditModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          booking={booking}
+          onSuccess={(updated) => {
+            setBooking(updated);
+            setIsEditModalOpen(false);
+          }}
+        />
+      )}
+
+      {/* Modal xem bản đồ vị trí các dịch vụ tư vấn đã chọn */}
+      {isMapModalOpen && booking && (
+        <BookingServicesMapModal
+          isOpen={isMapModalOpen}
+          onClose={() => setIsMapModalOpen(false)}
+          placeName={booking.placeName}
+          placeAddress={booking.placeAddress}
+          placeLat={booking.latitude}
+          placeLng={booking.longitude}
+          serviceItems={booking.serviceItems}
+          nearbyPlaces={nearbyPlaces}
+        />
+      )}
+
+      {/* Floating Action Button (FAB) trên Mobile: Lơ lửng góc phải bên dưới màn hình, CHỈ CÓ ICON, KHÔNG CÓ CHỮ */}
+      {booking && ['PENDING', 'CONFIRMED'].includes(booking.status) && (
+        <button
+          type="button"
+          onClick={() => setIsEditModalOpen(true)}
+          className="fixed bottom-6 right-6 z-40 sm:hidden w-12 h-12 rounded-full bg-[var(--color-primary)] text-white shadow-lg shadow-teal-900/30 flex items-center justify-center cursor-pointer hover:bg-[var(--color-primary)]/90 active:scale-95 transition-all"
+          title={booking.status === 'PENDING' ? 'Thay đổi thông tin' : 'Gửi yêu cầu thay đổi'}
+          aria-label={booking.status === 'PENDING' ? 'Thay đổi thông tin' : 'Gửi yêu cầu thay đổi'}
+        >
+          <Edit3 className="w-5 h-5" />
+        </button>
       )}
     </div>
   );

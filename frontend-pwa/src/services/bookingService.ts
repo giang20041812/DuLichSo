@@ -88,45 +88,37 @@ export async function fetchBookedDatesByPlace(placeId: number, startDate?: strin
     }
   }
 
+  // Nếu cả backend lẫn local chưa có booking nào cho place này, tự động sinh các ngày kín mẫu (cuối tuần & ngày cao điểm)
+  // để khách hàng và ban quản lý có thể trực quan nhìn thấy lịch đã kín và kiểm tra bộ lọc
   if (combined.length === 0) {
     const today = new Date();
-    const fmt = (d: Date) => d.toISOString().slice(0, 10);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const toYmd = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
+    // Mẫu 1: Cuối tuần tới (Thứ 6 -> Chủ Nhật)
     const d1 = new Date(today);
-    d1.setDate(today.getDate() + 3);
-    const d2 = new Date(today);
-    d2.setDate(today.getDate() + 5);
+    const dayOfWeek = d1.getDay();
+    const diffToFri = (5 - dayOfWeek + 7) % 7 || 7;
+    d1.setDate(d1.getDate() + diffToFri);
+    const d2 = new Date(d1);
+    d2.setDate(d2.getDate() + 2);
 
-    const d3 = new Date(today);
-    d3.setDate(today.getDate() + 8);
-    const d4 = new Date(today);
-    d4.setDate(today.getDate() + 10);
+    // Mẫu 2: Cuối tuần tuần kế tiếp
+    const d3 = new Date(d1);
+    d3.setDate(d3.getDate() + 7);
+    const d4 = new Date(d3);
+    d4.setDate(d4.getDate() + 2);
+
+    // Mẫu 3: Đợt lễ hội giữa tháng
+    const d5 = new Date(d1);
+    d5.setDate(d5.getDate() + 13);
+    const d6 = new Date(d5);
+    d6.setDate(d6.getDate() + 2);
 
     return [
-      {
-        roomTypeId: 1,
-        checkIn: fmt(d1),
-        checkOut: fmt(d2),
-        roomCount: 2,
-      },
-      {
-        roomTypeId: 1,
-        checkIn: fmt(d3),
-        checkOut: fmt(d4),
-        roomCount: 3,
-      },
-      {
-        roomTypeId: 2,
-        checkIn: fmt(d1),
-        checkOut: fmt(d2),
-        roomCount: 1,
-      },
-      {
-        roomTypeId: 3,
-        checkIn: fmt(d3),
-        checkOut: fmt(d4),
-        roomCount: 2,
-      },
+      { roomTypeId: 0, checkIn: toYmd(d1), checkOut: toYmd(d2), roomCount: 3 },
+      { roomTypeId: 0, checkIn: toYmd(d3), checkOut: toYmd(d4), roomCount: 2 },
+      { roomTypeId: 0, checkIn: toYmd(d5), checkOut: toYmd(d6), roomCount: 5 },
     ];
   }
 
@@ -185,69 +177,26 @@ export async function cancelBooking(
   reason: string,
   note?: string
 ): Promise<BookingResponseDto> {
-  // 1. Thử gửi request lên backend
-  try {
-    const response = await fetch(`/api/public/bookings/${encodeURIComponent(bookingCode)}/cancel`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reason, note }),
-    });
-    if (response.ok) {
-      const updated = (await response.json()) as BookingResponseDto;
-      saveUserBooking(updated);
-      return updated;
+  const url = new URL(`/api/public/bookings/${encodeURIComponent(bookingCode)}/cancel`, apiOrigin());
+  const response = await fetch(url.toString(), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason, note }),
+  });
+
+  if (!response.ok) {
+    let message = `Lỗi hủy đặt phòng: HTTP ${response.status}`;
+    try {
+      const err = await response.json() as { message?: string; error?: string };
+      message = err.message ?? err.error ?? message;
+    } catch {
+      // ignore
     }
-  } catch (e) {
-    console.warn('Backend cancel failed, processing locally:', e);
+    throw new Error(message);
   }
 
-  // 2. Xử lý cập nhật local theo chính sách hủy
-  const localList = getUserSavedBookings();
-  const index = localList.findIndex((b) => b.bookingCode === bookingCode);
-  if (index === -1) {
-    throw new Error(`Không tìm thấy đơn đặt phòng mã ${bookingCode}`);
-  }
-
-  const current = localList[index];
-  if (!current) {
-    throw new Error(`Không tìm thấy đơn đặt phòng mã ${bookingCode}`);
-  }
-  if (current.status === 'COMPLETED') {
-    throw new Error('Chuyến đi đã hoàn thành, không thể hủy phòng.');
-  }
-  if (current.status === 'CANCELLED' || current.status === 'REFUNDED') {
-    throw new Error('Đơn đặt phòng này đã được hủy trước đó.');
-  }
-
-  // Tính chính sách hoàn tiền
-  const now = new Date();
-  const checkInDate = new Date(`${current.checkIn}T14:00:00`);
-  const diffHours = (checkInDate.getTime() - now.getTime()) / (1000 * 60 * 60);
-
-  const policy = current.policySnapshot || {};
-  const cutoff = typeof policy.freeCancelCutoffHours === 'number' ? policy.freeCancelCutoffHours : 24;
-
-  const willRefund = current.status === 'CONFIRMED' && diffHours >= cutoff;
-  const newStatus: import('../types/booking').BookingStatus = willRefund ? 'REFUNDED' : 'CANCELLED';
-
-  const updatedBooking: BookingResponseDto = {
-    ...current,
-    status: newStatus,
-    policySnapshot: {
-      ...policy,
-      cancelReason: reason,
-      cancelNote: note,
-      cancelledAt: now.toISOString(),
-      ...(willRefund ? { refundAmount: current.totalAmount, refundStatus: 'APPROVED_FULL' } : {}),
-    },
-  };
-
-  localList[index] = updatedBooking;
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(LOCAL_BOOKINGS_KEY, JSON.stringify(localList));
-  }
-
-  return updatedBooking;
+  const updated = (await response.json()) as BookingResponseDto;
+  return updated;
 }
 
 export async function fetchMyBookings(params: {
@@ -255,63 +204,46 @@ export async function fetchMyBookings(params: {
   phone?: string;
   codes?: string[];
 }): Promise<BookingResponseDto[]> {
-  try {
-    const url = new URL('/api/public/bookings/my-bookings', apiOrigin());
-    if (params.email) url.searchParams.append('email', params.email);
-    if (params.phone) url.searchParams.append('phone', params.phone);
-    if (params.codes && params.codes.length > 0) {
-      params.codes.forEach((c) => url.searchParams.append('codes', c));
-    }
-
-    const response = await fetch(url.toString());
-    if (!response.ok) {
-      return getUserSavedBookings();
-    }
-    const data = (await response.json()) as BookingResponseDto[];
-    if (data.length === 0) {
-      return getUserSavedBookings();
-    }
-    return data;
-  } catch (error) {
-    console.warn('Lỗi tải danh sách booking từ server, dùng local:', error);
-    return getUserSavedBookings();
+  const url = new URL('/api/public/bookings/my-bookings', apiOrigin());
+  if (params.email) url.searchParams.append('email', params.email);
+  if (params.phone) url.searchParams.append('phone', params.phone);
+  if (params.codes && params.codes.length > 0) {
+    params.codes.forEach((c) => url.searchParams.append('codes', c));
   }
+
+  const response = await fetch(url.toString());
+  if (!response.ok) {
+    throw new Error(`Không thể nạp danh sách đặt phòng (HTTP ${response.status})`);
+  }
+  return (await response.json()) as BookingResponseDto[];
 }
 
 export async function submitBookingReview(
   bookingCode: string,
   request: import('../types/review').CreateReviewRequest
 ): Promise<import('../types/review').ReviewDto> {
-  markBookingAsReviewed(bookingCode);
-
-  try {
-    const response = await fetch(
-      `/api/public/bookings/${encodeURIComponent(bookingCode)}/review`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(request),
-      }
-    );
-
-    if (response.ok) {
-      return response.json() as Promise<import('../types/review').ReviewDto>;
+  const response = await fetch(
+    `/api/public/bookings/${encodeURIComponent(bookingCode)}/review`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
     }
-  } catch (err) {
-    console.warn('Lỗi gửi review lên server, fallback lưu local:', err);
+  );
+
+  if (!response.ok) {
+    let message = `Gửi đánh giá thất bại (HTTP ${response.status})`;
+    try {
+      const err = (await response.json()) as { message?: string; error?: string };
+      message = err.message ?? err.error ?? message;
+    } catch {
+      // ignore
+    }
+    throw new Error(message);
   }
 
-  // Fallback giả lập thành công cho client
-  const fallbackReview: import('../types/review').ReviewDto = {
-    id: Date.now(),
-    placeId: 1,
-    rating: request.rating,
-    content: request.content,
-    guestName: 'Bạn',
-    createdAt: new Date().toISOString(),
-  };
-
-  return fallbackReview;
+  markBookingAsReviewed(bookingCode);
+  return response.json() as Promise<import('../types/review').ReviewDto>;
 }
 
 export async function fetchBookingReview(
@@ -330,5 +262,71 @@ export async function fetchBookingReview(
   }
 }
 
+export async function updateBookingDetails(
+  bookingCode: string,
+  request: import('../types/booking').UpdateBookingDetailsRequest
+): Promise<BookingResponseDto> {
+  const url = new URL(`/api/public/bookings/${encodeURIComponent(bookingCode)}`, apiOrigin());
+  const response = await fetch(url.toString(), {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  });
 
+  if (!response.ok) {
+    let message = `Lỗi cập nhật đặt phòng: HTTP ${response.status}`;
+    try {
+      const err = (await response.json()) as { message?: string; error?: string };
+      message = err.message ?? err.error ?? message;
+    } catch {
+      // ignore
+    }
+    throw new Error(message);
+  }
+
+  return (await response.json()) as BookingResponseDto;
+}
+
+export async function fetchBookingChangeRequests(
+  bookingCode: string
+): Promise<import('../types/booking').BookingChangeRequestDto[]> {
+  try {
+    const url = new URL(`/api/public/bookings/${encodeURIComponent(bookingCode)}/change-requests`, apiOrigin());
+    const response = await fetch(url.toString());
+    if (!response.ok) return [];
+    return (await response.json()) as import('../types/booking').BookingChangeRequestDto[];
+  } catch {
+    return [];
+  }
+}
+
+export async function checkRoomAvailability(
+  roomTypeId: number,
+  checkIn: string,
+  checkOut: string,
+  roomCount: number = 1,
+  excludeBookingCode?: string
+): Promise<import('../types/booking').CheckAvailabilityResponse> {
+  const url = new URL(`/api/public/bookings/rooms/${roomTypeId}/check-availability`, apiOrigin());
+  url.searchParams.append('checkIn', checkIn);
+  url.searchParams.append('checkOut', checkOut);
+  url.searchParams.append('roomCount', String(roomCount));
+  if (excludeBookingCode) {
+    url.searchParams.append('excludeBookingCode', excludeBookingCode);
+  }
+
+  const response = await fetch(url.toString());
+  if (!response.ok) {
+    let msg = `Lỗi kiểm tra lịch phòng: HTTP ${response.status}`;
+    try {
+      const err = (await response.json()) as { message?: string; error?: string };
+      msg = err.message ?? err.error ?? msg;
+    } catch {
+      // ignore
+    }
+    throw new Error(msg);
+  }
+
+  return (await response.json()) as import('../types/booking').CheckAvailabilityResponse;
+}
 

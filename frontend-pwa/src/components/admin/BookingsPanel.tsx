@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Mail, Phone, RefreshCw, StickyNote, X } from 'lucide-react';
+import { CheckCircle2, Mail, Phone, RefreshCw, RotateCcw, StickyNote, X, XCircle } from 'lucide-react';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { adminService } from '@/services/adminService';
 import { partnerBookingService } from '@/services/partnerBookingService';
@@ -21,8 +21,11 @@ const STATUS_LABEL: Record<BookingStatus, string> = {
   PENDING: 'Chờ xử lý',
   AWAITING_PAYMENT: 'Chờ thanh toán',
   CONFIRMED: 'Đã xác nhận',
+  CHECKED_IN: 'Đã nhận phòng',
+  CHECKED_OUT: 'Đã trả phòng',
   REJECTED: 'Bị từ chối',
   CANCELLED: 'Đã hủy',
+  REFUNDED: 'Đã hoàn tiền',
   EXPIRED: 'Hết hạn giữ chỗ',
   COMPLETED: 'Hoàn tất',
   NO_SHOW: 'Khách không đến',
@@ -31,7 +34,10 @@ const STATUS_TONE: Record<BookingStatus, string> = {
   PENDING: 'border-amber-200 bg-amber-50 text-amber-700',
   AWAITING_PAYMENT: 'border-secondary-200 bg-secondary-50 text-secondary-700',
   CONFIRMED: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  CHECKED_IN: 'border-blue-200 bg-blue-50 text-blue-700',
+  CHECKED_OUT: 'border-purple-200 bg-purple-50 text-purple-700',
   COMPLETED: 'border-primary/30 bg-primary-50 text-primary',
+  REFUNDED: 'border-orange-200 bg-orange-50 text-orange-700',
   REJECTED: 'border-rose-200 bg-rose-50 text-rose-700',
   CANCELLED: 'border-rose-200 bg-rose-50 text-rose-700',
   EXPIRED: 'border-border bg-canvas text-muted',
@@ -71,6 +77,30 @@ export default function BookingsPanel({ scope = 'admin' }: BookingsPanelProps) {
   const [loadError, setLoadError] = useState('');
   const [reload, setReload] = useState(0);
   const [selected, setSelected] = useState<AdminBookingDto | null>(null);
+
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [statusActionMsg, setStatusActionMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [rejectReasonInput, setRejectReasonInput] = useState('');
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+
+  const handleUpdateStatus = async (newStatus: BookingStatus, reason?: string) => {
+    if (!selected) return;
+    setUpdatingStatus(true);
+    setStatusActionMsg(null);
+    try {
+      const updateFn = scope === 'partner' ? partnerBookingService.updateStatus : adminService.updateBookingStatus;
+      await updateFn(selected.id, newStatus, reason);
+      setSelected((prev) => (prev ? { ...prev, status: newStatus, closeReason: reason || prev.closeReason } : null));
+      setReload((n) => n + 1);
+      setShowRejectDialog(false);
+      setRejectReasonInput('');
+      setStatusActionMsg({ type: 'success', text: `Đã đổi trạng thái đơn sang: ${STATUS_LABEL[newStatus]}` });
+    } catch {
+      setStatusActionMsg({ type: 'error', text: 'Cập nhật trạng thái thất bại. Vui lòng thử lại.' });
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
 
   const debouncedKeyword = useDebouncedValue(keyword);
   const activeCount = [debouncedKeyword, status, createdFrom || createdTo, checkInFrom || checkInTo].filter(Boolean).length;
@@ -284,6 +314,95 @@ export default function BookingsPanel({ scope = 'admin' }: BookingsPanelProps) {
               {selected.closedAt && <Row k="Đóng đơn lúc" v={dateTime(selected.closedAt)} />}
               {selected.closeReason && <Row k="Lý do đóng" v={selected.closeReason} />}
             </Section>
+
+            {statusActionMsg && (
+              <div
+                className={`rounded-md p-2.5 text-xs font-medium border ${
+                  statusActionMsg.type === 'success'
+                    ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                    : 'border-rose-200 bg-rose-50 text-rose-800'
+                }`}
+              >
+                {statusActionMsg.text}
+              </div>
+            )}
+
+            {/* Thao tác duyệt / từ chối / hoàn tiền đơn */}
+            {['PENDING', 'AWAITING_PAYMENT'].includes(selected.status) && (
+              <Section title="Thao tác xử lý">
+                <div className="flex flex-col gap-2">
+                  <button
+                    type="button"
+                    disabled={updatingStatus}
+                    onClick={() => void handleUpdateStatus('CONFIRMED')}
+                    className="flex items-center justify-center gap-1.5 rounded-md bg-[var(--color-primary)] py-2 px-3 text-xs font-bold text-white hover:bg-[var(--color-primary-dark,#03705C)] disabled:opacity-50 cursor-pointer shadow-xs"
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span>Xác nhận đơn đặt phòng</span>
+                  </button>
+
+                  {!showRejectDialog ? (
+                    <button
+                      type="button"
+                      disabled={updatingStatus}
+                      onClick={() => setShowRejectDialog(true)}
+                      className="flex items-center justify-center gap-1.5 rounded-md border border-rose-200 bg-rose-50 py-2 px-3 text-xs font-bold text-rose-700 hover:bg-rose-100 disabled:opacity-50 cursor-pointer shadow-xs"
+                    >
+                      <XCircle className="h-4 w-4" />
+                      <span>Từ chối đơn đặt phòng</span>
+                    </button>
+                  ) : (
+                    <div className="flex flex-col gap-2 rounded-md border border-rose-200 bg-rose-50/60 p-2.5">
+                      <label htmlFor="reject-reason" className="text-[11px] font-bold text-rose-900">
+                        Lý do từ chối:
+                      </label>
+                      <input
+                        id="reject-reason"
+                        type="text"
+                        value={rejectReasonInput}
+                        onChange={(e) => setRejectReasonInput(e.target.value)}
+                        placeholder="Nhập lý do từ chối (vd: Hết phòng)..."
+                        className="rounded-md border border-rose-200 bg-white px-2.5 py-1.5 text-xs text-ink outline-none focus:border-rose-500"
+                      />
+                      <div className="flex items-center justify-end gap-2 mt-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowRejectDialog(false);
+                            setRejectReasonInput('');
+                          }}
+                          className="rounded-md border border-border bg-white px-2.5 py-1 text-xs text-muted hover:text-ink cursor-pointer"
+                        >
+                          Hủy
+                        </button>
+                        <button
+                          type="button"
+                          disabled={updatingStatus}
+                          onClick={() => void handleUpdateStatus('REJECTED', rejectReasonInput || 'Không còn phòng trống.')}
+                          className="rounded-md bg-rose-600 px-3 py-1 text-xs font-bold text-white hover:bg-rose-700 disabled:opacity-50 cursor-pointer shadow-xs"
+                        >
+                          Xác nhận từ chối
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Section>
+            )}
+
+            {selected.status === 'CONFIRMED' && (
+              <Section title="Thao tác xử lý">
+                <button
+                  type="button"
+                  disabled={updatingStatus}
+                  onClick={() => void handleUpdateStatus('REFUNDED', 'Quản lý duyệt hoàn tiền theo chính sách')}
+                  className="flex items-center justify-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 py-2 px-3 text-xs font-bold text-amber-800 hover:bg-amber-100 disabled:opacity-50 cursor-pointer shadow-xs"
+                >
+                  <RotateCcw className="h-4 w-4 text-amber-700" />
+                  <span>Duyệt hoàn tiền cho đơn</span>
+                </button>
+              </Section>
+            )}
           </aside>
         </div>
       )}

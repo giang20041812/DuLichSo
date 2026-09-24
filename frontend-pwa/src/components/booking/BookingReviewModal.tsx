@@ -72,8 +72,8 @@ export default function BookingReviewModal({
   const activeScore = hoverRating || rating;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg bg-white rounded-lg border border-[var(--color-border)] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 pt-24 sm:pt-28 pb-8 overflow-y-auto animate-in fade-in duration-200">
+      <div className="relative w-full max-w-lg bg-white rounded-lg border border-[var(--color-border)] shadow-2xl overflow-hidden flex flex-col max-h-[85vh] my-auto">
         {/* Header modal */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-[#F6FAF8]">
           <div className="flex items-center gap-2.5">

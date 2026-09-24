@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { VietTrackLogoMark } from "../ui/logo";
 import { getCurrentCustomer, clearAllAuthSession, type CurrentCustomer } from "@/services/authService";
+import NotificationBell from "./NotificationBell";
 
 interface HeaderProps {
   isSidebarOpen?: boolean;
@@ -178,7 +179,7 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
                   isScrolled ? 'text-[17px] md:text-[20px]' : 'text-[20px] md:text-[23px]'
                 } ${isSolid ? 'text-[var(--color-ink-deep)]' : 'text-white drop-shadow-md'}`}
               >
-                VietTrack
+                Đi Du Lịch
               </span>
               <span
                 className={`font-semibold tracking-wider uppercase mt-0.5 transition-all duration-300 ${
@@ -191,20 +192,24 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
           </Link>
 
           {/* Cụm bên phải: Nút Đăng nhập/Đăng ký HOẶC Icon người dùng kèm Tên & Dropdown */}
-          <div className="flex items-center gap-2" ref={dropdownRef}>
+          <div className="flex items-center gap-1.5 sm:gap-2" ref={dropdownRef}>
             {user ? (
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setIsDropdownOpen((v) => !v)}
-                  className={`flex items-center gap-1.5 sm:gap-2 p-1 sm:px-2.5 sm:py-1.5 rounded-md transition-all cursor-pointer border ${
-                    isSolid
-                      ? 'bg-white/90 border-gray-200 hover:border-[var(--color-primary)] hover:bg-[#edfbf7]/50 shadow-xs'
-                      : 'bg-white/15 backdrop-blur-md border-white/30 text-white hover:bg-white/25 shadow-xs'
-                  }`}
-                  aria-expanded={isDropdownOpen}
-                  aria-haspopup="true"
-                >
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                {/* Icon hình thông báo ở bên cạnh icon ava */}
+                <NotificationBell isSolid={isSolid} />
+
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsDropdownOpen((v) => !v)}
+                    className={`flex items-center gap-1.5 sm:gap-2 p-1 sm:px-2.5 sm:py-1.5 rounded-md transition-all cursor-pointer border ${
+                      isSolid
+                        ? 'bg-white/90 border-gray-200 hover:border-[var(--color-primary)] hover:bg-[#edfbf7]/50 shadow-xs'
+                        : 'bg-white/15 backdrop-blur-md border-white/30 text-white hover:bg-white/25 shadow-xs'
+                    }`}
+                    aria-expanded={isDropdownOpen}
+                    aria-haspopup="true"
+                  >
                   {user.picture ? (
                     <img
                       src={user.picture}
@@ -309,10 +314,12 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
                     </div>
                   </div>
                 )}
+                </div>
               </div>
             ) : (
               /* Nút Đăng nhập / Đăng ký trên Header */
               <div className="flex items-center gap-1.5">
+                <NotificationBell isSolid={isSolid} />
                 <Link
                   to="/login"
                   className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-bold transition-all shadow-xs ${

@@ -123,7 +123,7 @@ export default function Sidebar({
           >
             <VietTrackLogoMark size={34} className="transition-transform group-hover:scale-105" />
             <div className="flex flex-col leading-none">
-              <span className="text-lg font-black font-display text-[var(--color-ink-deep)]">VietTrack</span>
+              <span className="text-lg font-black font-display text-[var(--color-ink-deep)]">Đi Du Lịch</span>
               <span className="text-[9px] font-bold text-[var(--color-primary)] uppercase tracking-wider mt-1">Du Lịch Di Sản</span>
             </div>
           </div>

@@ -446,7 +446,7 @@ export default function RegisterPage() {
               <a href="#privacy" onClick={(e) => e.preventDefault()} className="font-semibold text-primary hover:underline">
                 Chính sách bảo mật
               </a>{' '}
-              của VietTrack.
+              của Đi Du Lịch.
             </span>
           </label>
           {touched.agreedTerms && errors.agreedTerms && (

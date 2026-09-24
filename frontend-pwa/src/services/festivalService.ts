@@ -1,24 +1,6 @@
-export interface FestivalDto {
-  id: number | string;
-  slug: string;
-  name: string;
-  seasonNote: string;
-  timeRange: string;
-  isSuitableByTime?: boolean; // Lễ hội phù hợp theo mùa/thời gian
-  suitableDateStart?: string;
-  suitableDateEnd?: string;
-  isCurrentSeason: boolean; // Gợi ý festival cho thời điểm hiện tại
-  nextPeriodStart?: string;
-  nextPeriodEnd?: string;
-  coreValue: string;
-  suitableExperience: string;
-  etiquetteDont: string;
-  regionName?: string;
-  coverImageUrl: string;
-  location: string;
-  highlightTag: string;
-  activities: string[];
-}
+import { FestivalDto } from '@/types/festival';
+
+export type { FestivalDto };
 
 export const fetchFestivals = async (): Promise<FestivalDto[]> => {
   try {
@@ -37,4 +19,17 @@ export const fetchFestivals = async (): Promise<FestivalDto[]> => {
     console.warn('Lỗi khi fetch festivals từ backend:', error);
   }
   return [];
+};
+
+export const fetchFestivalByIdOrSlug = async (identifier: string): Promise<FestivalDto | null> => {
+  try {
+    const festivals = await fetchFestivals();
+    const found = festivals.find(
+      (f) => f.slug === identifier || f.id.toString() === identifier
+    );
+    if (found) return found;
+  } catch (error) {
+    console.warn('Lỗi khi tìm festival theo slug/id:', error);
+  }
+  return null;
 };
