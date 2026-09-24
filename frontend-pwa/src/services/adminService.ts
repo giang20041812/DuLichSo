@@ -14,6 +14,8 @@ import type {
   UpdatePlaceVerificationRequest,
   UpdatePlaceVisibilityRequest,
   AdminDashboardSummaryDto,
+  AuditLogEntryDto,
+  AdminPlaceDetailDto,
   AccountStatus,
   ProviderStatus,
   PlaceVerificationStatus,
@@ -21,6 +23,13 @@ import type {
   AdminBookingDto,
   BookingSearchParams,
   BookingStatusSummary,
+  BookingAttentionItem,
+  AdminBookingDetailDto,
+  AddBookingNoteRequest,
+  BookingNoteDto,
+  AdminOverviewReport,
+  ReportSearchParams,
+  CreateTravelerRequest,
   PlaceSearchParams,
   PlaceVerificationSummary,
   AdminTravelerDto,
@@ -136,6 +145,16 @@ export const adminService = {
   // ─────────────────────────────────────────────
   // 4. Kiểm duyệt Điểm đến (/places)
   // ─────────────────────────────────────────────
+  async getRecentActivity(limit = 8): Promise<AuditLogEntryDto[]> {
+    const res = await axios.get<AuditLogEntryDto[]>(`${API_BASE}/dashboard/activity`, { ...getAuthHeaders(), params: { limit } });
+    return res.data;
+  },
+
+  async getPlaceById(id: number): Promise<AdminPlaceDetailDto> {
+    const res = await axios.get<AdminPlaceDetailDto>(`${API_BASE}/places/${id}`, getAuthHeaders());
+    return res.data;
+  },
+
   async getPlaces(params?: PlaceSearchParams): Promise<PageResponse<AdminPlaceSummaryDto>> {
     const res = await axios.get<PageResponse<AdminPlaceSummaryDto>>(`${API_BASE}/places`, {
       ...getAuthHeaders(),
@@ -154,6 +173,34 @@ export const adminService = {
 
   async getBookingsSummary(): Promise<BookingStatusSummary> {
     const res = await axios.get<BookingStatusSummary>(`${API_BASE}/bookings/summary`, getAuthHeaders());
+    return res.data;
+  },
+
+  async getBookingAttention(): Promise<BookingAttentionItem[]> {
+    const res = await axios.get<BookingAttentionItem[]>(`${API_BASE}/bookings/attention`, getAuthHeaders());
+    return res.data;
+  },
+
+  async getBookingDetail(id: number): Promise<AdminBookingDetailDto> {
+    const res = await axios.get<AdminBookingDetailDto>(`${API_BASE}/bookings/${id}`, getAuthHeaders());
+    return res.data;
+  },
+
+  async addBookingNote(id: number, data: AddBookingNoteRequest): Promise<BookingNoteDto> {
+    const res = await axios.post<BookingNoteDto>(`${API_BASE}/bookings/${id}/notes`, data, getAuthHeaders());
+    return res.data;
+  },
+
+  async getReportOverview(params?: ReportSearchParams): Promise<AdminOverviewReport> {
+    const res = await axios.get<AdminOverviewReport>(`${API_BASE}/reports/overview`, {
+      ...getAuthHeaders(),
+      params,
+    });
+    return res.data;
+  },
+
+  async createTraveler(data: CreateTravelerRequest): Promise<AdminTravelerDto> {
+    const res = await axios.post<AdminTravelerDto>(`${API_BASE}/travelers`, data, getAuthHeaders());
     return res.data;
   },
 

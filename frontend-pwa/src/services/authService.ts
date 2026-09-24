@@ -61,6 +61,31 @@ const postTravelerAuth = async (path: string, body: unknown): Promise<GoogleLogi
   }
 };
 
+export interface ForgotPasswordResponse {
+  message: string;
+  otpTtlMinutes: number;
+  resendAfterSeconds: number;
+}
+
+/** Gửi OTP đặt lại mật khẩu qua email. Server luôn trả cùng một kết quả dù tài khoản có tồn tại hay không. */
+export const requestPasswordReset = async (identifier: string): Promise<ForgotPasswordResponse> => {
+  try {
+    const res = await axios.post<ForgotPasswordResponse>(`${API_BASE_URL}/forgot-password`, { identifier }, { timeout: 15000 });
+    return res.data;
+  } catch (err: unknown) {
+    throw toAuthError(err);
+  }
+};
+
+/** Đặt lại mật khẩu bằng OTP đã nhận qua email. */
+export const resetPasswordWithOtp = async (identifier: string, otp: string, newPassword: string): Promise<void> => {
+  try {
+    await axios.post(`${API_BASE_URL}/reset-password`, { identifier, otp, newPassword }, { timeout: 15000 });
+  } catch (err: unknown) {
+    throw toAuthError(err);
+  }
+};
+
 /** Đăng nhập khách du lịch bằng Google: backend xác minh ID token rồi cấp JWT hệ thống. */
 export const googleLogin = (idToken: string) => postTravelerAuth('/google/login', { idToken });
 

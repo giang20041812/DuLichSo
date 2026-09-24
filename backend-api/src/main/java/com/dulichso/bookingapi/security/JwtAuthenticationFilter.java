@@ -55,14 +55,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 // NCC bị đình chỉ / chấm dứt (hoặc tài khoản bị vô hiệu hóa) mất quyền ngay,
                 // kể cả khi đang giữ token còn hạn.
-                if (role == AccountRole.PROVIDER && isProviderBlocked(username)) {
+                // accountId không lưu trong token nên tra DB theo identifier. Cần cho kiểm tra
+                // "không tự khóa mình" và ghi nhận người thao tác trong audit log.
+                Account account = accountRepository.findByIdentifier(username).orElse(null);
+                if (account != null && account.getStatus() != AccountStatus.ACTIVE) {
+                    if (role == AccountRole.PROVIDER) {
+                        rejectSuspended(response);
+                    } else {
+                        rejectInactive(response);
+                    }
+                    return;
+                }
+                if (role == AccountRole.PROVIDER && isProviderBlocked(account)) {
                     rejectSuspended(response);
                     return;
                 }
 
-                // accountId không lưu trong token — nếu cần phải query DB,
-                // nhưng để giữ stateless ta để null, service sẽ dùng identifier nếu cần.
-                UserPrincipal principal = new UserPrincipal(null, username, role, null);
+                Long accountId = account != null ? account.getId() : null;
+                Long providerId = account != null && account.getProvider() != null ? account.getProvider().getId() : null;
+                UserPrincipal principal = new UserPrincipal(accountId, username, role, providerId);
 
                 UsernamePasswordAuthenticationToken auth =
                         new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
@@ -77,11 +88,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    private boolean isProviderBlocked(String identifier) {
-        Account account = accountRepository.findByIdentifier(identifier).orElse(null);
+    private boolean isProviderBlocked(Account account) {
         if (account == null) return false; // tài khoản mẫu QA không có trong DB: giữ hành vi cũ
         if (account.getStatus() != AccountStatus.ACTIVE) return true;
         return account.getProvider() == null || account.getProvider().getStatus() != ProviderStatus.ACTIVE;
+    }
+
+    private void rejectInactive(HttpServletResponse response) throws IOException {
+        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().write("{\"status\":403,\"errorCode\":\"ACCOUNT_INACTIVE\","
+                + "\"message\":\"Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ ban quản trị hệ thống.\"}");
     }
 
     private void rejectSuspended(HttpServletResponse response) throws IOException {

@@ -47,19 +47,35 @@ public class AdminBookingService {
                                    LocalDate checkInFrom, LocalDate checkInTo,
                                    LocalDate createdFrom, LocalDate createdTo,
                                    String sortBy, String sortDir, int page, int size) {
+        return search(status, keyword, null, null, null, providerId, checkInFrom, checkInTo,
+                createdFrom, createdTo, sortBy, sortDir, page, size);
+    }
+
+    /**
+     * @param guest   lọc theo khách hàng: tên, SĐT hoặc email
+     * @param place   lọc theo tên homestay/điểm đến
+     * @param placeId lọc chính xác theo homestay (dùng khi drill-down từ báo cáo)
+     */
+    @Transactional(readOnly = true)
+    public Page<BookingDto> search(BookingStatus status, String keyword, String guest, String place, Long placeId,
+                                   Long providerId, LocalDate checkInFrom, LocalDate checkInTo,
+                                   LocalDate createdFrom, LocalDate createdTo,
+                                   String sortBy, String sortDir, int page, int size) {
+        String guestKw = guest != null && !guest.isBlank() ? guest.trim().toLowerCase() : null;
+        String placeKw = place != null && !place.isBlank() ? place.trim().toLowerCase() : null;
         String kw = keyword != null && !keyword.isBlank() ? keyword.trim().toLowerCase() : null;
         Sort sort = Sort.by("asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC,
                 SORT_FIELDS.contains(sortBy) ? sortBy : "createdAt");
 
         Specification<Booking> spec = (root, query, cb) -> {
             boolean isCount = query != null && (query.getResultType() == Long.class || query.getResultType() == long.class);
-            Join<Object, Object> place;
+            Join<Object, Object> placeJoin;
             Join<Object, Object> provider;
             if (isCount) {
-                place = root.join("place", JoinType.INNER);
+                placeJoin = root.join("place", JoinType.INNER);
                 provider = root.join("provider", JoinType.INNER);
             } else {
-                place = castJoin(root.fetch("place", JoinType.INNER));
+                placeJoin = castJoin(root.fetch("place", JoinType.INNER));
                 provider = castJoin(root.fetch("provider", JoinType.INNER));
                 root.fetch("roomType", JoinType.INNER);
             }
@@ -67,18 +83,28 @@ public class AdminBookingService {
             List<Predicate> ps = new ArrayList<>();
             if (status != null) ps.add(cb.equal(root.get("status"), status));
             if (providerId != null) ps.add(cb.equal(provider.get("id"), providerId));
+            if (placeId != null) ps.add(cb.equal(placeJoin.get("id"), placeId));
+            if (placeKw != null) {
+                ps.add(cb.like(cb.lower(placeJoin.get("name")), "%" + escapeLike(placeKw) + "%"));
+            }
+            if (guestKw != null) {
+                String gl = "%" + escapeLike(guestKw) + "%";
+                ps.add(cb.or(cb.like(cb.lower(root.get("guestName")), gl),
+                        cb.like(cb.lower(root.get("guestEmail")), gl),
+                        cb.like(root.get("guestPhone"), gl)));
+            }
             if (checkInFrom != null) ps.add(cb.greaterThanOrEqualTo(root.get("checkIn"), checkInFrom));
             if (checkInTo != null) ps.add(cb.lessThanOrEqualTo(root.get("checkIn"), checkInTo));
             if (createdFrom != null) ps.add(cb.greaterThanOrEqualTo(root.get("createdAt"), createdFrom.atStartOfDay()));
             if (createdTo != null) ps.add(cb.lessThan(root.get("createdAt"), createdTo.plusDays(1).atStartOfDay()));
             if (kw != null) {
-                String like = "%" + kw.replace("%", "\\%").replace("_", "\\_") + "%";
+                String like = "%" + escapeLike(kw) + "%";
                 ps.add(cb.or(
                         cb.like(cb.lower(root.get("bookingCode")), like),
                         cb.like(cb.lower(root.get("guestName")), like),
                         cb.like(cb.lower(root.get("guestEmail")), like),
                         cb.like(root.get("guestPhone"), like),
-                        cb.like(cb.lower(place.get("name")), like),
+                        cb.like(cb.lower(placeJoin.get("name")), like),
                         cb.like(cb.lower(provider.get("name")), like)));
             }
             return cb.and(ps.toArray(new Predicate[0]));
@@ -108,6 +134,15 @@ public class AdminBookingService {
     @SuppressWarnings("unchecked")
     private static Join<Object, Object> castJoin(jakarta.persistence.criteria.Fetch<?, ?> fetch) {
         return (Join<Object, Object>) fetch;
+    }
+
+    private static String escapeLike(String v) {
+        return v.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+    }
+
+    /** Dùng cho các service giám sát để tái sử dụng cách map DTO. Cần gọi trong transaction. */
+    public BookingDto toDtoPublic(Booking b) {
+        return toDto(b);
     }
 
     private BookingDto toDto(Booking b) {

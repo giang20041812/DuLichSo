@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <changeSet id="006-add-booking-admin-note" author="dulichso">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="booking_admin_note"/></not>
+        </preConditions>
+        <createTable tableName="booking_admin_note">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="booking_id" type="BIGINT UNSIGNED">
+                <constraints nullable="false"/>
+            </column>
+            <column name="admin_account_id" type="BIGINT"/>
+            <column name="admin_name" type="VARCHAR(150)"/>
+            <column name="kind" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="outcome" type="VARCHAR(20)"/>
+            <column name="content" type="VARCHAR(2000)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="DATETIME" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="booking_admin_note" baseColumnNames="booking_id"
+                                 constraintName="fk_booking_admin_note_booking"
+                                 referencedTableName="booking" referencedColumnNames="id"/>
+        <createIndex tableName="booking_admin_note" indexName="idx_booking_admin_note_booking">
+            <column name="booking_id"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

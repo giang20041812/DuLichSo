@@ -55,6 +55,9 @@ class AdminDashboardServiceTest {
     @Mock
     private com.dulichso.bookingapi.repository.SosRequestRepository sosRequestRepository;
 
+    @Mock
+    private com.dulichso.bookingapi.repository.AuditLogRepository auditLogRepository;
+
     private AdminDashboardService service;
 
     @BeforeEach
@@ -67,7 +70,8 @@ class AdminDashboardServiceTest {
                 refundRepository,
                 adminFinanceService,
                 travelerRepository,
-                sosRequestRepository
+                sosRequestRepository,
+                auditLogRepository
         );
     }
 
@@ -85,6 +89,7 @@ class AdminDashboardServiceTest {
         when(accountRepository.countByStatus(AccountStatus.ACTIVE)).thenReturn(55L);
 
         when(bookingRepository.countByCreatedAtBetween(any(), any())).thenReturn(128L);
+        when(bookingRepository.sumBookingValueByMonth()).thenReturn(Collections.emptyList());
 
         LocalDate now = LocalDate.now();
         RevenueSummaryDto revDto = RevenueSummaryDto.builder()
@@ -116,5 +121,29 @@ class AdminDashboardServiceTest {
         assertEquals(128L, summary.getMonthlyBookingsCount());
         assertEquals(new BigDecimal("25000000"), summary.getMonthlyRevenue());
         assertEquals(0L, summary.getPendingRefundsCount());
+        assertEquals(6, summary.getGmvTrend().size());
+        assertEquals(BigDecimal.ZERO, summary.getGmvTrend().get(5).getTotalAmount());
+    }
+
+    @Test
+    @DisplayName("recentActivity: trả về danh sách rút gọn theo limit, kèm tên người thao tác")
+    void recentActivity_ResolvesActorNames() {
+        com.dulichso.bookingapi.entity.AuditLog log1 = com.dulichso.bookingapi.entity.AuditLog.builder()
+                .id(2L).actor(com.dulichso.bookingapi.entity.enums.ActorType.ADMIN).actorId(9L)
+                .action("UPDATE_ACCOUNT_STATUS").entityType("Account").entityId(3L)
+                .reason("Vi phạm chính sách").createdAt(java.time.LocalDateTime.now()).build();
+        com.dulichso.bookingapi.entity.AuditLog log2 = com.dulichso.bookingapi.entity.AuditLog.builder()
+                .id(1L).actor(com.dulichso.bookingapi.entity.enums.ActorType.SYSTEM)
+                .action("SOS_RESOLVED").entityType("SosRequest").entityId(7L)
+                .createdAt(java.time.LocalDateTime.now().minusMinutes(5)).build();
+        when(auditLogRepository.findTop20ByOrderByCreatedAtDescIdDesc()).thenReturn(List.of(log1, log2));
+        when(accountRepository.findAllById(java.util.Set.of(9L))).thenReturn(List.of(
+                com.dulichso.bookingapi.entity.Account.builder().id(9L).fullName("Nguyễn Quản Trị").build()));
+
+        List<com.dulichso.bookingapi.dto.admin.AdminDashboardDtos.AuditLogEntryDto> result = service.recentActivity(1);
+
+        assertEquals(1, result.size());
+        assertEquals("UPDATE_ACCOUNT_STATUS", result.get(0).getAction());
+        assertEquals("Nguyễn Quản Trị", result.get(0).getActorName());
     }
 }

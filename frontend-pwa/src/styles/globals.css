@@ -213,7 +213,26 @@
   }
 }
 
+/* Kết thúc bằng transform: none — nếu giữ translate(0) thì phần tử trở thành khung chứa
+   cho các con position: fixed (modal/ngăn kéo sẽ bị nhốt trong vùng nội dung). */
+@keyframes slideFromRight {
+  from { transform: translateX(100%); }
+  to { transform: none; }
+}
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
 @layer utilities {
+  /* Ngăn xem nhanh trượt từ phải (khu vực quản trị) */
+  .panel-slide-in {
+    animation: slideFromRight 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  /* Nội dung hiện dần, nâng nhẹ 4px */
+  .rise-in {
+    animation: riseIn 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
   .drawer-slide-in {
     animation: slideRightEnter 300ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
   }

@@ -39,12 +39,26 @@ public class AdminTravelerController {
                 status, keyword, signupMethod, createdFrom, createdTo, sortBy, sortDir, page, size));
     }
 
+    @PostMapping
+    public ResponseEntity<TravelerDto> create(
+            @RequestBody Map<String, String> body,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        Long callerId = principal != null ? principal.accountId() : null;
+        return ResponseEntity.status(201).body(adminTravelerService.create(
+                body.get("fullName"), body.get("email"), body.get("phone"), body.get("password"), callerId));
+    }
+
     @PatchMapping("/{id}/status")
     public ResponseEntity<TravelerDto> updateStatus(
             @PathVariable Long id,
             @RequestBody Map<String, String> body,
             @AuthenticationPrincipal UserPrincipal principal) {
-        AccountStatus status = AccountStatus.valueOf(body.getOrDefault("status", ""));
+        AccountStatus status;
+        try {
+            status = AccountStatus.valueOf(body.getOrDefault("status", ""));
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Trạng thái không hợp lệ.");
+        }
         Long callerId = principal != null ? principal.accountId() : null;
         return ResponseEntity.ok(adminTravelerService.updateStatus(id, status, body.get("reason"), callerId));
     }

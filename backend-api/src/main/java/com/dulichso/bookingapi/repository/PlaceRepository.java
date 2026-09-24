@@ -54,5 +54,7 @@ public interface PlaceRepository extends JpaRepository<Place, Long>, JpaSpecific
 
     long countByIsDeletedFalse();
 
+    long countByIsDeletedFalseAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(java.time.LocalDateTime from, java.time.LocalDateTime to);
+
     long countByVerificationAndIsDeletedFalse(com.dulichso.bookingapi.entity.enums.PlaceVerificationStatus verification);
 }

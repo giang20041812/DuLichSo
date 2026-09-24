@@ -53,6 +53,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public: không cần đăng nhập (SOS khẩn cấp, info công khai)
                         .requestMatchers("/api/public/**").permitAll()
+                        // /error: để lỗi 404/400 trả đúng mã thay vì bị chặn thành 403
+                        .requestMatchers("/error").permitAll()
                         // Auth endpoints (đăng nhập portal, google)
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         // Admin endpoints: chỉ ADMIN

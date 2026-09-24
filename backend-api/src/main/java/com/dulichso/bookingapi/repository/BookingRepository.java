@@ -10,6 +10,35 @@ import java.util.Optional;
 public interface BookingRepository extends JpaRepository<Booking, Long>, org.springframework.data.jpa.repository.JpaSpecificationExecutor<Booking> {
     Optional<Booking> findByBookingCode(String bookingCode);
     boolean existsByBookingCode(String bookingCode);
+
+    /**
+     * GMV (giá trị đặt phòng) theo tháng — mọi đơn CHƯA bị hủy/từ chối/hết hạn, không phụ thuộc đã thanh toán hay chưa.
+     * Dùng làm số liệu tạm thay thế khi doanh thu đối soát (PaymentTransaction) = 0đ.
+     * Trả về [year, month, totalAmount, count].
+     */
+    @org.springframework.data.jpa.repository.Query("""
+        SELECT YEAR(b.createdAt), MONTH(b.createdAt), SUM(b.totalAmount), COUNT(b)
+        FROM Booking b
+        WHERE b.status NOT IN (com.dulichso.bookingapi.entity.enums.BookingStatus.REJECTED,
+                               com.dulichso.bookingapi.entity.enums.BookingStatus.CANCELLED,
+                               com.dulichso.bookingapi.entity.enums.BookingStatus.EXPIRED)
+        GROUP BY YEAR(b.createdAt), MONTH(b.createdAt)
+        ORDER BY YEAR(b.createdAt) DESC, MONTH(b.createdAt) DESC
+    """)
+    java.util.List<Object[]> sumBookingValueByMonth();
+
+    /** Dòng tối giản phục vụ báo cáo: [createdAt, status, totalAmount, providerId, providerName, placeId, placeName]. */
+    @org.springframework.data.jpa.repository.Query("""
+        SELECT b.createdAt, b.status, b.totalAmount, p.id, p.name, pl.id, pl.name
+        FROM Booking b JOIN b.provider p JOIN b.place pl
+        WHERE b.createdAt >= :from AND b.createdAt < :to
+          AND (:providerId IS NULL OR p.id = :providerId)
+    """)
+    java.util.List<Object[]> findReportRows(
+            @org.springframework.data.repository.query.Param("from") java.time.LocalDateTime from,
+            @org.springframework.data.repository.query.Param("to") java.time.LocalDateTime to,
+            @org.springframework.data.repository.query.Param("providerId") Long providerId
+    );
     long countByCreatedAtBetween(java.time.LocalDateTime start, java.time.LocalDateTime end);
 
     @org.springframework.data.jpa.repository.Query("""

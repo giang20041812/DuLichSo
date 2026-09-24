@@ -17,6 +17,8 @@ public interface ProviderRepository extends JpaRepository<Provider, Long> {
 
     long countByStatus(ProviderStatus status);
 
+    long countByCreatedAtGreaterThanEqualAndCreatedAtLessThan(java.time.LocalDateTime from, java.time.LocalDateTime to);
+
     @Query("SELECT p.provider.id, COUNT(p) FROM Place p WHERE p.provider IS NOT NULL AND p.isDeleted = false GROUP BY p.provider.id")
     List<Object[]> countPlacesByProvider();
 

@@ -152,6 +152,17 @@ class AdminAccountServiceTest {
     }
 
     @Test
+    @DisplayName("updateAccountStatus: Khoá tài khoản bắt buộc có lý do")
+    void updateAccountStatus_LockWithoutReason_Rejected() {
+        Account acc = Account.builder().id(2L).email("u2@taybactrails.vn").status(AccountStatus.ACTIVE).build();
+        when(accountRepository.findById(2L)).thenReturn(Optional.of(acc));
+
+        UpdateAccountStatusRequest req = UpdateAccountStatusRequest.builder().status(AccountStatus.INACTIVE).build();
+        assertThrows(IllegalArgumentException.class, () -> service.updateAccountStatus(2L, req, 1L));
+        verify(accountRepository, never()).save(any(Account.class));
+    }
+
+    @Test
     @DisplayName("resetPassword: Mã hoá mật khẩu mới và lưu DB")
     void resetPassword_Success() {
         Account acc = Account.builder()

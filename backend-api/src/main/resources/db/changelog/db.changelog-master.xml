@@ -20,4 +20,10 @@
     <include file="db/changelog/changes/004-add-traveler.xml"/>
     <include file="db/changelog/changes/005-add-traveler-status.xml"/>
 
+    <!-- Giám sát Booking: ghi chú xác minh / kết quả của Admin -->
+    <include file="db/changelog/changes/006-add-booking-admin-note.xml"/>
+
+    <!-- Quên mật khẩu: OTP qua email -->
+    <include file="db/changelog/changes/007-add-password-reset-token.xml"/>
+
 </databaseChangeLog>

@@ -1,8 +1,8 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
-import { Building2, Check, Copy, Eye, EyeOff, KeyRound, Plus, RefreshCw } from 'lucide-react';
+import { Building2, Check, Copy, Eye, EyeOff, KeyRound, Plus } from 'lucide-react';
 import { adminService } from '@/services/adminService';
 import type { AdminProviderSummaryDto, ProviderAccountDto, ProviderStatus } from '@/types/admin';
-import { ChipGroup, FilterSearch, type ChipOption } from './AdminFilters';
+import { FilterSearch, RefreshButton, UnderlineTabs, type TabItem } from './AdminFilters';
 import { StatusBadge } from './StatusBadge';
 import { PROVIDER_STATUS, actionButtonClass } from './statusStyles';
 
@@ -44,11 +44,12 @@ export default function ProvidersPanel({ providers, loading, error, onReload, on
     return c;
   }, [providers]);
 
-  const statusOptions: ChipOption<ProviderStatus>[] = [
-    { value: '', label: `Tất cả (${providers.length})` },
+  const statusTabs: TabItem<ProviderStatus>[] = [
+    { value: '', label: 'Tất cả', count: providers.length },
     ...(Object.keys(PROVIDER_STATUS) as ProviderStatus[]).map((s) => ({
       value: s,
-      label: `${PROVIDER_STATUS[s].label} (${counts[s]})`,
+      label: PROVIDER_STATUS[s].label,
+      count: counts[s],
       tone: PROVIDER_STATUS[s].tone,
     })),
   ];
@@ -63,46 +64,31 @@ export default function ProvidersPanel({ providers, loading, error, onReload, on
   }, [providers, keyword, status]);
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h2 className="font-display text-base font-bold text-ink-deep">Đối tác / Nhà cung cấp</h2>
-          <p className="text-xs text-muted">Quản lý trạng thái hoạt động và tài khoản đăng nhập của đối tác.</p>
-        </div>
+    <section className="rounded-lg border border-border bg-white shadow-sm">
+      <UnderlineTabs ariaLabel="Trạng thái đối tác" items={statusTabs} value={status} onChange={setStatus} />
+
+      <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2.5">
+        <FilterSearch value={keyword} onChange={setKeyword} placeholder="Tìm theo tên đối tác, người liên hệ, SĐT, email..." />
+        <RefreshButton loading={loading} onClick={onReload} />
         <button
           type="button"
           onClick={onCreate}
-          className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-xs font-semibold text-white shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary-600 hover:shadow-[var(--shadow-teal)]"
+          className="ml-auto flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-semibold text-white shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary-600 hover:shadow-[var(--shadow-teal)]"
         >
           <Plus className="h-4 w-4" /> Tạo đối tác mới
         </button>
       </div>
 
-      <div className="flex flex-col gap-3 rounded-lg border border-border border-l-4 border-l-primary bg-primary-50/40 p-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <FilterSearch value={keyword} onChange={setKeyword} placeholder="Tìm theo tên đối tác, người liên hệ, SĐT, email..." />
-          <button
-            type="button"
-            onClick={onReload}
-            aria-label="Tải lại"
-            className="flex h-9 w-9 items-center justify-center rounded-md border border-border bg-white text-muted transition-colors hover:text-primary"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
-        <ChipGroup label="Trạng thái" options={statusOptions} value={status} onChange={setStatus} />
-      </div>
-
       {error && (
-        <div role="alert" className="rounded-md border border-danger/30 bg-danger/5 p-3 text-xs text-danger">
+        <div role="alert" className="border-b border-danger/20 bg-danger/5 px-4 py-2.5 text-xs text-danger">
           Không tải được danh sách đối tác. Vui lòng thử lại.
         </div>
       )}
 
-      <div className={`overflow-x-auto rounded-lg border border-border bg-white shadow-[var(--shadow-card)] transition-opacity ${loading ? 'opacity-60' : ''}`}>
+      <div className={`overflow-x-auto transition-opacity duration-200 ${loading ? 'opacity-60' : ''}`}>
         <table className="w-full border-collapse text-left text-xs">
           <thead>
-            <tr className="border-b border-border bg-canvas text-[11px] font-semibold uppercase tracking-wide text-muted">
+            <tr className="border-b border-border bg-canvas/60 text-[11px] font-semibold uppercase tracking-wide text-muted">
               <th className={th}>Đối tác</th>
               <th className={th}>Liên hệ</th>
               <th className={`${th} text-center`}>Điểm đến</th>
@@ -117,7 +103,7 @@ export default function ProvidersPanel({ providers, loading, error, onReload, on
               const open = openId === p.id;
               return (
                 <Fragment key={p.id}>
-                  <tr className={`transition-colors duration-200 hover:bg-primary-50/40 ${open ? 'bg-primary-50/40' : ''}`}>
+                  <tr className={`transition-colors duration-150 hover:bg-canvas ${open ? 'bg-primary-50/40' : ''}`}>
                     <td className={th}>
                       <div className="font-semibold text-ink-deep">{p.name}</div>
                       <div className="max-w-[220px] truncate text-[11px] text-muted" title={p.address}>
@@ -185,7 +171,11 @@ export default function ProvidersPanel({ providers, loading, error, onReload, on
           </div>
         )}
       </div>
-    </div>
+
+      <div className="border-t border-border px-4 py-2.5 text-xs text-muted">
+        <strong className="tabular-nums text-ink">{rows.length}</strong> / {providers.length} đối tác
+      </div>
+    </section>
   );
 }
 

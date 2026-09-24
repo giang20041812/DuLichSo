@@ -64,16 +64,6 @@ export function AuthShell({ title, subtitle, children, footer, image }: AuthShel
           </ul>
         </div>
 
-        <div
-          aria-hidden="true"
-          className="absolute inset-x-0 bottom-0 h-2"
-          style={{
-            backgroundImage:
-              'linear-gradient(135deg, var(--color-sun) 25%, transparent 25%), linear-gradient(225deg, var(--color-coral) 25%, transparent 25%), linear-gradient(45deg, var(--color-primary-light) 25%, transparent 25%), linear-gradient(315deg, var(--color-sun) 25%, transparent 25%)',
-            backgroundSize: '16px 16px',
-            backgroundPosition: '8px 0, 8px 0, 0 0, 0 0',
-          }}
-        />
         <p className="relative text-xs text-white/60">© VietTrack — Du lịch di sản Việt Nam</p>
       </aside>
 

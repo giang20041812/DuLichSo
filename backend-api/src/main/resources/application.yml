@@ -25,12 +25,35 @@ spring:
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.xml
 
+  # SMTP gửi OTP quên mật khẩu. Gmail: dùng App Password 16 ký tự (không dùng mật khẩu đăng nhập).
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.connectiontimeout: 10000
+      mail.smtp.timeout: 10000
+      mail.smtp.writetimeout: 10000
+
 app:
   cors:
     # Origin của frontend, cách nhau bởi dấu phẩy. KHÔNG dùng * (AGENTS.md).
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
   # Tài khoản mẫu QA (admin@taybactrails.vn / ncc@taybactrails.vn...) — CHỈ bật khi dev. Production phải để false.
   qa-mock-accounts: ${APP_QA_MOCK_ACCOUNTS:false}
+  mail:
+    # Địa chỉ người gửi hiển thị; mặc định = MAIL_USERNAME
+    from: ${MAIL_FROM:}
+  password-reset:
+    otp-ttl-minutes: ${PASSWORD_RESET_OTP_TTL_MINUTES:10}
+    max-attempts: ${PASSWORD_RESET_MAX_ATTEMPTS:5}
+    cooldown-seconds: ${PASSWORD_RESET_COOLDOWN_SECONDS:60}
+    max-per-hour: ${PASSWORD_RESET_MAX_PER_HOUR:5}
+    # CHỈ bật khi dev để in OTP ra log. Production phải để false.
+    log-otp: ${PASSWORD_RESET_LOG_OTP:false}
   feature-flags:
     enable-online-payment: true
     enable-redirect-booking: true

@@ -10,13 +10,17 @@ export type ProviderStatus = 'ACTIVE' | 'SUSPENDED' | 'TERMINATED';
 export type PlaceVisibility = 'DRAFT' | 'PUBLISHED' | 'UNPUBLISHED';
 export type PlaceOperationStatus = 'OPERATING' | 'TEMPORARILY_CLOSED' | 'PERMANENTLY_CLOSED';
 export type PlaceVerificationStatus = 'VERIFIED' | 'UNVERIFIED' | 'NEEDS_UPDATE' | 'ARCHIVED';
-export type CategoryKind = 'HOMESTAY' | 'HOTEL' | 'RESTAURANT' | 'ATTRACTION' | 'ACTIVITY' | 'TRANSPORT';
+/** Khớp enum CategoryKind ở backend — định nghĩa gốc nằm ở types/home.ts. */
+export type { CategoryKind } from './home';
+import type { CategoryKind } from './home';
 
 export interface AdminAccountDto {
   id: number;
-  email: string;
-  phone?: string;
-  fullName: string;
+  /** null với tài khoản NCC cũ chỉ đăng nhập bằng SĐT. */
+  email: string | null;
+  phone?: string | null;
+  /** null khi tài khoản chưa cập nhật họ tên. */
+  fullName: string | null;
   role: AccountRole;
   status: AccountStatus;
   providerId?: number;
@@ -221,6 +225,50 @@ export interface AdminDashboardSummaryDto {
   newTravelers30d: number;
   lockedTravelers: number;
   revenueTrend: MonthlyRevenuePoint[];
+  /** Giá trị đặt phòng (GMV) 6 tháng — dùng thay khi doanh thu đối soát = 0đ. */
+  gmvTrend?: MonthlyRevenuePoint[];
+}
+
+/** Khớp AdminDashboardDtos.AuditLogEntryDto */
+export interface AuditLogEntryDto {
+  id: number;
+  action: string;
+  entityType: string | null;
+  entityId: number | null;
+  reason: string | null;
+  actorName: string;
+  createdAt: string;
+}
+
+/** Khớp AdminPlaceDtos.AdminPlaceDetailDto */
+export interface AdminPlaceDetailDto {
+  id: number;
+  slug: string;
+  name: string;
+  kind: CategoryKind;
+  categoryId?: number | null;
+  categoryName?: string | null;
+  providerId?: number | null;
+  providerName?: string | null;
+  regionId?: number | null;
+  regionName?: string | null;
+  address?: string | null;
+  description?: string | null;
+  accessNote?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  priceRefMin?: number | null;
+  priceRefMax?: number | null;
+  priceUnitNote?: string | null;
+  visibility: PlaceVisibility;
+  operationStatus: PlaceOperationStatus;
+  verification: PlaceVerificationStatus;
+  lastVerifiedAt?: string | null;
+  ratingAvg?: number | null;
+  ratingCount?: number | null;
+  attributes?: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface MonthlyRevenuePoint {
@@ -270,6 +318,11 @@ export interface AdminBookingDto {
 export interface BookingSearchParams {
   status?: BookingStatus;
   keyword?: string;
+  /** Lọc theo khách: tên, SĐT hoặc email */
+  guest?: string;
+  /** Lọc theo tên homestay */
+  place?: string;
+  placeId?: number;
   providerId?: number;
   checkInFrom?: string;
   checkInTo?: string;
@@ -282,3 +335,141 @@ export interface BookingSearchParams {
 }
 
 export type BookingStatusSummary = Record<BookingStatus, number>;
+
+// ─────────────────────────────────────────────
+// Giám sát Booking (khớp AdminBookingMonitorService)
+// ─────────────────────────────────────────────
+export type BookingAttentionReason = 'PENDING_STALE' | 'PAYMENT_OVERDUE' | 'STAY_UNRESOLVED' | 'FOLLOW_UP';
+
+export interface BookingAttentionItem {
+  booking: AdminBookingDto;
+  reason: BookingAttentionReason;
+  reasonLabel: string;
+}
+
+export type BookingNoteKind = 'VERIFICATION' | 'OUTCOME';
+export type BookingNoteOutcome = 'NO_ISSUE' | 'SUPPORTED' | 'ESCALATED' | 'FOLLOW_UP';
+
+export interface BookingNoteDto {
+  id: number;
+  kind: BookingNoteKind;
+  outcome: BookingNoteOutcome | null;
+  content: string;
+  adminName: string | null;
+  createdAt: string;
+}
+
+export interface BookingHistoryDto {
+  fromStatus: BookingStatus | null;
+  toStatus: BookingStatus;
+  actor: string | null;
+  actorId: number | null;
+  reason: string | null;
+  createdAt: string;
+}
+
+export interface BookingServiceItemDto {
+  serviceName: string;
+  serviceCode: string | null;
+  note: string | null;
+  included: boolean | null;
+}
+
+export interface BookingPaymentDto {
+  id: number;
+  gateway: string;
+  externalTxnId: string | null;
+  amount: number;
+  currency: string;
+  status: string;
+  initiatedAt: string;
+  paidAt: string | null;
+}
+
+export interface AdminBookingDetailDto {
+  booking: AdminBookingDto;
+  holdExpiresAt: string | null;
+  paymentDeadlineAt: string | null;
+  closedByActor: string | null;
+  history: BookingHistoryDto[];
+  services: BookingServiceItemDto[];
+  payments: BookingPaymentDto[];
+  notes: BookingNoteDto[];
+  attention: BookingAttentionReason[];
+}
+
+export interface AddBookingNoteRequest {
+  kind: BookingNoteKind;
+  outcome?: BookingNoteOutcome;
+  content: string;
+}
+
+// ─────────────────────────────────────────────
+// Báo cáo (khớp AdminReportService)
+// ─────────────────────────────────────────────
+export type ReportGroup = 'ALL' | 'CONFIRMED' | 'OPEN' | 'LOST';
+
+export interface ReportSearchParams {
+  from?: string;
+  to?: string;
+  providerId?: number;
+  group?: ReportGroup;
+}
+
+export interface ReportKpi {
+  totalBookings: number;
+  confirmedBookings: number;
+  openBookings: number;
+  lostBookings: number;
+  bookingValue: number;
+  averageValue: number;
+  paidRevenue: number;
+  confirmationRate: number;
+  /** null khi đang lọc theo một NCC */
+  newProviders: number | null;
+  newPlaces: number | null;
+}
+
+export interface ReportSeriesPoint {
+  key: string;
+  label: string;
+  from: string;
+  to: string;
+  bookings: number;
+  value: number;
+}
+
+export interface ReportTopProvider {
+  id: number;
+  name: string;
+  bookings: number;
+  value: number;
+}
+
+export interface ReportTopPlace {
+  id: number;
+  name: string;
+  providerId: number;
+  providerName: string;
+  bookings: number;
+  value: number;
+}
+
+export interface AdminOverviewReport {
+  from: string;
+  to: string;
+  providerId: number | null;
+  granularity: 'DAY' | 'MONTH';
+  kpi: ReportKpi;
+  byStatus: { status: BookingStatus; count: number }[];
+  series: ReportSeriesPoint[];
+  topProviders: ReportTopProvider[];
+  topPlaces: ReportTopPlace[];
+}
+
+export interface CreateTravelerRequest {
+  fullName: string;
+  email: string;
+  phone?: string;
+  password: string;
+}

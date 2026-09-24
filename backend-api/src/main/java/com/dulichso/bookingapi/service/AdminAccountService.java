@@ -175,6 +175,11 @@ public class AdminAccountService {
             throw new IllegalStateException("Bạn không thể tự vô hiệu hoá tài khoản của chính mình");
         }
 
+        if (request.getStatus() == AccountStatus.INACTIVE
+                && (request.getReason() == null || request.getReason().isBlank())) {
+            throw new IllegalArgumentException("Vui lòng nhập lý do khi khóa tài khoản.");
+        }
+
         AccountStatus oldStatus = account.getStatus();
         account.setStatus(request.getStatus());
         Account saved = accountRepository.save(account);

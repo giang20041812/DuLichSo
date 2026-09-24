@@ -7,6 +7,8 @@ import com.dulichso.bookingapi.service.AccountAuthService.AccountInactiveExcepti
 import com.dulichso.bookingapi.service.AccountAuthService.BadCredentialsException;
 import com.dulichso.bookingapi.service.AccountAuthService.ProviderSuspendedException;
 import com.dulichso.bookingapi.service.GoogleTokenVerifier;
+import com.dulichso.bookingapi.service.PasswordResetService;
+import com.dulichso.bookingapi.service.PasswordResetService.InvalidResetException;
 import com.dulichso.bookingapi.service.GoogleTokenVerifier.GoogleProfile;
 import com.dulichso.bookingapi.service.GoogleTokenVerifier.InvalidGoogleTokenException;
 import com.dulichso.bookingapi.service.TravelerAuthService;
@@ -28,10 +30,13 @@ public class AuthController {
     private final AccountAuthService accountAuthService;
     private final GoogleTokenVerifier googleTokenVerifier;
     private final TravelerAuthService travelerAuthService;
+    private final PasswordResetService passwordResetService;
 
     public AuthController(JwtUtils jwtUtils, AccountAuthService accountAuthService,
-                          GoogleTokenVerifier googleTokenVerifier, TravelerAuthService travelerAuthService) {
+                          GoogleTokenVerifier googleTokenVerifier, TravelerAuthService travelerAuthService,
+                          PasswordResetService passwordResetService) {
         this.travelerAuthService = travelerAuthService;
+        this.passwordResetService = passwordResetService;
         this.jwtUtils = jwtUtils;
         this.accountAuthService = accountAuthService;
         this.googleTokenVerifier = googleTokenVerifier;
@@ -131,6 +136,44 @@ public class AuthController {
             return error(HttpStatus.UNAUTHORIZED, "AUTH_INVALID_CREDENTIALS", ex.getMessage());
         } catch (TravelerInactiveException ex) {
             return error(HttpStatus.FORBIDDEN, "ACCOUNT_INACTIVE", ex.getMessage());
+        }
+    }
+
+    public record ForgotPasswordRequest(String identifier) {}
+
+    public record ResetPasswordRequest(String identifier, String otp, String newPassword) {}
+
+    /**
+     * Quên mật khẩu: gửi OTP 6 số qua email. Luôn trả cùng một thông báo dù tài khoản có tồn tại hay không.
+     */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+        if (request.identifier() == null || request.identifier().isBlank()) {
+            return error(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Vui lòng nhập email hoặc số điện thoại tài khoản.");
+        }
+        try {
+            passwordResetService.requestReset(request.identifier());
+        } catch (Exception ex) {
+            // Không lộ lỗi nội bộ; chỉ ghi log để tránh dò tài khoản qua phản hồi.
+            org.slf4j.LoggerFactory.getLogger(AuthController.class).error("forgot-password lỗi: {}", ex.getMessage());
+        }
+        return ResponseEntity.ok(java.util.Map.of(
+                "message", "Nếu tài khoản tồn tại và có email, mã OTP đã được gửi. Mã có hiệu lực "
+                        + passwordResetService.getOtpTtlMinutes() + " phút.",
+                "otpTtlMinutes", passwordResetService.getOtpTtlMinutes(),
+                "resendAfterSeconds", passwordResetService.getCooldownSeconds()));
+    }
+
+    /** Đặt lại mật khẩu bằng OTP đã nhận qua email. */
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
+        try {
+            passwordResetService.resetPassword(request.identifier(), request.otp(), request.newPassword());
+            return ResponseEntity.ok(java.util.Map.of("message", "Đặt lại mật khẩu thành công. Bạn có thể đăng nhập bằng mật khẩu mới."));
+        } catch (InvalidResetException ex) {
+            return error(HttpStatus.BAD_REQUEST, "INVALID_OTP", ex.getMessage());
+        } catch (IllegalArgumentException ex) {
+            return error(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", ex.getMessage());
         }
     }
 
