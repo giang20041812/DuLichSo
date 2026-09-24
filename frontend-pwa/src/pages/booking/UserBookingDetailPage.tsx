@@ -16,7 +16,6 @@ import {
   CreditCard,
   BedDouble,
   ExternalLink,
-  MessageSquare,
   Sparkles,
   Info
 } from 'lucide-react';
@@ -456,7 +455,7 @@ export default function UserBookingDetailPage() {
                 {booking.policySnapshot?.name ? (
                   <span>
                     Chính sách: <strong>{String(booking.policySnapshot.name)}</strong>
-                    {booking.policySnapshot.description && (
+                    {Boolean(booking.policySnapshot.description) && (
                       <span className="block mt-1 text-gray-500">
                         {String(booking.policySnapshot.description)}
                       </span>

@@ -7,7 +7,6 @@ import {
   Plus,
   AlertTriangle,
   Calendar,
-  Sparkles,
   BedDouble,
   CheckCircle2,
 } from 'lucide-react';

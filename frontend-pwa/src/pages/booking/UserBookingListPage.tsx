@@ -13,7 +13,6 @@ import {
   Filter,
   Sparkles,
   BedDouble,
-  ShieldCheck,
   RotateCcw
 } from 'lucide-react';
 import { getCurrentCustomer } from '@/services/authService';
@@ -427,7 +426,7 @@ export default function UserBookingListPage() {
           bookingCode={reviewBooking.bookingCode}
           placeName={reviewBooking.placeName}
           roomTypeName={reviewBooking.roomTypeName}
-          onSuccess={(newReview: ReviewDto) => {
+          onSuccess={(_newReview: ReviewDto) => {
             setReviewedCodes((prev) => new Set([...prev, reviewBooking.bookingCode]));
             setReviewBooking(null);
           }}
