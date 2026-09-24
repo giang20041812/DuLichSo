@@ -25,9 +25,18 @@ export interface GoogleButtonConfiguration {
   locale?: string;
 }
 
+export interface GoogleNotificationPrompt {
+  isNotDisplayed: () => boolean;
+  isSkippedMoment: () => boolean;
+  getNotDisplayedReason: () => string;
+  getSkippedReason: () => string;
+}
+
 export interface GoogleAccountsId {
   initialize: (config: GoogleIdConfiguration) => void;
   renderButton: (parent: HTMLElement, options: GoogleButtonConfiguration) => void;
+  prompt: (momentListener?: (notification: GoogleNotificationPrompt) => void) => void;
+  cancel: () => void;
 }
 
 declare global {
@@ -42,4 +51,5 @@ export interface GoogleLoginResponse {
   email: string;
   fullName: string;
   picture?: string | null;
+  phone?: string | null;
 }

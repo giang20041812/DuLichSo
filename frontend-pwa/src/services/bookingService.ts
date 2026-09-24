@@ -61,3 +61,29 @@ export async function fetchBookedDatesByPlace(placeId: number, startDate?: strin
     return [];
   }
 }
+
+const LOCAL_BOOKINGS_KEY = 'user_recent_bookings';
+
+export function saveUserBooking(booking: BookingResponseDto) {
+  if (typeof window === 'undefined' || !booking?.bookingCode) return;
+  try {
+    const raw = localStorage.getItem(LOCAL_BOOKINGS_KEY);
+    const list: BookingResponseDto[] = raw ? JSON.parse(raw) : [];
+    const filtered = list.filter((b) => b.bookingCode !== booking.bookingCode);
+    filtered.unshift(booking);
+    localStorage.setItem(LOCAL_BOOKINGS_KEY, JSON.stringify(filtered.slice(0, 20)));
+  } catch (err) {
+    console.warn('Lỗi lưu lịch sử đặt phòng:', err);
+  }
+}
+
+export function getUserSavedBookings(): BookingResponseDto[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(LOCAL_BOOKINGS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+

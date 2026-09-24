@@ -27,11 +27,13 @@ import {
   Map as MapIcon,
   Plus,
   Trash2,
-  X
+  X,
+  Lock
 } from 'lucide-react';
 import { BookingNavigationState, BookingResponseDto, BookingServiceItemDto } from '@/types/booking';
-import { createBooking } from '@/services/bookingService';
-import { fetchNearbyPlaces } from '@/services/homestayService';
+import { createBooking, saveUserBooking } from '@/services/bookingService';
+import { fetchNearbyPlaces, getHomestayById } from '@/services/homestayService';
+import { getCurrentCustomer } from '@/services/authService';
 import { NearbyPlaceDto } from '@/types/homestay';
 import { Button } from '@/components/ui/button';
 import OpenStreetMapView, { OsmMarkerItem } from '@/components/map/OpenStreetMapView';
@@ -66,48 +68,120 @@ export default function BookingPage() {
   // Nhận state từ HomestayDetailPage hoặc fallback dữ liệu mẫu
   const navState = location.state as BookingNavigationState | undefined;
 
+  const checkIn = navState?.checkIn;
+  const checkOut = navState?.checkOut;
+  const stateNights = navState?.nights;
+
+  // 1. Tính toán số đêm lưu trú chính xác từ khoảng ngày checkIn - checkOut
+  const nights = useMemo(() => {
+    if (checkIn && checkOut) {
+      const start = new Date(checkIn + 'T12:00:00');
+      const end = new Date(checkOut + 'T12:00:00');
+      const diff = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+      if (diff > 0) return diff;
+    }
+    return stateNights && stateNights > 0 ? stateNights : 1;
+  }, [checkIn, checkOut, stateNights]);
+
+  // 2. Số lượng phòng và khách lưu trú
+  const [roomCount, setRoomCount] = useState<number>(() => navState?.roomCount || 1);
+  const [guestCount, setGuestCount] = useState<number>(() => navState?.guestCount || 2);
+
+  // 3. Đơn giá 1 phòng / 1 đêm
+  const unitPrice = useMemo(() => navState?.basePrice || 361028, [navState?.basePrice]);
+  const originalUnitPrice = useMemo(
+    () => navState?.originalPrice || Math.round(unitPrice * 1.25),
+    [navState?.originalPrice, unitPrice]
+  );
+
+  // 4. Logic tính toán tiền phòng & tổng chi phí chuẩn xác
+  // Tiền phòng thực tế = đơn giá * số đêm * số phòng
+  const subtotalRoomPrice = useMemo(() => unitPrice * nights * roomCount, [unitPrice, nights, roomCount]);
+  // Tổng giá niêm yết ban đầu
+  const totalOriginalPrice = useMemo(
+    () => originalUnitPrice * nights * roomCount,
+    [originalUnitPrice, nights, roomCount]
+  );
+  // Số tiền ưu đãi tiết kiệm được
+  const discountAmount = useMemo(
+    () => (totalOriginalPrice > subtotalRoomPrice ? totalOriginalPrice - subtotalRoomPrice : 0),
+    [totalOriginalPrice, subtotalRoomPrice]
+  );
+
+  // Tổng thanh toán thực tế (khớp tuyệt đối với backend: unitPrice * nights * roomCount)
+  const totalPrice = subtotalRoomPrice;
+
+  // Lấy dữ liệu rating thực tế nếu chưa có trong state điều hướng
+  const [fetchedRating, setFetchedRating] = useState<{ ratingAvg?: number; ratingCount?: number } | null>(null);
+
+  useEffect(() => {
+    if (navState?.placeId && (!navState?.placeRating || !navState?.placeReviewCount)) {
+      getHomestayById(navState.placeId.toString())
+        .then((detail) => {
+          if (detail) {
+            setFetchedRating({
+              ratingAvg: detail.ratingAvg,
+              ratingCount: detail.ratingCount,
+            });
+          }
+        })
+        .catch((err) => console.error('Error fetching homestay detail for rating:', err));
+    }
+  }, [navState?.placeId, navState?.placeRating, navState?.placeReviewCount]);
+
   const roomInfo = useMemo(() => {
-    const base = navState?.basePrice || 361028;
     return {
-      placeId: navState?.placeId || 1,
-      placeName: navState?.placeName || 'Homestay Bản Mường Sinh Thái',
-      placeAddress: navState?.placeAddress || 'Bản Lác, Mai Châu, Hòa Bình',
-      placeRating: navState?.placeRating || 4.8,
-      placeReviewCount: navState?.placeReviewCount || 128,
+      placeId: navState?.placeId,
+      placeName: navState?.placeName || 'Chỗ nghỉ',
+      placeAddress: navState?.placeAddress || '',
+      placeRating: navState?.placeRating ?? fetchedRating?.ratingAvg,
+      placeReviewCount: navState?.placeReviewCount ?? fetchedRating?.ratingCount,
       coverImageUrl: navState?.coverImageUrl || '',
-      latitude: navState?.latitude || 21.85,
-      longitude: navState?.longitude || 104.08,
-      roomName: navState?.roomTypeName || '(1x) Superior Double No View',
-      roomCount: navState?.roomCount || 1,
-      nights: navState?.nights || 1,
-      checkInDateStr: formatISODate(navState?.checkIn ?? '') || 'Thứ 5, 24 thg 9',
+      latitude: navState?.latitude,
+      longitude: navState?.longitude,
+      roomName: navState?.roomTypeName || 'Phòng nghỉ',
+      checkInDateStr: navState?.checkIn ? formatISODate(navState.checkIn) : '',
       checkInTime: 'Từ 14:00',
-      checkOutDateStr: formatISODate(navState?.checkOut ?? '') || 'Thứ 6, 25 thg 9',
+      checkOutDateStr: navState?.checkOut ? formatISODate(navState.checkOut) : '',
       checkOutTime: 'Trước 12:00',
-      guestCount: navState?.guestCount || 2,
-      bedInfo: navState?.bedInfo || '1 giường cỡ king',
+      bedInfo: navState?.bedInfo || '1 giường đôi',
       hasBreakfast: navState?.hasBreakfast ?? false,
       freeCancellation: navState?.freeCancellation ?? true,
-      totalRoomsLeft: navState?.totalRoomCount || 2,
-      basePrice: base,
-      taxAndFees: Math.round(base * 0.155),
-      originalPrice: navState?.originalPrice || 1306000,
+      totalRoomsLeft: navState?.totalRoomCount || 5,
+      maxOccupancy: navState?.maxOccupancy || 2,
     };
-  }, [navState]);
+  }, [navState, fetchedRating]);
 
-  const totalPrice = roomInfo.basePrice + roomInfo.taxAndFees;
+  // Yêu cầu bắt buộc đăng nhập tài khoản khách hàng để đặt phòng
+  const customer = useMemo(() => getCurrentCustomer(), []);
 
-  // Form states - Cho phép khách vãng lai đặt phòng không cần đăng nhập
-  const [fullName, setFullName] = useState('');
+  useEffect(() => {
+    if (!customer) {
+      navigate('/login', {
+        state: {
+          returnUrl: '/booking',
+          bookingState: navState,
+          message: 'Vui lòng đăng nhập tài khoản khách hàng để tiến hành đặt phòng.',
+        },
+        replace: true,
+      });
+    }
+  }, [customer, navState, navigate]);
+
+  // Tự động điền thông tin khách hàng đã đăng nhập vào form
+  const [fullName, setFullName] = useState(() => customer?.fullName || '');
   const [countryCode, setCountryCode] = useState('+84');
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState(() => {
+    const p = customer?.phone || '';
+    return p.startsWith('+84') ? p.slice(3) : p;
+  });
   const [phoneTouched, setPhoneTouched] = useState(false);
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => customer?.email || '');
   const [isBookingForSelf, setIsBookingForSelf] = useState(true);
 
   // Guest info
   const [isEditingGuest, setIsEditingGuest] = useState(false);
-  const [guestName, setGuestName] = useState('');
+  const [guestName, setGuestName] = useState(() => customer?.fullName || '');
 
   // Special requests
   const [specialRequests, setSpecialRequests] = useState<{ [key: string]: boolean }>({
@@ -192,7 +266,7 @@ export default function BookingPage() {
         name: roomInfo.placeName,
         latitude: roomInfo.latitude || 21.751214,
         longitude: roomInfo.longitude || 104.318420,
-        price: roomInfo.basePrice,
+        price: unitPrice,
         displayMode: 'name',
         district: roomInfo.placeAddress,
         coverImageUrl: roomInfo.coverImageUrl,
@@ -217,7 +291,7 @@ export default function BookingPage() {
     });
 
     return list;
-  }, [roomInfo, filteredNearbyPlaces]);
+  }, [roomInfo, filteredNearbyPlaces, unitPrice]);
 
   // Quản lý toggle hoặc mở modal add dịch vụ quanh đây
   const handleOpenAddService = (place: NearbyPlaceDto) => {
@@ -281,6 +355,19 @@ export default function BookingPage() {
     setPhoneTouched(true);
     setSubmitError(null);
 
+    const activeCustomer = getCurrentCustomer();
+    if (!activeCustomer) {
+      alert('Vui lòng đăng nhập tài khoản khách hàng để tiến hành đặt phòng.');
+      navigate('/login', {
+        state: {
+          returnUrl: '/booking',
+          bookingState: navState,
+          message: 'Vui lòng đăng nhập tài khoản khách hàng để tiến hành đặt phòng.',
+        },
+      });
+      return;
+    }
+
     if (!fullName.trim()) {
       alert('Vui lòng nhập họ và tên liên hệ.');
       return;
@@ -309,8 +396,8 @@ export default function BookingPage() {
         roomTypeId: navState.roomTypeId,
         checkIn: navState.checkIn,
         checkOut: navState.checkOut,
-        roomCount: roomInfo.roomCount,
-        guestCount: roomInfo.guestCount,
+        roomCount: roomCount,
+        guestCount: guestCount,
         guestName: !isBookingForSelf && guestName.trim() ? guestName.trim() : fullName.trim(),
         guestPhone: `${countryCode}${phone.trim()}`,
         guestEmail: email.trim(),
@@ -319,6 +406,7 @@ export default function BookingPage() {
         serviceItems: serviceItems.length > 0 ? serviceItems : undefined,
       });
       setBookingResult(result);
+      saveUserBooking(result);
       setIsBookingSuccess(true);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Đặt phòng thất bại. Vui lòng thử lại.';
@@ -343,6 +431,38 @@ export default function BookingPage() {
         return <Compass className="w-3.5 h-3.5 text-slate-600" />;
     }
   };
+
+  // Nếu chưa đăng nhập khách hàng, hiển thị yêu cầu đăng nhập
+  if (!customer) {
+    return (
+      <div className="min-h-screen bg-[#f6faf8] flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 max-w-md w-full text-center space-y-4">
+          <div className="w-12 h-12 rounded-md bg-[#edfbf7] text-[var(--color-primary)] flex items-center justify-center mx-auto">
+            <Lock className="w-6 h-6" />
+          </div>
+          <h2 className="text-lg font-bold text-[var(--color-ink-deep)]">Yêu cầu đăng nhập</h2>
+          <p className="text-xs text-gray-600">
+            Bạn cần đăng nhập tài khoản khách hàng để xem chi tiết và thực hiện đặt phòng. Đang chuyển hướng đến trang đăng nhập...
+          </p>
+          <Button
+            onClick={() =>
+              navigate('/login', {
+                state: {
+                  returnUrl: '/booking',
+                  bookingState: navState,
+                  message: 'Vui lòng đăng nhập tài khoản khách hàng để tiến hành đặt phòng.',
+                },
+                replace: true,
+              })
+            }
+            className="w-full bg-[var(--color-primary)] hover:bg-[#03725e] text-white font-bold rounded-md"
+          >
+            Đăng nhập ngay
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f6faf8] text-[var(--color-ink)] flex flex-col">
@@ -406,7 +526,7 @@ export default function BookingPage() {
               <div>
                 {(() => {
                   const holdHours = bookingResult?.holdExpiresAt
-                    ? Math.max(1, Math.round((new Date(bookingResult.holdExpiresAt).getTime() - Date.now()) / 3_600_000))
+                    ? Math.max(1, Math.round((new Date(bookingResult.holdExpiresAt).getTime() - new Date().getTime()) / 3_600_000))
                     : 12;
                   return (
                     <>
@@ -472,7 +592,14 @@ export default function BookingPage() {
                 <div className="grid grid-cols-3 gap-4">
                   <div className="text-gray-500">Thời gian</div>
                   <div className="col-span-2 font-medium text-gray-800">
-                    {roomInfo.checkInDateStr} <ArrowRight className="w-3 h-3 inline mx-1 text-gray-400" /> {roomInfo.checkOutDateStr}
+                    {roomInfo.checkInDateStr} <ArrowRight className="w-3 h-3 inline mx-1 text-gray-400" /> {roomInfo.checkOutDateStr} ({bookingResult?.nights ?? nights} đêm)
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="text-gray-500">Số lượng đặt</div>
+                  <div className="col-span-2 font-medium text-gray-800">
+                    {bookingResult?.roomCount ?? roomCount} phòng · {bookingResult?.guestCount ?? guestCount} khách
                   </div>
                 </div>
 
@@ -547,7 +674,7 @@ export default function BookingPage() {
                   <div className="text-gray-500">Thanh toán (tại chỗ nghỉ)</div>
                   <div className="col-span-2">
                     <div className="font-bold text-lg text-[var(--color-coral)]">
-                      {new Intl.NumberFormat('vi-VN').format(totalPrice)} VND
+                      {new Intl.NumberFormat('vi-VN').format(bookingResult?.totalAmount ?? totalPrice)} VND
                     </div>
                     <div className="text-xs text-gray-500 mt-0.5">
                       Không thanh toán trước · Thanh toán tiền mặt hoặc QR khi nhận phòng
@@ -593,31 +720,30 @@ export default function BookingPage() {
               </span>
             </div>
 
-            {/* TÊN VÀ ĐÁNH GIÁ SAO */}
+            {/* TÊN VÀ ĐÁNH GIÁ THỰC TẾ TỪ CHỖ NGHỈ */}
             <div className="mb-5">
               <h1 className="text-xl md:text-2xl font-bold text-[var(--color-ink-deep)] leading-tight mb-1.5">
                 {roomInfo.placeName}
               </h1>
-              <div className="flex items-center gap-1.5 text-xs md:text-sm">
-                <div className="flex items-center gap-0.5 text-amber-400">
-                  <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                  <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                  <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                  <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                </div>
-                <span className="font-bold text-[#0284c7] ml-0.5">
-                  {roomInfo.placeRating > 5 ? `${roomInfo.placeRating}/10` : `${(roomInfo.placeRating * 2).toFixed(1)}/10`}
-                </span>
-                <span className="text-gray-400 font-bold">·</span>
-                <span className="text-gray-500 font-medium">({roomInfo.placeReviewCount} đánh giá)</span>
+              <div className="flex flex-wrap items-center gap-2 text-xs md:text-sm">
+                {roomInfo.placeRating ? (
+                  <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-sm border border-amber-200 text-amber-900 font-bold text-xs">
+                      <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                      <span>{Number(roomInfo.placeRating).toFixed(1)} / 5.0</span>
+                    </div>
+                    {roomInfo.placeReviewCount !== undefined && roomInfo.placeReviewCount > 0 && (
+                      <span className="text-gray-500 font-medium">({roomInfo.placeReviewCount} đánh giá)</span>
+                    )}
+                  </div>
+                ) : null}
+
                 {roomInfo.placeAddress && (
-                  <>
-                    <span className="text-gray-400 font-bold">·</span>
-                    <span className="text-gray-500 flex items-center gap-1">
-                      <MapPin className="w-3.5 h-3.5 text-gray-400" />
-                      {roomInfo.placeAddress}
-                    </span>
-                  </>
+                  <div className="text-gray-500 flex items-center gap-1">
+                    {roomInfo.placeRating ? <span className="text-gray-300 font-bold mr-1">·</span> : null}
+                    <MapPin className="w-3.5 h-3.5 text-gray-400" />
+                    <span>{roomInfo.placeAddress}</span>
+                  </div>
                 )}
               </div>
             </div>
@@ -628,19 +754,37 @@ export default function BookingPage() {
               {/* ================= CỘT TRÁI: FORM ĐIỀN THÔNG TIN ================= */}
               <div className="lg:col-span-7 space-y-6">
 
-                {/* Khối 1: Liên hệ đặt chỗ */}
+                {/* Khối 1: Liên hệ đặt chỗ (Tự động điền theo tài khoản) */}
                 <div className="bg-white rounded-lg border border-gray-200 shadow-xs p-5 md:p-6">
-                  <div className="flex items-start gap-3 pb-4 border-b border-gray-100 mb-5">
-                    <div className="w-8 h-8 rounded-md bg-[#edfbf7] text-[var(--color-primary)] flex items-center justify-center shrink-0 mt-0.5">
-                      <Mail className="w-4 h-4" />
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-gray-100 mb-5">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-md bg-[#edfbf7] text-[var(--color-primary)] flex items-center justify-center shrink-0 mt-0.5">
+                        <Mail className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-bold text-[var(--color-ink-deep)]">Liên hệ đặt chỗ</h2>
+                        <p className="text-xs md:text-sm text-[var(--color-muted)] mt-0.5">
+                          Thông tin liên hệ nhận xác nhận đặt phòng
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h2 className="text-lg font-bold text-[var(--color-ink-deep)]">Liên hệ đặt chỗ</h2>
-                      <p className="text-xs md:text-sm text-[var(--color-muted)] mt-0.5">
-                        Thêm liên hệ để nhận xác nhận đặt chỗ.
-                      </p>
-                    </div>
+
+                    {customer && (
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold self-start sm:self-auto">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Tài khoản: {customer.fullName}</span>
+                      </div>
+                    )}
                   </div>
+
+                  {customer && (
+                    <div className="mb-4 p-3 rounded-md bg-[#f0fdf4] border border-emerald-200 flex items-center gap-2.5 text-xs text-emerald-900">
+                      <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>
+                        Hệ thống đã tự động điền thông tin từ tài khoản <strong>{customer.fullName}</strong> ({customer.email}).
+                      </span>
+                    </div>
+                  )}
 
                   <div className="space-y-4">
                     {/* Họ tên */}
@@ -1226,7 +1370,7 @@ export default function BookingPage() {
                     </div>
 
                     {/* Hộp lịch Nhận - Trả phòng */}
-                    <div className="bg-[#f8faf9] border border-gray-200/80 rounded-md p-3 mb-4 flex items-center justify-between text-xs">
+                    <div className="bg-[#f8faf9] border border-gray-200/80 rounded-md p-3 mb-3 flex items-center justify-between text-xs">
                       <div>
                         <div className="text-gray-500 font-medium">Nhận phòng</div>
                         <div className="font-bold text-gray-800 mt-0.5">{roomInfo.checkInDateStr}</div>
@@ -1235,7 +1379,7 @@ export default function BookingPage() {
 
                       <div className="text-center px-2">
                         <span className="text-[11px] font-semibold text-gray-500 bg-white px-2 py-0.5 rounded-sm border border-gray-200 shadow-2xs inline-flex items-center gap-1">
-                          {roomInfo.nights} đêm <ArrowRight className="w-2.5 h-2.5" />
+                          {nights} đêm <ArrowRight className="w-2.5 h-2.5" />
                         </span>
                       </div>
 
@@ -1246,11 +1390,66 @@ export default function BookingPage() {
                       </div>
                     </div>
 
+                    {/* Bộ chọn số lượng phòng & số khách */}
+                    <div className="grid grid-cols-2 gap-2 p-2.5 bg-gray-50 rounded-md border border-gray-200/80 mb-3 text-xs">
+                      <div>
+                        <div className="text-gray-600 font-medium mb-1 flex items-center justify-between">
+                          <span>Số phòng:</span>
+                          <span className="text-[11px] text-gray-400">(còn {roomInfo.totalRoomsLeft})</span>
+                        </div>
+                        <div className="flex items-center justify-between bg-white px-2 py-1 rounded-md border border-gray-200">
+                          <button
+                            type="button"
+                            disabled={roomCount <= 1}
+                            onClick={() => setRoomCount((prev) => Math.max(1, prev - 1))}
+                            className="w-5 h-5 flex items-center justify-center rounded-sm bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed font-bold cursor-pointer text-xs"
+                          >
+                            -
+                          </button>
+                          <span className="font-bold text-gray-900">{roomCount}</span>
+                          <button
+                            type="button"
+                            disabled={roomCount >= roomInfo.totalRoomsLeft}
+                            onClick={() => setRoomCount((prev) => Math.min(roomInfo.totalRoomsLeft, prev + 1))}
+                            className="w-5 h-5 flex items-center justify-center rounded-sm bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed font-bold cursor-pointer text-xs"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="text-gray-600 font-medium mb-1 flex items-center justify-between">
+                          <span>Số khách:</span>
+                          <span className="text-[11px] text-gray-400">({roomCount * roomInfo.maxOccupancy} max)</span>
+                        </div>
+                        <div className="flex items-center justify-between bg-white px-2 py-1 rounded-md border border-gray-200">
+                          <button
+                            type="button"
+                            disabled={guestCount <= 1}
+                            onClick={() => setGuestCount((prev) => Math.max(1, prev - 1))}
+                            className="w-5 h-5 flex items-center justify-center rounded-sm bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed font-bold cursor-pointer text-xs"
+                          >
+                            -
+                          </button>
+                          <span className="font-bold text-gray-900">{guestCount}</span>
+                          <button
+                            type="button"
+                            disabled={guestCount >= roomCount * roomInfo.maxOccupancy * 2}
+                            onClick={() => setGuestCount((prev) => prev + 1)}
+                            className="w-5 h-5 flex items-center justify-center rounded-sm bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed font-bold cursor-pointer text-xs"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
                     {/* Tiện ích cơ bản của phòng */}
                     <div className="space-y-2 text-xs text-gray-700 pt-1 border-t border-gray-100">
                       <div className="flex items-center gap-2">
                         <Users className="w-3.5 h-3.5 text-gray-500 shrink-0" />
-                        <span>{roomInfo.guestCount} khách</span>
+                        <span>{guestCount} khách lưu trú ({roomCount} phòng)</span>
                       </div>
 
                       <div className="flex items-center gap-2">
@@ -1322,22 +1521,36 @@ export default function BookingPage() {
                     <div className="space-y-2.5 text-xs text-gray-600 mb-4 animate-in fade-in duration-150">
                       <div className="flex justify-between items-start">
                         <div>
-                          <span className="text-gray-800 font-medium">Giá phòng</span>
+                          <span className="text-gray-800 font-medium">
+                            Giá phòng ({roomCount} phòng × {nights} đêm)
+                          </span>
                           <div className="text-[11px] text-[var(--color-muted)]">
-                            {roomInfo.roomName} ({roomInfo.nights} đêm)
+                            {new Intl.NumberFormat('vi-VN').format(unitPrice)} đ/đêm × {roomCount} phòng × {nights} đêm
                           </div>
                         </div>
                         <span className="font-semibold text-gray-800">
-                          {new Intl.NumberFormat('vi-VN').format(roomInfo.basePrice)} VND
+                          {new Intl.NumberFormat('vi-VN').format(subtotalRoomPrice)} VND
                         </span>
                       </div>
 
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-800 font-medium">Thuế và phí</span>
-                        <span className="font-semibold text-gray-800">
-                          {new Intl.NumberFormat('vi-VN').format(roomInfo.taxAndFees)} VND
+                        <div>
+                          <span className="text-gray-800 font-medium">Thuế và phí dịch vụ</span>
+                          <div className="text-[11px] text-[var(--color-muted)]">Cam kết giá minh bạch, không phí ẩn</div>
+                        </div>
+                        <span className="font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-sm border border-emerald-200">
+                          Đã bao gồm (0 VND)
                         </span>
                       </div>
+
+                      {discountAmount > 0 && (
+                        <div className="flex justify-between items-center text-emerald-700">
+                          <span className="font-medium">Ưu đãi tiết kiệm trực tiếp</span>
+                          <span className="font-bold">
+                            -{new Intl.NumberFormat('vi-VN').format(discountAmount)} VND
+                          </span>
+                        </div>
+                      )}
 
                       {serviceItems.length > 0 && (
                         <div className="flex justify-between items-center text-[#048c73] pt-1 border-t border-dashed border-gray-200">
@@ -1354,13 +1567,15 @@ export default function BookingPage() {
                       <div>
                         <div className="font-bold text-sm text-[var(--color-ink-deep)]">Tổng chi phí</div>
                         <div className="text-xs text-[var(--color-muted)]">
-                          {roomInfo.roomCount} phòng, {roomInfo.nights} đêm
+                          {roomCount} phòng, {nights} đêm
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-xs text-gray-400 line-through">
-                          {new Intl.NumberFormat('vi-VN').format(roomInfo.originalPrice)} VND
-                        </div>
+                        {totalOriginalPrice > totalPrice && (
+                          <div className="text-xs text-gray-400 line-through">
+                            {new Intl.NumberFormat('vi-VN').format(totalOriginalPrice)} VND
+                          </div>
+                        )}
                         <div className="text-xl md:text-2xl font-black text-[var(--color-coral)] leading-tight">
                           {new Intl.NumberFormat('vi-VN').format(totalPrice)} VND
                         </div>
@@ -1416,12 +1631,6 @@ export default function BookingPage() {
                     <a href="#privacy" className="text-gray-700 underline font-medium">Chính sách lưu trú</a>.
                     Bạn không cần trả trước khoản nào hôm nay.
                   </p>
-
-                  {/* Huy hiệu điểm thưởng */}
-                  <div className="mt-4 pt-3.5 border-t border-gray-100 flex items-center gap-2 text-xs text-amber-700 font-semibold bg-[#fffbeb] p-2.5 rounded-md border border-[#fde68a]">
-                    <Star className="w-4 h-4 fill-amber-500 text-amber-500 shrink-0" />
-                    <span>Kiếm 500.385 Sao Priority</span>
-                  </div>
                 </div>
 
               </div>

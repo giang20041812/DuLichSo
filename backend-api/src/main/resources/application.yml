@@ -54,6 +54,9 @@ google:
   oauth:
     client-id: ${GOOGLE_OAUTH_CLIENT_ID:}
 
+firebase:
+  project-id: ${FIREBASE_PROJECT_ID:dulichso-6ac41}
+
 jwt:
   secret: ${JWT_SECRET:dulichso-secret-key-must-be-at-least-256-bits-long-for-hs256-algorithm}
   expiration-ms: ${JWT_EXPIRATION_MS:86400000}

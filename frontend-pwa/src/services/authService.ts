@@ -70,8 +70,9 @@ export const travelerLogin = (identifier: string, password: string) =>
 export interface TravelerRegisterRequest {
   fullName: string;
   email: string;
-  phone: string;
+  phone?: string;
   password: string;
+  confirmPassword?: string;
 }
 
 export const travelerRegister = (request: TravelerRegisterRequest) => postTravelerAuth('/traveler/register', request);
@@ -81,8 +82,76 @@ export const saveTravelerSession = (res: GoogleLoginResponse) => {
   localStorage.setItem('traveler_token', res.token);
   localStorage.setItem(
     'traveler_user',
-    JSON.stringify({ email: res.email, fullName: res.fullName, picture: res.picture ?? null }),
+    JSON.stringify({
+      email: res.email,
+      fullName: res.fullName,
+      phone: res.phone ?? null,
+      picture: res.picture ?? null,
+    }),
   );
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('auth_change'));
+  }
+};
+
+export interface CurrentCustomer {
+  fullName: string;
+  email: string;
+  phone?: string;
+  picture?: string | null;
+  role: 'TRAVELER' | 'ADMIN' | 'PROVIDER';
+}
+
+/** Lấy thông tin khách hàng đang đăng nhập hiện tại từ localStorage */
+export const getCurrentCustomer = (): CurrentCustomer | null => {
+  if (typeof window === 'undefined') return null;
+
+  const rawTraveler = localStorage.getItem('traveler_user');
+  const travelerToken = localStorage.getItem('traveler_token');
+  if (rawTraveler && travelerToken) {
+    try {
+      const parsed = JSON.parse(rawTraveler);
+      return {
+        fullName: parsed.fullName || '',
+        email: parsed.email || '',
+        phone: parsed.phone || '',
+        picture: parsed.picture || null,
+        role: 'TRAVELER',
+      };
+    } catch {
+      // ignore
+    }
+  }
+
+  const rawPortal = localStorage.getItem('portal_user');
+  const portalToken = localStorage.getItem('portal_token');
+  if (rawPortal && portalToken) {
+    try {
+      const parsed = JSON.parse(rawPortal);
+      return {
+        fullName: parsed.fullName || '',
+        email: parsed.email || '',
+        phone: parsed.phone || '',
+        picture: parsed.picture || null,
+        role: parsed.role || 'PROVIDER',
+      };
+    } catch {
+      // ignore
+    }
+  }
+
+  return null;
+};
+
+/** Xóa sạch phiên đăng nhập của mọi vai trò */
+export const clearAllAuthSession = () => {
+  localStorage.removeItem('portal_token');
+  localStorage.removeItem('portal_user');
+  localStorage.removeItem('traveler_token');
+  localStorage.removeItem('traveler_user');
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('auth_change'));
+  }
 };
 
 /**

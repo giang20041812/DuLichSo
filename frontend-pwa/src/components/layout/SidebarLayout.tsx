@@ -1,25 +1,36 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import Footer from './Footer';
 
 export default function SidebarLayout() {
-  // 1. Khi CHƯA responsive (màn hình lớn desktop): Sidebar HIỆN SẴN mặc định
-  const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
-  
-  // 2. Khi TRONG CHẾ ĐỘ responsive (màn hình nhỏ mobile/tablet): Sidebar ẨN mặc định
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
 
   const toggleSidebar = () => {
-    if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
-      setIsDesktopSidebarOpen(prev => !prev);
-    } else {
-      setIsMobileSidebarOpen(prev => !prev);
-    }
+    setIsSidebarOpen(prev => !prev);
   };
+
+  const closeSidebar = () => {
+    setIsSidebarOpen(false);
+  };
+
+  // Tự động đóng sidebar khi chuyển đường dẫn (route)
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [location.pathname]);
+
+  // Đóng sidebar khi nhấn phím Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsSidebarOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const hasHeroImage = location.pathname === '/' || 
     location.pathname.startsWith('/culture') || 
@@ -36,24 +47,22 @@ export default function SidebarLayout() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[var(--color-canvas)] text-[var(--color-ink)] relative overflow-x-hidden">
-      {/* Header cố định ở đỉnh trang */}
-      <Header toggleSidebar={toggleSidebar} />
+      {/* Header cố định ở đỉnh trang: nút 3 sọc chỉ hiện khi sidebar ẩn */}
+      <Header 
+        isSidebarOpen={isSidebarOpen}
+        toggleSidebar={toggleSidebar} 
+      />
       
+      {/* Sidebar dạng Drawer ở layer cao nhất z-[9999] với background trong suốt và dấu X góc phải trên cùng */}
+      <Sidebar 
+        isOpen={isSidebarOpen} 
+        onClose={closeSidebar} 
+      />
+
       {/* Khu vực thân trang bên dưới Header */}
       <div className="flex flex-1 w-full pt-[60px] relative">
-        {/* Sidebar: Trên desktop cố định (fixed) stick theo màn hình; Trên mobile là drawer */}
-        <Sidebar 
-          isDesktopOpen={isDesktopSidebarOpen} 
-          isMobileOpen={isMobileSidebarOpen} 
-          onCloseMobile={() => setIsMobileSidebarOpen(false)} 
-        />
-        
-        {/* Nội dung chính của trang: Tự động co giãn và chừa khoảng trống cho fixed sidebar trên desktop */}
-        <div 
-          className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out ${
-            isDesktopSidebarOpen ? 'lg:ml-[260px]' : 'lg:ml-0'
-          }`}
-        >
+        {/* Nội dung chính của trang: Rộng rãi, toàn màn hình */}
+        <div className="flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out">
           <main className={`flex-1 w-full relative z-10 ${hasHeroImage ? '-mt-[60px]' : ''}`}>
             <Outlet />
           </main>

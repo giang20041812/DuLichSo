@@ -114,7 +114,7 @@ public class AuthController {
     public ResponseEntity<?> travelerRegister(@RequestBody TravelerRegisterRequest request) {
         try {
             TravelerSession session = travelerAuthService.register(
-                    request.getFullName(), request.getEmail(), request.getPhone(), request.getPassword());
+                    request.getFullName(), request.getEmail(), request.getPhone(), request.getPassword(), request.getConfirmPassword());
             return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(session));
         } catch (InvalidRegistrationException ex) {
             return error(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", ex.getMessage());
@@ -135,7 +135,7 @@ public class AuthController {
     }
 
     private static AuthResponse toResponse(TravelerSession s) {
-        return new AuthResponse(s.token(), s.email(), s.fullName(), s.picture());
+        return new AuthResponse(s.token(), s.email(), s.fullName(), s.picture(), s.phone());
     }
 
     private static ResponseEntity<AuthErrorResponse> error(HttpStatus status, String code, String message) {
@@ -148,6 +148,7 @@ public class AuthController {
         private String email;
         private String phone;
         private String password;
+        private String confirmPassword;
         public String getFullName() { return fullName; }
         public void setFullName(String v) { this.fullName = v; }
         public String getEmail() { return email; }
@@ -156,6 +157,8 @@ public class AuthController {
         public void setPhone(String v) { this.phone = v; }
         public String getPassword() { return password; }
         public void setPassword(String v) { this.password = v; }
+        public String getConfirmPassword() { return confirmPassword; }
+        public void setConfirmPassword(String v) { this.confirmPassword = v; }
     }
 
     public static class TravelerLoginRequest {
@@ -178,18 +181,21 @@ public class AuthController {
         private final String email;
         private final String fullName;
         private final String picture;
+        private final String phone;
 
-        public AuthResponse(String token, String email, String fullName, String picture) {
+        public AuthResponse(String token, String email, String fullName, String picture, String phone) {
             this.token = token;
             this.email = email;
             this.fullName = fullName;
             this.picture = picture;
+            this.phone = phone;
         }
 
         public String getToken() { return token; }
         public String getEmail() { return email; }
         public String getFullName() { return fullName; }
         public String getPicture() { return picture; }
+        public String getPhone() { return phone; }
     }
 }
 

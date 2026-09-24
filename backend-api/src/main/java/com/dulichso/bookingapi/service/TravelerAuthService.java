@@ -28,7 +28,7 @@ public class TravelerAuthService {
         this.jwtUtils = jwtUtils;
     }
 
-    public record TravelerSession(String token, String email, String fullName, String picture) {}
+    public record TravelerSession(String token, String email, String fullName, String picture, String phone) {}
 
     public static class DuplicateAccountException extends RuntimeException {
         public DuplicateAccountException(String message) { super(message); }
@@ -47,28 +47,37 @@ public class TravelerAuthService {
     }
 
     @Transactional
-    public TravelerSession register(String fullName, String email, String phone, String password) {
+    public TravelerSession register(String fullName, String email, String phone, String password, String confirmPassword) {
         String normalizedEmail = email == null ? "" : email.trim().toLowerCase();
         String normalizedPhone = phone == null || phone.isBlank() ? null : phone.trim();
+        String trimmedName = fullName == null ? "" : fullName.trim();
 
-        if (fullName == null || fullName.isBlank()) {
-            throw new InvalidRegistrationException("Vui lòng nhập họ và tên.");
+        if (trimmedName.length() < 2) {
+            throw new InvalidRegistrationException("Vui lòng nhập họ và tên hợp lệ (tối thiểu 2 ký tự).");
         }
-        if (!normalizedEmail.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) {
-            throw new InvalidRegistrationException("Email không hợp lệ.");
+        if (!normalizedEmail.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$")) {
+            throw new InvalidRegistrationException("Địa chỉ Email không đúng định dạng.");
         }
-        if (password == null || password.length() < 6) {
-            throw new InvalidRegistrationException("Mật khẩu tối thiểu 6 ký tự.");
+        if (normalizedPhone != null && !normalizedPhone.matches("^(0|\\+84)(3|5|7|8|9)[0-9]{8}$")) {
+            throw new InvalidRegistrationException("Số điện thoại không đúng định dạng (VD: 0912345678).");
         }
-        if (travelerRepository.existsByEmailIgnoreCase(normalizedEmail)
-                || (normalizedPhone != null && travelerRepository.existsByPhone(normalizedPhone))) {
-            throw new DuplicateAccountException("Email hoặc số điện thoại đã được sử dụng.");
+        if (password == null || password.length() < 8) {
+            throw new InvalidRegistrationException("Mật khẩu phải chứa ít nhất 8 ký tự.");
+        }
+        if (confirmPassword != null && !password.equals(confirmPassword)) {
+            throw new InvalidRegistrationException("Xác nhận mật khẩu không khớp với mật khẩu đã nhập.");
+        }
+        if (travelerRepository.existsByEmailIgnoreCase(normalizedEmail)) {
+            throw new DuplicateAccountException("Địa chỉ email này đã được sử dụng. Vui lòng đăng nhập hoặc dùng email khác.");
+        }
+        if (normalizedPhone != null && travelerRepository.existsByPhone(normalizedPhone)) {
+            throw new DuplicateAccountException("Số điện thoại này đã được đăng ký cho một tài khoản khác.");
         }
 
         Traveler traveler = travelerRepository.save(Traveler.builder()
                 .email(normalizedEmail)
                 .phone(normalizedPhone)
-                .fullName(fullName.trim())
+                .fullName(trimmedName)
                 .passwordHash(passwordEncoder.encode(password))
                 .lastLoginAt(LocalDateTime.now())
                 .build());
@@ -108,6 +117,6 @@ public class TravelerAuthService {
     }
 
     private TravelerSession session(Traveler t) {
-        return new TravelerSession(jwtUtils.generateToken(t.getEmail(), "ROLE_GUEST"), t.getEmail(), t.getFullName(), t.getPictureUrl());
+        return new TravelerSession(jwtUtils.generateToken(t.getEmail(), "ROLE_GUEST"), t.getEmail(), t.getFullName(), t.getPictureUrl(), t.getPhone());
     }
 }

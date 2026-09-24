@@ -4,6 +4,8 @@ import SearchHub from "@/components/layout/SearchHub"
 import { MapPin, Heart, Star, Handshake, Tag, Headphones, ShieldCheck, Mountain, Tent, Calendar, Sparkles } from "lucide-react"
 import { fetchHomeData } from "@/services/homeService"
 import { HomeResponseDto, PlaceSummaryDto } from "@/types/home"
+import { getCurrentCustomer, googleLogin, saveTravelerSession } from "@/services/authService"
+import { initGoogleOneTap } from "@/lib/firebase"
 
 
 
@@ -63,6 +65,31 @@ export default function HomePage() {
       console.error('Error in HomePage fetch:', err);
       setLoading(false);
     });
+  }, []);
+
+  // Tự động gọi Sign In Google One Tap trên trang chủ khi chưa đăng nhập
+  useEffect(() => {
+    const customer = getCurrentCustomer();
+    if (customer) return; // Đã đăng nhập thì không gọi
+
+    let cleanupFn: (() => void) | undefined;
+
+    const handleGoogleCredential = async (idToken: string) => {
+      try {
+        const session = await googleLogin(idToken);
+        saveTravelerSession(session);
+      } catch (err) {
+        console.warn('Auto Google login failed:', err);
+      }
+    };
+
+    initGoogleOneTap(handleGoogleCredential).then((cancel) => {
+      cleanupFn = cancel;
+    });
+
+    return () => {
+      if (cleanupFn) cleanupFn();
+    };
   }, []);
 
   // Merge API destinations with curated destinations (avoid duplicates by slug or id)

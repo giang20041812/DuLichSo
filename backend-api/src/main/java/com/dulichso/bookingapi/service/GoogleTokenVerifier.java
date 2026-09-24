@@ -25,8 +25,11 @@ public class GoogleTokenVerifier {
     private final HttpClient httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @Value("${google.oauth.client-id}")
+    @Value("${google.oauth.client-id:}")
     private String clientId;
+
+    @Value("${firebase.project-id:}")
+    private String firebaseProjectId;
 
     public record GoogleProfile(String email, String fullName, String picture) {}
 
@@ -39,9 +42,6 @@ public class GoogleTokenVerifier {
     public GoogleProfile verify(String idToken) {
         if (idToken == null || idToken.isBlank()) {
             throw new InvalidGoogleTokenException("Thiếu Google ID token.");
-        }
-        if (clientId == null || clientId.isBlank() || clientId.startsWith("your_")) {
-            throw new IllegalStateException("Chưa cấu hình GOOGLE_OAUTH_CLIENT_ID ở backend.");
         }
 
         try {
@@ -56,10 +56,21 @@ public class GoogleTokenVerifier {
             }
 
             JsonNode body = objectMapper.readTree(response.body());
-            if (!clientId.equals(body.path("aud").asText())) {
-                throw new InvalidGoogleTokenException("Google ID token không dành cho ứng dụng này.");
+            String tokenAud = body.path("aud").asText("");
+
+            // Nếu có cấu hình clientId hoặc firebaseProjectId thì kiểm tra khớp aud
+            boolean hasConfiguredAud = (clientId != null && !clientId.isBlank() && !clientId.startsWith("your_"))
+                    || (firebaseProjectId != null && !firebaseProjectId.isBlank() && !firebaseProjectId.startsWith("your_"));
+
+            if (hasConfiguredAud) {
+                boolean matchesClient = clientId != null && clientId.equals(tokenAud);
+                boolean matchesFirebase = firebaseProjectId != null && firebaseProjectId.equals(tokenAud);
+                if (!matchesClient && !matchesFirebase) {
+                    throw new InvalidGoogleTokenException("Google ID token không dành cho ứng dụng này (aud mismatch).");
+                }
             }
-            if (!"true".equals(body.path("email_verified").asText())) {
+
+            if (!"true".equalsIgnoreCase(body.path("email_verified").asText())) {
                 throw new InvalidGoogleTokenException("Email Google chưa được xác minh.");
             }
             String email = body.path("email").asText("");
