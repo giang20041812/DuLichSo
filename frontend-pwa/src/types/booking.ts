@@ -98,3 +98,101 @@ export interface BookedDateRangeDto {
   checkOut: string;
   roomCount: number;
 }
+
+// ---- Nhà cung cấp xử lý đơn — khớp PartnerBookingDtos.java ----
+
+export type BookingActorType = 'CUSTOMER' | 'PROVIDER' | 'ADMIN' | 'SYSTEM';
+export type BookingCheckLevel = 'OK' | 'WARN' | 'FAIL';
+
+export interface BookingCheckDto {
+  code: string;
+  label: string;
+  level: BookingCheckLevel;
+  detail: string;
+}
+
+export interface BookingNightPriceDto {
+  stayDate: string;
+  unitPrice: number;
+  roomCount: number;
+}
+
+export interface BookingHistoryDto {
+  fromStatus: BookingStatus | null;
+  toStatus: BookingStatus;
+  actor: BookingActorType;
+  reason: string | null;
+  createdAt: string;
+}
+
+export interface BookingRoomOptionDto {
+  roomTypeId: number;
+  name: string;
+  maxOccupancy: number | null;
+  current: boolean;
+  availableRooms: number;
+  capacityOk: boolean;
+  suitable: boolean;
+  totalAmount: number | null;
+  unavailableReason: string | null;
+}
+
+export interface PartnerBookingDetailDto {
+  id: number;
+  bookingCode: string;
+  status: BookingStatus;
+  placeId: number;
+  placeName: string;
+  roomTypeId: number;
+  roomTypeName: string;
+  checkIn: string;
+  checkOut: string;
+  nights: number;
+  roomCount: number;
+  guestCount: number;
+  guestName: string;
+  guestPhone: string;
+  guestEmail: string | null;
+  guestNote: string | null;
+  totalAmount: number;
+  currency: string;
+  createdAt: string;
+  holdExpiresAt: string | null;
+  paymentDeadlineAt: string | null;
+  confirmedAt: string | null;
+  closedAt: string | null;
+  closeReason: string | null;
+  policySnapshot: Record<string, unknown>;
+  nightPrices: BookingNightPriceDto[];
+  serviceItems: { serviceName: string; note: string | null }[];
+  history: BookingHistoryDto[];
+  infoRequests: BookingInfoRequestDto[];
+  checks: BookingCheckDto[];
+  roomOptions: BookingRoomOptionDto[];
+  canAccept: boolean;
+  canReject: boolean;
+  canRequestInfo: boolean;
+}
+
+/** roomTypeId null = giữ loại phòng khách đã chọn. */
+export interface AcceptBookingInput {
+  roomTypeId: number | null;
+  note: string;
+}
+
+export interface RejectBookingInput {
+  reason: string;
+}
+
+/** FR-NCC-14 — khớp PartnerBookingDtos.InfoRequestDto */
+export interface BookingInfoRequestDto {
+  id: number;
+  message: string;
+  createdAt: string;
+  responseText: string | null;
+  respondedAt: string | null;
+}
+
+export interface InfoRequestInput {
+  message: string;
+}

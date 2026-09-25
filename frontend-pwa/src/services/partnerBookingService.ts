@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type { AdminBookingDto, BookingSearchParams, BookingStatusSummary, PageResponse } from '../types/admin';
+import type { AcceptBookingInput, InfoRequestInput, PartnerBookingDetailDto, RejectBookingInput } from '../types/booking';
 
 const API_BASE = '/api/v1/partner/bookings';
 
@@ -17,6 +18,26 @@ export const partnerBookingService = {
 
   async getSummary(): Promise<BookingStatusSummary> {
     const res = await axios.get<BookingStatusSummary>(`${API_BASE}/summary`, authHeaders());
+    return res.data;
+  },
+
+  async getDetail(id: number): Promise<PartnerBookingDetailDto> {
+    const res = await axios.get<PartnerBookingDetailDto>(`${API_BASE}/${id}`, authHeaders());
+    return res.data;
+  },
+
+  async accept(id: number, input: AcceptBookingInput): Promise<PartnerBookingDetailDto> {
+    const res = await axios.post<PartnerBookingDetailDto>(`${API_BASE}/${id}/accept`, input, authHeaders());
+    return res.data;
+  },
+
+  async requestInfo(id: number, input: InfoRequestInput): Promise<PartnerBookingDetailDto> {
+    const res = await axios.post<PartnerBookingDetailDto>(`${API_BASE}/${id}/info-requests`, input, authHeaders());
+    return res.data;
+  },
+
+  async reject(id: number, input: RejectBookingInput): Promise<PartnerBookingDetailDto> {
+    const res = await axios.post<PartnerBookingDetailDto>(`${API_BASE}/${id}/reject`, input, authHeaders());
     return res.data;
   },
 };

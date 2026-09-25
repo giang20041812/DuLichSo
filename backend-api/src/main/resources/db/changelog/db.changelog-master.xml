@@ -20,4 +20,7 @@
     <include file="db/changelog/changes/004-add-traveler.xml"/>
     <include file="db/changelog/changes/005-add-traveler-status.xml"/>
 
+    <include file="db/changelog/changes/006-partner-room-view.xml"/>
+    <include file="db/changelog/changes/007-homestay-services-policies.xml"/>
+    <include file="db/changelog/changes/008-booking-feedback-reviews-provider-applications.xml"/>
 </databaseChangeLog>
