@@ -17,7 +17,8 @@ import {
   ChevronDown,
   Calendar,
   X,
-  ShieldCheck
+  ShieldCheck,
+  Download
 } from "lucide-react";
 import { VietTrackLogoMark } from "../ui/logo";
 import { getCurrentCustomer, clearAllAuthSession, type CurrentCustomer } from "@/services/authService";
@@ -193,6 +194,20 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
 
           {/* Cụm bên phải: Nút Đăng nhập/Đăng ký HOẶC Icon người dùng kèm Tên & Dropdown */}
           <div className="flex items-center gap-1.5 sm:gap-2" ref={dropdownRef}>
+            {/* Nút Tải App nhanh */}
+            <Link
+              to="/download-app"
+              className={`hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-bold transition-all shadow-xs border ${
+                isSolid
+                  ? 'border-[var(--color-primary)]/30 text-[var(--color-primary)] bg-[var(--color-primary)]/5 hover:bg-[var(--color-primary)]/10'
+                  : 'border-white/40 text-white bg-white/10 hover:bg-white/20 backdrop-blur-md'
+              }`}
+              title="Cài đặt ứng dụng Đi Du Lịch vào thiết bị"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Tải App</span>
+            </Link>
+
             {user ? (
               <div className="flex items-center gap-1.5 sm:gap-2">
                 {/* Icon hình thông báo ở bên cạnh icon ava */}

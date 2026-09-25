@@ -9,6 +9,7 @@ export interface HomestayFilterParams {
   minRating?: number;
   amenities?: string[];
   province?: string;
+  district?: string;
   ward?: string;
   attractions?: string[];
 }
@@ -24,6 +25,7 @@ export const fetchHomestays = async (params?: HomestayFilterParams): Promise<Hom
     if (params?.maxPrice !== undefined) url.searchParams.append('maxPrice', params.maxPrice.toString());
     if (params?.minRating !== undefined) url.searchParams.append('minRating', params.minRating.toString());
     if (params?.province) url.searchParams.append('province', params.province);
+    if (params?.district) url.searchParams.append('district', params.district);
     if (params?.ward) url.searchParams.append('ward', params.ward);
     if (params?.attractions && params.attractions.length > 0) {
       url.searchParams.append('attractions', params.attractions.join(','));
@@ -156,3 +158,35 @@ export const fetchRegionalDestinations = async (id: string, limit: number = 4): 
     return [];
   }
 };
+
+export interface PublicRegionWardDto {
+  id?: number;
+  name: string;
+}
+
+export interface PublicRegionDistrictDto {
+  id?: number;
+  name: string;
+  wards: PublicRegionWardDto[];
+}
+
+export interface PublicRegionDto {
+  id?: number;
+  province?: string;
+  name?: string;
+  districts?: PublicRegionDistrictDto[];
+  wards?: PublicRegionWardDto[];
+}
+
+export const fetchPublicRegions = async (): Promise<PublicRegionDto[]> => {
+  try {
+    const url = new URL('/api/public/places/regions', apiOrigin());
+    const response = await fetch(url.toString());
+    if (!response.ok) return [];
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching public regions:", error);
+    return [];
+  }
+};
+

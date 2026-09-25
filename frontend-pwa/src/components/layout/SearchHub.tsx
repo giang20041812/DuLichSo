@@ -13,6 +13,8 @@ import {
   X
 } from "lucide-react"
 
+import { fetchPublicRegions, PublicRegionDto } from "@/services/homestayService"
+
 export interface AttractionItem {
   id: number;
   name: string;
@@ -29,12 +31,21 @@ export interface AttractionItem {
 }
 
 export interface WardData {
+  id?: number;
   name: string;
 }
 
-export interface ProvinceData {
-  province: string;
+export interface DistrictData {
+  id?: number;
+  name: string;
   wards: WardData[];
+}
+
+export interface ProvinceData {
+  id?: number;
+  province: string;
+  districts?: DistrictData[];
+  wards?: WardData[];
 }
 
 interface RawPlaceItem {
@@ -52,111 +63,205 @@ interface RawPlaceItem {
   suitableDateEnd?: string;
 }
 
-const VIETNAM_LOCATIONS: ProvinceData[] = [
+const DEFAULT_LOCATIONS: ProvinceData[] = [
   {
     province: "Yên Bái",
-    wards: [
-      { name: "La Pán Tẩn" },
-      { name: "Mù Cang Chải" },
-      { name: "Chế Cu Nha" },
-      { name: "Dế Xu Phình" },
-      { name: "Cao Phạ" },
-      { name: "Nậm Có" },
-      { name: "Tú Lệ" },
-      { name: "Trạm Tấu" },
-      { name: "Púng Luông" },
-      { name: "Mồ Dề" },
-      { name: "Kim Nọi" },
-      { name: "Nậm Khắt" },
-      { name: "Văn Chấn" },
-      { name: "Nghĩa Lộ" }
+    districts: [
+      {
+        name: "Huyện Mù Cang Chải",
+        wards: [
+          { name: "La Pán Tẩn" },
+          { name: "Thị trấn Mù Cang Chải" },
+          { name: "Chế Cu Nha" },
+          { name: "Dế Xu Phình" },
+          { name: "Cao Phạ" },
+          { name: "Nậm Có" },
+          { name: "Púng Luông" },
+          { name: "Mồ Dề" },
+          { name: "Kim Nọi" },
+          { name: "Nậm Khắt" },
+          { name: "Chế Tạo" }
+        ]
+      },
+      {
+        name: "Huyện Văn Chấn",
+        wards: [
+          { name: "Tú Lệ" },
+          { name: "Nghĩa Sơn" },
+          { name: "Suối Giàng" }
+        ]
+      },
+      {
+        name: "Huyện Trạm Tấu",
+        wards: [
+          { name: "Bản Mù" },
+          { name: "Bản Công" },
+          { name: "Tà Si Láng" }
+        ]
+      },
+      {
+        name: "Thị xã Nghĩa Lộ",
+        wards: [
+          { name: "Trung Tâm" },
+          { name: "Tân An" }
+        ]
+      }
     ]
   },
   {
     province: "Lào Cai",
-    wards: [
-      { name: "Sa Pa" },
-      { name: "Tả Van" },
-      { name: "San Sả Hồ" },
-      { name: "Tả Phìn" },
-      { name: "Y Tý" },
-      { name: "Bắc Hà" },
-      { name: "Mường Hoa" },
-      { name: "Hàm Rồng" }
+    districts: [
+      {
+        name: "Thị xã Sa Pa",
+        wards: [
+          { name: "Sa Pa" },
+          { name: "Tả Van" },
+          { name: "San Sả Hồ" },
+          { name: "Tả Phìn" },
+          { name: "Mường Hoa" },
+          { name: "Hàm Rồng" }
+        ]
+      },
+      {
+        name: "Huyện Bát Xát",
+        wards: [
+          { name: "Y Tý" },
+          { name: "Mường Hum" }
+        ]
+      },
+      {
+        name: "Huyện Bắc Hà",
+        wards: [
+          { name: "Bắc Hà" },
+          { name: "Bản Phố" }
+        ]
+      }
     ]
   },
   {
     province: "Hà Giang",
-    wards: [
-      { name: "Đồng Văn" },
-      { name: "Mèo Vạc" },
-      { name: "Lũng Cú" },
-      { name: "Quản Bạ" },
-      { name: "Hoàng Su Phì" },
-      { name: "Yên Minh" }
+    districts: [
+      {
+        name: "Huyện Đồng Văn",
+        wards: [
+          { name: "Đồng Văn" },
+          { name: "Lũng Cú" },
+          { name: "Sà Phìn" }
+        ]
+      },
+      {
+        name: "Huyện Mèo Vạc",
+        wards: [
+          { name: "Mèo Vạc" },
+          { name: "Pải Lủng" }
+        ]
+      },
+      {
+        name: "Huyện Hoàng Su Phì",
+        wards: [
+          { name: "Bản Phùng" },
+          { name: "Thông Nguyên" }
+        ]
+      }
     ]
   },
   {
     province: "Sơn La",
-    wards: [
-      { name: "Mộc Châu" },
-      { name: "Tà Xùa" },
-      { name: "Vân Hồ" },
-      { name: "Bắc Yên" }
+    districts: [
+      {
+        name: "Huyện Mộc Châu",
+        wards: [
+          { name: "Mộc Châu" },
+          { name: "Đông Sang" }
+        ]
+      },
+      {
+        name: "Huyện Bắc Yên",
+        wards: [
+          { name: "Tà Xùa" },
+          { name: "Háng Đồng" }
+        ]
+      }
     ]
   },
   {
     province: "Hà Nội",
-    wards: [
-      { name: "Hoàn Kiếm" },
-      { name: "Ba Vì" },
-      { name: "Tây Hồ" },
-      { name: "Sơn Tây" },
-      { name: "Sóc Sơn" }
+    districts: [
+      {
+        name: "Quận Hoàn Kiếm",
+        wards: [
+          { name: "Hàng Trống" },
+          { name: "Tràng Tiền" }
+        ]
+      },
+      {
+        name: "Huyện Ba Vì",
+        wards: [
+          { name: "Tản Lĩnh" },
+          { name: "Ba Trại" }
+        ]
+      }
     ]
   },
   {
     province: "Đà Nẵng",
-    wards: [
-      { name: "Sơn Trà" },
-      { name: "Hòa Vang" },
-      { name: "Ngũ Hành Sơn" },
-      { name: "Hải Châu" }
-    ]
-  },
-  {
-    province: "Ninh Bình",
-    wards: [
-      { name: "Hoa Lư" },
-      { name: "Gia Viễn" },
-      { name: "Nho Quan" },
-      { name: "Tràng An" }
+    districts: [
+      {
+        name: "Quận Sơn Trà",
+        wards: [
+          { name: "An Hải Bắc" },
+          { name: "Phước Mỹ" }
+        ]
+      },
+      {
+        name: "Quận Ngũ Hành Sơn",
+        wards: [
+          { name: "Mỹ An" },
+          { name: "Khuê Mỹ" }
+        ]
+      }
     ]
   },
   {
     province: "Lâm Đồng",
-    wards: [
-      { name: "Đà Lạt" },
-      { name: "Lạc Dương" },
-      { name: "Xuân Trường" },
-      { name: "Bảo Lộc" }
+    districts: [
+      {
+        name: "Thành phố Đà Lạt",
+        wards: [
+          { name: "Phường 1" },
+          { name: "Phường 2" },
+          { name: "Xuân Trường" }
+        ]
+      },
+      {
+        name: "Huyện Lạc Dương",
+        wards: [
+          { name: "Lạc Dương" },
+          { name: "Đạ Sar" }
+        ]
+      }
     ]
   }
 ];
 
 export default function SearchHub() {
   const navigate = useNavigate();
-  // 3 distinct filter tabs: 'province' (Thành phố/Tỉnh), 'ward' (Phường/Xã), 'attractions' (Địa điểm vui chơi)
-  const [activeTab, setActiveTab] = useState<'province' | 'ward' | 'attractions' | null>(null);
-  const [mountedTab, setMountedTab] = useState<'province' | 'ward' | 'attractions' | null>(null);
+  // 4 distinct filter tabs: 'province' (Thành phố/Tỉnh), 'district' (Quận/Huyện), 'ward' (Phường/Xã), 'attractions' (Địa điểm vui chơi)
+  const [activeTab, setActiveTab] = useState<'province' | 'district' | 'ward' | 'attractions' | null>(null);
+  const [mountedTab, setMountedTab] = useState<'province' | 'district' | 'ward' | 'attractions' | null>(null);
 
-  // Selected states
+  // Dynamic regions from DB (fallbacks to DEFAULT_LOCATIONS)
+  const [locations, setLocations] = useState<ProvinceData[]>(DEFAULT_LOCATIONS);
+
+  // Selected states (District và Ward mặc định là "Tất cả")
   const [selectedProvince, setSelectedProvince] = useState<string>("Yên Bái");
+  const [selectedDistrict, setSelectedDistrict] = useState<string | null>(null);
   const [selectedWard, setSelectedWard] = useState<string | null>(null);
   const [selectedAttractions, setSelectedAttractions] = useState<AttractionItem[]>([]);
   
-  // Search text inputs for each of the 3 sections
+  // Search text inputs for each section
   const [provinceSearch, setProvinceSearch] = useState("");
+  const [districtSearch, setDistrictSearch] = useState("");
   const [wardSearch, setWardSearch] = useState("");
   const [attractionSearch, setAttractionSearch] = useState("");
 
@@ -169,6 +274,29 @@ export default function SearchHub() {
   const [locationStatus, setLocationStatus] = useState<string | null>(null);
 
   const searchRef = useRef<HTMLDivElement>(null);
+
+  // Load Regions from API on mount
+  useEffect(() => {
+    fetchPublicRegions()
+      .then((data: PublicRegionDto[]) => {
+        if (data && data.length > 0) {
+          // Normalize data
+          const mapped: ProvinceData[] = data.map((d) => ({
+            id: d.id,
+            province: d.province || d.name || "Yên Bái",
+            districts: d.districts || [],
+            wards: d.wards || []
+          }));
+          setLocations(mapped);
+          if (!mapped.some(d => d.province === selectedProvince)) {
+            setSelectedProvince(mapped[0]?.province ?? "Yên Bái");
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn("Using default locations, region API error:", err);
+      });
+  }, []);
 
   // Load Attractions from DB on mount
   useEffect(() => {
@@ -252,34 +380,104 @@ export default function SearchHub() {
     });
   };
 
-  // Filtered lists for the 3 tabs
+  // Filtered Provinces
   const filteredProvinces = useMemo(() => {
     const q = provinceSearch.trim().toLowerCase();
-    if (!q) return VIETNAM_LOCATIONS;
-    return VIETNAM_LOCATIONS.filter(p => p.province.toLowerCase().includes(q));
-  }, [provinceSearch]);
+    if (!q) return locations;
+    return locations.filter(p => p.province.toLowerCase().includes(q));
+  }, [provinceSearch, locations]);
 
-  const currentProvinceWards = useMemo(() => {
-    const p = VIETNAM_LOCATIONS.find(item => item.province === selectedProvince) ?? VIETNAM_LOCATIONS[0];
-    const q = wardSearch.trim().toLowerCase();
-    const wards = p?.wards ?? [];
-    if (!q) return wards;
-    return wards.filter(w => w.name.toLowerCase().includes(q));
-  }, [selectedProvince, wardSearch]);
+  // Current Province Object
+  const currentProvinceObj = useMemo(() => {
+    return locations.find(item => item.province.toLowerCase() === selectedProvince.toLowerCase()) ?? locations[0];
+  }, [selectedProvince, locations]);
 
-  const filteredAttractions = useMemo(() => {
-    let list = dbAttractions;
-    // Nếu có chọn Phường/Xã thì ưu tiên hiển thị các điểm du lịch thuộc xã đó trước hoặc lọc
-    if (selectedWard) {
-      const wardClean = selectedWard.toLowerCase();
-      const inWard = list.filter(a => 
-        (a.regionName && a.regionName.toLowerCase().includes(wardClean)) ||
-        (a.address && a.address.toLowerCase().includes(wardClean))
-      );
-      if (inWard.length > 0) {
-        list = inWard;
+  // Filtered Districts in Selected Province
+  const currentDistricts = useMemo(() => {
+    const districts = currentProvinceObj?.districts ?? [];
+    const q = districtSearch.trim().toLowerCase();
+    if (!q) return districts;
+    return districts.filter(d => d.name.toLowerCase().includes(q));
+  }, [currentProvinceObj, districtSearch]);
+
+  // Filtered Wards: If district selected -> wards of that district; else all wards of the province
+  const currentWards = useMemo(() => {
+    let rawWards: WardData[] = [];
+    if (selectedDistrict) {
+      const dist = (currentProvinceObj?.districts ?? []).find(d => d.name.toLowerCase() === selectedDistrict.toLowerCase());
+      rawWards = dist?.wards ?? [];
+    } else {
+      // Gather all wards across all districts of current province
+      const allDistricts = currentProvinceObj?.districts ?? [];
+      if (allDistricts.length > 0) {
+        rawWards = allDistricts.flatMap(d => d.wards);
+      } else {
+        rawWards = currentProvinceObj?.wards ?? [];
       }
     }
+
+    const q = wardSearch.trim().toLowerCase();
+    if (!q) return rawWards;
+    return rawWards.filter(w => w.name.toLowerCase().includes(q));
+  }, [currentProvinceObj, selectedDistrict, wardSearch]);
+
+  // Filtered Attractions (Liên kết phân cấp ngược: Xã -> Huyện -> Tỉnh)
+  const filteredAttractions = useMemo(() => {
+    let list = dbAttractions;
+
+    if (selectedWard) {
+      // 1. Nếu chọn Phường/Xã cụ thể -> LỌC CHẶT THEO PHƯỜNG/XÃ ĐÓ
+      const wardClean = selectedWard.toLowerCase().trim();
+      list = list.filter(a => {
+        const inRegion = a.regionName && a.regionName.toLowerCase().includes(wardClean);
+        const inAddress = a.address && a.address.toLowerCase().includes(wardClean);
+        const inName = a.name && a.name.toLowerCase().includes(wardClean);
+        return inRegion || inAddress || inName;
+      });
+    } else if (selectedDistrict) {
+      // 2. Nếu chọn Huyện cụ thể (và Xã = Tất cả) -> LỌC THEO HUYỆN & TẤT CẢ XÃ THUỘC HUYỆN ĐÓ
+      const distClean = selectedDistrict.toLowerCase().trim();
+      const currentDist = (currentProvinceObj?.districts ?? []).find(d => d.name.toLowerCase() === distClean);
+      const wardNamesInDist = (currentDist?.wards || []).map(w => w.name.toLowerCase());
+
+      list = list.filter(a => {
+        const inRegion = a.regionName && (
+          a.regionName.toLowerCase().includes(distClean) ||
+          wardNamesInDist.some(w => a.regionName!.toLowerCase().includes(w))
+        );
+        const inAddress = a.address && (
+          a.address.toLowerCase().includes(distClean) ||
+          wardNamesInDist.some(w => a.address!.toLowerCase().includes(w))
+        );
+        const inName = a.name && (
+          a.name.toLowerCase().includes(distClean) ||
+          wardNamesInDist.some(w => a.name.toLowerCase().includes(w))
+        );
+        return inRegion || inAddress || inName;
+      });
+    } else if (selectedProvince) {
+      // 3. Nếu chọn Tỉnh (Huyện = Tất cả, Xã = Tất cả) -> LỌC THEO TỈNH VÀ MỌI HUYỆN/XÃ THUỘC TỈNH
+      const provClean = selectedProvince.toLowerCase().trim();
+      const allDistricts = currentProvinceObj?.districts ?? [];
+      const distNames = allDistricts.map(d => d.name.toLowerCase());
+      const wardNames = allDistricts.flatMap(d => d.wards.map(w => w.name.toLowerCase()));
+
+      list = list.filter(a => {
+        const inRegion = a.regionName && (
+          a.regionName.toLowerCase().includes(provClean) ||
+          distNames.some(d => a.regionName!.toLowerCase().includes(d)) ||
+          wardNames.some(w => a.regionName!.toLowerCase().includes(w))
+        );
+        const inAddress = a.address && (
+          a.address.toLowerCase().includes(provClean) ||
+          distNames.some(d => a.address!.toLowerCase().includes(d)) ||
+          wardNames.some(w => a.address!.toLowerCase().includes(w))
+        );
+        return inRegion || inAddress;
+      });
+    }
+
+    // 4. Lọc theo từ khóa tìm kiếm ô input (nếu người dùng gõ tìm kiếm)
     const q = attractionSearch.trim().toLowerCase();
     let result = list;
     if (q) {
@@ -289,13 +487,14 @@ export default function SearchHub() {
         (a.address && a.address.toLowerCase().includes(q))
       );
     }
-    // Ưu tiên các điểm đến thích hợp theo mùa (isSuitableByTime = true) lên trên đầu
+
+    // 5. Ưu tiên các điểm đến thích hợp theo mùa (isSuitableByTime = true) lên trên đầu
     return [...result].sort((a, b) => {
       const aVal = a.isSuitableByTime ? 1 : 0;
       const bVal = b.isSuitableByTime ? 1 : 0;
       return bVal - aVal;
     });
-  }, [dbAttractions, selectedWard, attractionSearch]);
+  }, [dbAttractions, selectedProvince, selectedDistrict, selectedWard, currentProvinceObj, attractionSearch]);
 
   // "Gần tôi" Geolocation using OpenStreetMap Reverse Geocoding
   const handleNearMe = async (e: React.MouseEvent) => {
@@ -319,25 +518,40 @@ export default function SearchHub() {
           const props = data.features?.[0]?.properties || {};
           
           const osmState = props.state || props.province || props.city || "";
-          const osmWard = props.district || props.suburb || props.county || props.city || "";
+          const osmDistrict = props.district || props.county || "";
+          const osmWard = props.suburb || props.quarter || "";
 
-          // Tìm tỉnh tương ứng trong danh sách
-          const matchedProv = VIETNAM_LOCATIONS.find(p => 
+          // Tìm tỉnh tương ứng trong danh sách động
+          const matchedProv = locations.find(p => 
             p.province.toLowerCase().includes(osmState.toLowerCase()) || 
             osmState.toLowerCase().includes(p.province.toLowerCase())
           );
 
           if (matchedProv) {
             setSelectedProvince(matchedProv.province);
-            const matchedWard = matchedProv.wards.find(w => 
-              osmWard.toLowerCase().includes(w.name.toLowerCase()) || 
-              w.name.toLowerCase().includes(osmWard.toLowerCase())
+            const matchedDist = matchedProv.districts?.find(d => 
+              osmDistrict.toLowerCase().includes(d.name.toLowerCase()) ||
+              d.name.toLowerCase().includes(osmDistrict.toLowerCase())
             );
-            if (matchedWard) {
-              setSelectedWard(matchedWard.name);
+            if (matchedDist) {
+              setSelectedDistrict(matchedDist.name);
+              const matchedWard = matchedDist.wards.find(w => 
+                osmWard.toLowerCase().includes(w.name.toLowerCase()) ||
+                w.name.toLowerCase().includes(osmWard.toLowerCase())
+              );
+              if (matchedWard) {
+                setSelectedWard(matchedWard.name);
+              } else {
+                setSelectedWard(null);
+              }
+            } else {
+              setSelectedDistrict(null);
+              setSelectedWard(null);
             }
           } else {
-            setSelectedProvince("Yên Bái");
+            setSelectedProvince(locations[0]?.province || "Yên Bái");
+            setSelectedDistrict(null);
+            setSelectedWard(null);
           }
 
           setLocationStatus(null);
@@ -345,8 +559,9 @@ export default function SearchHub() {
           setActiveTab('attractions');
         } catch (err) {
           console.warn("Geocoding fallback:", err);
-          setSelectedProvince("Yên Bái");
-          setSelectedWard("La Pán Tẩn");
+          setSelectedProvince(locations[0]?.province || "Yên Bái");
+          setSelectedDistrict(null);
+          setSelectedWard(null);
           setLocationStatus(null);
           setIsLocating(false);
           setActiveTab('attractions');
@@ -356,7 +571,9 @@ export default function SearchHub() {
         console.warn("GPS error:", error);
         setIsLocating(false);
         setLocationStatus(null);
-        setSelectedProvince("Yên Bái");
+        setSelectedProvince(locations[0]?.province || "Yên Bái");
+        setSelectedDistrict(null);
+        setSelectedWard(null);
         setActiveTab('attractions');
       },
       { timeout: 10000, enableHighAccuracy: true }
@@ -367,6 +584,7 @@ export default function SearchHub() {
   const handleSearch = () => {
     const params = new URLSearchParams();
     if (selectedProvince) params.append('province', selectedProvince);
+    if (selectedDistrict) params.append('district', selectedDistrict);
     if (selectedWard) params.append('ward', selectedWard);
     if (selectedAttractions.length > 0) {
       params.append('attractions', selectedAttractions.map(a => a.id).join(','));
@@ -382,6 +600,7 @@ export default function SearchHub() {
       }
     }
     if (selectedWard) labelParts.push(selectedWard);
+    if (selectedDistrict) labelParts.push(selectedDistrict);
     if (selectedProvince) labelParts.push(selectedProvince);
     if (labelParts.length > 0) {
       params.append('destination', labelParts.join(', '));
@@ -396,18 +615,18 @@ export default function SearchHub() {
       ref={searchRef} 
       className="w-full relative z-30 flex flex-col md:flex-row items-stretch md:items-center gap-2 md:gap-2.5 p-2 sm:p-2.5 rounded-lg bg-white/95 backdrop-blur-md shadow-xl border border-white/80 transition-all text-left"
     >
-      {/* ---------------- 1. BỘ LỌC ĐỊA ĐIỂM CHIA LÀM 3 (THÀNH PHỐ / PHƯỜNG XÃ / ĐỊA ĐIỂM VUI CHƠI) ---------------- */}
-      <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
-        {/* Phần 1: Thành phố / Tỉnh */}
+      {/* ---------------- 1. BỘ LỌC ĐỊA ĐIỂM CHIA 4 CỘT (TỈNH -> HUYỆN -> PHƯỜNG XÃ -> ĐIỂM VUI CHƠI) ---------------- */}
+      <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+        {/* Cột 1: Thành phố / Tỉnh */}
         <div 
-          className={`bg-white rounded-md shadow-xs border px-3 sm:px-3.5 h-[52px] sm:h-[58px] flex items-center gap-2.5 sm:gap-3 cursor-pointer transition-all relative ${
+          className={`bg-white rounded-md shadow-xs border px-3 sm:px-3 h-[52px] sm:h-[58px] flex items-center gap-2 cursor-pointer transition-all relative ${
             activeTab === 'province' 
               ? 'border-[#048c73] ring-2 ring-[#048c73]/20 bg-[#edfbf7]/20 z-40' 
               : 'border-gray-200 hover:border-[#048c73] z-20'
           }`}
           onClick={() => setActiveTab(activeTab === 'province' ? null : 'province')}
         >
-          <Building2 className="text-[#048c73] w-5 h-5 shrink-0" />
+          <Building2 className="text-[#048c73] w-4.5 h-4.5 shrink-0" />
           <div className="flex flex-col justify-center min-w-0 flex-1">
             <span className="text-[10px] font-bold text-[#66716c] uppercase tracking-wider mb-0.5 truncate">
               Thành phố / Tỉnh
@@ -418,39 +637,59 @@ export default function SearchHub() {
           </div>
         </div>
 
-        {/* Phần 2: Phường / Xã */}
+        {/* Cột 2: Quận / Huyện (Mặc định: Tất cả) */}
         <div 
-          className={`bg-white rounded-md shadow-xs border px-3 sm:px-3.5 h-[52px] sm:h-[58px] flex items-center gap-2.5 sm:gap-3 cursor-pointer transition-all relative ${
+          className={`bg-white rounded-md shadow-xs border px-3 sm:px-3 h-[52px] sm:h-[58px] flex items-center gap-2 cursor-pointer transition-all relative ${
+            activeTab === 'district' 
+              ? 'border-[#048c73] ring-2 ring-[#048c73]/20 bg-[#edfbf7]/20 z-40' 
+              : 'border-gray-200 hover:border-[#048c73] z-20'
+          }`}
+          onClick={() => setActiveTab(activeTab === 'district' ? null : 'district')}
+        >
+          <Landmark className="text-[#048c73] w-4.5 h-4.5 shrink-0" />
+          <div className="flex flex-col justify-center min-w-0 flex-1">
+            <span className="text-[10px] font-bold text-[#66716c] uppercase tracking-wider mb-0.5 truncate">
+              Quận / Huyện
+            </span>
+            <span className="text-sm font-bold text-[#0a2e26] truncate">
+              {selectedDistrict || "Tất cả huyện"}
+            </span>
+          </div>
+        </div>
+
+        {/* Cột 3: Phường / Xã (Mặc định: Tất cả) */}
+        <div 
+          className={`bg-white rounded-md shadow-xs border px-3 sm:px-3 h-[52px] sm:h-[58px] flex items-center gap-2 cursor-pointer transition-all relative ${
             activeTab === 'ward' 
               ? 'border-[#048c73] ring-2 ring-[#048c73]/20 bg-[#edfbf7]/20 z-40' 
               : 'border-gray-200 hover:border-[#048c73] z-20'
           }`}
           onClick={() => setActiveTab(activeTab === 'ward' ? null : 'ward')}
         >
-          <Landmark className="text-[#048c73] w-5 h-5 shrink-0" />
+          <Landmark className="text-teal-600 w-4.5 h-4.5 shrink-0" />
           <div className="flex flex-col justify-center min-w-0 flex-1">
             <span className="text-[10px] font-bold text-[#66716c] uppercase tracking-wider mb-0.5 truncate">
               Phường / Xã
             </span>
             <span className="text-sm font-bold text-[#0a2e26] truncate">
-              {selectedWard || "Tất cả phường/xã"}
+              {selectedWard || "Tất cả xã/phường"}
             </span>
           </div>
         </div>
 
-        {/* Phần 3: Địa điểm vui chơi */}
+        {/* Cột 4: Địa điểm vui chơi */}
         <div 
-          className={`bg-white rounded-md shadow-xs border px-3 sm:px-3.5 h-[52px] sm:h-[58px] flex items-center gap-2.5 sm:gap-3 cursor-pointer transition-all relative ${
+          className={`bg-white rounded-md shadow-xs border px-3 sm:px-3 h-[52px] sm:h-[58px] flex items-center gap-2 cursor-pointer transition-all relative ${
             activeTab === 'attractions' 
               ? 'border-[#048c73] ring-2 ring-[#048c73]/20 bg-[#edfbf7]/20 z-40' 
               : 'border-gray-200 hover:border-[#048c73] z-20'
           }`}
           onClick={() => setActiveTab(activeTab === 'attractions' ? null : 'attractions')}
         >
-          <Sparkles className="text-[#f59e0b] w-5 h-5 shrink-0" />
+          <Sparkles className="text-[#f59e0b] w-4.5 h-4.5 shrink-0" />
           <div className="flex flex-col justify-center min-w-0 flex-1">
             <span className="text-[10px] font-bold text-[#66716c] uppercase tracking-wider mb-0.5 truncate flex items-center gap-1">
-              Địa điểm vui chơi
+              Điểm vui chơi
               {selectedAttractions.length > 0 && (
                 <span className="bg-[#f59e0b] text-white text-[9px] px-1.5 py-0.2 rounded-xs font-bold leading-none">
                   {selectedAttractions.length}
@@ -459,7 +698,7 @@ export default function SearchHub() {
             </span>
             <span className="text-sm font-bold text-[#0a2e26] truncate">
               {selectedAttractions.length === 0
-                ? "Chọn điểm vui chơi"
+                ? "Chọn điểm đến"
                 : selectedAttractions.length === 1
                   ? (selectedAttractions[0]?.name ?? '')
                   : `${selectedAttractions.length} điểm đã chọn`}
@@ -474,7 +713,7 @@ export default function SearchHub() {
           onClick={handleNearMe}
           disabled={isLocating}
           className="h-[52px] sm:h-[58px] px-3 sm:px-3.5 bg-gradient-to-r from-emerald-50 to-teal-50 border border-teal-200 hover:border-[#048c73] hover:bg-teal-100/60 text-[#048c73] rounded-md transition-all flex items-center gap-1.5 sm:gap-2 shrink-0 group shadow-xs cursor-pointer active:scale-95 disabled:opacity-60"
-          title="Tự động nhận diện Tỉnh / Xã hiện tại của bạn qua OpenStreetMap"
+          title="Tự động nhận diện Tỉnh / Huyện / Xã hiện tại qua OpenStreetMap"
         >
           {isLocating ? (
             <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 text-[#048c73] animate-spin shrink-0" />
@@ -498,51 +737,72 @@ export default function SearchHub() {
         </Button>
       </div>
 
-      {/* ---------------- DESKTOP UNIFIED 3-PHẦN POPOVER ---------------- */}
+      {/* ---------------- DESKTOP UNIFIED 4-PHẦN POPOVER ---------------- */}
       {activeTab && (
         <div 
-          className="hidden md:flex absolute top-[110%] left-0 w-full max-w-[720px] bg-white rounded-lg shadow-2xl border border-gray-200 p-4 z-[100] flex-col gap-3.5 animate-in fade-in slide-in-from-top-2 duration-200"
+          className="hidden md:flex absolute top-[110%] left-0 w-full max-w-[760px] bg-white rounded-lg shadow-2xl border border-gray-200 p-4 z-[100] flex-col gap-3.5 animate-in fade-in slide-in-from-top-2 duration-200"
           onClick={stopPropagation}
         >
-          {/* Header Switcher: 3 Tabs */}
+          {/* Header Switcher: 4 Tabs */}
           <div className="flex items-center justify-between border-b border-gray-100 pb-2.5">
-            <div className="flex items-center gap-1.5 p-1 bg-gray-100 rounded-md">
+            <div className="flex items-center gap-1.5 p-1 bg-gray-100 rounded-md overflow-x-auto">
               <button
                 onClick={() => setActiveTab('province')}
-                className={`px-3 py-1.5 text-xs font-bold rounded transition-all flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 text-xs font-bold rounded transition-all flex items-center gap-1.5 whitespace-nowrap ${
                   activeTab === 'province' 
                     ? 'bg-white text-[#048c73] shadow-xs' 
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
                 <Building2 className="w-3.5 h-3.5" />
-                1. Thành phố / Tỉnh
+                1. Tỉnh/TP
                 {selectedProvince && <span className="text-[10px] text-[#048c73] font-normal">({selectedProvince})</span>}
               </button>
 
               <button
+                onClick={() => setActiveTab('district')}
+                className={`px-3 py-1.5 text-xs font-bold rounded transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                  activeTab === 'district' 
+                    ? 'bg-white text-[#048c73] shadow-xs' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <Landmark className="w-3.5 h-3.5" />
+                2. Quận/Huyện
+                {selectedDistrict ? (
+                  <span className="text-[10px] text-[#048c73] font-normal">({selectedDistrict})</span>
+                ) : (
+                  <span className="text-[10px] text-gray-400 font-normal">(Tất cả)</span>
+                )}
+              </button>
+
+              <button
                 onClick={() => setActiveTab('ward')}
-                className={`px-3 py-1.5 text-xs font-bold rounded transition-all flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 text-xs font-bold rounded transition-all flex items-center gap-1.5 whitespace-nowrap ${
                   activeTab === 'ward' 
                     ? 'bg-white text-[#048c73] shadow-xs' 
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
                 <Landmark className="w-3.5 h-3.5" />
-                2. Phường / Xã
-                {selectedWard && <span className="text-[10px] text-[#048c73] font-normal">({selectedWard})</span>}
+                3. Phường/Xã
+                {selectedWard ? (
+                  <span className="text-[10px] text-[#048c73] font-normal">({selectedWard})</span>
+                ) : (
+                  <span className="text-[10px] text-gray-400 font-normal">(Tất cả)</span>
+                )}
               </button>
 
               <button
                 onClick={() => setActiveTab('attractions')}
-                className={`px-3 py-1.5 text-xs font-bold rounded transition-all flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 text-xs font-bold rounded transition-all flex items-center gap-1.5 whitespace-nowrap ${
                   activeTab === 'attractions' 
                     ? 'bg-white text-[#048c73] shadow-xs' 
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
                 <Sparkles className="w-3.5 h-3.5 text-[#f59e0b]" />
-                3. Địa điểm vui chơi
+                4. Điểm vui chơi
                 {selectedAttractions.length > 0 && (
                   <span className="bg-[#f59e0b] text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold">
                     {selectedAttractions.length}
@@ -552,13 +812,14 @@ export default function SearchHub() {
             </div>
 
             {/* Nút đặt lại lựa chọn nếu có */}
-            {(selectedWard || selectedAttractions.length > 0) && (
+            {(selectedDistrict || selectedWard || selectedAttractions.length > 0) && (
               <button
                 onClick={() => {
+                  setSelectedDistrict(null);
                   setSelectedWard(null);
                   setSelectedAttractions([]);
                 }}
-                className="text-xs text-gray-400 hover:text-red-500 font-semibold cursor-pointer"
+                className="text-xs text-gray-400 hover:text-red-500 font-semibold cursor-pointer shrink-0 ml-2"
               >
                 Bỏ chọn lọc
               </button>
@@ -583,13 +844,16 @@ export default function SearchHub() {
               <div className="grid grid-cols-4 gap-2 max-h-[230px] overflow-y-auto p-1">
                 {filteredProvinces.map(p => {
                   const isSelected = selectedProvince === p.province;
+                  const districtCount = p.districts?.length || 0;
                   return (
                     <button
                       key={p.province}
                       onClick={() => {
                         setSelectedProvince(p.province);
+                        setSelectedDistrict(null);
                         setSelectedWard(null);
-                        setActiveTab('ward');
+                        setSelectedAttractions([]);
+                        setActiveTab('district');
                       }}
                       className={`p-2.5 rounded-md text-xs font-bold border transition-all text-left flex flex-col justify-between cursor-pointer ${
                         isSelected
@@ -598,7 +862,9 @@ export default function SearchHub() {
                       }`}
                     >
                       <span>{p.province}</span>
-                      <span className="text-[10px] text-gray-400 font-normal mt-1">{p.wards.length} xã/phường</span>
+                      <span className="text-[10px] text-gray-400 font-normal mt-1">
+                        {districtCount > 0 ? `${districtCount} quận/huyện` : 'Toàn tỉnh'}
+                      </span>
                     </button>
                   );
                 })}
@@ -606,7 +872,82 @@ export default function SearchHub() {
             </div>
           )}
 
-          {/* TAB 2: PHƯỜNG / XÃ */}
+          {/* TAB 2: QUẬN / HUYỆN (Default: Tất cả) */}
+          {activeTab === 'district' && (
+            <div className="flex flex-col gap-2.5">
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder={`Tìm quận, huyện tại ${selectedProvince}...`}
+                    value={districtSearch}
+                    onChange={(e) => setDistrictSearch(e.target.value)}
+                    className="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-md outline-none focus:border-[#048c73] focus:bg-white text-gray-800"
+                    autoFocus
+                  />
+                </div>
+                <button
+                  onClick={() => {
+                    setSelectedDistrict(null);
+                    setSelectedWard(null);
+                    setActiveTab('ward');
+                  }}
+                  className="text-xs font-bold text-[#048c73] hover:underline shrink-0 px-2 cursor-pointer"
+                >
+                  Tất cả huyện → Tiếp tục
+                </button>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 max-h-[230px] overflow-y-auto p-1">
+                {/* Lựa chọn 'Tất cả quận/huyện' */}
+                <button
+                  onClick={() => {
+                    setSelectedDistrict(null);
+                    setSelectedWard(null);
+                    setActiveTab('ward');
+                  }}
+                  className={`p-2.5 rounded-md text-xs font-bold border transition-all text-left flex items-center justify-between cursor-pointer ${
+                    selectedDistrict === null
+                      ? 'bg-[#048c73] text-white border-[#048c73] shadow-xs'
+                      : 'bg-white border-gray-200 text-gray-800 hover:border-[#048c73] hover:bg-[#edfbf7]'
+                  }`}
+                >
+                  <span>Tất cả quận/huyện</span>
+                  {selectedDistrict === null && <Check className="w-3.5 h-3.5 text-white shrink-0" />}
+                </button>
+
+                {currentDistricts.map(d => {
+                  const isSelected = selectedDistrict === d.name;
+                  return (
+                    <button
+                      key={d.name}
+                      onClick={() => {
+                        setSelectedDistrict(d.name);
+                        setSelectedWard(null);
+                        setActiveTab('ward');
+                      }}
+                      className={`p-2.5 rounded-md text-xs font-bold border transition-all text-left flex items-center justify-between cursor-pointer ${
+                        isSelected
+                          ? 'bg-[#048c73] text-white border-[#048c73] shadow-xs'
+                          : 'bg-white border-gray-200 text-gray-800 hover:border-[#048c73] hover:bg-[#edfbf7]'
+                      }`}
+                    >
+                      <div className="flex flex-col truncate">
+                        <span className="truncate">{d.name}</span>
+                        <span className={`text-[10px] font-normal ${isSelected ? 'text-teal-100' : 'text-gray-400'}`}>
+                          {d.wards?.length || 0} xã/phường
+                        </span>
+                      </div>
+                      {isSelected && <Check className="w-3.5 h-3.5 text-white shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: PHƯỜNG / XÃ (Default: Tất cả) */}
           {activeTab === 'ward' && (
             <div className="flex flex-col gap-2.5">
               <div className="flex items-center gap-2">
@@ -614,7 +955,7 @@ export default function SearchHub() {
                   <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
-                    placeholder={`Tìm nhanh phường, xã tại ${selectedProvince}...`}
+                    placeholder={`Tìm phường, xã ${selectedDistrict ? `tại ${selectedDistrict}` : `tại ${selectedProvince}`}...`}
                     value={wardSearch}
                     onChange={(e) => setWardSearch(e.target.value)}
                     className="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-md outline-none focus:border-[#048c73] focus:bg-white text-gray-800"
@@ -633,13 +974,30 @@ export default function SearchHub() {
               </div>
 
               <div className="grid grid-cols-3 gap-2 max-h-[230px] overflow-y-auto p-1">
-                {currentProvinceWards.map(w => {
+                {/* Lựa chọn 'Tất cả xã/phường' */}
+                <button
+                  onClick={() => {
+                    setSelectedWard(null);
+                    setActiveTab('attractions');
+                  }}
+                  className={`p-2.5 rounded-md text-xs font-bold border transition-all text-left flex items-center justify-between cursor-pointer ${
+                    selectedWard === null
+                      ? 'bg-[#048c73] text-white border-[#048c73] shadow-xs'
+                      : 'bg-white border-gray-200 text-gray-800 hover:border-[#048c73] hover:bg-[#edfbf7]'
+                  }`}
+                >
+                  <span>Tất cả xã/phường</span>
+                  {selectedWard === null && <Check className="w-3.5 h-3.5 text-white shrink-0" />}
+                </button>
+
+                {currentWards.map(w => {
                   const isSelected = selectedWard === w.name;
                   return (
                     <button
                       key={w.name}
                       onClick={() => {
-                        setSelectedWard(isSelected ? null : w.name);
+                        const nextWard = isSelected ? null : w.name;
+                        setSelectedWard(nextWard);
                         setActiveTab('attractions');
                       }}
                       className={`p-2.5 rounded-md text-xs font-bold border transition-all text-left flex items-center justify-between cursor-pointer ${
@@ -657,7 +1015,7 @@ export default function SearchHub() {
             </div>
           )}
 
-          {/* TAB 3: ĐỊA ĐIỂM VUI CHƠI */}
+          {/* TAB 4: ĐỊA ĐIỂM VUI CHƠI */}
           {activeTab === 'attractions' && (
             <div className="flex flex-col gap-2.5">
               <div className="flex items-center gap-2">
@@ -683,7 +1041,7 @@ export default function SearchHub() {
                 </div>
               ) : filteredAttractions.length === 0 ? (
                 <div className="text-center py-6 text-xs text-gray-500">
-                  Không tìm thấy địa điểm vui chơi nào khớp.
+                  Không tìm thấy địa điểm vui chơi nào khớp với khu vực đã chọn.
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-2 max-h-[230px] overflow-y-auto p-1">
@@ -761,7 +1119,7 @@ export default function SearchHub() {
         </div>
       )}
 
-      {/* ---------------- MOBILE MODAL (3 PHẦN: THÀNH PHỐ, PHƯỜNG XÃ, ĐỊA ĐIỂM VUI CHƠI) ---------------- */}
+      {/* ---------------- MOBILE MODAL (4 PHẦN: TỈNH, HUYỆN, XÃ, ĐIỂM VUI CHƠI) ---------------- */}
       {mountedTab && typeof window !== 'undefined' && createPortal(
         <div className="md:hidden fixed inset-0 z-[9999] flex justify-center items-end search-modal-portal">
           <div 
@@ -783,35 +1141,44 @@ export default function SearchHub() {
               </button>
             </div>
 
-            {/* Mobile Tab Selector */}
-            <div className="grid grid-cols-3 gap-1 p-2 bg-gray-100 border-b border-gray-200">
+            {/* Mobile Tab Selector: 4 Tabs */}
+            <div className="grid grid-cols-4 gap-1 p-2 bg-gray-100 border-b border-gray-200">
               <button
                 onClick={() => setActiveTab('province')}
-                className={`py-1.5 text-xs font-bold rounded text-center transition-all ${
+                className={`py-1.5 text-[11px] font-bold rounded text-center transition-all ${
                   activeTab === 'province' ? 'bg-white text-[#048c73] shadow-xs' : 'text-gray-600'
                 }`}
               >
-                1. Thành phố
+                1. Tỉnh/TP
+              </button>
+              <button
+                onClick={() => setActiveTab('district')}
+                className={`py-1.5 text-[11px] font-bold rounded text-center transition-all ${
+                  activeTab === 'district' ? 'bg-white text-[#048c73] shadow-xs' : 'text-gray-600'
+                }`}
+              >
+                2. Huyện
               </button>
               <button
                 onClick={() => setActiveTab('ward')}
-                className={`py-1.5 text-xs font-bold rounded text-center transition-all ${
+                className={`py-1.5 text-[11px] font-bold rounded text-center transition-all ${
                   activeTab === 'ward' ? 'bg-white text-[#048c73] shadow-xs' : 'text-gray-600'
                 }`}
               >
-                2. Phường/Xã
+                3. Xã
               </button>
               <button
                 onClick={() => setActiveTab('attractions')}
-                className={`py-1.5 text-xs font-bold rounded text-center transition-all ${
+                className={`py-1.5 text-[11px] font-bold rounded text-center transition-all ${
                   activeTab === 'attractions' ? 'bg-white text-[#048c73] shadow-xs' : 'text-gray-600'
                 }`}
               >
-                3. Điểm vui chơi ({selectedAttractions.length})
+                4. Vui chơi ({selectedAttractions.length})
               </button>
             </div>
             
             <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3">
+              {/* Tab 1: Tỉnh/TP */}
               {activeTab === 'province' && (
                 <div className="flex flex-col gap-2">
                   <input
@@ -827,8 +1194,9 @@ export default function SearchHub() {
                         key={p.province}
                         onClick={() => {
                           setSelectedProvince(p.province);
+                          setSelectedDistrict(null);
                           setSelectedWard(null);
-                          setActiveTab('ward');
+                          setActiveTab('district');
                         }}
                         className={`p-2.5 rounded-md text-xs font-bold border text-left cursor-pointer ${
                           selectedProvince === p.province ? 'bg-[#edfbf7] border-[#048c73] text-[#048c73]' : 'bg-white border-gray-200'
@@ -841,11 +1209,66 @@ export default function SearchHub() {
                 </div>
               )}
 
+              {/* Tab 2: Quận/Huyện */}
+              {activeTab === 'district' && (
+                <div className="flex flex-col gap-2">
+                  <input
+                    type="text"
+                    placeholder={`Tìm huyện tại ${selectedProvince}...`}
+                    value={districtSearch}
+                    onChange={(e) => setDistrictSearch(e.target.value)}
+                    className="p-2 text-xs bg-gray-50 border border-gray-200 rounded-md outline-none"
+                  />
+                  <button
+                    onClick={() => {
+                      setSelectedDistrict(null);
+                      setSelectedWard(null);
+                      setActiveTab('ward');
+                    }}
+                    className="text-xs text-[#048c73] font-bold text-left underline py-1 cursor-pointer"
+                  >
+                    Tất cả quận/huyện → Tiếp tục
+                  </button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => {
+                        setSelectedDistrict(null);
+                        setSelectedWard(null);
+                        setActiveTab('ward');
+                      }}
+                      className={`p-2.5 rounded-md text-xs font-bold border text-left flex justify-between items-center cursor-pointer ${
+                        selectedDistrict === null ? 'bg-[#048c73] text-white border-[#048c73]' : 'bg-white border-gray-200'
+                      }`}
+                    >
+                      <span>Tất cả quận/huyện</span>
+                      {selectedDistrict === null && <Check className="w-3.5 h-3.5 text-white" />}
+                    </button>
+                    {currentDistricts.map(d => (
+                      <button
+                        key={d.name}
+                        onClick={() => {
+                          setSelectedDistrict(d.name);
+                          setSelectedWard(null);
+                          setActiveTab('ward');
+                        }}
+                        className={`p-2.5 rounded-md text-xs font-bold border text-left flex justify-between items-center cursor-pointer ${
+                          selectedDistrict === d.name ? 'bg-[#048c73] text-white border-[#048c73]' : 'bg-white border-gray-200'
+                        }`}
+                      >
+                        <span className="truncate">{d.name}</span>
+                        {selectedDistrict === d.name && <Check className="w-3.5 h-3.5 text-white" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 3: Phường/Xã */}
               {activeTab === 'ward' && (
                 <div className="flex flex-col gap-2">
                   <input
                     type="text"
-                    placeholder={`Tìm phường, xã tại ${selectedProvince}...`}
+                    placeholder={`Tìm phường, xã...`}
                     value={wardSearch}
                     onChange={(e) => setWardSearch(e.target.value)}
                     className="p-2 text-xs bg-gray-50 border border-gray-200 rounded-md outline-none"
@@ -857,10 +1280,22 @@ export default function SearchHub() {
                     }}
                     className="text-xs text-[#048c73] font-bold text-left underline py-1 cursor-pointer"
                   >
-                    Bỏ qua xã → Đến chọn địa điểm vui chơi
+                    Tất cả phường/xã → Đến chọn địa điểm vui chơi
                   </button>
                   <div className="grid grid-cols-2 gap-2">
-                    {currentProvinceWards.map(w => (
+                    <button
+                      onClick={() => {
+                        setSelectedWard(null);
+                        setActiveTab('attractions');
+                      }}
+                      className={`p-2.5 rounded-md text-xs font-bold border text-left flex justify-between items-center cursor-pointer ${
+                        selectedWard === null ? 'bg-[#048c73] text-white border-[#048c73]' : 'bg-white border-gray-200'
+                      }`}
+                    >
+                      <span>Tất cả phường/xã</span>
+                      {selectedWard === null && <Check className="w-3.5 h-3.5 text-white" />}
+                    </button>
+                    {currentWards.map(w => (
                       <button
                         key={w.name}
                         onClick={() => {
@@ -871,7 +1306,7 @@ export default function SearchHub() {
                           selectedWard === w.name ? 'bg-[#048c73] text-white border-[#048c73]' : 'bg-white border-gray-200'
                         }`}
                       >
-                        <span>{w.name}</span>
+                        <span className="truncate">{w.name}</span>
                         {selectedWard === w.name && <Check className="w-3.5 h-3.5 text-white" />}
                       </button>
                     ))}
@@ -879,6 +1314,7 @@ export default function SearchHub() {
                 </div>
               )}
 
+              {/* Tab 4: Điểm vui chơi */}
               {activeTab === 'attractions' && (
                 <div className="flex flex-col gap-2">
                   <input
@@ -906,7 +1342,7 @@ export default function SearchHub() {
                           <div className={`w-4 h-4 rounded border flex items-center justify-center ${
                             isChecked ? 'bg-[#048c73] border-[#048c73] text-white' : 'border-gray-300'
                           }`}>
-                            {isChecked && <Check className="w-3 h-3" />}
+                            {isChecked && <Check className="w-3.5 h-3.5 text-white" />}
                           </div>
                         </div>
                       );

@@ -223,21 +223,25 @@ export default function BookingPage() {
     }
   }, [roomInfo.placeId, radius]);
 
-  // Tính khoảng cách Haversine chính xác theo tọa độ
+  // Xử lý khoảng cách và toạ độ dịch vụ xung quanh
   const processedNearbyPlaces = useMemo(() => {
-    const homeLat = roomInfo.latitude || 21.85;
-    const homeLng = roomInfo.longitude || 104.08;
+    const homeLat = roomInfo.latitude;
+    const homeLng = roomInfo.longitude;
 
     return nearbyPlaces.map((item) => {
-      const pLat = item.latitude ?? (homeLat + ((item.id % 7) - 3) * 0.007);
-      const pLng = item.longitude ?? (homeLng + ((item.id % 5) - 2) * 0.007);
-      const calculatedDistance = calculateDistanceKm(homeLat, homeLng, pLat, pLng);
+      let distanceValue = typeof item.distance === 'number' 
+        ? Math.round(item.distance * 10) / 10 
+        : 0;
+
+      if (distanceValue === 0 && homeLat && homeLng && item.latitude && item.longitude) {
+        distanceValue = calculateDistanceKm(homeLat, homeLng, item.latitude, item.longitude);
+      }
 
       return {
         ...item,
-        latitude: pLat,
-        longitude: pLng,
-        displayDistance: calculatedDistance,
+        latitude: item.latitude ?? homeLat,
+        longitude: item.longitude ?? homeLng,
+        displayDistance: distanceValue,
       };
     });
   }, [nearbyPlaces, roomInfo.latitude, roomInfo.longitude]);
@@ -1067,7 +1071,9 @@ export default function BookingPage() {
                               <button
                                 type="button"
                                 onClick={() => {
-                                  setSelectedMapTarget({ lat: item.latitude, lng: item.longitude, zoom: 16 });
+                                  const targetLat = item.latitude ?? roomInfo.latitude ?? 21.5833;
+                                  const targetLng = item.longitude ?? roomInfo.longitude ?? 104.1833;
+                                  setSelectedMapTarget({ lat: targetLat, lng: targetLng, zoom: 16 });
                                   setShowOsmModal(true);
                                 }}
                                 className="text-[11px] font-semibold text-gray-500 hover:text-[var(--color-primary)] flex items-center gap-1 cursor-pointer transition-colors"

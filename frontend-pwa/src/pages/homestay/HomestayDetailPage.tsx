@@ -166,22 +166,28 @@ export default function HomestayDetailPage() {
     }
   };
 
-  // Calculated distance between homestay and nearby place using OpenStreetMap coordinates
+  // Calculated distance between homestay and nearby place
   const processedNearbyPlaces = useMemo(() => {
     if (!homestay) return [];
-    const homeLat = homestay.latitude || 21.85;
-    const homeLng = homestay.longitude || 104.08;
+    const homeLat = homestay.latitude;
+    const homeLng = homestay.longitude;
 
     return nearbyPlaces.map((item) => {
-      const pLat = item.latitude ?? (homeLat + ((item.id % 7) - 3) * 0.007);
-      const pLng = item.longitude ?? (homeLng + ((item.id % 5) - 2) * 0.007);
-      const calculatedDistance = calculateDistanceKm(homeLat, homeLng, pLat, pLng);
+      // Ưu tiên khoảng cách chuẩn xác do Backend SQL Haversine tính toán
+      let distanceValue = typeof item.distance === 'number' 
+        ? Math.round(item.distance * 10) / 10 
+        : 0;
+
+      // Nếu có toạ độ thực của cả 2 phía và chưa có distance từ backend thì mới tính lại
+      if (distanceValue === 0 && homeLat && homeLng && item.latitude && item.longitude) {
+        distanceValue = calculateDistanceKm(homeLat, homeLng, item.latitude, item.longitude);
+      }
 
       return {
         ...item,
-        latitude: pLat,
-        longitude: pLng,
-        displayDistance: calculatedDistance,
+        latitude: item.latitude ?? homeLat,
+        longitude: item.longitude ?? homeLng,
+        displayDistance: distanceValue,
       };
     });
   }, [homestay, nearbyPlaces]);
