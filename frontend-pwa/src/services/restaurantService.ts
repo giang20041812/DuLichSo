@@ -46,17 +46,6 @@ export interface RestaurantFilterParams {
   amenities?: string[];
 }
 
-// Fallback ảnh ẩm thực Tây Bắc chất lượng cao
-const FOOD_FALLBACK_IMAGES = [
-  'https://images.unsplash.com/photo-1542159040-3b03f0b2f059?auto=format&fit=crop&w=800&q=80', // Thịt nướng / lẩu
-  'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80', // Quán ăn ấm cúng
-  'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80', // Ẩm thực thịnh soạn
-  'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80', // Không gian nhà hàng
-  'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80', // Nướng than hoa
-  'https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=800&q=80', // Ẩm thực bản địa
-  'https://images.unsplash.com/photo-1498654896293-37aacf113fd9?auto=format&fit=crop&w=800&q=80', // Món lẩu nóng hổi
-  'https://images.unsplash.com/photo-1559847844-5315695dadae?auto=format&fit=crop&w=800&q=80', // Bàn ăn ấm cúng
-];
 
 interface RawBackendPlaceItem {
   id: number;
@@ -104,11 +93,10 @@ export const fetchRestaurants = async (params?: RestaurantFilterParams): Promise
     const data: RawBackendPageResponse = await response.json();
     const content = data.content || [];
 
-    const mappedList: RestaurantDto[] = content.map((item, index) => {
-      const fallbackImg: string = FOOD_FALLBACK_IMAGES[index % FOOD_FALLBACK_IMAGES.length] ?? 'https://images.unsplash.com/photo-1542159040-3b03f0b2f059?auto=format&fit=crop&w=800&q=80';
+    const mappedList: RestaurantDto[] = content.map((item) => {
       const cover: string = (typeof item.coverImageUrl === 'string' && item.coverImageUrl.trim().length > 0)
         ? item.coverImageUrl
-        : fallbackImg;
+        : '';
 
       // Nhận diện loại hình món ăn từ tên quán
       const lowerName = item.name.toLowerCase();
@@ -129,38 +117,30 @@ export const fetchRestaurants = async (params?: RestaurantFilterParams): Promise
         specialtyTag = 'Gà đồi nướng mác khén';
       }
 
-      // Giá mặc định tham khảo bình dân vùng cao (nếu chưa có giá trong DB)
-      const basePrice = item.priceRefMin && item.priceRefMin > 0 ? item.priceRefMin : (80000 + (index % 4) * 40000);
-      const rating = item.ratingAvg && item.ratingAvg > 0 ? item.ratingAvg : (4.3 + ((index * 7) % 7) * 0.1);
-      const ratingRounded = Math.round(rating * 10) / 10;
-      const count = item.ratingCount && item.ratingCount > 0 ? item.ratingCount : (18 + ((index * 13) % 85));
+      const basePrice = item.priceRefMin && item.priceRefMin > 0 ? item.priceRefMin : 0;
+      const rating = item.ratingAvg || 0;
+      const count = item.ratingCount || 0;
 
       // Tiện ích quán ăn
-      const amenities: string[] = ['PARKING', 'AIR_CONDITION', 'WIFI'];
-      if (lowerName.includes('nhà sàn') || index % 2 === 0) {
-        amenities.push('STILT_HOUSE');
-      }
-      if (index % 3 === 0) {
-        amenities.push('PRIVATE_ROOM');
-      }
+      const amenities: string[] = [];
 
       return {
         id: item.id.toString(),
         name: item.name,
         coverImageUrl: cover,
-        description: item.description || `Nhà hàng phục vụ các món ăn truyền thống dân tộc tại Mù Cang Chải: Thắng cố, lợn cắp nách, gà đồi, cá suối, xôi nếp Tú Lệ dẻo thơm. Không gian ấm cúng, phục vụ tận tình chu đáo.`,
+        description: item.description || '',
         district: item.regionName || 'Mù Cang Chải',
         address: item.address || 'Thị trấn Mù Cang Chải, Yên Bái',
         latitude: item.latitude || undefined,
         longitude: item.longitude || undefined,
-        ratingScore: ratingRounded,
-        ratingText: ratingRounded >= 4.7 ? 'Xuất sắc' : ratingRounded >= 4.4 ? 'Tuyệt hảo' : 'Rất tốt',
+        ratingScore: rating,
+        ratingText: rating >= 4.7 ? 'Xuất sắc' : rating >= 4.4 ? 'Tuyệt hảo' : rating > 0 ? 'Rất tốt' : 'Chưa có đánh giá',
         reviewCount: count,
-        promotionalBadge: item.tagBadge || (index % 3 === 0 ? 'Được yêu thích' : undefined),
+        promotionalBadge: item.tagBadge || undefined,
         specialtyTag,
         cuisineType: cuisine,
         priceMin: basePrice,
-        priceMax: item.priceRefMax || basePrice * 2,
+        priceMax: item.priceRefMax || (basePrice > 0 ? basePrice * 2 : 0),
         priceUnitNote: item.priceUnitNote || 'người',
         amenities,
         contacts: item.contacts || [],

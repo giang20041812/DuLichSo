@@ -36,6 +36,7 @@ import { fetchNearbyPlaces, getHomestayById } from '@/services/homestayService';
 import { getCurrentCustomer } from '@/services/authService';
 import { NearbyPlaceDto } from '@/types/homestay';
 import { Button } from '@/components/ui/button';
+import { VietTrackLogoMark } from '@/components/ui/logo';
 import OpenStreetMapView, { OsmMarkerItem } from '@/components/map/OpenStreetMapView';
 
 // Helper tính khoảng cách Haversine chuẩn theo tọa độ GPS/OSM
@@ -222,21 +223,25 @@ export default function BookingPage() {
     }
   }, [roomInfo.placeId, radius]);
 
-  // Tính khoảng cách Haversine chính xác theo tọa độ
+  // Xử lý khoảng cách và toạ độ dịch vụ xung quanh
   const processedNearbyPlaces = useMemo(() => {
-    const homeLat = roomInfo.latitude || 21.85;
-    const homeLng = roomInfo.longitude || 104.08;
+    const homeLat = roomInfo.latitude;
+    const homeLng = roomInfo.longitude;
 
     return nearbyPlaces.map((item) => {
-      const pLat = item.latitude ?? (homeLat + ((item.id % 7) - 3) * 0.007);
-      const pLng = item.longitude ?? (homeLng + ((item.id % 5) - 2) * 0.007);
-      const calculatedDistance = calculateDistanceKm(homeLat, homeLng, pLat, pLng);
+      let distanceValue = typeof item.distance === 'number' 
+        ? Math.round(item.distance * 10) / 10 
+        : 0;
+
+      if (distanceValue === 0 && homeLat && homeLng && item.latitude && item.longitude) {
+        distanceValue = calculateDistanceKm(homeLat, homeLng, item.latitude, item.longitude);
+      }
 
       return {
         ...item,
-        latitude: pLat,
-        longitude: pLng,
-        displayDistance: calculatedDistance,
+        latitude: item.latitude ?? homeLat,
+        longitude: item.longitude ?? homeLng,
+        displayDistance: distanceValue,
       };
     });
   }, [nearbyPlaces, roomInfo.latitude, roomInfo.longitude]);
@@ -470,11 +475,9 @@ export default function BookingPage() {
       <header className="w-full bg-white border-b border-gray-200/90 sticky top-0 z-40 shadow-xs">
         <div className="max-w-[1180px] mx-auto px-4 md:px-6 h-16 flex items-center">
           <Link to="/" className="flex items-center gap-2.5 md:gap-3 group">
-            <div className="p-2 rounded-md bg-[var(--color-primary)] text-white shadow-xs transition-transform group-hover:scale-105">
-              <Compass className="w-5 h-5 md:w-6 md:h-6" />
-            </div>
-            <span className="text-xl md:text-2xl font-bold font-display leading-none tracking-tight text-[var(--color-ink-deep)]">
-              VietJourney
+            <VietTrackLogoMark size={38} className="transition-transform group-hover:scale-105" />
+            <span className="text-xl md:text-2xl font-black font-display leading-none tracking-tight text-[var(--color-ink-deep)]">
+              Đi Du Lịch
             </span>
           </Link>
         </div>
@@ -1068,7 +1071,9 @@ export default function BookingPage() {
                               <button
                                 type="button"
                                 onClick={() => {
-                                  setSelectedMapTarget({ lat: item.latitude, lng: item.longitude, zoom: 16 });
+                                  const targetLat = item.latitude ?? roomInfo.latitude ?? 21.5833;
+                                  const targetLng = item.longitude ?? roomInfo.longitude ?? 104.1833;
+                                  setSelectedMapTarget({ lat: targetLat, lng: targetLng, zoom: 16 });
                                   setShowOsmModal(true);
                                 }}
                                 className="text-[11px] font-semibold text-gray-500 hover:text-[var(--color-primary)] flex items-center gap-1 cursor-pointer transition-colors"

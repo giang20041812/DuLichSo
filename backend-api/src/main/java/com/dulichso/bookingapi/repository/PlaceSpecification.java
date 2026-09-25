@@ -32,6 +32,7 @@ public class PlaceSpecification {
             LocalDate checkIn,
             LocalDate checkOut,
             String province,
+            String district,
             String ward,
             List<Long> attractionIds) {
             
@@ -96,19 +97,35 @@ public class PlaceSpecification {
                 Join<Object, Object> regionJoin = root.join("region", jakarta.persistence.criteria.JoinType.LEFT);
                 predicates.add(regionJoin.get("id").in(attractionRegionSq));
             } else {
-                // Nếu không filter theo địa điểm, áp dụng filter Phường/Xã hoặc Tỉnh
+                // Nếu không filter theo địa điểm, áp dụng filter Phường/Xã -> Huyện -> Tỉnh
+                // Kiểm tra liên kết phân cấp cha con qua region.name, region.parent.name, region.path và place.address
                 if (ward != null && !ward.trim().isEmpty()) {
                     String wardClean = ward.trim().toLowerCase();
                     Join<Object, Object> regionJoin = root.join("region", jakarta.persistence.criteria.JoinType.LEFT);
                     Predicate matchRegion = cb.like(cb.lower(regionJoin.get("name")), "%" + wardClean + "%");
+                    Predicate matchPath = cb.like(cb.lower(regionJoin.get("path")), "%" + wardClean + "%");
                     Predicate matchAddress = cb.like(cb.lower(root.get("address")), "%" + wardClean + "%");
-                    predicates.add(cb.or(matchRegion, matchAddress));
+                    predicates.add(cb.or(matchRegion, matchPath, matchAddress));
+                } else if (district != null && !district.trim().isEmpty()) {
+                    String distClean = district.trim().toLowerCase();
+                    Join<Object, Object> regionJoin = root.join("region", jakarta.persistence.criteria.JoinType.LEFT);
+                    Join<Object, Object> parentJoin = regionJoin.join("parent", jakarta.persistence.criteria.JoinType.LEFT);
+                    Predicate matchRegion = cb.like(cb.lower(regionJoin.get("name")), "%" + distClean + "%");
+                    Predicate matchParent = cb.like(cb.lower(parentJoin.get("name")), "%" + distClean + "%");
+                    Predicate matchPath = cb.like(cb.lower(regionJoin.get("path")), "%" + distClean + "%");
+                    Predicate matchAddress = cb.like(cb.lower(root.get("address")), "%" + distClean + "%");
+                    predicates.add(cb.or(matchRegion, matchParent, matchPath, matchAddress));
                 } else if (province != null && !province.trim().isEmpty()) {
                     String provClean = province.trim().toLowerCase();
                     Join<Object, Object> regionJoin = root.join("region", jakarta.persistence.criteria.JoinType.LEFT);
+                    Join<Object, Object> parentJoin = regionJoin.join("parent", jakarta.persistence.criteria.JoinType.LEFT);
+                    Join<Object, Object> grandParentJoin = parentJoin.join("parent", jakarta.persistence.criteria.JoinType.LEFT);
                     Predicate matchRegion = cb.like(cb.lower(regionJoin.get("name")), "%" + provClean + "%");
+                    Predicate matchParent = cb.like(cb.lower(parentJoin.get("name")), "%" + provClean + "%");
+                    Predicate matchGrandParent = cb.like(cb.lower(grandParentJoin.get("name")), "%" + provClean + "%");
+                    Predicate matchPath = cb.like(cb.lower(regionJoin.get("path")), "%" + provClean + "%");
                     Predicate matchAddress = cb.like(cb.lower(root.get("address")), "%" + provClean + "%");
-                    predicates.add(cb.or(matchRegion, matchAddress));
+                    predicates.add(cb.or(matchRegion, matchParent, matchGrandParent, matchPath, matchAddress));
                 }
             }
             

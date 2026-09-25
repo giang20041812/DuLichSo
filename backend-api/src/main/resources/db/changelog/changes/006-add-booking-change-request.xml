@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <changeSet id="006-create-booking-change-request" author="dulichso">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="booking_change_request"/>
+            </not>
+        </preConditions>
+        <createTable tableName="booking_change_request"
+                     remarks="Yêu cầu thay đổi chi tiết booking khi trạng thái đã CONFIRMED">
+            <column name="id" type="BIGINT UNSIGNED" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="booking_id" type="BIGINT UNSIGNED">
+                <constraints nullable="false" foreignKeyName="fk_bcr_booking" references="booking(id)" deleteCascade="true"/>
+            </column>
+            <column name="status" type="ENUM('PENDING','APPROVED','REJECTED')" defaultValue="PENDING">
+                <constraints nullable="false"/>
+            </column>
+            <column name="guest_name" type="VARCHAR(255)"/>
+            <column name="guest_phone" type="VARCHAR(32)"/>
+            <column name="guest_email" type="VARCHAR(255)"/>
+            <column name="guest_note" type="TEXT"/>
+            <column name="service_items_json" type="JSON"/>
+            <column name="check_in" type="DATE"/>
+            <column name="check_out" type="DATE"/>
+            <column name="room_count" type="INT"/>
+            <column name="guest_count" type="INT"/>
+            <column name="reason" type="VARCHAR(500)"/>
+            <column name="rejection_reason" type="VARCHAR(500)"/>
+            <column name="reviewed_by" type="BIGINT UNSIGNED"/>
+            <column name="reviewed_at" type="DATETIME"/>
+            <column name="created_at" type="DATETIME" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createIndex tableName="booking_change_request" indexName="idx_bcr_booking">
+            <column name="booking_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

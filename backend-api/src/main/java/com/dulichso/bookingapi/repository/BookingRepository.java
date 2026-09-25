@@ -66,6 +66,14 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, org.spr
     );
 
     @org.springframework.data.jpa.repository.Query("""
+        SELECT b FROM Booking b
+        JOIN FETCH b.place p
+        JOIN FETCH b.roomType rt
+        ORDER BY b.createdAt DESC
+    """)
+    java.util.List<Booking> findAllWithDetails();
+
+    @org.springframework.data.jpa.repository.Query("""
         SELECT b FROM Booking b 
         WHERE b.roomType.id = :roomTypeId 
           AND b.status IN (com.dulichso.bookingapi.entity.enums.BookingStatus.PENDING, 

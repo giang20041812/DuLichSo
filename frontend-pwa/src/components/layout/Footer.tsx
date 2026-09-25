@@ -91,7 +91,7 @@ export default function Footer() {
             <ShieldCheck className="w-3.5 h-3.5" /> Đã Đăng Ký Bộ Công Thương
           </div>
           <p className="text-[11px] text-[#66716c]">
-            &copy; {new Date().getFullYear()} VietTrack. Bảo lưu mọi quyền.
+            &copy; {new Date().getFullYear()} Đi Du Lịch. Bảo lưu mọi quyền.
           </p>
         </div>
         

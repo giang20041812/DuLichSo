@@ -64,7 +64,7 @@ export function AuthShell({ title, subtitle, children, footer, image }: AuthShel
           </ul>
         </div>
 
-        <p className="relative text-xs text-white/60">© VietTrack — Du lịch di sản Việt Nam</p>
+        <p className="relative text-xs text-white/60">© Đi Du Lịch — Du lịch di sản Việt Nam</p>
       </aside>
 
       {/* Form */}

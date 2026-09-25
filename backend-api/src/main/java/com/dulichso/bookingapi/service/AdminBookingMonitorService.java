@@ -101,7 +101,8 @@ public class AdminBookingMonitorService {
                 && b.getPaymentDeadlineAt().isBefore(now)) {
             reasons.add(AttentionReason.PAYMENT_OVERDUE);
         }
-        if (s == BookingStatus.CONFIRMED && b.getCheckOut() != null && b.getCheckOut().isBefore(now.toLocalDate())) {
+        if ((s == BookingStatus.CONFIRMED || s == BookingStatus.CHECKED_IN)
+                && b.getCheckOut() != null && b.getCheckOut().isBefore(now.toLocalDate())) {
             reasons.add(AttentionReason.STAY_UNRESOLVED);
         }
         if (followUp) {
@@ -127,7 +128,7 @@ public class AdminBookingMonitorService {
                     cb.lessThan(root.get("createdAt"), now.minusHours(PENDING_STALE_HOURS)));
             var payment = cb.and(cb.equal(root.get("status"), BookingStatus.AWAITING_PAYMENT),
                     cb.lessThan(root.get("paymentDeadlineAt"), now));
-            var stay = cb.and(cb.equal(root.get("status"), BookingStatus.CONFIRMED),
+            var stay = cb.and(root.get("status").in(BookingStatus.CONFIRMED, BookingStatus.CHECKED_IN),
                     cb.lessThan(root.get("checkOut"), today));
             var followUp = followUpIds.isEmpty() ? cb.disjunction() : root.get("id").in(followUpIds);
             return cb.or(pending, payment, stay, followUp);

@@ -15,7 +15,8 @@ import {
   X, 
   LogIn, 
   UserPlus, 
-  LogOut 
+  LogOut,
+  Download,
 } from 'lucide-react';
 import { VietTrackLogoMark } from '../ui/logo';
 import { clearAllAuthSession } from '@/services/authService';
@@ -40,6 +41,7 @@ const navItems = [
   { id: 'tours', path: '/tours', label: 'Trải nghiệm du lịch', icon: <Sparkles className="w-5 h-5" /> },
   { id: 'transport', path: '/transport', label: 'Vận chuyển', icon: <Bus className="w-5 h-5" /> },
   { id: 'services', path: '/services', label: 'Dịch vụ & Tiện ích', icon: <Layers className="w-5 h-5" /> },
+  { id: 'download', path: '/download', label: 'Cài đặt ứng dụng', icon: <Download className="w-5 h-5" /> },
 ];
 
 export default function Sidebar({ 
@@ -123,7 +125,7 @@ export default function Sidebar({
           >
             <VietTrackLogoMark size={34} className="transition-transform group-hover:scale-105" />
             <div className="flex flex-col leading-none">
-              <span className="text-lg font-black font-display text-[var(--color-ink-deep)]">VietTrack</span>
+              <span className="text-lg font-black font-display text-[var(--color-ink-deep)]">Đi Du Lịch</span>
               <span className="text-[9px] font-bold text-[var(--color-primary)] uppercase tracking-wider mt-1">Du Lịch Di Sản</span>
             </div>
           </div>

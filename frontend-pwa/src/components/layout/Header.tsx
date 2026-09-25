@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { VietTrackLogoMark } from "../ui/logo";
 import { getCurrentCustomer, clearAllAuthSession, type CurrentCustomer } from "@/services/authService";
+import NotificationBell from "./NotificationBell";
 
 interface HeaderProps {
   isSidebarOpen?: boolean;
@@ -178,7 +179,7 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
                   isScrolled ? 'text-[17px] md:text-[20px]' : 'text-[20px] md:text-[23px]'
                 } ${isSolid ? 'text-[var(--color-ink-deep)]' : 'text-white drop-shadow-md'}`}
               >
-                VietTrack
+                Đi Du Lịch
               </span>
               <span
                 className={`font-semibold tracking-wider uppercase mt-0.5 transition-all duration-300 ${
@@ -191,20 +192,24 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
           </Link>
 
           {/* Cụm bên phải: Nút Đăng nhập/Đăng ký HOẶC Icon người dùng kèm Tên & Dropdown */}
-          <div className="flex items-center gap-2" ref={dropdownRef}>
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0" ref={dropdownRef}>
             {user ? (
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setIsDropdownOpen((v) => !v)}
-                  className={`flex items-center gap-1.5 sm:gap-2 p-1 sm:px-2.5 sm:py-1.5 rounded-md transition-all cursor-pointer border ${
-                    isSolid
-                      ? 'bg-white/90 border-gray-200 hover:border-[var(--color-primary)] hover:bg-[#edfbf7]/50 shadow-xs'
-                      : 'bg-white/15 backdrop-blur-md border-white/30 text-white hover:bg-white/25 shadow-xs'
-                  }`}
-                  aria-expanded={isDropdownOpen}
-                  aria-haspopup="true"
-                >
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                {/* Icon hình thông báo ở bên cạnh icon ava */}
+                <NotificationBell isSolid={isSolid} />
+
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsDropdownOpen((v) => !v)}
+                    className={`flex items-center gap-1.5 sm:gap-2 p-1 sm:px-2.5 sm:py-1.5 rounded-md transition-all cursor-pointer border ${
+                      isSolid
+                        ? 'bg-white/90 border-gray-200 hover:border-[var(--color-primary)] hover:bg-[#edfbf7]/50 shadow-xs'
+                        : 'bg-white/15 backdrop-blur-md border-white/30 text-white hover:bg-white/25 shadow-xs'
+                    }`}
+                    aria-expanded={isDropdownOpen}
+                    aria-haspopup="true"
+                  >
                   {user.picture ? (
                     <img
                       src={user.picture}
@@ -309,31 +314,35 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
                     </div>
                   </div>
                 )}
+                </div>
               </div>
             ) : (
               /* Nút Đăng nhập / Đăng ký trên Header */
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                <NotificationBell isSolid={isSolid} />
                 <Link
                   to="/login"
-                  className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-bold transition-all shadow-xs ${
+                  title="Đăng nhập"
+                  className={`inline-flex items-center justify-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-md text-xs font-bold transition-all shadow-xs ${
                     isSolid
                       ? 'bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark,#03705C)]'
                       : 'bg-white/20 backdrop-blur-md text-white border border-white/40 hover:bg-white/30'
                   }`}
                 >
-                  <LogIn className="w-3.5 h-3.5" />
-                  <span>Đăng nhập</span>
+                  <LogIn className="w-3.5 h-3.5 shrink-0" />
+                  <span className="hidden xs:inline">Đăng nhập</span>
                 </Link>
                 <Link
                   to="/register"
-                  className={`hidden sm:inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-bold transition-all shadow-xs ${
+                  title="Đăng ký tài khoản"
+                  className={`inline-flex items-center justify-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-md text-xs font-bold transition-all shadow-xs ${
                     isSolid
                       ? 'border border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[#edfbf7]'
                       : 'border border-white/70 text-white hover:bg-white/20'
                   }`}
                 >
-                  <UserPlus className="w-3.5 h-3.5" />
-                  <span>Đăng ký</span>
+                  <UserPlus className="w-3.5 h-3.5 shrink-0" />
+                  <span className="hidden sm:inline">Đăng ký</span>
                 </Link>
               </div>
             )}

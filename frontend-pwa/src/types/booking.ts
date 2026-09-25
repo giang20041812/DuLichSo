@@ -3,11 +3,19 @@ export type BookingStatus =
   | 'PENDING'
   | 'AWAITING_PAYMENT'
   | 'CONFIRMED'
-  | 'REJECTED'
-  | 'CANCELLED'
-  | 'EXPIRED'
+  | 'CHECKED_IN'
+  | 'CHECKED_OUT'
   | 'COMPLETED'
+  | 'REFUNDED'
+  | 'CANCELLED'
+  | 'REJECTED'
+  | 'EXPIRED'
   | 'NO_SHOW';
+
+export interface CancelBookingRequest {
+  reason: string;
+  note?: string;
+}
 
 export interface BookingServiceItemDto {
   id?: number;
@@ -33,6 +41,46 @@ export interface CreateBookingRequest {
   serviceItems?: BookingServiceItemDto[];
 }
 
+export interface BookingChangeRequestDto {
+  id: number;
+  bookingId: number;
+  bookingCode: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  guestName?: string;
+  guestPhone?: string;
+  guestEmail?: string;
+  guestNote?: string;
+  checkIn?: string;
+  checkOut?: string;
+  roomCount?: number;
+  guestCount?: number;
+  reason?: string;
+  rejectionReason?: string;
+  reviewedBy?: number;
+  reviewedAt?: string;
+  createdAt: string;
+}
+
+export interface UpdateBookingDetailsRequest {
+  guestName?: string;
+  guestPhone?: string;
+  guestEmail?: string;
+  guestNote?: string;
+  checkIn?: string;
+  checkOut?: string;
+  roomCount?: number;
+  guestCount?: number;
+  reason?: string;
+  serviceItems?: BookingServiceItemDto[];
+}
+
+export interface CheckAvailabilityResponse {
+  available: boolean;
+  requestedRooms: number;
+  minAvailableRooms: number;
+  message: string;
+}
+
 // DTO nhận về từ backend — field name khớp với BookingResponseDto.java
 export interface BookingResponseDto {
   id: number;
@@ -40,6 +88,8 @@ export interface BookingResponseDto {
   placeId: number;
   placeName: string;
   placeAddress: string;
+  latitude?: number | null;
+  longitude?: number | null;
   coverImageUrl?: string | null;
   roomTypeId: number;
   roomTypeName: string;
@@ -60,6 +110,7 @@ export interface BookingResponseDto {
   holdExpiresAt: string;   // ISO datetime
   policySnapshot: Record<string, unknown>;
   serviceItems?: BookingServiceItemDto[];
+  changeRequests?: BookingChangeRequestDto[];
 }
 
 // State truyền từ HomestayDetailPage -> BookingPage qua navigate()

@@ -120,6 +120,7 @@ export const saveTravelerSession = (res: GoogleLoginResponse) => {
 };
 
 export interface CurrentCustomer {
+  id?: number;
   fullName: string;
   email: string;
   phone?: string;
@@ -137,6 +138,7 @@ export const getCurrentCustomer = (): CurrentCustomer | null => {
     try {
       const parsed = JSON.parse(rawTraveler);
       return {
+        id: parsed.id ? Number(parsed.id) : undefined,
         fullName: parsed.fullName || '',
         email: parsed.email || '',
         phone: parsed.phone || '',
@@ -154,6 +156,7 @@ export const getCurrentCustomer = (): CurrentCustomer | null => {
     try {
       const parsed = JSON.parse(rawPortal);
       return {
+        id: (parsed.id || parsed.accountId) ? Number(parsed.id || parsed.accountId) : undefined,
         fullName: parsed.fullName || '',
         email: parsed.email || '',
         phone: parsed.phone || '',

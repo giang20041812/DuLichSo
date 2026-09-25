@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { AlertTriangle, Check, ClipboardCheck, Copy, FileText, Mail, Phone, SearchCheck, Send, ShieldAlert, StickyNote, X } from 'lucide-react';
+import { AlertTriangle, Check, CheckCircle2, ClipboardCheck, Copy, FileText, Mail, Phone, RotateCcw, SearchCheck, Send, ShieldAlert, StickyNote, X, XCircle } from 'lucide-react';
 import { adminService } from '@/services/adminService';
+import { partnerBookingService } from '@/services/partnerBookingService';
 import { getApiErrorMessage } from '@/lib/apiError';
 import type {
   AdminBookingDetailDto,
@@ -8,6 +9,7 @@ import type {
   BookingNoteDto,
   BookingNoteKind,
   BookingNoteOutcome,
+  BookingStatus,
 } from '@/types/admin';
 import { StatusBadge } from './StatusBadge';
 import Avatar from './Avatar';
@@ -68,7 +70,38 @@ export default function BookingDetailDrawer({ booking, scope, onClose, onChanged
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const b = detail?.booking ?? booking;
+  // Trạng thái vừa đổi tại chỗ (phía đối tác không tải lại chi tiết nên cần ghi đè cục bộ).
+  const [statusOverride, setStatusOverride] = useState<{ status: BookingStatus; closeReason?: string } | null>(null);
+  const [updating, setUpdating] = useState(false);
+  const [actionMsg, setActionMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+
+  const base = detail?.booking ?? booking;
+  const b = statusOverride ? { ...base, status: statusOverride.status, closeReason: statusOverride.closeReason ?? base.closeReason } : base;
+
+  /** Đổi trạng thái đơn (Xác nhận / Từ chối / Hoàn tiền) qua API của Admin hoặc Đối tác. */
+  const handleUpdateStatus = async (newStatus: BookingStatus, reason?: string) => {
+    setUpdating(true);
+    setActionMsg(null);
+    try {
+      const updateFn = scope === 'partner' ? partnerBookingService.updateStatus : adminService.updateBookingStatus;
+      await updateFn(b.id, newStatus, reason);
+      setStatusOverride({ status: newStatus, closeReason: reason });
+      setRejectOpen(false);
+      setRejectReason('');
+      setActionMsg({ type: 'success', text: `Đã đổi trạng thái đơn sang: ${STATUS_LABEL[newStatus]}` });
+      onChanged?.();
+      if (scope === 'admin') void load();
+    } catch (err: unknown) {
+      setActionMsg({ type: 'error', text: getApiErrorMessage(err, 'Cập nhật trạng thái thất bại. Vui lòng thử lại.') });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const canDecide = b.status === 'PENDING' || b.status === 'AWAITING_PAYMENT';
+  const canRefund = b.status === 'CONFIRMED';
 
   const copyCode = async () => {
     try {
@@ -296,6 +329,90 @@ export default function BookingDetailDrawer({ booking, scope, onClose, onChanged
             </div>
           )}
         </div>
+        {(canDecide || canRefund || actionMsg) && (
+          <footer className="border-t border-border bg-canvas/60 px-5 py-3">
+            {actionMsg && (
+              <p
+                role="status"
+                className={`mb-2.5 rounded-md border px-3 py-2 text-xs font-medium ${
+                  actionMsg.type === 'success' ? 'border-accent/40 bg-accent/10 text-primary-700' : 'border-danger/30 bg-danger/10 text-danger'
+                }`}
+              >
+                {actionMsg.text}
+              </p>
+            )}
+            {canDecide &&
+              (rejectOpen ? (
+                <div className="rise-in flex flex-col gap-2">
+                  <label htmlFor="reject-reason" className="text-xs font-semibold text-ink-deep">
+                    Lý do từ chối
+                  </label>
+                  <input
+                    id="reject-reason"
+                    type="text"
+                    autoFocus
+                    value={rejectReason}
+                    onChange={(e) => setRejectReason(e.target.value)}
+                    placeholder="Vd: Hết phòng trong ngày khách chọn..."
+                    className="h-9 rounded-md border border-danger/40 bg-white px-3 text-xs text-ink focus:border-danger focus:outline-none focus:ring-2 focus:ring-danger/20"
+                  />
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRejectOpen(false);
+                        setRejectReason('');
+                      }}
+                      className="h-9 rounded-md px-3 text-xs font-semibold text-muted transition-colors hover:bg-hover hover:text-ink"
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      type="button"
+                      disabled={updating}
+                      onClick={() => void handleUpdateStatus('REJECTED', rejectReason.trim() || 'Không còn phòng trống.')}
+                      className="flex h-9 items-center gap-1.5 rounded-md bg-danger px-3 text-xs font-semibold text-white shadow-xs transition-opacity hover:opacity-90 disabled:opacity-50"
+                    >
+                      <XCircle className="h-4 w-4" /> Xác nhận từ chối
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={updating}
+                    onClick={() => void handleUpdateStatus('CONFIRMED')}
+                    className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-md bg-accent px-3 text-xs font-semibold text-white shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:bg-accent-600 disabled:opacity-50 disabled:hover:translate-y-0"
+                  >
+                    <CheckCircle2 className="h-4 w-4" /> {updating ? 'Đang cập nhật...' : 'Xác nhận đơn'}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={updating}
+                    onClick={() => setRejectOpen(true)}
+                    className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-md border border-danger/40 bg-white px-3 text-xs font-semibold text-danger transition-colors hover:bg-danger/5 disabled:opacity-50"
+                  >
+                    <XCircle className="h-4 w-4" /> Từ chối
+                  </button>
+                </div>
+              ))}
+            {canRefund && (
+              <button
+                type="button"
+                disabled={updating}
+                onClick={() => {
+                  if (window.confirm(`Duyệt hoàn tiền cho đơn ${b.bookingCode}?`)) {
+                    void handleUpdateStatus('REFUNDED', 'Quản lý duyệt hoàn tiền theo chính sách');
+                  }
+                }}
+                className="flex h-9 w-full items-center justify-center gap-1.5 rounded-md border border-sun/60 bg-white px-3 text-xs font-semibold text-amber-700 transition-colors hover:bg-sun/10 disabled:opacity-50"
+              >
+                <RotateCcw className="h-4 w-4" /> {updating ? 'Đang cập nhật...' : 'Duyệt hoàn tiền cho đơn'}
+              </button>
+            )}
+          </footer>
+        )}
       </aside>
     </div>
     </OverlayPortal>

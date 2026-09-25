@@ -59,5 +59,6 @@ public class CreateBookingRequest {
         private String serviceName;
         private String serviceCode;
         private String note;
+        private Boolean isIncluded;
     }
 }

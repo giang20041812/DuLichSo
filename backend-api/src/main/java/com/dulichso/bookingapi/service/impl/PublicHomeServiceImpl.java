@@ -91,29 +91,14 @@ public class PublicHomeServiceImpl implements PublicHomeService {
 
     private void enrichPlaceSummaries(List<PlaceSummaryDto> dtos) {
         for (PlaceSummaryDto dto : dtos) {
-            // Provide sensible fallbacks for UI
-            dto.setTagBadge("Đề xuất");
-            dto.setStatsText("Khám phá ngay");
-            dto.setDurationText("Trong ngày");
-            
             // Extract from attributes map
             if (dto.getAttributes() != null && !dto.getAttributes().isEmpty()) {
                 Map<String, Object> attrs = dto.getAttributes();
-                if (attrs.containsKey("tagBadge")) {
+                if (attrs.containsKey("tagBadge") && dto.getTagBadge() == null) {
                     dto.setTagBadge((String) attrs.get("tagBadge"));
                 }
-                if (attrs.containsKey("duration")) {
+                if (attrs.containsKey("duration") && dto.getDurationText() == null) {
                     dto.setDurationText((String) attrs.get("duration"));
-                }
-            }
-            
-            // Default amenities if none
-            dto.setAmenities(List.of("Wi-fi miễn phí", "Gần trung tâm", "Cảnh quan đẹp"));
-            dto.setHighlights(List.of("Trải nghiệm tuyệt vời", "Dịch vụ tận tâm", "Giá tốt"));
-            
-            if (dto.getKind() == CategoryKind.TRANSPORT || dto.getKind() == CategoryKind.RENTAL) {
-                if (dto.getPriceRefMin() != null) {
-                    dto.setTagBadge("Khuyến mãi");
                 }
             }
         }

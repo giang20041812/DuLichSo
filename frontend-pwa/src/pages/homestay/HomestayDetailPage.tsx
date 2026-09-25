@@ -28,7 +28,9 @@ import {
   Lightbulb,
   Phone,
   Globe,
-  ExternalLink
+  ExternalLink,
+  Video,
+  Play
 } from 'lucide-react';
 import SearchHub from '@/components/layout/SearchHub';
 import {
@@ -44,6 +46,14 @@ import { ReviewDto } from '@/types/review';
 import { Button } from '@/components/ui/button';
 import OpenStreetMapView, { OsmMarkerItem } from '@/components/map/OpenStreetMapView';
 import RoomBookingCard from '@/components/homestay/RoomBookingCard';
+import { TikTokEmbed } from '@/components/homestay/TikTokEmbed';
+
+// Helper trích xuất ID video TikTok từ link
+function extractTikTokVideoId(url: string): string | null {
+  if (!url) return null;
+  const match = url.match(/\/video\/(\d+)/);
+  return (match && match[1]) ? match[1] : null;
+}
 
 // Helper tính khoảng cách Haversine chính xác theo OpenStreetMap / GPS tọa độ
 function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -98,6 +108,17 @@ export default function HomestayDetailPage() {
     d.setDate(d.getDate() + 3);
     return d.toISOString().slice(0, 10);
   }, []);
+
+  // TikTok Video from homestay contacts
+  const tiktokContact = useMemo(() => {
+    if (!homestay?.contacts) return null;
+    return homestay.contacts.find((c) => c.channel === 'TIKTOK' && c.value);
+  }, [homestay]);
+
+  const tiktokVideoId = useMemo(() => {
+    if (!tiktokContact?.value) return null;
+    return extractTikTokVideoId(tiktokContact.value);
+  }, [tiktokContact]);
 
   // Selected place for focusing map in modal
   const [selectedMapTarget, setSelectedMapTarget] = useState<{ lat: number; lng: number; zoom: number } | null>(null);
@@ -166,22 +187,28 @@ export default function HomestayDetailPage() {
     }
   };
 
-  // Calculated distance between homestay and nearby place using OpenStreetMap coordinates
+  // Calculated distance between homestay and nearby place
   const processedNearbyPlaces = useMemo(() => {
     if (!homestay) return [];
-    const homeLat = homestay.latitude || 21.85;
-    const homeLng = homestay.longitude || 104.08;
+    const homeLat = homestay.latitude;
+    const homeLng = homestay.longitude;
 
     return nearbyPlaces.map((item) => {
-      const pLat = item.latitude ?? (homeLat + ((item.id % 7) - 3) * 0.007);
-      const pLng = item.longitude ?? (homeLng + ((item.id % 5) - 2) * 0.007);
-      const calculatedDistance = calculateDistanceKm(homeLat, homeLng, pLat, pLng);
+      // Ưu tiên khoảng cách chuẩn xác do Backend SQL Haversine tính toán
+      let distanceValue = typeof item.distance === 'number' 
+        ? Math.round(item.distance * 10) / 10 
+        : 0;
+
+      // Nếu có toạ độ thực của cả 2 phía và chưa có distance từ backend thì mới tính lại
+      if (distanceValue === 0 && homeLat && homeLng && item.latitude && item.longitude) {
+        distanceValue = calculateDistanceKm(homeLat, homeLng, item.latitude, item.longitude);
+      }
 
       return {
         ...item,
-        latitude: pLat,
-        longitude: pLng,
-        displayDistance: calculatedDistance,
+        latitude: item.latitude ?? homeLat,
+        longitude: item.longitude ?? homeLng,
+        displayDistance: distanceValue,
       };
     });
   }, [homestay, nearbyPlaces]);
@@ -309,11 +336,17 @@ export default function HomestayDetailPage() {
               <span className="bg-[#048c73] text-white text-[11px] font-semibold px-2 py-0.5 rounded-xs">
                 {homestay.kind === 'HOMESTAY' ? 'Homestay Bản Địa' : 'Chỗ nghỉ trải nghiệm'}
               </span>
-              <div className="flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-xs border border-amber-200">
-                <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
-                <span className="font-bold text-amber-900 text-xs">{homestay.ratingAvg || '4.8'}</span>
-              </div>
-              <span className="text-xs text-slate-500 font-medium">({homestay.ratingCount || 128} đánh giá)</span>
+              {homestay.ratingAvg != null && homestay.ratingAvg > 0 ? (
+                <div className="flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-xs border border-amber-200">
+                  <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                  <span className="font-bold text-amber-900 text-xs">{homestay.ratingAvg}</span>
+                </div>
+              ) : null}
+              {homestay.ratingCount != null && homestay.ratingCount > 0 ? (
+                <span className="text-xs text-slate-500 font-medium">({homestay.ratingCount} đánh giá)</span>
+              ) : (
+                <span className="text-xs text-slate-400 font-normal">Chưa có đánh giá</span>
+              )}
             </div>
 
             <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">
@@ -396,53 +429,105 @@ export default function HomestayDetailPage() {
         </div>
 
         {/* GIỚI THIỆU CHỖ NGHỈ */}
-        <div className="mb-6">
-          <div className="flex items-center gap-2 mb-2">
-            <Info className="w-4 h-4 text-[#048c73]" />
-            <h2 className="text-base font-bold text-slate-900">Giới thiệu chỗ nghỉ</h2>
+        {homestay.description && (
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-2">
+              <Info className="w-4 h-4 text-[#048c73]" />
+              <h2 className="text-base font-bold text-slate-900">Giới thiệu chỗ nghỉ</h2>
+            </div>
+            
+            <div className="text-xs md:text-sm text-slate-600 leading-relaxed space-y-2">
+              <p>{homestay.description}</p>
+            </div>
           </div>
-          
-          <div className="text-xs md:text-sm text-slate-600 leading-relaxed space-y-2">
-            <p>
-              {homestay.description ||
-                'Tọa lạc tại vị trí thanh bình và thoáng đãng, chỗ nghỉ mang đến cho du khách không gian nghỉ dưỡng ấm cúng, gần gũi với thiên nhiên bản địa. Phòng nghỉ được trang bị đầy đủ tiện nghi, view nhìn ra núi đồi hoặc thung lũng xanh ngát.'}
-            </p>
-          </div>
-        </div>
+        )}
 
         {/* PHẦN TIỆN ÍCH CỦA HOMESTAY (Gọn gàng, tag bo tròn rounded-md) */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
-            <div>
-              <h2 className="text-base font-bold text-slate-900">Tiện ích của chỗ nghỉ</h2>
-              <p className="text-xs text-slate-400 mt-0.5">Các tiện nghi đã sẵn sàng phục vụ kỳ nghỉ của bạn</p>
-            </div>
-            {homestay.amenities.length > 8 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowAmenitiesModal(true)}
-                className="rounded-md font-semibold text-xs h-7 px-2.5"
-              >
-                Hiển thị tất cả ({homestay.amenities.length})
-              </Button>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-            {homestay.amenities.slice(0, 12).map((amenity, idx) => (
-              <div
-                key={idx}
-                className="flex items-center gap-2 p-2 rounded-md bg-slate-50 border border-slate-200/80 text-xs text-slate-700"
-              >
-                <div className="shrink-0">
-                  {getAmenityIcon(amenity)}
-                </div>
-                <span className="truncate font-medium">{amenity}</span>
+        {homestay.amenities && homestay.amenities.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
+              <div>
+                <h2 className="text-base font-bold text-slate-900">Tiện ích của chỗ nghỉ</h2>
+                <p className="text-xs text-slate-400 mt-0.5">Các tiện nghi đã sẵn sàng phục vụ kỳ nghỉ của bạn</p>
               </div>
-            ))}
+              {homestay.amenities.length > 8 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAmenitiesModal(true)}
+                  className="rounded-md font-semibold text-xs h-7 px-2.5"
+                >
+                  Hiển thị tất cả ({homestay.amenities.length})
+                </Button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+              {homestay.amenities.slice(0, 12).map((amenity, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center gap-2 p-2 rounded-md bg-slate-50 border border-slate-200/80 text-xs text-slate-700"
+                >
+                  <div className="shrink-0">
+                    {getAmenityIcon(amenity)}
+                  </div>
+                  <span className="truncate font-medium">{amenity}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* VIDEO TRẢI NGHIỆM THỰC TẾ (TIKTOK EMBED) */}
+        {tiktokContact && (
+          <div className="mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 pb-2 border-b border-slate-100">
+              <div>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-md bg-black text-white flex items-center justify-center shrink-0">
+                    <Video className="w-3.5 h-3.5 text-white" />
+                  </div>
+                  <h2 className="text-base font-bold text-slate-900">Video trải nghiệm thực tế</h2>
+                  <span className="bg-rose-50 text-rose-700 text-[10px] font-bold px-2 py-0.5 rounded-xs border border-rose-200 flex items-center gap-1">
+                    <Play className="w-2.5 h-2.5 fill-current" /> TikTok Review
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  Khám phá hình ảnh phòng và không gian thực tế của {homestay.name} qua video clip
+                </p>
+              </div>
+
+              <a
+                href={tiktokContact.value}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-black text-white hover:bg-slate-800 text-xs font-semibold transition-colors shrink-0 w-fit"
+              >
+                <span>Mở trên TikTok</span>
+                <ExternalLink className="w-3 h-3 text-slate-300" />
+              </a>
+            </div>
+
+            <div className="bg-slate-900 rounded-lg p-3 sm:p-5 flex justify-center items-center shadow-xs border border-slate-800 overflow-hidden min-h-[580px]">
+              {tiktokVideoId ? (
+                <TikTokEmbed url={tiktokContact.value} videoId={tiktokVideoId} />
+              ) : (
+                <div className="w-full max-w-md py-8 text-center text-white">
+                  <p className="text-sm font-semibold mb-2">Xem video đánh giá trải nghiệm</p>
+                  <a
+                    href={tiktokContact.value}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs transition-colors"
+                  >
+                    <Play className="w-3.5 h-3.5 fill-current" />
+                    Xem clip trên TikTok
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* DANH SÁCH PHÒNG & LỊCH TRỐNG (Active Availability Calendar) */}
         <div className="mb-8">
@@ -667,10 +752,12 @@ export default function HomestayDetailPage() {
               <h2 className="text-lg font-bold text-[var(--color-ink-deep)]">Đánh giá của khách</h2>
               <p className="text-xs text-gray-500 mt-0.5">Dữ liệu đánh giá từ khách hàng đã hoàn thành kỳ nghỉ tại {homestay.name}</p>
             </div>
-            <div className="flex items-center gap-1.5 bg-[#fefce8] px-2.5 py-1 rounded-md border border-[#f59e0b]/40">
-              <Star className="w-4 h-4 fill-[#f59e0b] text-[#f59e0b]" />
-              <span className="font-black text-[#78350f] text-sm">{homestay.ratingAvg || '4.8'} / 5.0</span>
-            </div>
+            {homestay.ratingAvg != null && homestay.ratingAvg > 0 && (
+              <div className="flex items-center gap-1.5 bg-[#fefce8] px-2.5 py-1 rounded-md border border-[#f59e0b]/40">
+                <Star className="w-4 h-4 fill-[#f59e0b] text-[#f59e0b]" />
+                <span className="font-black text-[#78350f] text-sm">{homestay.ratingAvg} / 5.0</span>
+              </div>
+            )}
           </div>
 
           {/* ĐÁNH GIÁ NỔI BẬT: Ưu điểm (PRO), Lưu ý (CON), Mẹo trải nghiệm (TIP) */}
@@ -766,7 +853,13 @@ export default function HomestayDetailPage() {
           ) : (
             <div className="text-center py-6 bg-slate-50 rounded-sm border border-slate-200">
               <p className="text-xs text-slate-500">
-                Hiện tại homestay này có tổng cộng <strong>{homestay.ratingCount || 128}</strong> lượt chấm điểm với mức trung bình <strong>{homestay.ratingAvg || 4.8}★</strong>.
+                {homestay.ratingCount && homestay.ratingCount > 0 ? (
+                  <>
+                    Hiện tại chỗ nghỉ này có tổng cộng <strong>{homestay.ratingCount}</strong> lượt chấm điểm với mức trung bình <strong>{homestay.ratingAvg}★</strong>.
+                  </>
+                ) : (
+                  <>Chưa có đánh giá nào cho chỗ nghỉ này.</>
+                )}
               </p>
             </div>
           )}

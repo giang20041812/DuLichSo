@@ -34,13 +34,6 @@ export interface TransportFilterParams {
   maxPrice?: number;
 }
 
-const TRANSPORT_FALLBACK_IMAGES: string[] = [
-  'https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=800&q=80', // Xe máy leo dốc
-  'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80', // Limousine / Bus
-  'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?auto=format&fit=crop&w=800&q=80', // Xe khách
-  'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=800&q=80', // Xe ghép
-];
-
 export const fetchTransports = async (params?: TransportFilterParams): Promise<TransportDto[]> => {
   try {
     const url = new URL('/api/public/places', apiOrigin());
@@ -70,16 +63,13 @@ export const fetchTransports = async (params?: TransportFilterParams): Promise<T
       contacts?: PlaceContactItem[];
     }> = data.content || [];
 
-    const defaultImg = 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=800&q=80';
-
-    const mapped: TransportDto[] = content.map((item, index) => {
+    const mapped: TransportDto[] = content.map((item) => {
       const attrs = item.attributes || {};
-      const fallback: string = TRANSPORT_FALLBACK_IMAGES[index % TRANSPORT_FALLBACK_IMAGES.length] || defaultImg;
       const cover: string = (item.coverImageUrl && item.coverImageUrl.trim().length > 0)
         ? item.coverImageUrl
         : (typeof attrs.coverImageUrl === 'string' && attrs.coverImageUrl.trim().length > 0)
           ? attrs.coverImageUrl
-          : fallback;
+          : '';
 
       const lowerName = item.name.toLowerCase();
 
@@ -132,19 +122,19 @@ export const fetchTransports = async (params?: TransportFilterParams): Promise<T
         ? item.priceRefMin 
         : (categoryGroup === 'LOCAL_MOTO' ? 60000 : (categoryGroup === 'SELF_DRIVE' ? 150000 : 250000));
         
-      const rating = item.ratingAvg && item.ratingAvg > 0 ? item.ratingAvg : (4.7 + ((index * 3) % 4) * 0.1);
+      const rating = item.ratingAvg && item.ratingAvg > 0 ? item.ratingAvg : 0;
 
       return {
         id: item.id.toString(),
         name: item.name,
         coverImageUrl: cover,
-        description: item.description || `Dịch vụ vận chuyển tiện lợi, phục vụ tận tình, thông thạo địa hình Mù Cang Chải giúp quý khách có chuyến đi trọn vẹn và an toàn.`,
+        description: item.description || '',
         address: item.address || 'Huyện Mù Cang Chải, Tỉnh Yên Bái',
         latitude: item.latitude || undefined,
         longitude: item.longitude || undefined,
         ratingScore: Math.round(rating * 10) / 10,
-        ratingText: rating >= 4.8 ? 'Tuyệt vời & An toàn' : 'Uy tín & Chu đáo',
-        reviewCount: item.ratingCount || (45 + (index * 11) % 80),
+        ratingText: rating >= 4.8 ? 'Tuyệt vời & An toàn' : rating > 0 ? 'Uy tín & Chu đáo' : 'Chưa có đánh giá',
+        reviewCount: item.ratingCount || 0,
         priceRef: price,
         priceUnitNote: item.priceUnitNote || (typeof attrs.priceDetails === 'string' ? attrs.priceDetails : undefined),
         categoryGroup,

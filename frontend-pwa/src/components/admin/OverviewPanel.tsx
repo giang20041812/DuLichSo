@@ -96,7 +96,9 @@ export default function OverviewPanel({ data, bookingSummary, loading, error, on
   const stoppedProviders = data.suspendedProviders + data.terminatedProviders;
   const activeTravelers = data.totalTravelers - data.lockedTravelers;
   const bookingsTotal = bookingSummary ? Object.values(bookingSummary).reduce((a, b) => a + b, 0) : 0;
-  const bookingsConfirmed = bookingSummary ? bookingSummary.CONFIRMED + bookingSummary.COMPLETED : 0;
+  const bookingsConfirmed = bookingSummary
+    ? bookingSummary.CONFIRMED + bookingSummary.CHECKED_IN + bookingSummary.CHECKED_OUT + bookingSummary.COMPLETED
+    : 0;
   const bookingsPending = bookingSummary ? bookingSummary.PENDING + bookingSummary.AWAITING_PAYMENT : 0;
 
   // ─── Cần xử lý ───

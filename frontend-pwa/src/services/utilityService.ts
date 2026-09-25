@@ -26,11 +26,6 @@ export interface UtilityFilterParams {
   maxPrice?: number;
 }
 
-const UTILITY_FALLBACK_IMAGES: Record<string, string> = {
-  'PHOTO': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
-  'RENTAL': 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=800&q=80',
-};
-
 export const fetchUtilityServices = async (params?: UtilityFilterParams): Promise<UtilityServiceDto[]> => {
   try {
     const fetchKinds = (!params?.kind || params.kind === 'ALL') ? ['PHOTO', 'RENTAL'] : [params.kind];
@@ -59,12 +54,11 @@ export const fetchUtilityServices = async (params?: UtilityFilterParams): Promis
           contacts?: PlaceContactItem[];
         }> = data.content || [];
 
-        content.forEach((item, idx) => {
+        content.forEach((item) => {
           const kindType = (item.kind === 'PHOTO' ? 'PHOTO' : 'RENTAL') as 'PHOTO' | 'RENTAL';
-          const fallback: string = UTILITY_FALLBACK_IMAGES[kindType] ?? 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=800&q=80';
           const cover: string = (typeof item.coverImageUrl === 'string' && item.coverImageUrl.trim().length > 0)
             ? item.coverImageUrl
-            : fallback;
+            : '';
 
           const badge = kindType === 'PHOTO' 
             ? '📸 Chụp ảnh & Trang phục' 
@@ -73,22 +67,20 @@ export const fetchUtilityServices = async (params?: UtilityFilterParams): Promis
           const unitNote = kindType === 'PHOTO' ? 'bộ/buổi' : 'ngày';
           const defaultPrice = kindType === 'PHOTO' ? 150000 : 100000;
           const price = item.priceRefMin && item.priceRefMin > 0 ? item.priceRefMin : defaultPrice;
-          const rating = item.ratingAvg && item.ratingAvg > 0 ? item.ratingAvg : (4.7 + (idx % 3) * 0.1);
+          const rating = item.ratingAvg && item.ratingAvg > 0 ? item.ratingAvg : 0;
 
           results.push({
             id: item.id.toString(),
             name: item.name,
             kind: kindType,
             coverImageUrl: cover,
-            description: item.description || (kindType === 'PHOTO' 
-              ? 'Dịch vụ chụp ảnh nghệ thuật mùa vàng, flycam góc cao và cho thuê trang phục dân tộc Mông, Thái truyền thống rực rỡ.'
-              : 'Dịch vụ cho thuê xe máy phượt khỏe, mũ bảo hiểm chuẩn, lều trại dã ngoại cắm trại đồi Mâm Xôi đầy đủ tiện nghi.'),
+            description: item.description || '',
             address: item.address || 'Trung tâm Mù Cang Chải',
             latitude: item.latitude || undefined,
             longitude: item.longitude || undefined,
             ratingScore: Math.round(rating * 10) / 10,
-            ratingText: 'Dịch vụ tốt',
-            reviewCount: item.ratingCount || (16 + idx * 8),
+            ratingText: rating >= 4.7 ? 'Xuất sắc' : rating > 0 ? 'Dịch vụ tốt' : 'Chưa có đánh giá',
+            reviewCount: item.ratingCount || 0,
             priceRef: price,
             priceUnitNote: unitNote,
             categoryBadge: badge,

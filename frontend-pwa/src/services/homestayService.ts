@@ -9,6 +9,7 @@ export interface HomestayFilterParams {
   minRating?: number;
   amenities?: string[];
   province?: string;
+  district?: string;
   ward?: string;
   attractions?: string[];
 }
@@ -24,6 +25,7 @@ export const fetchHomestays = async (params?: HomestayFilterParams): Promise<Hom
     if (params?.maxPrice !== undefined) url.searchParams.append('maxPrice', params.maxPrice.toString());
     if (params?.minRating !== undefined) url.searchParams.append('minRating', params.minRating.toString());
     if (params?.province) url.searchParams.append('province', params.province);
+    if (params?.district) url.searchParams.append('district', params.district);
     if (params?.ward) url.searchParams.append('ward', params.ward);
     if (params?.attractions && params.attractions.length > 0) {
       url.searchParams.append('attractions', params.attractions.join(','));
@@ -48,12 +50,12 @@ export const fetchHomestays = async (params?: HomestayFilterParams): Promise<Hom
         id: item.id.toString(),
         name: item.name,
         description: item.description || '',
-        coverImageUrl: item.coverImageUrl || 'https://images.unsplash.com/photo-1542718610-a1d656d1884c?q=80',
+        coverImageUrl: item.coverImageUrl || '',
         district: item.regionName || '',
         distanceFromCenter: attrs.distanceFromCenter || undefined,
-        ratingScore: item.ratingAvg || (Math.round((3.5 + Math.random() * 1.5) * 10) / 10),
-        ratingText: attrs.ratingText || (item.ratingAvg ? undefined : 'Tuyệt hảo'),
-        reviewCount: item.ratingCount || Math.floor(Math.random() * 200 + 50),
+        ratingScore: item.ratingAvg || 0,
+        ratingText: attrs.ratingText || undefined,
+        reviewCount: item.ratingCount || 0,
         isGenius: attrs.isGenius === true,
         promotionalBadge: item.tagBadge || undefined,
         roomType: attrs.roomType || 'Phòng Homestay',
@@ -69,6 +71,7 @@ export const fetchHomestays = async (params?: HomestayFilterParams): Promise<Hom
         latitude: item.latitude || undefined,
         longitude: item.longitude || undefined,
         contacts: item.contacts || [],
+        amenities: item.amenities || [],
       };
     });
   } catch (error) {
@@ -136,11 +139,11 @@ export const fetchRegionalDestinations = async (id: string, limit: number = 4): 
       id: item.id?.toString(),
       name: item.name,
       description: item.description || '',
-      coverImageUrl: item.coverImageUrl || 'https://images.unsplash.com/photo-1542718610-a1d656d1884c?q=80',
+      coverImageUrl: item.coverImageUrl || '',
       district: item.regionName || item.address || '',
-      ratingScore: item.ratingAvg || 4.8,
-      ratingText: 'Tuyệt vời',
-      reviewCount: item.ratingCount || 12,
+      ratingScore: item.ratingAvg || 0,
+      ratingText: '',
+      reviewCount: item.ratingCount || 0,
       price: item.priceRefMin || 0,
       address: item.address,
       latitude: item.latitude,
@@ -156,3 +159,35 @@ export const fetchRegionalDestinations = async (id: string, limit: number = 4): 
     return [];
   }
 };
+
+export interface PublicRegionWardDto {
+  id?: number;
+  name: string;
+}
+
+export interface PublicRegionDistrictDto {
+  id?: number;
+  name: string;
+  wards: PublicRegionWardDto[];
+}
+
+export interface PublicRegionDto {
+  id?: number;
+  province?: string;
+  name?: string;
+  districts?: PublicRegionDistrictDto[];
+  wards?: PublicRegionWardDto[];
+}
+
+export const fetchPublicRegions = async (): Promise<PublicRegionDto[]> => {
+  try {
+    const url = new URL('/api/public/places/regions', apiOrigin());
+    const response = await fetch(url.toString());
+    if (!response.ok) return [];
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching public regions:", error);
+    return [];
+  }
+};
+

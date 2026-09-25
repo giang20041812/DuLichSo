@@ -26,24 +26,81 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
+      includeAssets: ['favicon.ico', 'favicon.svg', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png', 'screenshots/desktop-wide.png', 'screenshots/mobile-narrow.png'],
       manifest: {
-        name: 'Mù Cang Chải Travel',
-        short_name: 'MCC Travel',
-        description: 'Nền tảng đặt phòng & trải nghiệm du lịch số',
-        theme_color: '#ffffff',
+        id: '/',
+        name: 'Đi Du Lịch - Du Lịch Di Sản & Sinh Thái Việt Nam',
+        short_name: 'Đi Du Lịch',
+        description: 'Nền tảng đặt phòng Homestay & trải nghiệm du lịch số bản địa Việt Nam',
+        theme_color: '#048C73',
+        background_color: '#F6FAF8',
         display: 'standalone',
+        orientation: 'portrait',
+        start_url: '/',
+        scope: '/',
         icons: [
           {
             src: '/pwa-192x192.png',
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: '/pwa-192x192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'maskable'
           },
           {
             src: '/pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'any'
+          },
+          {
+            src: '/pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
+          }
+        ],
+        screenshots: [
+          {
+            src: '/screenshots/desktop-wide.png',
+            sizes: '1280x800',
+            type: 'image/png',
+            form_factor: 'wide',
+            label: 'Trang chủ Đi Du Lịch trên máy tính'
+          },
+          {
+            src: '/screenshots/mobile-narrow.png',
+            sizes: '750x1334',
+            type: 'image/png',
+            form_factor: 'narrow',
+            label: 'Ứng dụng Đi Du Lịch trên điện thoại'
+          }
+        ],
+        shortcuts: [
+          {
+            name: 'Tìm phòng Homestay',
+            short_name: 'Homestay',
+            description: 'Khám phá và đặt phòng homestay sinh thái',
+            url: '/homestays',
+            icons: [{ src: '/pwa-192x192.png', sizes: '192x192' }]
+          },
+          {
+            name: 'Chuyến đi của tôi',
+            short_name: 'Đơn đặt',
+            description: 'Kiểm tra lịch trình & đơn đặt chỗ',
+            url: '/bookings',
+            icons: [{ src: '/pwa-192x192.png', sizes: '192x192' }]
+          },
+          {
+            name: 'Bản đồ du lịch',
+            short_name: 'Bản đồ',
+            description: 'Khám phá địa điểm bản đồ',
+            url: '/map',
+            icons: [{ src: '/pwa-192x192.png', sizes: '192x192' }]
           }
         ]
       },

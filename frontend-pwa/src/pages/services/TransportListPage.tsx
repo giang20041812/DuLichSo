@@ -12,7 +12,6 @@ import {
   ArrowUpDown, 
   RotateCcw, 
   Sparkles,
-  Search,
   Bus,
   Phone,
   Bike,
@@ -38,7 +37,6 @@ export default function TransportListPage() {
   const [transports, setTransports] = useState<TransportDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<'recommended' | 'price_asc' | 'price_desc'>('recommended');
-  const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
   
   const [filters, setFilters] = useState<TransportFilterParams>(() => {
     const initial: TransportFilterParams = {};
@@ -67,7 +65,6 @@ export default function TransportListPage() {
   };
 
   const handleClearFilters = () => {
-    setSearchTerm('');
     setFilters({});
     setSearchParams(new URLSearchParams(), { replace: true });
     setCurrentPage(1);
@@ -76,7 +73,6 @@ export default function TransportListPage() {
   useEffect(() => {
     const q = searchParams.get('q');
     const groups = searchParams.get('groups');
-    setSearchTerm(q || '');
     setFilters({
       keyword: q || undefined,
       categoryGroups: groups ? groups.split(',') : undefined,
@@ -179,40 +175,9 @@ export default function TransportListPage() {
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold font-display text-white tracking-tight mb-3 drop-shadow-md">
             Dịch Vụ Di Chuyển & Xe Ôm Vượt Dốc
           </h1>
-          <p className="text-white/90 text-sm md:text-base font-body max-w-2xl mx-auto mb-6 drop-shadow-sm">
+          <p className="text-white/90 text-sm md:text-base font-body max-w-2xl mx-auto drop-shadow-sm">
             Tra cứu đầy đủ thông tin đội xe ôm bản địa leo đồi Móng Ngựa, Mâm Xôi, thuê xe máy phượt đèo, xe 2 cầu bán tải và xe khách liên tỉnh có review thực tế.
           </p>
-
-          <div className="w-full max-w-2xl mx-auto bg-white/95 backdrop-blur-md rounded-lg p-2 shadow-xl border border-white/60 flex items-center gap-2">
-            <div className="flex-1 flex items-center gap-2.5 px-3 py-1.5">
-              <Search className="w-5 h-5 text-[var(--color-primary)] shrink-0" />
-              <input 
-                type="text"
-                placeholder="Tìm xe ôm Mâm Xôi, Móng Ngựa, thuê xe Hùng Nga, Limousine..."
-                className="w-full bg-transparent text-sm md:text-base font-medium text-[var(--color-ink-deep)] placeholder:text-gray-400 outline-none"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleFilterChange({ keyword: searchTerm.trim() || undefined });
-                }}
-              />
-              {searchTerm && (
-                <button 
-                  onClick={() => { setSearchTerm(''); handleFilterChange({ keyword: undefined }); }}
-                  className="p-1 text-gray-400 hover:text-gray-600"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-            <Button 
-              variant="primary"
-              className="rounded-md font-bold px-5 h-11 bg-[var(--color-primary)] hover:bg-[var(--color-primary-600)] text-white text-sm shrink-0"
-              onClick={() => handleFilterChange({ keyword: searchTerm.trim() || undefined })}
-            >
-              Tìm Kiếm
-            </Button>
-          </div>
         </div>
       </section>
 
@@ -405,11 +370,13 @@ export default function TransportListPage() {
                         <div>
                           {/* Image Box */}
                           <div className="relative w-full h-[190px] overflow-hidden bg-gray-100">
-                            <img 
-                              src={t.coverImageUrl} 
-                              alt={t.name} 
-                              className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" 
-                            />
+                            <Link to={`/transport/${t.id}`} className="block w-full h-full">
+                              <img 
+                                src={t.coverImageUrl} 
+                                alt={t.name} 
+                                className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" 
+                              />
+                            </Link>
                             
                             {/* Badges nhóm dịch vụ */}
                             <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 items-start">
@@ -438,9 +405,11 @@ export default function TransportListPage() {
                           {/* Body Content */}
                           <div className="p-4 flex flex-col gap-2.5">
                             <div>
-                              <h3 className="text-base md:text-lg font-bold text-[var(--color-ink-deep)] leading-snug line-clamp-1">
-                                {t.name}
-                              </h3>
+                              <Link to={`/transport/${t.id}`}>
+                                <h3 className="text-base md:text-lg font-bold text-[var(--color-ink-deep)] hover:text-[var(--color-primary)] transition-colors leading-snug line-clamp-1">
+                                  {t.name}
+                                </h3>
+                              </Link>
                               <p className="text-xs text-[var(--color-primary)] font-semibold flex items-center gap-1 mt-1">
                                 <Navigation2 className="w-3.5 h-3.5 shrink-0" />
                                 <span>{t.routeType}</span>
@@ -497,7 +466,7 @@ export default function TransportListPage() {
                                     className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-colors"
                                   >
                                     <Phone className="w-3 h-3 text-emerald-600" />
-                                    <span>Đặt xe: {contact.value}</span>
+                                    <span>Hotline: {contact.value}</span>
                                   </a>
                                 ))
                               ) : (
@@ -519,24 +488,14 @@ export default function TransportListPage() {
                             </div>
                           </div>
 
-                          {t.contacts && t.contacts.length > 0 && t.contacts[0] ? (
-                            <a href={`tel:${t.contacts[0].value.replace(/[^0-9+]/g, '')}`}>
-                              <Button 
-                                variant="primary" 
-                                className="rounded-md font-bold h-9 px-4 text-xs bg-[var(--color-primary)] hover:bg-[var(--color-primary-600)]"
-                              >
-                                Gọi đặt xe
-                              </Button>
-                            </a>
-                          ) : (
+                          <Link to={`/transport/${t.id}`}>
                             <Button 
-                              variant="outline" 
-                              className="rounded-md h-9 px-3 text-xs border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary-50)] font-semibold"
-                              onClick={() => alert(`Dịch vụ ${t.name}: Quý khách có thể bắt xe trực tiếp tại ${t.address} hoặc nhờ lễ tân homestay gọi giúp để đảm bảo giá niêm yết.`)}
+                              variant="primary" 
+                              className="rounded-md font-bold h-9 px-4 text-xs bg-[var(--color-primary)] hover:bg-[var(--color-primary-600)]"
                             >
-                              Xem cách bắt xe
+                              Xem chi tiết
                             </Button>
-                          )}
+                          </Link>
                         </div>
                       </div>
                     ))}

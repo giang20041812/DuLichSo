@@ -36,7 +36,19 @@ const SORT_OPTIONS: SortOption[] = [
   { value: 'totalAmount:desc', label: 'Giá trị cao nhất' },
 ];
 
-const STATUS_ORDER: BookingStatus[] = ['PENDING', 'AWAITING_PAYMENT', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'REJECTED', 'EXPIRED', 'NO_SHOW'];
+const STATUS_ORDER: BookingStatus[] = [
+  'PENDING',
+  'AWAITING_PAYMENT',
+  'CONFIRMED',
+  'CHECKED_IN',
+  'CHECKED_OUT',
+  'COMPLETED',
+  'REFUNDED',
+  'CANCELLED',
+  'REJECTED',
+  'EXPIRED',
+  'NO_SHOW',
+];
 
 /** Giá trị tab đặc biệt cho danh sách "Cần chú ý" (chỉ Admin). */
 const ATTENTION_TAB = 'ATTENTION';

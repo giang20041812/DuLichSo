@@ -278,16 +278,8 @@ export interface MonthlyRevenuePoint {
   transactionCount: number;
 }
 
-/** Khớp AdminBookingService.BookingDto */
-export type BookingStatus =
-  | 'PENDING'
-  | 'AWAITING_PAYMENT'
-  | 'CONFIRMED'
-  | 'REJECTED'
-  | 'CANCELLED'
-  | 'EXPIRED'
-  | 'COMPLETED'
-  | 'NO_SHOW';
+import type { BookingStatus } from './booking';
+export type { BookingStatus };
 
 export interface AdminBookingDto {
   id: number;

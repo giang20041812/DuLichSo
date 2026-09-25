@@ -36,6 +36,7 @@ import type {
   AccountSearchParams,
   TravelerSearchParams,
 } from '../types/admin';
+import type { BookingStatus } from '../types/booking';
 
 const API_BASE = '/api/v1/admin';
 
@@ -201,6 +202,11 @@ export const adminService = {
 
   async createTraveler(data: CreateTravelerRequest): Promise<AdminTravelerDto> {
     const res = await axios.post<AdminTravelerDto>(`${API_BASE}/travelers`, data, getAuthHeaders());
+    return res.data;
+  },
+
+  async updateBookingStatus(id: number, status: BookingStatus, reason?: string): Promise<AdminBookingDto> {
+    const res = await axios.put<AdminBookingDto>(`${API_BASE}/bookings/${id}/status`, { status, reason }, getAuthHeaders());
     return res.data;
   },
 

@@ -17,6 +17,11 @@ public interface PlaceAmenityRepository extends JpaRepository<PlaceAmenity, Plac
     List<String> findAmenityNamesByPlaceId(@Param("placeId") Long placeId);
 
     @Query("SELECT pa FROM PlaceAmenity pa JOIN FETCH pa.amenity " +
+           "WHERE pa.place.id IN :placeIds ORDER BY pa.amenity.sortOrder ASC")
+    List<PlaceAmenity> findByPlaceIdInWithAmenity(@Param("placeIds") List<Long> placeIds);
+
+    @Query("SELECT pa FROM PlaceAmenity pa JOIN FETCH pa.amenity " +
            "WHERE pa.place.id = :placeId ORDER BY pa.amenity.sortOrder ASC")
     List<PlaceAmenity> findByPlaceIdWithAmenity(@Param("placeId") Long placeId);
 }
+
