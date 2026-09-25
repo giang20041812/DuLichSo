@@ -92,10 +92,10 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
           </button>
         </div>
 
-        {/* App Identity row - Như hình Install app của HRM */}
+        {/* App Identity row - Logo chuẩn đồng bộ với web */}
         <div className="px-6 py-4 flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#EA580C] to-[#C2410C] flex items-center justify-center shrink-0 shadow-sm text-white">
-            <VietTrackLogoMark size={28} className="brightness-200" />
+          <div className="w-13 h-13 rounded-xl bg-white border border-[#048C73]/25 flex items-center justify-center shrink-0 shadow-sm p-1.5">
+            <VietTrackLogoMark size={38} />
           </div>
           <div className="min-w-0 flex-1">
             <h4 className="font-bold text-sm sm:text-base text-gray-900 truncate">
@@ -112,7 +112,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-full border border-gray-300 text-xs font-bold text-gray-700 hover:bg-gray-50 active:scale-95 transition-all cursor-pointer"
+            className="px-4 py-2 rounded-lg border-2 border-gray-300 text-xs font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-400 active:scale-95 transition-all cursor-pointer"
           >
             Hủy
           </button>
@@ -121,7 +121,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
             type="button"
             onClick={handleInstallClick}
             disabled={isInstalling}
-            className="px-5 py-2 rounded-full text-xs font-bold text-white bg-[#EA580C] hover:bg-[#C2410C] active:scale-95 transition-all shadow-xs cursor-pointer disabled:opacity-70"
+            className="px-5 py-2 rounded-lg text-xs font-bold text-white bg-[#048C73] hover:bg-[#03735E] border-2 border-[#025a4a] active:scale-95 transition-all shadow-xs hover:shadow-sm cursor-pointer disabled:opacity-70"
           >
             {isInstalling ? 'Đang cài...' : canInstall ? 'Cài đặt' : 'Xem cách cài'}
           </button>

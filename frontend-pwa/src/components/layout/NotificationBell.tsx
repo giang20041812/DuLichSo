@@ -195,10 +195,10 @@ export default function NotificationBell({ isSolid }: NotificationBellProps) {
         onClick={() => setIsOpen((prev) => !prev)}
         aria-label={`Thông báo ${unreadCount > 0 ? `(${unreadCount} chưa đọc)` : ''}`}
         title="Thông báo đơn đặt phòng"
-        className={`relative flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-md border transition-all cursor-pointer active:scale-95 ${
+        className={`relative flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-md border-2 transition-all cursor-pointer active:scale-95 ${
           isSolid
             ? 'bg-white/90 border-gray-200 text-gray-700 hover:border-[var(--color-primary)] hover:bg-[#edfbf7]/60 hover:text-[var(--color-primary)] shadow-xs'
-            : 'bg-white/15 backdrop-blur-md border-white/30 text-white hover:bg-white/25 shadow-xs'
+            : 'bg-white/15 backdrop-blur-md border-white/50 text-white hover:bg-white/25 shadow-xs'
         } ${isOpen ? 'ring-2 ring-[var(--color-primary)]' : ''}`}
       >
         <Bell className="h-4 w-4 sm:h-[18px] sm:w-[18px]" strokeWidth={2.2} />
@@ -213,7 +213,7 @@ export default function NotificationBell({ isSolid }: NotificationBellProps) {
 
       {/* Dropdown Danh Sách Thông Báo */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-lg border border-gray-200/90 bg-white shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-150 overflow-hidden">
+        <div className="fixed inset-x-3 top-16 sm:absolute sm:inset-x-auto sm:right-0 sm:top-auto sm:mt-2 w-auto sm:w-96 max-w-[calc(100vw-24px)] rounded-lg border border-gray-200/90 bg-white shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-150 overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/70 px-4 py-2.5">
             <div className="flex items-center gap-2">

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Download, X } from 'lucide-react';
+import { X } from 'lucide-react';
+import { VietTrackLogoMark } from '@/components/ui/logo';
 import { usePwaInstall } from '@/hooks/usePwaInstall';
 import PwaInstallModal from './PwaInstallModal';
 
@@ -53,18 +54,18 @@ export const HeroPwaDownloadBanner: React.FC<HeroPwaDownloadBannerProps> = ({ cl
 
   return (
     <>
-      {/* Banner tải app thiết kế tinh tế dạng HRM pill đặt trên search hub */}
+      {/* Banner tải app thiết kế tinh tế đặt trên search hub */}
       <div 
         className={`w-full max-w-xl mx-auto mb-5 sm:mb-6 animate-in fade-in slide-in-from-bottom-3 duration-300 ${className}`}
       >
         <div 
           onClick={handleAction}
-          className="group relative bg-white/95 hover:bg-white text-gray-900 rounded-md sm:rounded-lg shadow-lg hover:shadow-xl border border-white/60 p-2.5 sm:p-3 flex items-center justify-between gap-3 transition-all cursor-pointer backdrop-blur-md"
+          className="group relative bg-white/95 hover:bg-white text-gray-900 rounded-xl shadow-md hover:shadow-lg border border-white/70 p-2.5 sm:p-3 flex items-center justify-between gap-3 transition-all cursor-pointer backdrop-blur-md"
         >
-          {/* Cụm Icon bo góc màu cam/đỏ như ảnh mẫu HRM */}
+          {/* Logo Đi Du Lịch đồng nhất chuẩn với web */}
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-md sm:rounded-lg bg-gradient-to-br from-[#EA580C] to-[#C2410C] flex items-center justify-center shrink-0 shadow-sm text-white transition-transform group-hover:scale-105">
-              <Download className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.3]" />
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-white border border-[#048C73]/20 flex items-center justify-center shrink-0 shadow-2xs transition-transform group-hover:scale-105 p-1">
+              <VietTrackLogoMark size={32} />
             </div>
 
             {/* Văn bản mô tả */}
@@ -78,13 +79,13 @@ export const HeroPwaDownloadBanner: React.FC<HeroPwaDownloadBannerProps> = ({ cl
             </div>
           </div>
 
-          {/* Nút Cài đặt đỏ cam & Nút X */}
+          {/* Nút Cài đặt & Nút X */}
           <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={handleAction}
               disabled={isInstalling}
-              className="px-3.5 sm:px-4 py-1.5 rounded-md text-xs sm:text-[13px] font-bold text-white bg-[#EA580C] hover:bg-[#C2410C] active:scale-95 transition-all shadow-xs cursor-pointer disabled:opacity-70"
+              className="px-4 py-1.5 rounded-lg text-xs sm:text-[13px] font-bold text-white bg-[#048C73] hover:bg-[#03735E] border-2 border-[#025a4a] active:scale-95 transition-all shadow-xs hover:shadow-sm cursor-pointer disabled:opacity-70"
             >
               {isInstalling ? 'Đang cài...' : 'Cài đặt'}
             </button>
@@ -92,7 +93,7 @@ export const HeroPwaDownloadBanner: React.FC<HeroPwaDownloadBannerProps> = ({ cl
             <button
               type="button"
               onClick={handleDismiss}
-              className="p-1 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-sm transition-colors cursor-pointer"
+              className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
               title="Đóng thông báo"
               aria-label="Đóng thông báo"
             >

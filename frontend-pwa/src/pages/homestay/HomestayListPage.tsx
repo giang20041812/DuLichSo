@@ -7,8 +7,6 @@ import { PriceSlider } from '@/components/ui/price-slider';
 import { Button } from '@/components/ui/button';
 import { 
   MapPin, 
-  Heart, 
-  Check, 
   SlidersHorizontal, 
   Star, 
   ChevronLeft, 
@@ -781,7 +779,7 @@ export default function HomestayListPage() {
                       return (
                         <div 
                           key={hs.id} 
-                          className="bg-white border border-gray-200/90 rounded-lg overflow-hidden shadow-xs hover:shadow-md hover:border-[var(--color-primary-300)] transition-all flex flex-col justify-between"
+                          className="bg-white border border-gray-200/90 rounded-xl overflow-hidden shadow-xs hover:shadow-md hover:border-[var(--color-primary-300)] transition-all flex flex-col justify-between"
                         >
                           {/* Image */}
                           <div className="relative w-full h-[190px] shrink-0 overflow-hidden">
@@ -792,9 +790,6 @@ export default function HomestayListPage() {
                                 className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" 
                               />
                             </Link>
-                            <button className="absolute top-2.5 right-2.5 w-8 h-8 rounded-md bg-white/90 backdrop-blur-xs flex items-center justify-center shadow-xs text-gray-400 hover:text-red-500 transition-colors">
-                              <Heart className="w-4 h-4" />
-                            </button>
                             {/* Rating badge */}
                             <div className="absolute bottom-2.5 left-2.5 bg-white/95 backdrop-blur-xs px-2 py-1 rounded-md shadow-xs flex items-center gap-1 border border-black/5">
                               <Star className="w-3 h-3 text-[#f59e0b] fill-[#f59e0b]" />
@@ -839,26 +834,9 @@ export default function HomestayListPage() {
                               </div>
 
                               {hs.description && (
-                                <p className="text-xs text-[var(--color-muted)] line-clamp-2 leading-relaxed mb-2">
+                                <p className="text-xs text-[var(--color-muted)] line-clamp-2 leading-relaxed mb-3">
                                   {hs.description}
                                 </p>
-                              )}
-                              
-                              {/* Tiện nghi */}
-                              {hs.amenities && hs.amenities.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mb-2.5">
-                                  {hs.amenities.slice(0, 3).map((amenity, aIdx) => (
-                                    <span key={aIdx} className="bg-[var(--color-hover)] text-[var(--color-primary)] text-[10px] font-semibold px-1.5 py-0.5 rounded-sm flex items-center gap-1 border border-[var(--color-primary)]/15">
-                                      <Check className="w-2.5 h-2.5 text-[var(--color-accent)]" />
-                                      {amenity}
-                                    </span>
-                                  ))}
-                                  {hs.amenities.length > 3 && (
-                                    <span className="text-[10px] text-[var(--color-muted)] font-medium self-center">
-                                      +{hs.amenities.length - 3}
-                                    </span>
-                                  )}
-                                </div>
                               )}
 
                               {/* CÁC LINK LIÊN QUAN: PHONE, FACEBOOK, TIKTOK CÓ ICON THEO TỪNG LOẠI */}
@@ -925,7 +903,7 @@ export default function HomestayListPage() {
                               </div>
 
                               <Link to={`/homestays/${hs.id}`} className="shrink-0">
-                                <Button variant="primary" className="rounded-md font-bold h-8 px-3.5 text-xs bg-[#048c73] hover:bg-[#03725e]">
+                                <Button variant="primary" className="rounded-lg font-bold h-8.5 px-4 text-xs bg-[#048c73] hover:bg-[#03725e] shadow-xs hover:shadow-sm active:scale-95 transition-all">
                                   Xem chỗ trống
                                 </Button>
                               </Link>

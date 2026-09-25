@@ -195,12 +195,18 @@ export const VietTrackLogo: React.FC<LogoProps> = ({
   return (
     <div className={`inline-flex items-center gap-3 sm:gap-3.5 ${className}`}>
       <VietTrackLogoMark size={size} />
-      <div className="flex flex-col select-none leading-none">
-        <span className={`font-display font-black text-2xl sm:text-[28px] tracking-tight ${textColor}`}>
+      <div className="flex flex-col select-none leading-tight">
+        <span 
+          className={`font-bold text-2xl sm:text-[27px] tracking-normal ${textColor}`}
+          style={{ fontFamily: "'Outfit', 'Be Vietnam Pro', sans-serif" }}
+        >
           Đi Du Lịch
         </span>
-        <span className={`text-[11px] sm:text-[12px] font-semibold tracking-wider uppercase mt-1 ${subTextColor}`}>
-          Du Lịch Di Sản & Sinh Thái
+        <span 
+          className={`text-[10px] sm:text-[11px] font-medium tracking-[0.14em] uppercase mt-0.5 ${subTextColor}`}
+          style={{ fontFamily: "'Be Vietnam Pro', sans-serif" }}
+        >
+          Du Lịch Di Sản &amp; Sinh Thái
         </span>
       </div>
     </div>

@@ -1,0 +1,137 @@
+<!-- Icon 2: Hoa văn 5 nón lá truyền thống ôm ngôi sao vàng (Vietnam Conical Hats & Star) -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="100%" height="100%">
+  <defs>
+    <!-- Soft dropshadow for hats -->
+    <filter id="hatShadow" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="6" stdDeviation="5" flood-color="#45270A" flood-opacity="0.22" />
+    </filter>
+
+    <!-- Soft dropshadow for star -->
+    <filter id="starShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#C28A00" flood-opacity="0.28" />
+    </filter>
+
+    <!-- Gradient mặt ngoài chóp nón lá (sáng tự nhiên màu lá cọ khô) -->
+    <linearGradient id="coneGradient" x1="0%" y1="0%" x2="100%" y2="80%">
+      <stop offset="0%" stop-color="#F9EBCE" />
+      <stop offset="40%" stop-color="#EED3A4" />
+      <stop offset="80%" stop-color="#DCB87E" />
+      <stop offset="100%" stop-color="#CDA566" />
+    </linearGradient>
+
+    <!-- Gradient lòng trong nón lá (chiều sâu lòng nón nhìn từ dưới lên) -->
+    <linearGradient id="innerCavity" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#6A4018" />
+      <stop offset="45%" stop-color="#845424" />
+      <stop offset="100%" stop-color="#9E6C35" />
+    </linearGradient>
+
+    <!-- Gradient quai nón vải lụa xanh lá ngọc (Emerald Green Ribbon) -->
+    <linearGradient id="strapGreen" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#02543F" />
+      <stop offset="50%" stop-color="#047857" />
+      <stop offset="100%" stop-color="#065F46" />
+    </linearGradient>
+
+    <!-- Texture nan lá đan xéo tự nhiên -->
+    <pattern id="leafTexture" width="18" height="18" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
+      <line x1="0" y1="0" x2="18" y2="0" stroke="#B88A4C" stroke-width="0.7" opacity="0.22" />
+      <line x1="0" y1="0" x2="0" y2="18" stroke="#CCA468" stroke-width="0.7" opacity="0.22" />
+    </pattern>
+
+    <!-- ==================== CẤU TRÚC 1 CHIẾC NÓN LÁ ==================== -->
+    <!-- Gốc tọa độ xoay tại tâm (0,0). Nón hướng lên đỉnh 12h -->
+    
+    <!-- 1. Mặt ngoài & Lòng trong của nón lá (Nằm dưới cánh sao) -->
+    <g id="hatBack">
+      <!-- Mặt nón phía sau / chóp nón vuốt lên đỉnh nhọn (0, -232) -->
+      <path 
+        d="M 0 -232 
+           L -76 -135 
+           C -40 -124, 40 -124, 76 -135 
+           Z" 
+        fill="url(#coneGradient)" 
+      />
+      <path 
+        d="M 0 -232 
+           L -76 -135 
+           C -40 -124, 40 -124, 76 -135 
+           Z" 
+        fill="url(#leafTexture)" 
+      />
+
+      <!-- Các vòng nan tre cong đồng tâm trên mặt nón -->
+      <path d="M -16 -212 C -8 -210, 8 -210, 16 -212" fill="none" stroke="#C59A5A" stroke-width="1.2" opacity="0.5" />
+      <path d="M -32 -193 C -16 -189, 16 -189, 32 -193" fill="none" stroke="#C59A5A" stroke-width="1.2" opacity="0.5" />
+      <path d="M -48 -174 C -24 -169, 24 -169, 48 -174" fill="none" stroke="#C59A5A" stroke-width="1.2" opacity="0.5" />
+      <path d="M -64 -155 C -32 -149, 32 -149, 64 -155" fill="none" stroke="#C59A5A" stroke-width="1.2" opacity="0.5" />
+
+      <!-- Lòng trong nón (Cavity) - mở ra hình elip đón cánh sao chui vào -->
+      <ellipse cx="0" cy="-135" rx="76" ry="27" fill="url(#innerCavity)" />
+
+      <!-- Viền tre mộc sáng quanh vành nón tạo độ nảy khối 3D -->
+      <ellipse cx="0" cy="-135" rx="76" ry="27" fill="none" stroke="#FDE6B0" stroke-width="2.5" opacity="0.8" />
+    </g>
+
+    <!-- 2. Quai nón vải lụa xanh thắt nút (VẮT ĐÈ LÊN TRÊN CÁNH SAO VÀNG) -->
+    <g id="hatStrap">
+      <!-- Dây bên trái: móc từ mép vành nón (-46, -135) võng cong xuống nút thắt (0, -76) -->
+      <path 
+        d="M -46 -135 C -42 -96, -14 -82, 0 -76" 
+        fill="none" 
+        stroke="url(#strapGreen)" 
+        stroke-width="7" 
+        stroke-linecap="round" 
+      />
+      <!-- Dây bên phải: móc từ mép vành nón (46, -135) võng cong xuống nút thắt (0, -76) -->
+      <path 
+        d="M 46 -135 C 42 -96, 14 -82, 0 -76" 
+        fill="none" 
+        stroke="url(#strapGreen)" 
+        stroke-width="7" 
+        stroke-linecap="round" 
+      />
+      <!-- Nút thắt nơ giữa quai nón nằm ngay trên mặt cánh sao -->
+      <circle cx="0" cy="-76" r="5.5" fill="#024433" />
+      <!-- Hai đuôi dây lụa rủ nhẹ xuống tự nhiên -->
+      <path d="M -1 -72 C -3 -65, -5 -59, -4 -55" fill="none" stroke="#024433" stroke-width="4.5" stroke-linecap="round" />
+      <path d="M 1 -72 C 3 -65, 5 -59, 5 -55" fill="none" stroke="#047857" stroke-width="4" stroke-linecap="round" />
+    </g>
+  </defs>
+
+  <!-- Gốc toạ độ trung tâm (300, 300) -->
+  <g transform="translate(300, 300)">
+
+    <!-- LAYER 1: MẶT NÓN VÀ LÒNG NÓN CỦA 5 CHIẾC NÓN LÁ (Nằm phía sau cánh sao) -->
+    <g filter="url(#hatShadow)">
+      <use href="#hatBack" transform="rotate(0)" />
+      <use href="#hatBack" transform="rotate(72)" />
+      <use href="#hatBack" transform="rotate(144)" />
+      <use href="#hatBack" transform="rotate(216)" />
+      <use href="#hatBack" transform="rotate(288)" />
+    </g>
+
+    <!-- LAYER 2: NGÔI SAO VÀNG 5 CÁNH (5 cánh đâm chọc thẳng vào lòng 5 chiếc nón) -->
+    <g filter="url(#starShadow)">
+      <polygon 
+        points="0.00,-152.00 34.13,-46.97 144.56,-46.97 55.22,17.94 89.34,122.97 0.00,58.06 -89.34,122.97 -55.22,17.94 -144.56,-46.97 -34.13,-46.97" 
+        fill="#FED330" 
+        stroke="#F59E0B" 
+        stroke-width="1.5"
+        stroke-linejoin="round"
+      />
+      <!-- Điểm nhấn ánh kim nhẹ ở tâm sao -->
+      <circle cx="0" cy="0" r="14" fill="#FFE57F" opacity="0.3" />
+    </g>
+
+    <!-- LAYER 3: DÂY QUAI NÓN VẢI LỤA XANH (VẮT ĐÈ LÊN TRÊN BỀ MẶT CỦA CÁNH SAO) -->
+    <g>
+      <use href="#hatStrap" transform="rotate(0)" />
+      <use href="#hatStrap" transform="rotate(72)" />
+      <use href="#hatStrap" transform="rotate(144)" />
+      <use href="#hatStrap" transform="rotate(216)" />
+      <use href="#hatStrap" transform="rotate(288)" />
+    </g>
+
+  </g>
+</svg>

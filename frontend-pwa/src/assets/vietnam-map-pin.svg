@@ -1,0 +1,62 @@
+<!-- Icon 1: Ghim định vị bản đồ Việt Nam (Vietnam Map Pin) -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 360" width="100%" height="100%">
+  <defs>
+    <!-- Soft dropshadow for the pin -->
+    <filter id="pinShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="7" stdDeviation="6" flood-color="#E11D48" flood-opacity="0.22" />
+    </filter>
+
+    <!-- Subtle glow for the pulse ring -->
+    <filter id="ringGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#FF2E44" flood-opacity="0.18" />
+    </filter>
+  </defs>
+
+  <!-- 1. VÒNG TRÒN ELIP ĐỊNH VỊ DƯỚI CHÂN GHIM (Pulse Ring) -->
+  <g id="pulse-ring" filter="url(#ringGlow)">
+    <path 
+      d="M 112 250 C 98 257, 90 267, 90 277 C 90 299, 117 315, 150 315 C 183 315, 210 299, 210 277 C 210 267, 202 257, 188 250" 
+      fill="none" 
+      stroke="#FF334B" 
+      stroke-width="9" 
+      stroke-linecap="round" 
+    />
+  </g>
+
+  <!-- 2. THÂN GHIM ĐỊNH VỊ (Map Pin Body) -->
+  <g id="map-pin" filter="url(#pinShadow)">
+    
+    <!-- Lớp viền chữ V màu hồng phấn ôm 2 cạnh bên và bo tròn mũi nhọn đáy -->
+    <path 
+      d="M 97.37 131.38 
+         L 150 248 
+         L 202.63 131.38" 
+      fill="none" 
+      stroke="#FFA3AE" 
+      stroke-width="12.5" 
+      stroke-linecap="round" 
+      stroke-linejoin="round"
+    />
+
+    <!-- Thân ghim màu đỏ tươi: đỉnh tròn hoàn hảo, vuốt thẳng vào lòng dải viền hồng -->
+    <path 
+      d="M 97.37 134.38 
+         A 58 58 0 1 1 202.63 134.38 
+         L 150 242 
+         Z" 
+      fill="#FF334B" 
+    />
+
+    <!-- Vòng tròn bóng đỏ sẫm ở tâm sau ngôi sao (tạo độ sâu thị giác nổi khối) -->
+    <circle cx="150" cy="104" r="35" fill="#D91632" opacity="0.45" />
+
+    <!-- Ngôi sao vàng 5 cánh Việt Nam cân đối chuẩn xác toán học -->
+    <polygon 
+      points="150.00,52.00 161.68,87.93 199.45,87.93 168.89,110.14 180.56,146.07 150.00,123.86 119.44,146.07 131.11,110.14 100.55,87.93 138.32,87.93" 
+      fill="#FED330" 
+      stroke="#F5BE14" 
+      stroke-width="0.8"
+      stroke-linejoin="round"
+    />
+  </g>
+</svg>
