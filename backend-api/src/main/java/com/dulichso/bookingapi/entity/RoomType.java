@@ -20,6 +20,8 @@ public class RoomType {
     private String name;
     @Column(columnDefinition = "TEXT")
     private String description;
+    @Column(name = "view_description", length = 500)
+    private String viewDescription;
     
     @Column(name = "max_occupancy", nullable = false)
     private Integer maxOccupancy;

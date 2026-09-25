@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+  <!-- FR-NCC-14: NCC yêu cầu khách bổ sung/điều chỉnh thông tin. Đơn vẫn PENDING, không thêm trạng thái booking. -->
+  <changeSet id="008-booking-info-request" author="claude">
+    <createTable tableName="booking_info_request">
+      <column name="id" type="BIGINT UNSIGNED" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+      <column name="booking_id" type="BIGINT UNSIGNED"><constraints nullable="false" referencedTableName="booking" referencedColumnNames="id" foreignKeyName="fk_bir_booking" deleteCascade="true"/></column>
+      <column name="message" type="VARCHAR(500)"><constraints nullable="false"/></column>
+      <column name="requested_by" type="BIGINT UNSIGNED"><constraints referencedTableName="account" referencedColumnNames="id" foreignKeyName="fk_bir_account"/></column>
+      <column name="created_at" type="DATETIME" defaultValueComputed="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+      <column name="response_text" type="VARCHAR(1000)"/>
+      <column name="responded_at" type="DATETIME"/>
+    </createTable>
+    <createIndex tableName="booking_info_request" indexName="idx_bir_booking"><column name="booking_id"/><column name="created_at"/></createIndex>
+  </changeSet>
+
+  <!-- UC-NCC-10 / FR-NCC-25: NCC phản hồi đánh giá, hiển thị công khai (FR-KH-26). -->
+  <changeSet id="008-review-provider-reply" author="claude">
+    <addColumn tableName="review">
+      <column name="provider_reply" type="TEXT"/>
+      <column name="provider_reply_at" type="DATETIME"/>
+      <column name="provider_reply_by" type="BIGINT UNSIGNED"><constraints referencedTableName="account" referencedColumnNames="id" foreignKeyName="fk_review_reply_account"/></column>
+    </addColumn>
+  </changeSet>
+
+  <!-- UC-NCC-08: hồ sơ đăng ký NCC chờ Admin duyệt. provider.status không có Pending Approval (UC-09),
+       nên provider + account chỉ được tạo khi hồ sơ được duyệt. -->
+  <changeSet id="008-provider-application" author="claude">
+    <createTable tableName="provider_application">
+      <column name="id" type="BIGINT UNSIGNED" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+      <column name="business_name" type="VARCHAR(255)"><constraints nullable="false"/></column>
+      <column name="contact_name" type="VARCHAR(255)"><constraints nullable="false"/></column>
+      <column name="contact_phone" type="VARCHAR(32)"><constraints nullable="false"/></column>
+      <column name="contact_email" type="VARCHAR(255)"/>
+      <column name="address" type="VARCHAR(500)"><constraints nullable="false"/></column>
+      <column name="business_license_no" type="VARCHAR(64)"/>
+      <column name="description" type="TEXT"/>
+      <column name="password_hash" type="VARCHAR(255)"><constraints nullable="false"/></column>
+      <column name="status" type="ENUM('PENDING','APPROVED','REJECTED')" defaultValue="PENDING"><constraints nullable="false"/></column>
+      <column name="review_note" type="VARCHAR(500)"/>
+      <column name="reviewed_by" type="BIGINT UNSIGNED"><constraints referencedTableName="account" referencedColumnNames="id" foreignKeyName="fk_pa_reviewer"/></column>
+      <column name="reviewed_at" type="DATETIME"/>
+      <column name="provider_id" type="BIGINT UNSIGNED"><constraints referencedTableName="provider" referencedColumnNames="id" foreignKeyName="fk_pa_provider"/></column>
+      <column name="created_at" type="DATETIME" defaultValueComputed="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+    </createTable>
+    <createIndex tableName="provider_application" indexName="idx_pa_status"><column name="status"/><column name="created_at"/></createIndex>
+    <createIndex tableName="provider_application" indexName="idx_pa_phone"><column name="contact_phone"/></createIndex>
+  </changeSet>
+
+  <changeSet id="008-notification-templates" author="claude">
+    <sql>
+      INSERT IGNORE INTO notification_template (code, channel, subject, body_template, is_active) VALUES
+        ('BOOKING_ACCEPTED_CUSTOMER', 'SMS', NULL, 'DuLichSo: Don {{booking_code}} da duoc chu nha chap nhan. Vui long thanh toan truoc {{payment_deadline}}.', TRUE),
+        ('BOOKING_REJECTED_CUSTOMER', 'SMS', NULL, 'DuLichSo: Rat tiec, don {{booking_code}} da bi tu choi. Ly do: {{reason}}', TRUE),
+        ('BOOKING_INFO_REQUESTED', 'SMS', NULL, 'DuLichSo: Chu nha can ban bo sung thong tin cho don {{booking_code}}. Tra cuu don de phan hoi.', TRUE),
+        ('BOOKING_INFO_ANSWERED', 'IN_APP', 'Khách đã bổ sung thông tin', 'Khách đã phản hồi yêu cầu bổ sung thông tin cho đơn {{booking_code}}.', TRUE),
+        ('PROVIDER_APPLICATION_APPROVED', 'SMS', NULL, 'DuLichSo: Ho so doi tac {{business_name}} da duoc duyet. Ban co the dang nhap cong doi tac.', TRUE),
+        ('PROVIDER_APPLICATION_REJECTED', 'SMS', NULL, 'DuLichSo: Ho so doi tac {{business_name}} chua duoc duyet. Ly do: {{reason}}', TRUE);
+    </sql>
+  </changeSet>
+</databaseChangeLog>

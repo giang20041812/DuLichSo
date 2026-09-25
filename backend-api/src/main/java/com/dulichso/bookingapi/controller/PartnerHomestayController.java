@@ -1,84 +1,53 @@
 package com.dulichso.bookingapi.controller;
 
 import com.dulichso.bookingapi.dto.partner.PartnerHomestayDtos.*;
+import com.dulichso.bookingapi.security.UserPrincipal;
 import com.dulichso.bookingapi.service.PartnerHomestayService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+import java.util.Map;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/partner/homestays")
 public class PartnerHomestayController {
+    private final PartnerHomestayService service;
 
-    private final PartnerHomestayService partnerHomestayService;
-
-    public PartnerHomestayController(PartnerHomestayService partnerHomestayService) {
-        this.partnerHomestayService = partnerHomestayService;
-    }
-
-    /**
-     * UC-10: Lấy danh sách Homestay của NCC, hỗ trợ bộ lọc và QA Sandbox
-     */
     @GetMapping
-    public ResponseEntity<PartnerHomestayPageResponse> getHomestays(
-            @RequestParam(required = false, defaultValue = "DEFAULT") String scenario,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String visibility,
-            @RequestParam(required = false) String operationStatus
-    ) {
-        PartnerHomestayPageResponse response = partnerHomestayService.getHomestays(scenario, keyword, visibility, operationStatus);
-        return ResponseEntity.ok(response);
+    public PartnerHomestayPageResponse list(@AuthenticationPrincipal UserPrincipal principal,
+            @RequestParam(required = false) String keyword, @RequestParam(required = false) String visibility,
+            @RequestParam(required = false) String operationStatus) {
+        return service.getHomestays(principal, keyword, visibility, operationStatus);
     }
 
-    /**
-     * Cập nhật trạng thái hiển thị (Visibility) hoặc vận hành (Operation Status)
-     */
-    @PatchMapping("/{id}/status")
-    public ResponseEntity<PartnerHomestaySummaryDto> updateStatus(
-            @PathVariable Long id,
-            @RequestBody UpdateStatusRequest request
-    ) {
-        PartnerHomestaySummaryDto updated = partnerHomestayService.updateStatus(id, request);
-        return ResponseEntity.ok(updated);
-    }
+    @GetMapping("/options")
+    public HomestayOptionsDto options(@AuthenticationPrincipal UserPrincipal principal) { return service.options(principal); }
 
-    /**
-     * Tạo Homestay mới (Mặc định trạng thái DRAFT)
-     */
-    @PostMapping
-    public ResponseEntity<PartnerHomestaySummaryDto> createHomestay(
-            @RequestBody QuickCreateHomestayRequest request
-    ) {
-        PartnerHomestaySummaryDto created = partnerHomestayService.createQuickHomestay(request);
-        return ResponseEntity.ok(created);
-    }
-
-    /**
-     * Lấy thông tin chi tiết Homestay phục vụ màn hình Chỉnh sửa
-     */
     @GetMapping("/{id}")
-    public ResponseEntity<PartnerHomestayDetailDto> getHomestayDetail(@PathVariable Long id) {
-        PartnerHomestayDetailDto detail = partnerHomestayService.getHomestayDetail(id);
-        return ResponseEntity.ok(detail);
+    public PartnerHomestayDetailDto detail(@AuthenticationPrincipal UserPrincipal principal, @PathVariable Long id) {
+        return service.getHomestayDetail(principal, id);
     }
 
-    /**
-     * Cập nhật toàn bộ thông tin chi tiết Homestay
-     */
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public PartnerHomestayDetailDto create(@AuthenticationPrincipal UserPrincipal principal, @RequestBody PartnerHomestayDetailDto dto) {
+        return service.createHomestay(principal, dto);
+    }
+
     @PutMapping("/{id}")
-    public ResponseEntity<PartnerHomestayDetailDto> updateHomestayDetail(
-            @PathVariable Long id,
-            @RequestBody PartnerHomestayDetailDto dto
-    ) {
-        PartnerHomestayDetailDto updated = partnerHomestayService.saveHomestayDetail(id, dto);
-        return ResponseEntity.ok(updated);
-    }
+    public PartnerHomestayDetailDto update(@AuthenticationPrincipal UserPrincipal principal, @PathVariable Long id,
+            @RequestBody PartnerHomestayDetailDto dto) { return service.saveHomestayDetail(principal, id, dto); }
 
-    /**
-     * Đặt lại dữ liệu chuẩn ban đầu
-     */
-    @PostMapping("/reset")
-    public ResponseEntity<Void> resetDefault() {
-        partnerHomestayService.resetToDefault();
-        return ResponseEntity.ok().build();
+    @PatchMapping("/{id}/status")
+    public PartnerHomestaySummaryDto status(@AuthenticationPrincipal UserPrincipal principal, @PathVariable Long id,
+            @RequestBody UpdateStatusRequest request) { return service.updateStatus(principal, id, request); }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Map<String, String>> error(ResponseStatusException ex) {
+        return ResponseEntity.status(ex.getStatusCode()).body(Map.of("message", ex.getReason() == null ? "Yêu cầu không hợp lệ." : ex.getReason()));
     }
 }

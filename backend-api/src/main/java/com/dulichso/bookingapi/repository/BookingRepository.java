@@ -12,6 +12,10 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, org.spr
     boolean existsByBookingCode(String bookingCode);
     long countByCreatedAtBetween(java.time.LocalDateTime start, java.time.LocalDateTime end);
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select b from Booking b where b.id = :id")
+    Optional<Booking> findLockedById(@org.springframework.data.repository.query.Param("id") Long id);
+
     @org.springframework.data.jpa.repository.Query("""
         SELECT b FROM Booking b
         JOIN FETCH b.place p

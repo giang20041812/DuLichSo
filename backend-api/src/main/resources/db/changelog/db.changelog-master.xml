@@ -23,4 +23,8 @@
     <!-- Yêu cầu thay đổi đặt phòng -->
     <include file="db/changelog/changes/006-add-booking-change-request.xml"/>
 
+    <!-- Module NCC: phòng/giá/lịch, dịch vụ & chính sách, xử lý đơn, ảnh, phản hồi đánh giá, đăng ký NCC -->
+    <include file="db/changelog/changes/006-partner-room-view.xml"/>
+    <include file="db/changelog/changes/007-homestay-services-policies.xml"/>
+    <include file="db/changelog/changes/008-booking-feedback-reviews-provider-applications.xml"/>
 </databaseChangeLog>

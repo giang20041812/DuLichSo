@@ -545,12 +545,11 @@ export default function BookingPage() {
 
             {/* Banner Chính sách hủy phòng nổi bật */}
             {(() => {
-              const policy = bookingResult?.policySnapshot as Record<string, string | number> | undefined;
-              const policyName = typeof policy?.policyName === 'string' ? policy.policyName : 'Miễn phí hủy phòng';
-              const cutoffHours = typeof policy?.freeCancelCutoffHours === 'number' ? policy.freeCancelCutoffHours : 24;
+              const policy = bookingResult?.policySnapshot;
+              const policyName = typeof policy?.policyName === 'string' ? policy.policyName : 'Chưa công bố';
               const policyDesc = typeof policy?.description === 'string'
                 ? policy.description
-                : `Miễn phí hủy phòng trước ${cutoffHours} giờ nhận phòng.`;
+                : 'Vui lòng liên hệ chỗ nghỉ để biết chính sách hủy.';
               return (
                 <div className="bg-emerald-50/90 border-2 border-emerald-500/80 rounded-lg p-4 shadow-xs">
                   <div className="flex items-start gap-3">
@@ -562,9 +561,6 @@ export default function BookingPage() {
                         <h4 className="text-sm md:text-base font-bold text-emerald-900">
                           Chính sách hủy phòng: {policyName}
                         </h4>
-                        <span className="text-[11px] font-bold bg-emerald-600 text-white px-2 py-0.5 rounded-sm uppercase tracking-wide">
-                          Linh hoạt
-                        </span>
                       </div>
                       <p className="text-xs md:text-sm text-emerald-800 mt-1 leading-relaxed">
                         {policyDesc}
@@ -658,14 +654,14 @@ export default function BookingPage() {
                   <div className="text-gray-500">Chính sách hủy</div>
                   <div className="col-span-2 text-gray-800">
                     {(() => {
-                      const policy = bookingResult?.policySnapshot as Record<string, string | number> | undefined;
-                      const policyName = typeof policy?.policyName === 'string' ? policy.policyName : 'Miễn phí hủy phòng';
-                      const cutoffHours = typeof policy?.freeCancelCutoffHours === 'number' ? policy.freeCancelCutoffHours : 24;
+                      const policy = bookingResult?.policySnapshot;
+                      const policyName = typeof policy?.policyName === 'string' ? policy.policyName : 'Chưa công bố';
+                      const cutoffHours = typeof policy?.freeCancelCutoffHours === 'number' ? policy.freeCancelCutoffHours : null;
                       return (
                         <>
                           <span className="font-semibold text-emerald-700">{policyName}</span>
                           <span className="text-gray-600 block text-xs mt-0.5">
-                            Hủy miễn phí trước {cutoffHours} giờ nhận phòng ({roomInfo.checkInDateStr}). Sau thời gian này, phí hủy áp dụng theo quy định của chỗ nghỉ.
+                            {cutoffHours == null ? 'Vui lòng liên hệ chỗ nghỉ để biết chính sách hủy.' : `Hủy miễn phí trước ${cutoffHours} giờ nhận phòng (${roomInfo.checkInDateStr}). Sau thời gian này, phí hủy áp dụng theo chính sách đã ghi nhận.`}
                           </span>
                         </>
                       );

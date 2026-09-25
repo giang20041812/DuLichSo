@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+  <changeSet id="007-homestay-services-policies" author="codex">
+    <createTable tableName="homestay_service_offer">
+      <column name="id" type="BIGINT UNSIGNED" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+      <column name="place_id" type="BIGINT UNSIGNED"><constraints nullable="false" referencedTableName="place" referencedColumnNames="id" foreignKeyName="fk_hso_place"/></column>
+      <column name="name" type="VARCHAR(255)"><constraints nullable="false"/></column>
+      <column name="description" type="TEXT"/><column name="price" type="DECIMAL(12,0)"/><column name="price_unit" type="VARCHAR(64)"/>
+      <column name="active" type="BOOLEAN" defaultValueBoolean="true"><constraints nullable="false"/></column>
+    </createTable>
+    <createIndex tableName="homestay_service_offer" indexName="idx_hso_place"><column name="place_id"/></createIndex>
+    <addColumn tableName="homestay_profile"><column name="children_policy" type="TEXT"/><column name="pets_policy" type="TEXT"/><column name="guest_policy" type="TEXT"/></addColumn>
+  </changeSet>
+</databaseChangeLog>
