@@ -62,6 +62,13 @@ public class PartnerBookingService {
         if (targetId.equals(currentId)) {
             RoomType room = rooms.findLockedById(currentId).orElseThrow(PartnerBookingService::notFound);
             if (!capacityOk(room, booking)) throw bad("Loại phòng hiện tại không đủ sức chứa cho số khách. Hãy chọn phương án phòng khác.");
+            if (!"ACTIVE".equals(room.getStatus())) throw conflict("Loại phòng hiện tại đang ngừng bán.");
+            for (LocalDate date = booking.getCheckIn(); date.isBefore(booking.getCheckOut()); date = date.plusDays(1)) {
+                RoomInventoryDay day = calendar.lockedDay(room, date);
+                if (Boolean.TRUE.equals(day.getStopSell()) || day.getHeldRooms() < booking.getRoomCount()
+                        || day.getHeldRooms() + day.getConfirmedRooms() > day.getTotalRooms())
+                    throw conflict("Không thể xác nhận giữ chỗ ngày " + date + ". Hãy chọn phương án phòng khác.");
+            }
         } else {
             switchRoom(booking, currentId, targetId);
         }
@@ -121,6 +128,16 @@ public class PartnerBookingService {
     private void notifyCustomer(String template, Booking booking, Map<String, Object> extra) {
         Map<String, Object> payload = new HashMap<>(extra);
         payload.put("booking_code", booking.getBookingCode());
+        payload.put("bookingCode", booking.getBookingCode());
+        payload.put("bookingStatus", booking.getStatus().name());
+        payload.put("isRead", false);
+        payload.put("title", template.equals("BOOKING_INFO_REQUESTED") ? "Chủ nhà cần bổ sung thông tin"
+                : booking.getStatus() == BookingStatus.REJECTED ? "Yêu cầu đặt phòng bị từ chối" : "Chủ nhà đã chấp nhận đặt phòng");
+        String message = template.equals("BOOKING_INFO_REQUESTED") ? String.valueOf(extra.get("message"))
+                : booking.getStatus() == BookingStatus.REJECTED ? String.valueOf(extra.get("reason"))
+                : "Phòng: " + booking.getRoomType().getName() + ". Tổng tiền: " + booking.getTotalAmount()
+                    + " VND. Thanh toán trước " + booking.getPaymentDeadlineAt() + ". " + extra.getOrDefault("message", "");
+        payload.put("message", message);
         payload.put("homestay_name", booking.getPlace().getName());
         notifications.toCustomer(template, booking.getGuestPhone(), booking.getGuestEmail(), "booking", booking.getId(), payload);
     }
@@ -265,8 +282,11 @@ public class PartnerBookingService {
             boolean capacity = capacityOk(room, b);
             if (current) {
                 // Phòng của đơn đã được giữ sẵn trong held_rooms nên luôn còn đủ cho chính đơn này.
-                list.add(new RoomOptionDto(room.getId(), room.getName(), room.getMaxOccupancy(), true, b.getRoomCount(),
-                        capacity, capacity, b.getTotalAmount(), capacity ? null : "Không đủ sức chứa"));
+                boolean available = "ACTIVE".equals(room.getStatus()) && calendar.calendar(room, b.getCheckIn(), b.getCheckOut()).stream()
+                        .allMatch(d -> !d.stopSell() && d.heldRooms() >= b.getRoomCount()
+                                && d.heldRooms() + d.confirmedRooms() <= d.totalRooms());
+                list.add(new RoomOptionDto(room.getId(), room.getName(), room.getMaxOccupancy(), true, available ? b.getRoomCount() : 0,
+                        capacity, capacity && available, b.getTotalAmount(), !capacity ? "Không đủ sức chứa" : available ? null : "Phòng ngừng bán hoặc giữ chỗ không còn hợp lệ"));
                 continue;
             }
             if (!"ACTIVE".equals(room.getStatus())) {

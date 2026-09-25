@@ -4,7 +4,7 @@ import type { PartnerReviewDto } from '@/types/partner';
 const API = '/api/v1/partner/reviews';
 const config = () => ({ headers: { Authorization: `Bearer ${localStorage.getItem('portal_token') ?? ''}` } });
 
-/** UC-NCC-10: đánh giá của khách về Homestay mình quản lý và phản hồi công khai. */
+/** UC-NCC-09: đánh giá của khách về Homestay mình quản lý và phản hồi công khai. */
 export const partnerReviewService = {
   async list(placeId?: number) {
     return (await axios.get<PartnerReviewDto[]>(API, { ...config(), params: placeId ? { placeId } : undefined })).data;

@@ -8,7 +8,7 @@ const dateTime = (d?: string | null) => (d ? new Date(d).toLocaleString('vi-VN')
 const field = 'w-full rounded-md border border-border bg-surface p-2 text-sm focus:border-primary focus:outline-none';
 type Filter = 'all' | 'unreplied' | 'replied';
 
-/** UC-NCC-10: xem đánh giá của khách về các Homestay mình quản lý và phản hồi công khai. */
+/** UC-NCC-09: xem đánh giá của khách về các Homestay mình quản lý và phản hồi công khai. */
 export default function PartnerReviewsPage() {
   const [reviews, setReviews] = useState<PartnerReviewDto[]>([]);
   const [loading, setLoading] = useState(true);

@@ -57,7 +57,7 @@ export default function PartnerBookingList() {
 
       <div className="flex flex-wrap gap-1.5">
         {(['', ...STATUSES] as const).map((s) => (
-          <button key={s || 'all'} type="button" onClick={() => refresh(() => { setStatus(s); setPage(0); })}
+          <button key={s || 'all'} type="button" onClick={() => refresh(() => { setStatus(s); setPage(0); setReload(n => n + 1); })}
             className={`rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors duration-200 ${status === s ? 'border-primary bg-primary text-white' : 'border-border text-ink hover:border-primary'}`}>
             {s ? BOOKING_STATUS_LABEL[s] : 'Tất cả'}{s && summary ? ` (${summary[s] ?? 0})` : ''}
           </button>

@@ -10,8 +10,7 @@ import org.springframework.stereotype.Service;
 import java.util.Map;
 
 /**
- * Ghi thông báo vào hàng đợi `notification` (status PENDING). Dự án chưa có bộ gửi SMS/Email/FCM,
- * nên bản ghi ở đây là nguồn dữ liệu để bộ gửi xử lý sau.
+ * Công bố thông báo trong ứng dụng. Kênh SMS/email cần bộ gửi riêng khi được cấu hình.
  * Thiếu template (DB chưa chạy migration) thì bỏ qua, không làm hỏng nghiệp vụ chính.
  */
 @Service @RequiredArgsConstructor @Slf4j
@@ -20,7 +19,9 @@ public class NotificationRecorder {
 
     public void toCustomer(String templateCode, String phone, String email, String entityType, Long entityId, Map<String, Object> payload) {
         if ((phone == null || phone.isBlank()) && (email == null || email.isBlank())) return;
-        template(templateCode).ifPresent(t -> em.persist(Notification.builder().template(t).channel(t.getChannel())
+        template(templateCode).ifPresent(t -> em.persist(Notification.builder().template(t)
+                .channel(com.dulichso.bookingapi.entity.enums.NotificationChannel.IN_APP)
+                .status(com.dulichso.bookingapi.entity.enums.NotificationStatus.SENT).sentAt(java.time.LocalDateTime.now())
                 .recipientType(RecipientType.CUSTOMER).recipientPhone(blankToNull(phone)).recipientEmail(blankToNull(email))
                 .relatedEntityType(entityType).relatedEntityId(entityId).payload(payload).build()));
     }

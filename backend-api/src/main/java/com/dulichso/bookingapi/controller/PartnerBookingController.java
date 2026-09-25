@@ -125,13 +125,8 @@ public class PartnerBookingController {
         Long providerId = resolveProviderId(principal);
         if (providerId == null) return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
 
-        String statusStr = body.get("status") != null ? String.valueOf(body.get("status")) : null;
-        if (statusStr == null) return ResponseEntity.badRequest().build();
-        BookingStatus status = BookingStatus.valueOf(statusStr);
-        String reason = body.get("reason") != null ? String.valueOf(body.get("reason")) : null;
-        Long reviewerId = principal != null ? principal.accountId() : null;
-
-        return ResponseEntity.ok(clientBookingService.updateBookingStatus(id, status, reason, reviewerId));
+        // Legacy endpoint cannot bypass ownership, transitions or inventory in accept/reject.
+        return ResponseEntity.status(HttpStatus.GONE).build();
     }
 
     @GetMapping("/summary")

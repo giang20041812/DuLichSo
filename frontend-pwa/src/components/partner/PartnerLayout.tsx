@@ -33,7 +33,7 @@ export default function PartnerLayout() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
 
-  const allowed = session !== null && (session.role === 'PROVIDER' || session.role === 'ADMIN');
+  const allowed = session !== null && session.role === 'PROVIDER' && Boolean(localStorage.getItem('portal_token'));
 
   useEffect(() => {
     if (!allowed) navigate('/portal/login', { replace: true });

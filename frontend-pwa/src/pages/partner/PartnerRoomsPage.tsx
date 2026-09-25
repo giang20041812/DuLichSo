@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import type { PartnerRoom, PartnerRoomInput, RoomPrice, RoomPriceInput, RoomInventoryDay, RoomQuote } from '@/types/room';
 import type { HomestayOptionsDto } from '@/types/partner';
@@ -23,11 +23,11 @@ export default function PartnerRoomsPage() {
   async function save(){if(!form)return;setBusy(true);setError('');try{await api.save(placeId,editId,form);setForm(null);setSelected(null);await load();}catch(e:unknown){setError(homestayError(e));}finally{setBusy(false);}}
   return <div className="space-y-5">
     <Link to={`/partner/homestay/${placeId}`} className="text-primary">← Thông tin Homestay</Link>
-    <div className="flex items-center justify-between gap-3"><h1 className="text-2xl font-bold">Phòng, giá và lịch bán</h1><button className={button} onClick={()=>{setEditId(null);setForm({...blank});setSelected(null);}}>Thêm loại phòng</button></div>
+    <div className="flex items-center justify-between gap-3"><h1 className="text-2xl font-bold">Phòng, giá và lịch bán</h1><button className={button} onClick={()=>{setEditId(null);setForm({...blank});setSelected(null);setPhotoRoom(null);}}>Thêm loại phòng</button></div>
     {error&&<p role="alert" className="rounded-md border border-danger/30 p-3 text-danger">{error}</p>}
     {loading?<p role="status">Đang tải...</p>:<div className="grid gap-4 md:grid-cols-2">{rooms.map(r=><section key={r.id} className="space-y-3 rounded-lg border border-border bg-surface p-4 shadow-[var(--shadow-card)]">
       <h2 className="font-bold">{r.name}</h2><p className="text-sm">{r.totalRoomCount} phòng · {r.maxOccupancy} khách/phòng · {money(r.basePrice)}/đêm</p><p className="text-sm text-muted">{r.status==='ACTIVE'?'Đang mở bán':'Ngừng bán'} · {r.viewDescription || 'Chưa khai báo vị trí/view'}</p>
-      <div className="flex gap-3"><button className={button} onClick={()=>{setEditId(r.id);setForm({...r,description:r.description??'',viewDescription:r.viewDescription??''});setSelected(null);}}>Sửa thông tin</button><button className="rounded-md border border-primary px-3 text-sm text-primary" onClick={()=>{setSelected(r);setForm(null);setPhotoRoom(null);}}>Giá & lịch phòng</button><button className="rounded-md border border-border px-3 text-sm text-ink" onClick={()=>{setPhotoRoom(r);setSelected(null);setForm(null);}}>Ảnh phòng</button></div>
+      <div className="flex gap-3"><button className={button} onClick={()=>{setEditId(r.id);setForm({...r,description:r.description??'',viewDescription:r.viewDescription??''});setSelected(null);setPhotoRoom(null);}}>Sửa thông tin</button><button className="rounded-md border border-primary px-3 text-sm text-primary" onClick={()=>{setSelected(r);setForm(null);setPhotoRoom(null);}}>Giá & lịch phòng</button><button className="rounded-md border border-border px-3 text-sm text-ink" onClick={()=>{setPhotoRoom(r);setSelected(null);setForm(null);}}>Ảnh phòng</button></div>
     </section>)}</div>}
     {!loading&&!rooms.length&&!error&&<p>Chưa có loại phòng. Hãy tạo loại phòng đầu tiên.</p>}
     {form&&<form onSubmit={e=>{e.preventDefault();void save();}} className="rounded-lg border border-border bg-surface p-5"><fieldset disabled={busy} className="space-y-4">
@@ -52,8 +52,18 @@ function RoomCalendar({placeId,room}:{placeId:number;room:PartnerRoom}) {
   const [price,setPrice]=useState<RoomPriceInput>({name:'',periodStart:localDate(0),periodEnd:localDate(1),price:room.basePrice});const [priceId,setPriceId]=useState<number|null>(null);
   const [total,setTotal]=useState(room.totalRoomCount);const [stop,setStop]=useState(false);const [error,setError]=useState('');const [message,setMessage]=useState('');const [busy,setBusy]=useState(false);
   const [count,setCount]=useState(1);const [guests,setGuests]=useState(2);const [quote,setQuote]=useState<RoomQuote|null>(null);
-  const load=useCallback(async()=>{const [d,p]=await Promise.all([api.calendar(placeId,room.id,start,end),api.prices(placeId,room.id)]);setDays(d);setPrices(p);},[placeId,room.id,start,end]);
-  useEffect(()=>{setQuote(null);setDays([]);void load().catch((e:unknown)=>setError(homestayError(e)));},[load]);
+  const generation = useRef(0);
+  const load=useCallback(async()=>{
+    const request = ++generation.current;
+    try {
+      const [d,p]=await Promise.all([api.calendar(placeId,room.id,start,end),api.prices(placeId,room.id)]);
+      if (request !== generation.current) return;
+      setDays(d);setPrices(p);setError('');
+    } catch (e: unknown) {
+      if (request === generation.current) setError(homestayError(e));
+    }
+  },[placeId,room.id,start,end]);
+  useEffect(()=>{setQuote(null);setDays([]);setError('');void load();return()=>{generation.current += 1;};},[load]);
   async function act(action:()=>Promise<unknown>,text:string){setBusy(true);setError('');setMessage('');try{await action();await load();setQuote(null);setMessage(text);}catch(e:unknown){setError(homestayError(e));}finally{setBusy(false);}}
   return <section className="space-y-5 rounded-lg border border-border bg-surface p-5">
     <h2 className="text-lg font-bold">{room.name} — Giá & lịch phòng</h2>

@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 
-/** UC-NCC-10: nhà cung cấp xem và phản hồi đánh giá của khách về Homestay mình. */
+/** UC-NCC-09: nhà cung cấp xem và phản hồi đánh giá của khách về Homestay mình. */
 public final class PartnerReviewDtos {
     private PartnerReviewDtos() {}
 

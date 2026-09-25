@@ -97,6 +97,7 @@ class PartnerBookingServiceTest {
     @Test void acceptMovesToAwaitingPaymentWithFifteenMinuteDeadline() {
         when(bookings.findLockedById(50L)).thenReturn(Optional.of(booking));
         when(rooms.findLockedById(3L)).thenReturn(Optional.of(room));
+        when(calendar.lockedDay(eq(room), any())).thenReturn(RoomInventoryDay.builder().totalRooms(3).heldRooms(1).confirmedRooms(0).stopSell(false).build());
         var result = service.accept(principal, 50L, new AcceptInput(null, "  Có chuẩn bị nôi cho em bé  "));
         assertEquals(BookingStatus.AWAITING_PAYMENT, result.status());
         assertFalse(result.canAccept());
@@ -109,8 +110,8 @@ class PartnerBookingServiceTest {
         assertEquals(7L, history.getActorId());
         assertEquals("Có chuẩn bị nôi cho em bé", history.getReason());
         verify(notifications).toCustomer(eq("BOOKING_ACCEPTED_CUSTOMER"), eq("0912345678"), isNull(), eq("booking"), eq(50L),
-                argThat(m -> "VJ-123456".equals(m.get("booking_code")) && "Có chuẩn bị nôi cho em bé".equals(m.get("message"))));
-        verifyNoInteractions(calendar);
+                argThat(m -> "VJ-123456".equals(m.get("booking_code")) && String.valueOf(m.get("message")).contains("Có chuẩn bị nôi cho em bé")));
+        verify(calendar, times(2)).lockedDay(eq(room), any());
     }
 
     @Test void acceptAfterDecisionDeadlineIsRejected() {
@@ -120,6 +121,17 @@ class PartnerBookingServiceTest {
         assertEquals(409, ex.getStatusCode().value());
         assertEquals(BookingStatus.PENDING, booking.getStatus());
         verify(em, never()).persist(any());
+    }
+
+    @Test void acceptingStoppedOrMissingHeldInventoryIsRejected() {
+        when(bookings.findLockedById(50L)).thenReturn(Optional.of(booking));
+        when(rooms.findLockedById(3L)).thenReturn(Optional.of(room));
+        var day=RoomInventoryDay.builder().totalRooms(3).heldRooms(1).confirmedRooms(0).stopSell(true).build();
+        when(calendar.lockedDay(eq(room), any())).thenReturn(day);
+        assertEquals(409,assertThrows(ResponseStatusException.class,()->service.accept(principal,50L,new AcceptInput(null,null))).getStatusCode().value());
+        day.setStopSell(false);day.setHeldRooms(0);
+        assertEquals(409,assertThrows(ResponseStatusException.class,()->service.accept(principal,50L,new AcceptInput(null,null))).getStatusCode().value());
+        assertEquals(BookingStatus.PENDING,booking.getStatus());verifyNoInteractions(notifications);
     }
 
     @Test void anotherProvidersBookingIsNotFound() {
