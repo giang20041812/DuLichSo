@@ -9,11 +9,15 @@ export { default as FullScreenMapPage } from './homestay/FullScreenMapPage';
 
 // Booking
 export { default as BookingPage } from './booking/BookingPage';
+export { default as UserBookingListPage } from './booking/UserBookingListPage';
+export { default as UserBookingDetailPage } from './booking/UserBookingDetailPage';
 
 // Experience & Culture
 export { default as ExperienceDetailPage } from './experience/ExperienceDetailPage';
 export { default as CultureFestivalPage } from './explore/CultureFestivalPage';
+export { default as FestivalDetailPage } from './explore/FestivalDetailPage';
 export { default as DestinationListPage } from './explore/DestinationListPage';
+export { default as PlaceDetailPage } from './explore/PlaceDetailPage';
 
 // Local Services (Dining, Transport, Utilities)
 export { default as RestaurantListPage } from './services/RestaurantListPage';

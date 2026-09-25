@@ -6,6 +6,11 @@
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
 
     <changeSet id="004-create-traveler" author="dulichso">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="traveler"/>
+            </not>
+        </preConditions>
         <createTable tableName="traveler"
                      remarks="Tài khoản khách du lịch (đăng ký email hoặc đăng nhập Google), tách biệt account ADMIN/PROVIDER">
             <column name="id" type="BIGINT UNSIGNED" autoIncrement="true">

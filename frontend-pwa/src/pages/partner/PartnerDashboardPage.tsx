@@ -193,7 +193,7 @@ export default function PartnerDashboardPage() {
           <p className="max-w-xs text-xs leading-relaxed text-muted">
             {filtersActive
               ? 'Thử đổi từ khóa hoặc bỏ bớt bộ lọc.'
-              : 'Tạo homestay đầu tiên để bắt đầu đón khách qua VietTrack.'}
+              : 'Tạo homestay đầu tiên để bắt đầu đón khách qua Đi Du Lịch.'}
           </p>
           {!filtersActive && (
             <button

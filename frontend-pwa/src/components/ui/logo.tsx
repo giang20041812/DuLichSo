@@ -32,7 +32,7 @@ export const VietTrackLogoMark: React.FC<{ size?: number | string; className?: s
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={`shrink-0 select-none overflow-visible ${className}`}
-      aria-label="VietTrack Logo"
+      aria-label="Đi Du Lịch Logo"
     >
       <defs>
         {/* Nền đĩa ngọc trắng sương mai dịu mát */}
@@ -197,7 +197,7 @@ export const VietTrackLogo: React.FC<LogoProps> = ({
       <VietTrackLogoMark size={size} />
       <div className="flex flex-col select-none leading-none">
         <span className={`font-display font-black text-2xl sm:text-[28px] tracking-tight ${textColor}`}>
-          VietTrack
+          Đi Du Lịch
         </span>
         <span className={`text-[11px] sm:text-[12px] font-semibold tracking-wider uppercase mt-1 ${subTextColor}`}>
           Du Lịch Di Sản & Sinh Thái
@@ -208,6 +208,8 @@ export const VietTrackLogo: React.FC<LogoProps> = ({
 };
 
 // Aliases for compatibility
+export const DiDuLichLogoMark = VietTrackLogoMark;
+export const DiDuLichLogo = VietTrackLogo;
 export const VietJourneyLogoMark = VietTrackLogoMark;
 export const VietJourneyLogo = VietTrackLogo;
 

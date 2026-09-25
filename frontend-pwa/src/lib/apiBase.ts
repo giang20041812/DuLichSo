@@ -4,7 +4,11 @@ import axios from 'axios';
  * Origin của backend khi frontend và backend ở KHÁC domain (vd https://api.example.com).
  * Để trống nếu dùng reverse proxy cùng domain (nginx chuyển /api → backend) hoặc dev với proxy của Vite.
  */
-export const API_ORIGIN: string = ((import.meta.env.VITE_API_ORIGIN as string | undefined) ?? '').replace(/\/+$/, '');
+export const API_ORIGIN: string = (
+  (import.meta.env.VITE_API_URL as string | undefined) ??
+  (import.meta.env.VITE_API_ORIGIN as string | undefined) ??
+  ''
+).replace(/\/+$/, '').replace(/\/api$/, '');
 
 /** Origin dùng để dựng URL tuyệt đối tới API. */
 export const apiOrigin = (): string => API_ORIGIN || window.location.origin;

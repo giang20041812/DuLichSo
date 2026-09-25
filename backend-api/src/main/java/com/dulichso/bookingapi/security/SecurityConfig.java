@@ -51,8 +51,8 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Public: không cần đăng nhập (SOS khẩn cấp, info công khai)
-                        .requestMatchers("/api/public/**").permitAll()
+                        // Public: không cần đăng nhập (SOS khẩn cấp, info công khai, error dispatch)
+                        .requestMatchers("/api/public/**", "/error").permitAll()
                         // Auth endpoints (đăng nhập portal, google)
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         // Admin endpoints: chỉ ADMIN
@@ -80,7 +80,9 @@ public class SecurityConfig {
                 "https://*.ngrok.io",
                 "https://*.ngrok-free.dev",
                 "https://*.loca.lt",
-                "https://*.trycloudflare.com"
+                "https://*.trycloudflare.com",
+                "https://*.vercel.app",
+                "https://*.onrender.com"
         ));
         if (allowedOrigins != null) {
             for (String o : allowedOrigins) {

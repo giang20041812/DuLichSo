@@ -17,6 +17,38 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, org.spr
     Optional<Booking> findLockedById(@org.springframework.data.repository.query.Param("id") Long id);
 
     @org.springframework.data.jpa.repository.Query("""
+        SELECT b FROM Booking b
+        JOIN FETCH b.place p
+        JOIN FETCH b.roomType rt
+        WHERE (:email IS NOT NULL AND LOWER(b.guestEmail) = LOWER(:email))
+           OR (:phone IS NOT NULL AND b.guestPhone = :phone)
+        ORDER BY b.createdAt DESC
+    """)
+    java.util.List<Booking> findByGuestEmailOrPhone(
+            @org.springframework.data.repository.query.Param("email") String email,
+            @org.springframework.data.repository.query.Param("phone") String phone
+    );
+
+    @org.springframework.data.jpa.repository.Query("""
+        SELECT b FROM Booking b
+        JOIN FETCH b.place p
+        JOIN FETCH b.roomType rt
+        WHERE b.bookingCode IN :codes
+        ORDER BY b.createdAt DESC
+    """)
+    java.util.List<Booking> findByBookingCodes(
+            @org.springframework.data.repository.query.Param("codes") java.util.Collection<String> codes
+    );
+
+    @org.springframework.data.jpa.repository.Query("""
+        SELECT b FROM Booking b
+        JOIN FETCH b.place p
+        JOIN FETCH b.roomType rt
+        ORDER BY b.createdAt DESC
+    """)
+    java.util.List<Booking> findAllWithDetails();
+
+    @org.springframework.data.jpa.repository.Query("""
         SELECT b FROM Booking b 
         WHERE b.roomType.id = :roomTypeId 
           AND b.status IN (com.dulichso.bookingapi.entity.enums.BookingStatus.PENDING, 

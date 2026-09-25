@@ -148,7 +148,7 @@ export default function HomePage() {
     return (
       <div className="w-full h-screen flex flex-col items-center justify-center gap-3 text-[var(--color-primary)] font-semibold">
         <div className="w-8 h-8 border-3 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin"></div>
-        <p>Đang tải dữ liệu VietJourney...</p>
+        <p>Đang tải dữ liệu Đi Du Lịch...</p>
       </div>
     );
   }
@@ -267,15 +267,31 @@ export default function HomePage() {
                           alt={dest.name} 
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
                         />
-                        {/* Huy hiệu thích hợp theo mùa hoặc tagBadge */}
-                        <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 items-start">
-                          {isSuitable && (
-                            <span className="bg-[#048c73] text-white text-[10px] font-bold px-2 py-0.5 rounded-xs tracking-tight shadow-sm flex items-center gap-1">
-                              <Sparkles className="w-3 h-3 text-amber-300" /> Thích hợp theo mùa
+                        {/* Huy hiệu thời gian mùa vụ thích hợp: Đặt góc trái trên cùng, làm nổi bật hẳn lên */}
+                        <div className="absolute top-2.5 left-2.5 z-10 flex flex-col gap-1.5 items-start">
+                          <div 
+                            className={`px-2.5 py-1.5 rounded-sm shadow-md font-bold text-xs flex items-center gap-1.5 backdrop-blur-md border transition-transform group-hover:scale-105 ${
+                              isSuitable 
+                                ? 'bg-gradient-to-r from-[#ea580c] to-[#f97316] text-white border-amber-300/50 shadow-orange-950/25 ring-1 ring-white/30' 
+                                : 'bg-[#0f2d3c]/95 text-white border-white/20 shadow-black/20'
+                            }`}
+                          >
+                            <Calendar className={`w-3.5 h-3.5 shrink-0 ${isSuitable ? 'text-amber-200' : 'text-emerald-400'}`} />
+                            <span className="font-extrabold text-white text-[11px] sm:text-xs tracking-tight">
+                              {startFormatted && endFormatted
+                                ? `Mùa đẹp: ${startFormatted} – ${endFormatted}`
+                                : (endFormatted 
+                                    ? `Mùa đẹp đến: ${endFormatted}` 
+                                    : (isSuitable ? 'Mùa đẹp nhất năm' : 'Quanh năm'))}
                             </span>
-                          )}
-                          {dest.tagBadge && !isSuitable && (
-                            <span className="bg-[#0f2d3c] text-white text-[10px] font-bold px-2 py-0.5 rounded-xs tracking-tight">
+                            {isSuitable && (
+                              <span className="bg-amber-400 text-stone-900 text-[9px] font-black px-1.5 py-0.2 rounded-xs uppercase tracking-wider ml-0.5 shadow-2xs">
+                                VÀNG
+                              </span>
+                            )}
+                          </div>
+                          {dest.tagBadge && (
+                            <span className="bg-[#048c73]/95 text-white text-[10px] font-bold px-2 py-0.5 rounded-xs tracking-tight shadow-xs border border-white/20">
                               {dest.tagBadge}
                             </span>
                           )}
@@ -310,18 +326,18 @@ export default function HomePage() {
                           {dest.description}
                         </p>
 
-                        {/* Thẻ hiển thị thời gian thích hợp / mùa vụ */}
-                        <div className="mb-3 py-1 px-2 rounded-xs bg-[#f4f7f6] border border-[#e1e9e6] flex items-center justify-between text-[11px]">
-                          <span className="text-slate-600 font-medium flex items-center gap-1">
-                            <Calendar className="w-3 h-3 text-[#048c73]" />
-                            {isSuitable ? 'Mùa đẹp nhất:' : 'Thời gian phù hợp:'}
+                        {/* Thẻ trạng thái mùa vụ */}
+                        <div className="mb-3 py-1.5 px-2.5 rounded-xs bg-[#f4f7f6] border border-[#e1e9e6] flex items-center justify-between text-[11px]">
+                          <span className="text-slate-600 font-medium flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-[#048c73]" />
+                            {isSuitable ? 'Đang trong mùa đẹp nhất' : 'Thời gian trải nghiệm'}
                           </span>
                           <span className="font-bold text-[#048c73]">
                             {startFormatted && endFormatted
                               ? `${startFormatted} – ${endFormatted}`
                               : (endFormatted 
                                   ? `Đến ${endFormatted}` 
-                                  : (isSuitable ? 'Đang vào mùa đẹp' : 'Quanh năm'))}
+                                  : (isSuitable ? 'Mùa vàng du lịch' : 'Quanh năm'))}
                           </span>
                         </div>
 
@@ -552,12 +568,12 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 6. Cam Kết Giá Trị Từ VietJourney: 4 ô với 4 sắc thái Eco Tropical Glow sống động */}
+      {/* 6. Cam Kết Giá Trị Từ Đi Du Lịch: 4 ô với 4 sắc thái Eco Tropical Glow sống động */}
       <section className="bg-white py-14 border-t border-[#048c73]/10">
         <div className="max-w-[1280px] mx-auto w-full px-4 md:px-8">
           <div className="text-center mb-10">
             <h2 className="text-2xl md:text-3xl font-bold font-display text-[#0a2e26]">
-              Cam Kết Giá Trị Từ VietJourney
+              Cam Kết Giá Trị Từ Đi Du Lịch
             </h2>
             <p className="text-[#59766e] text-sm md:text-base mt-1.5">
               Đồng hành trọn vẹn vì một hành trình du lịch bền vững và đáng tin cậy

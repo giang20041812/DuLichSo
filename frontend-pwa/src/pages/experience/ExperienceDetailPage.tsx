@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { ExperienceDetail } from '@/types/itinerary';
 import { fetchExperienceDetail } from '@/services/experienceService';
+import { VietTrackLogoMark } from '@/components/ui/logo';
 
 export default function ExperienceDetailPage() {
   const { slug = 'trai-nghiem-gia-com-nep-tu-le' } = useParams<{ slug: string }>();
@@ -55,12 +56,10 @@ export default function ExperienceDetailPage() {
       <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-100 px-4 py-2.5 shadow-xs">
         <div className="max-w-xl mx-auto flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-[#0F3E2E] text-white flex items-center justify-center font-black text-sm">
-              TB
-            </div>
+            <VietTrackLogoMark size={32} />
             <div>
               <span className="font-extrabold text-sm tracking-tight text-[#0F3E2E] block leading-tight">
-                TÂY BẮC TRAILS
+                Đi Du Lịch
               </span>
               <span className="text-[10px] text-slate-400 font-medium block leading-none">
                 Chạm vào nguyên bản

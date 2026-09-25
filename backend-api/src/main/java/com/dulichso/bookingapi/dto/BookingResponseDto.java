@@ -20,6 +20,9 @@ public class BookingResponseDto {
     private Long placeId;
     private String placeName;
     private String placeAddress;
+    private java.math.BigDecimal latitude;
+    private java.math.BigDecimal longitude;
+    private String coverImageUrl;
     private Long roomTypeId;
     private String roomTypeName;
     private LocalDate checkIn;
@@ -39,6 +42,7 @@ public class BookingResponseDto {
     private LocalDateTime holdExpiresAt;
     private Map<String, Object> policySnapshot;
     private java.util.List<ServiceItemDto> serviceItems;
+    private java.util.List<BookingChangeRequestDto> changeRequests;
 
     @Data
     @NoArgsConstructor

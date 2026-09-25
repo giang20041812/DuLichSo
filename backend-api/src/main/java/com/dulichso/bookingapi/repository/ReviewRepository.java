@@ -22,4 +22,9 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
             @Param("placeId") Long placeId,
             @Param("status") ReviewStatus status
     );
+
+    @Query("SELECT r FROM Review r LEFT JOIN FETCH r.booking WHERE r.booking.id = :bookingId")
+    java.util.Optional<Review> findByBookingIdWithDetails(@Param("bookingId") Long bookingId);
+
+    boolean existsByBookingId(Long bookingId);
 }

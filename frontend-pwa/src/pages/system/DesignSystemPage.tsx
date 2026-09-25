@@ -10,10 +10,10 @@ export default function DesignSystemPage() {
       {/* Intro Section */}
       <section className="pt-8">
         <h1 className="text-4xl md:text-[44px] font-bold font-display text-[#0f2d3c] tracking-tight mb-4">
-          VietJourney Design System &<br />Component Library
+          Đi Du Lịch Design System &<br />Component Library
         </h1>
         <p className="text-[17px] text-[var(--color-muted)] max-w-3xl leading-relaxed mb-10">
-          Bộ quy chuẩn giao diện và thư viện component dùng chung cho toàn bộ hệ thống du lịch VietJourney.
+          Bộ quy chuẩn giao diện và thư viện component dùng chung cho toàn bộ hệ thống Đi Du Lịch.
           Thiết kế mang hơi thở biển bạc và núi ngàn Việt Nam, dung hòa tính kỹ thuật khắt khe cùng trải nghiệm
           khám phá bản địa chân thực.
         </p>
@@ -484,7 +484,7 @@ export default function DesignSystemPage() {
             </div>
             <div>
               <div className="font-bold text-[#16709a] mb-3 text-sm">Đang Focus (Active)</div>
-              <Input placeholder="contact@vietjourney.vn" startIcon={<Mail className="w-5 h-5" />} className="border-[#16709a] ring-1 ring-[#16709a]" helpText={<span className="text-[#16709a]">Email dùng nhận vé điện tử</span>} />
+              <Input placeholder="contact@didulich.vn" startIcon={<Mail className="w-5 h-5" />} className="border-[#16709a] ring-1 ring-[#16709a]" helpText={<span className="text-[#16709a]">Email dùng nhận vé điện tử</span>} />
             </div>
             <div>
               <div className="font-bold text-[#d04648] mb-3 text-sm">Báo Lỗi (Error State)</div>
@@ -665,7 +665,7 @@ export default function DesignSystemPage() {
               <div className="bg-[#f8f9fa] px-6 py-4 flex items-center justify-between border-b border-[#66716c]/10">
                 <div className="flex items-center gap-2 font-bold text-[#0f2d3c]">
                   <Landmark className="w-5 h-5 text-[#16709a]" />
-                  Xác Nhận Đặt Tour VietJourney
+                  Xác Nhận Đặt Tour Đi Du Lịch
                 </div>
                 <div className="w-8 h-8 rounded-full bg-[#e6e8eb] flex items-center justify-center cursor-pointer hover:bg-[#d1d5db] transition-colors">
                   <span className="text-lg leading-none mt-[-2px]">&times;</span>

@@ -8,7 +8,6 @@ import {
   Calendar, 
   MapPin, 
   ShieldAlert, 
-  Search, 
   ChevronRight, 
   Flame, 
   CheckCircle2
@@ -18,7 +17,6 @@ export default function CultureFestivalPage() {
   const [festivals, setFestivals] = useState<FestivalDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeSeason, setActiveSeason] = useState<'ALL' | 'CURRENT' | 'SPRING' | 'AUTUMN'>('ALL');
-  const [searchKeyword, setSearchKeyword] = useState('');
 
   const currentMonth = new Date().getMonth() + 1;
 
@@ -44,16 +42,7 @@ export default function CultureFestivalPage() {
       matchSeason = f.slug === 'hoa-to-day' || f.slug === 'festival-khen-mong' || f.slug === 'gau-tao' || f.seasonNote.toLowerCase().includes('xuân') || f.seasonNote.toLowerCase().includes('tháng 12');
     }
 
-    let matchKeyword = true;
-    if (searchKeyword.trim()) {
-      const kw = searchKeyword.toLowerCase().trim();
-      matchKeyword = f.name.toLowerCase().includes(kw) || 
-        f.location.toLowerCase().includes(kw) || 
-        f.seasonNote.toLowerCase().includes(kw) ||
-        f.coreValue.toLowerCase().includes(kw);
-    }
-
-    return matchSeason && matchKeyword;
+    return matchSeason;
   });
 
   return (
@@ -75,24 +64,11 @@ export default function CultureFestivalPage() {
           </div>
 
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold font-display text-white tracking-tight mb-3 drop-shadow-md">
-            Lễ Hội & Bản Sắc Văn Hóa
+            Trải Nghiệm & Lễ Hội Văn Hóa
           </h1>
-          <p className="text-white/90 text-sm md:text-base font-body max-w-2xl mx-auto mb-6 drop-shadow-sm">
+          <p className="text-white/90 text-sm md:text-base font-body max-w-2xl mx-auto drop-shadow-sm">
             Trải nghiệm trọn vẹn hồn cốt rẻo cao Tây Bắc: Tiếng khèn Mông gọi bạn, Lễ hội Mùa Vàng ruộng bậc thang, phong tục Mừng Cơm Mới và sắc thắm hoa Tớ Dày.
           </p>
-
-          <div className="w-full max-w-2xl mx-auto bg-white/95 backdrop-blur-md rounded-lg p-2 shadow-xl border border-white/60 flex items-center gap-2">
-            <div className="flex-1 flex items-center gap-2.5 px-3 py-1.5">
-              <Search className="w-5 h-5 text-[var(--color-primary)] shrink-0" />
-              <input 
-                type="text"
-                placeholder="Tìm Lễ hội Mùa Vàng, Khèn Mông, Hoa Tớ Dày, Cơm Mới, Gầu Tào..."
-                className="w-full bg-transparent text-sm md:text-base font-medium text-[var(--color-ink-deep)] placeholder:text-gray-400 outline-none"
-                value={searchKeyword}
-                onChange={(e) => setSearchKeyword(e.target.value)}
-              />
-            </div>
-          </div>
         </div>
       </section>
 
@@ -102,7 +78,7 @@ export default function CultureFestivalPage() {
         <div className="flex items-center gap-2 text-xs md:text-sm text-[var(--color-muted)] mb-5">
           <Link to="/" className="hover:text-[var(--color-primary)] transition-colors">Trang chủ</Link>
           <span>/</span>
-          <span className="text-[var(--color-ink-deep)] font-semibold">Văn hóa & Lễ hội bản địa</span>
+          <span className="text-[var(--color-ink-deep)] font-semibold">Trải nghiệm & Lễ hội bản địa</span>
         </div>
 
         {/* 🌟 1. BANNER GỢI Ý ĐẶC BIỆT CHO THỜI ĐIỂM HIỆN TẠI (THÁNG 9 - 10) 🌟 */}
@@ -173,11 +149,11 @@ export default function CultureFestivalPage() {
                     <span className="text-xs font-semibold text-emerald-700 flex items-center gap-1">
                       <CheckCircle2 className="w-3.5 h-3.5" /> Khuyến nghị nên đi ngay
                     </span>
-                    <a href={`#festival-${item.slug}`}>
-                      <button className="text-xs font-bold text-[var(--color-primary)] hover:text-[var(--color-coral)] flex items-center gap-0.5">
+                    <Link to={`/festivals/${item.slug}`}>
+                      <button className="text-xs font-bold text-[var(--color-primary)] hover:text-[var(--color-coral)] flex items-center gap-0.5 cursor-pointer">
                         Xem chi tiết <ChevronRight className="w-3.5 h-3.5" />
                       </button>
-                    </a>
+                    </Link>
                   </div>
                 </div>
               ))}
@@ -247,12 +223,14 @@ export default function CultureFestivalPage() {
               >
                 {/* Image */}
                 <div className="relative w-full lg:w-[380px] h-[240px] lg:h-auto shrink-0 bg-gray-100 overflow-hidden">
-                  <img 
-                    src={fest.coverImageUrl} 
-                    alt={fest.name}
-                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" 
-                  />
-                  <div className="absolute top-3 left-3 flex flex-col gap-1">
+                  <Link to={`/festivals/${fest.slug}`} className="block w-full h-full">
+                    <img 
+                      src={fest.coverImageUrl} 
+                      alt={fest.name}
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" 
+                    />
+                  </Link>
+                  <div className="absolute top-3 left-3 flex flex-col gap-1 pointer-events-none">
                     <Badge className="bg-[var(--color-primary)] text-white text-xs font-bold rounded-sm px-2.5 py-1 shadow-xs">
                       {fest.highlightTag}
                     </Badge>
@@ -281,9 +259,11 @@ export default function CultureFestivalPage() {
                       </span>
                     </div>
 
-                    <h3 className="text-xl md:text-2xl font-bold text-[var(--color-ink-deep)] mb-2">
-                      {fest.name}
-                    </h3>
+                    <Link to={`/festivals/${fest.slug}`}>
+                      <h3 className="text-xl md:text-2xl font-bold text-[var(--color-ink-deep)] hover:text-[var(--color-primary)] transition-colors mb-2">
+                        {fest.name}
+                      </h3>
+                    </Link>
 
                     <p className="text-sm font-medium text-[var(--color-ink)] mb-3 leading-relaxed">
                       {fest.coreValue}
@@ -317,12 +297,12 @@ export default function CultureFestivalPage() {
                       ))}
                     </div>
 
-                    <Link to="/homestays">
+                    <Link to={`/festivals/${fest.slug}`}>
                       <Button 
                         variant="primary" 
-                        className="rounded-md font-bold h-9 px-4 text-xs bg-[var(--color-primary)] hover:bg-[var(--color-primary-600)]"
+                        className="rounded-md font-bold h-9 px-4 text-xs bg-[var(--color-primary)] hover:bg-[var(--color-primary-600)] flex items-center gap-1 shadow-xs"
                       >
-                        Tìm chỗ nghỉ dịp này
+                        Xem chi tiết <ChevronRight className="w-3.5 h-3.5" />
                       </Button>
                     </Link>
                   </div>

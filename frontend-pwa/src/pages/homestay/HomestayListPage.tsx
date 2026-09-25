@@ -91,6 +91,7 @@ export default function HomestayListPage() {
     const minRating = searchParams.get('minRating');
     const amenitiesStr = searchParams.get('amenities');
     const province = searchParams.get('province');
+    const district = searchParams.get('district');
     const ward = searchParams.get('ward');
     const attractionsStr = searchParams.get('attractions');
     
@@ -101,6 +102,7 @@ export default function HomestayListPage() {
     if (minRating) initialFilters.minRating = Number(minRating);
     if (amenitiesStr) initialFilters.amenities = amenitiesStr.split(',');
     if (province) initialFilters.province = province;
+    if (district) initialFilters.district = district;
     if (ward) initialFilters.ward = ward;
     if (attractionsStr) initialFilters.attractions = attractionsStr.split(',');
     
@@ -150,6 +152,7 @@ export default function HomestayListPage() {
       if (newFilters.minRating !== undefined) newParams.set('minRating', newFilters.minRating.toString()); else newParams.delete('minRating');
       if (newFilters.amenities && newFilters.amenities.length > 0) newParams.set('amenities', newFilters.amenities.join(',')); else newParams.delete('amenities');
       if (newFilters.province) newParams.set('province', newFilters.province); else newParams.delete('province');
+      if (newFilters.district) newParams.set('district', newFilters.district); else newParams.delete('district');
       if (newFilters.ward) newParams.set('ward', newFilters.ward); else newParams.delete('ward');
       if (newFilters.attractions && newFilters.attractions.length > 0) newParams.set('attractions', newFilters.attractions.join(',')); else newParams.delete('attractions');
       
@@ -174,6 +177,7 @@ export default function HomestayListPage() {
     const minRating = searchParams.get('minRating');
     const amenitiesStr = searchParams.get('amenities');
     const province = searchParams.get('province');
+    const district = searchParams.get('district');
     const ward = searchParams.get('ward');
     const attractionsStr = searchParams.get('attractions');
     
@@ -185,6 +189,7 @@ export default function HomestayListPage() {
       minRating: minRating ? Number(minRating) : undefined,
       amenities: amenitiesStr ? amenitiesStr.split(',') : undefined,
       province: province || undefined,
+      district: district || undefined,
       ward: ward || undefined,
       attractions: attractionsStr ? attractionsStr.split(',') : undefined,
     });

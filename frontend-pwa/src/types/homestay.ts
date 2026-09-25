@@ -4,7 +4,7 @@ export type PlaceOperationStatus = 'OPERATING' | 'TEMPORARILY_CLOSED' | 'PERMANE
 export type PlaceVerificationStatus = 'UNVERIFIED' | 'COMMUNITY_VERIFIED' | 'OFFICIAL_VERIFIED';
 export type ContactChannel = 'PHONE' | 'EMAIL' | 'ZALO' | 'FACEBOOK' | 'WEBSITE' | 'TIKTOK' | 'YOUTUBE' | 'GOOGLE_MAPS' | 'OTHER';
 export type AmenityValue = 'YES' | 'NO' | 'OPTIONAL' | 'UNVERIFIED';
-export type HighlightType = 'PRO' | 'CON' | 'TIP';
+export type HighlightType = 'PRO' | 'CON' | 'TIP' | 'PAIN_POINT';
 
 export interface PlaceMediaItem {
   id: number;

@@ -27,11 +27,16 @@ class BookingPolicySnapshotTest {
     @Mock RoomTypeRepository rooms;
     @Mock HomestayProfileRepository profiles;
     @Mock RoomCalendarService calendar;
+    @Mock ReviewRepository reviews;
+    @Mock PlaceMediaRepository placeMedia;
+    @Mock BookingChangeRequestRepository changeRequests;
+    @Mock NotificationService notificationService;
     BookingServiceImpl service;
     CreateBookingRequest request;
 
     @BeforeEach void setup() {
-        service = new BookingServiceImpl(bookings, nights, inventory, places, rooms, profiles, calendar);
+        service = new BookingServiceImpl(bookings, nights, inventory, places, rooms, profiles, calendar,
+                reviews, placeMedia, changeRequests, new com.fasterxml.jackson.databind.ObjectMapper(), notificationService);
         Place place = Place.builder().id(1L).name("Homestay").visibility(com.dulichso.bookingapi.entity.enums.PlaceVisibility.PUBLISHED).provider(Provider.builder().id(2L).build()).build();
         RoomType room = RoomType.builder().id(3L).place(place).status("ACTIVE").basePrice(new BigDecimal("400000")).totalRoomCount(3).build();
         request = CreateBookingRequest.builder().placeId(1L).roomTypeId(3L).roomCount(1).guestCount(2)

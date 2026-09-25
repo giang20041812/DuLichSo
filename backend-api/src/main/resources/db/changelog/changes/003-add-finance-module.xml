@@ -6,6 +6,11 @@
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
 
     <changeSet id="003-create-affiliate-link" author="dulichso">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="affiliate_link"/>
+            </not>
+        </preConditions>
         <createTable tableName="affiliate_link"
                      remarks="Link affiliate do Admin tạo để người dùng giới thiệu booking nhận hoa hồng">
             <column name="id" type="BIGINT UNSIGNED" autoIncrement="true">
@@ -42,6 +47,11 @@
     </changeSet>
 
     <changeSet id="003-create-commission-ledger" author="dulichso">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="commission_ledger"/>
+            </not>
+        </preConditions>
         <createTable tableName="commission_ledger"
                      remarks="Sổ cái hoa hồng: mỗi booking qua affiliate link tạo 1 entry">
             <column name="id" type="BIGINT UNSIGNED" autoIncrement="true">

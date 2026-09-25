@@ -3,7 +3,7 @@ import { PlaceDetail } from '../types/homestay';
 import { RoomTypeItem } from '../types/room';
 import { MapContextData } from '../types/integrations/google-maps';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const API_BASE_URL = '/api';
 
 export const FALLBACK_PLACE_DETAIL: PlaceDetail = {
   id: 1,
@@ -238,11 +238,16 @@ export const FALLBACK_MAP_CONTEXT: MapContextData = {
 
 export const fetchPlaceDetail = async (slug: string): Promise<PlaceDetail> => {
   try {
-    const response = await axios.get<PlaceDetail>(`${API_BASE_URL}/v1/public/places/${slug}`);
+    const response = await axios.get<PlaceDetail>(`${API_BASE_URL}/public/places/${slug}`);
     return response.data;
-  } catch (error) {
-    console.warn(`[placeService] Using fallback detail for ${slug}:`, error);
-    return FALLBACK_PLACE_DETAIL;
+  } catch {
+    try {
+      const response2 = await axios.get<PlaceDetail>(`${API_BASE_URL}/v1/public/places/${slug}`);
+      return response2.data;
+    } catch (err) {
+      console.warn(`[placeService] Using fallback detail for ${slug}:`, err);
+      return FALLBACK_PLACE_DETAIL;
+    }
   }
 };
 

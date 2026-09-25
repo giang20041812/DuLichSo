@@ -16,14 +16,13 @@ import {
   LogOut,
   ChevronDown,
   Calendar,
-  CheckCircle2,
   X,
-  ShieldCheck
+  ShieldCheck,
+  Download
 } from "lucide-react";
 import { VietTrackLogoMark } from "../ui/logo";
 import { getCurrentCustomer, clearAllAuthSession, type CurrentCustomer } from "@/services/authService";
-import { getUserSavedBookings } from "@/services/bookingService";
-import type { BookingResponseDto } from "@/types/booking";
+import NotificationBell from "./NotificationBell";
 
 interface HeaderProps {
   isSidebarOpen?: boolean;
@@ -45,9 +44,7 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
   const [isScrolled, setIsScrolled] = useState(false);
   const [user, setUser] = useState<CurrentCustomer | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isBookingsModalOpen, setIsBookingsModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const [savedBookings, setSavedBookings] = useState<BookingResponseDto[]>([]);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
@@ -96,12 +93,6 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
     setIsDropdownOpen(false);
     clearAllAuthSession();
     navigate('/login');
-  };
-
-  const handleOpenBookings = () => {
-    setIsDropdownOpen(false);
-    setSavedBookings(getUserSavedBookings());
-    setIsBookingsModalOpen(true);
   };
 
   const handleOpenProfile = () => {
@@ -189,7 +180,7 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
                   isScrolled ? 'text-[17px] md:text-[20px]' : 'text-[20px] md:text-[23px]'
                 } ${isSolid ? 'text-[var(--color-ink-deep)]' : 'text-white drop-shadow-md'}`}
               >
-                VietTrack
+                Đi Du Lịch
               </span>
               <span
                 className={`font-semibold tracking-wider uppercase mt-0.5 transition-all duration-300 ${
@@ -202,20 +193,38 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
           </Link>
 
           {/* Cụm bên phải: Nút Đăng nhập/Đăng ký HOẶC Icon người dùng kèm Tên & Dropdown */}
-          <div className="flex items-center gap-2" ref={dropdownRef}>
+          <div className="flex items-center gap-1.5 sm:gap-2" ref={dropdownRef}>
+            {/* Nút Tải App nhanh */}
+            <Link
+              to="/download-app"
+              className={`hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-bold transition-all shadow-xs border ${
+                isSolid
+                  ? 'border-[var(--color-primary)]/30 text-[var(--color-primary)] bg-[var(--color-primary)]/5 hover:bg-[var(--color-primary)]/10'
+                  : 'border-white/40 text-white bg-white/10 hover:bg-white/20 backdrop-blur-md'
+              }`}
+              title="Cài đặt ứng dụng Đi Du Lịch vào thiết bị"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Tải App</span>
+            </Link>
+
             {user ? (
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setIsDropdownOpen((v) => !v)}
-                  className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md transition-all cursor-pointer border ${
-                    isSolid
-                      ? 'bg-white/90 border-gray-200 hover:border-[var(--color-primary)] hover:bg-[#edfbf7]/50 shadow-xs'
-                      : 'bg-white/15 backdrop-blur-md border-white/30 text-white hover:bg-white/25 shadow-xs'
-                  }`}
-                  aria-expanded={isDropdownOpen}
-                  aria-haspopup="true"
-                >
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                {/* Icon hình thông báo ở bên cạnh icon ava */}
+                <NotificationBell isSolid={isSolid} />
+
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsDropdownOpen((v) => !v)}
+                    className={`flex items-center gap-1.5 sm:gap-2 p-1 sm:px-2.5 sm:py-1.5 rounded-md transition-all cursor-pointer border ${
+                      isSolid
+                        ? 'bg-white/90 border-gray-200 hover:border-[var(--color-primary)] hover:bg-[#edfbf7]/50 shadow-xs'
+                        : 'bg-white/15 backdrop-blur-md border-white/30 text-white hover:bg-white/25 shadow-xs'
+                    }`}
+                    aria-expanded={isDropdownOpen}
+                    aria-haspopup="true"
+                  >
                   {user.picture ? (
                     <img
                       src={user.picture}
@@ -228,7 +237,7 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
                     </div>
                   )}
                   <span
-                    className={`text-xs font-bold max-w-[110px] md:max-w-[140px] truncate ${
+                    className={`hidden sm:inline text-xs font-bold max-w-[110px] md:max-w-[140px] truncate ${
                       isSolid ? 'text-gray-900' : 'text-white drop-shadow-sm'
                     }`}
                     title={user.fullName || user.email}
@@ -236,7 +245,7 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
                     {user.fullName || user.email.split('@')[0]}
                   </span>
                   <ChevronDown
-                    className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                    className={`hidden sm:inline-block w-3.5 h-3.5 transition-transform duration-200 ${
                       isDropdownOpen ? 'rotate-180' : ''
                     } ${isSolid ? 'text-gray-500' : 'text-white/90'}`}
                   />
@@ -273,11 +282,14 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
                     <div className="py-1">
                       <button
                         type="button"
-                        onClick={handleOpenBookings}
+                        onClick={() => {
+                          setIsDropdownOpen(false);
+                          navigate('/bookings');
+                        }}
                         className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-gray-700 hover:bg-[#edfbf7] hover:text-[var(--color-primary)] transition-colors text-left cursor-pointer"
                       >
                         <Calendar className="w-4 h-4 text-[var(--color-primary)] shrink-0" />
-                        <span>Danh sách đặt phòng của tôi</span>
+                        <span>Chuyến đi & Đơn đặt phòng</span>
                       </button>
 
                       <button
@@ -317,10 +329,12 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
                     </div>
                   </div>
                 )}
+                </div>
               </div>
             ) : (
               /* Nút Đăng nhập / Đăng ký trên Header */
               <div className="flex items-center gap-1.5">
+                <NotificationBell isSolid={isSolid} />
                 <Link
                   to="/login"
                   className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-bold transition-all shadow-xs ${
@@ -379,97 +393,6 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
           </nav>
         </div>
       </header>
-
-      {/* Modal: Danh sách đặt phòng của tôi */}
-      {isBookingsModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="relative w-full max-w-xl max-h-[85vh] flex flex-col rounded-lg border border-[var(--color-border)] bg-white shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between border-b border-gray-200 px-5 py-3.5 bg-slate-50/70">
-              <div className="flex items-center gap-2 text-ink-deep font-bold text-base">
-                <Calendar className="w-5 h-5 text-[var(--color-primary)]" />
-                <span>Danh sách đặt phòng của tôi</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsBookingsModalOpen(false)}
-                className="p-1 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition-colors"
-                aria-label="Đóng"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-5 overflow-y-auto space-y-3.5 flex-1">
-              {savedBookings.length === 0 ? (
-                <div className="text-center py-10 space-y-3">
-                  <div className="w-12 h-12 rounded-md bg-[#edfbf7] text-[var(--color-primary)] flex items-center justify-center mx-auto">
-                    <Calendar className="w-6 h-6" />
-                  </div>
-                  <h4 className="text-sm font-bold text-gray-800">Chưa có đơn đặt phòng nào</h4>
-                  <p className="text-xs text-gray-500 max-w-sm mx-auto">
-                    Các chuyến đi hoặc phòng bạn đặt sẽ được lưu giữ tại đây để tiện tra cứu mã đặt phòng và thông tin giữ chỗ.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsBookingsModalOpen(false);
-                      navigate('/homestays');
-                    }}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md bg-[var(--color-primary)] text-white text-xs font-semibold hover:bg-[#03705C] transition-colors"
-                  >
-                    <span>Khám phá Homestay</span>
-                  </button>
-                </div>
-              ) : (
-                savedBookings.map((b) => (
-                  <div
-                    key={b.bookingCode}
-                    className="p-4 rounded-lg border border-gray-200 bg-white hover:border-[var(--color-primary)] hover:shadow-xs transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-bold text-[var(--color-primary)] bg-[var(--color-primary)]/10 px-2 py-0.5 rounded-sm">
-                          #{b.bookingCode}
-                        </span>
-                        <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-sm flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3" /> {b.status}
-                        </span>
-                      </div>
-                      <div className="text-xs text-gray-600 flex items-center gap-2 pt-1">
-                        <span>{b.checkIn} → {b.checkOut}</span>
-                        <span>•</span>
-                        <span>{b.nights} đêm</span>
-                        <span>•</span>
-                        <span>{b.roomCount} phòng</span>
-                      </div>
-                      <div className="text-xs font-semibold text-gray-800">
-                        Khách: {b.guestName} ({b.guestPhone})
-                      </div>
-                    </div>
-
-                    <div className="text-right sm:text-right border-t sm:border-t-0 pt-2 sm:pt-0 border-gray-100 flex sm:flex-col justify-between sm:justify-center items-end">
-                      <span className="text-xs text-gray-500 sm:block">Tổng cộng</span>
-                      <span className="text-sm font-bold text-[var(--color-coral,#F97316)]">
-                        {Number(b.totalAmount || 0).toLocaleString('vi-VN')} đ
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div className="p-3 border-t border-gray-200 bg-slate-50/50 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setIsBookingsModalOpen(false)}
-                className="px-4 py-1.5 rounded-md border border-gray-300 text-xs font-semibold text-gray-700 hover:bg-gray-100 transition-colors"
-              >
-                Đóng
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Modal: Thông tin cá nhân */}
       {isProfileModalOpen && user && (

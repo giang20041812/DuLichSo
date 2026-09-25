@@ -74,7 +74,7 @@ export function AuthShell({ title, subtitle, children, footer, image }: AuthShel
             backgroundPosition: '8px 0, 8px 0, 0 0, 0 0',
           }}
         />
-        <p className="relative text-xs text-white/60">© VietTrack — Du lịch di sản Việt Nam</p>
+        <p className="relative text-xs text-white/60">© Đi Du Lịch — Du lịch di sản Việt Nam</p>
       </aside>
 
       {/* Form */}
