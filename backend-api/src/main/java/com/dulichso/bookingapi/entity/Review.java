@@ -38,7 +38,15 @@ public class Review {
     @Column(name = "updated_at", nullable = false)
     @Builder.Default
     private LocalDateTime updatedAt = LocalDateTime.now();
-    
+
+    /** UC-NCC-10: phản hồi của nhà cung cấp, hiển thị công khai dưới đánh giá. */
+    @Column(name = "provider_reply", columnDefinition = "TEXT")
+    private String providerReply;
+    @Column(name = "provider_reply_at")
+    private LocalDateTime providerReplyAt;
+    @Column(name = "provider_reply_by")
+    private Long providerReplyBy;
+
     @PreUpdate
     protected void onUpdate() { updatedAt = LocalDateTime.now(); }
 }
