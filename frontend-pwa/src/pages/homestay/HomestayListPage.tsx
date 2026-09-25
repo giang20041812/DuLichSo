@@ -118,10 +118,7 @@ export default function HomestayListPage() {
 
   const getHomestayPhone = (hs: HomestayDto) => {
     const c = hs.contacts?.find(item => item.channel === 'PHONE');
-    if (c && c.value) return c.value;
-    const seed = Math.abs(hs.name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0));
-    const num = (seed * 91823) % 9000000 + 1000000;
-    return `098${num}`;
+    return c?.value ? c.value.trim() : null;
   };
 
   const formatPhoneNumber = (phone: string) => {
@@ -130,14 +127,16 @@ export default function HomestayListPage() {
 
   const getHomestayFacebook = (hs: HomestayDto) => {
     const c = hs.contacts?.find(item => item.channel === 'FACEBOOK');
-    if (c && c.value) return c.value;
-    return `https://www.facebook.com/search/top?q=${encodeURIComponent(hs.name)}`;
+    if (!c || !c.value) return null;
+    const val = c.value.trim();
+    return val.startsWith('http') ? val : `https://facebook.com/${val.replace(/^@/, '')}`;
   };
 
   const getHomestayTikTok = (hs: HomestayDto) => {
     const c = hs.contacts?.find(item => item.channel === 'TIKTOK');
-    if (c && c.value) return c.value;
-    return `https://www.tiktok.com/search?q=${encodeURIComponent(hs.name)}`;
+    if (!c || !c.value) return null;
+    const val = c.value.trim();
+    return val.startsWith('http') ? val : `https://www.tiktok.com/@${val.replace(/^@/, '')}`;
   };
 
   const handleFilterChange = (updates: Partial<HomestayFilterParams>) => {
@@ -863,44 +862,52 @@ export default function HomestayListPage() {
                               )}
 
                               {/* CÁC LINK LIÊN QUAN: PHONE, FACEBOOK, TIKTOK CÓ ICON THEO TỪNG LOẠI */}
-                              <div className="flex flex-wrap items-center gap-1.5 pt-2 pb-1 border-t border-gray-100">
-                                {/* Phone Number */}
-                                <a 
-                                  href={`tel:${phone}`}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-50 text-emerald-800 hover:bg-emerald-100 text-[11px] font-bold transition-colors border border-emerald-200 shadow-2xs"
-                                  title="Gọi điện đặt phòng"
-                                >
-                                  <Phone className="w-3 h-3 text-emerald-600 shrink-0" />
-                                  <span>{formatPhoneNumber(phone)}</span>
-                                </a>
+                              {(phone || fb || tiktok) && (
+                                <div className="flex flex-wrap items-center gap-1.5 pt-2 pb-1 border-t border-gray-100">
+                                  {/* Phone Number */}
+                                  {phone && (
+                                    <a 
+                                      href={`tel:${phone}`}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-50 text-emerald-800 hover:bg-emerald-100 text-[11px] font-bold transition-colors border border-emerald-200 shadow-2xs"
+                                      title="Gọi điện đặt phòng"
+                                    >
+                                      <Phone className="w-3 h-3 text-emerald-600 shrink-0" />
+                                      <span>{formatPhoneNumber(phone)}</span>
+                                    </a>
+                                  )}
 
-                                {/* Facebook */}
-                                <a 
-                                  href={fb}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-blue-50 text-blue-800 hover:bg-blue-100 text-[11px] font-bold transition-colors border border-blue-200 shadow-2xs"
-                                  title="Trang Facebook Homestay"
-                                >
-                                  <FacebookIcon className="w-3 h-3 text-blue-600 shrink-0" />
-                                  <span>Facebook</span>
-                                </a>
+                                  {/* Facebook */}
+                                  {fb && (
+                                    <a 
+                                      href={fb}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-blue-50 text-blue-800 hover:bg-blue-100 text-[11px] font-bold transition-colors border border-blue-200 shadow-2xs"
+                                      title="Trang Facebook Homestay"
+                                    >
+                                      <FacebookIcon className="w-3 h-3 text-blue-600 shrink-0" />
+                                      <span>Facebook</span>
+                                    </a>
+                                  )}
 
-                                {/* TikTok */}
-                                <a 
-                                  href={tiktok}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-neutral-100 text-neutral-900 hover:bg-neutral-200 text-[11px] font-bold transition-colors border border-neutral-300 shadow-2xs"
-                                  title="Kênh TikTok Homestay"
-                                >
-                                  <TikTokIcon className="w-3 h-3 text-neutral-900 shrink-0" />
-                                  <span>TikTok</span>
-                                </a>
-                              </div>
+                                  {/* TikTok */}
+                                  {tiktok && (
+                                    <a 
+                                      href={tiktok}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-neutral-100 text-neutral-900 hover:bg-neutral-200 text-[11px] font-bold transition-colors border border-neutral-300 shadow-2xs"
+                                      title="Kênh TikTok Homestay"
+                                    >
+                                      <TikTokIcon className="w-3 h-3 text-neutral-900 shrink-0" />
+                                      <span>TikTok</span>
+                                    </a>
+                                  )}
+                                </div>
+                              )}
                             </div>
 
                             {/* Bottom: Price & Button */}

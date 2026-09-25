@@ -26,38 +26,7 @@ export const FALLBACK_PLACE_DETAIL: PlaceDetail = {
   altitudeMeters: 850,
   verifiedGpsText: '21.751214 - 104.318420',
   description: 'Nằm ôm trọn vách núi Lìm Mông hùng vĩ, Bản Lìm Mông Eco Lodge gìn giữ trọn vẹn nét văn hóa của người Thái Trắng với nếp nhà sàn pơ mu thơm lừng. Từ hiên nhà, bạn có thể phóng tầm mắt ngắm trọn thung lũng Tú Lệ trập trùng ruộng bậc thang ngát hương lúa mới.\n\nHomestay cam kết du lịch sinh thái bền vững, phục vụ các món ăn bản địa nấu từ nông sản tự cung tự cấp, nước sinh hoạt từ mạch nguồn tự nhiên mát lành.',
-  media: [
-    {
-      id: 1,
-      publicUrl: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1200&q=80',
-      role: 'COVER',
-      caption: 'Nhà sàn gỗ 40 năm tuổi nguyên bản giữa thung lũng Tú Lệ'
-    },
-    {
-      id: 2,
-      publicUrl: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80',
-      role: 'GALLERY',
-      caption: 'Không gian hiên nhà ngắm ruộng bậc thang buổi sớm'
-    },
-    {
-      id: 3,
-      publicUrl: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=800&q=80',
-      role: 'GALLERY',
-      caption: 'Phòng nghỉ ấm cúng phong cách nhà gỗ bản địa'
-    },
-    {
-      id: 4,
-      publicUrl: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=800&q=80',
-      role: 'GALLERY',
-      caption: 'Đường dạo quanh bản làng yên bình rợp bóng pơ mu'
-    },
-    {
-      id: 5,
-      publicUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
-      role: 'GALLERY',
-      caption: 'Góc bàn trà ngắm thung lũng mờ sương'
-    }
-  ],
+  media: [],
   amenities: [
     { id: 1, code: 'MEAL_ON_DEMAND', name: 'Phục vụ bữa ăn theo yêu cầu', icon: 'Utensils', value: 'YES', note: 'Món ăn đặc sản Thái Trắng tươi ngon' },
     { id: 2, code: 'FREE_KITCHEN', name: 'Nấu nướng tự do (bếp chung có củi)', icon: 'ChefHat', value: 'YES', note: 'Có sẵn gia vị, củi khô và bếp ga' },
@@ -102,7 +71,7 @@ export const FALLBACK_ROOMS: RoomTypeItem[] = [
     status: 'ACTIVE',
     availableRooms: 1,
     badgeText: 'Còn 1 phòng trống',
-    coverImage: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80',
+    coverImage: '',
     bedDescription: '1 giường 1m8',
     features: ['Tối đa 2 người', 'Ban công gỗ ngắm thung lũng'],
     unitNote: '/ đêm'
@@ -120,7 +89,7 @@ export const FALLBACK_ROOMS: RoomTypeItem[] = [
     status: 'ACTIVE',
     availableRooms: 6,
     badgeText: 'Còn 6 chỗ trống',
-    coverImage: 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=800&q=80',
+    coverImage: '',
     bedDescription: 'Đệm riêng kèm chăn màn',
     features: ['Tối đa 12 người', 'Vách ngăn rèm riêng tư'],
     unitNote: '/ người'
@@ -138,7 +107,7 @@ export const FALLBACK_ROOMS: RoomTypeItem[] = [
     status: 'ACTIVE',
     availableRooms: 0,
     badgeText: 'Hết phòng',
-    coverImage: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80',
+    coverImage: '',
     bedDescription: '2 giường đôi lớn',
     features: ['Tối đa 4 người', 'Phù hợp cho nhóm gia đình'],
     unitNote: '/ đêm'

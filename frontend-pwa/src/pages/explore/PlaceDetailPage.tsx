@@ -31,16 +31,7 @@ import {
   MessageCircle
 } from 'lucide-react';
 
-// Fallback hình ảnh chất lượng cao theo danh mục khi place chưa có media
-const CATEGORY_DEFAULT_IMAGES: Record<string, string> = {
-  ATTRACTION: 'https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1200&q=80',
-  RESTAURANT: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=1200&q=80',
-  FOOD: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=80',
-  TRANSPORT: 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=1200&q=80',
-  SERVICE: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=1200&q=80',
-  PHOTO: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=1200&q=80',
-  RENTAL: 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=1200&q=80',
-};
+
 
 // Khởi tạo Pro / Con / Tip mặc định theo danh mục nếu backend chưa có highlight cho địa điểm đó
 function getDefaultHighlights(kind: string): { pros: string[]; cons: string[]; tips: string[] } {
@@ -195,7 +186,7 @@ export default function PlaceDetailPage() {
   // Media images
   const allImages = place.media && place.media.length > 0
     ? place.media.map(m => m.publicUrl).filter(Boolean)
-    : [CATEGORY_DEFAULT_IMAGES[kind] || CATEGORY_DEFAULT_IMAGES.ATTRACTION];
+    : [];
 
   // Coordinates
   const lat = place.latitude || 21.8588;

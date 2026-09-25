@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
 import { 
   X, 
-  Download, 
   Smartphone, 
   Monitor, 
   Share2, 
   PlusSquare, 
   CheckCircle2, 
-  Sparkles, 
   ShieldCheck, 
   Zap, 
   BellRing,
@@ -24,7 +22,7 @@ interface PwaInstallModalProps {
 }
 
 export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClose }) => {
-  const { canInstall, isInstalled, isIos, installApp } = usePwaInstall();
+  const { isInstalled, isIos, installApp } = usePwaInstall();
   const [activeTab, setActiveTab] = useState<'quick' | 'ios' | 'android' | 'desktop'>('quick');
   const [isInstalling, setIsInstalling] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -55,77 +53,76 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
 
   return (
     <div 
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div 
-        className="relative w-full max-w-lg bg-white rounded-lg shadow-2xl border border-gray-200 overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-200"
+        className="relative w-full max-w-sm sm:max-w-md bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Modal Header */}
-        <div className="relative px-5 py-4 bg-gradient-to-r from-[#048C73] to-[#025A4A] text-white flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-md bg-white p-1 shadow-sm flex items-center justify-center shrink-0">
-              <VietTrackLogoMark size={32} />
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <h3 className="font-bold text-base text-white leading-tight">Đi Du Lịch App</h3>
-                <span className="bg-[#F59E0B] text-gray-900 text-[10px] font-black px-1.5 py-0.5 rounded-sm uppercase tracking-wide">
-                  PWA 2.0
-                </span>
-              </div>
-              <p className="text-white/80 text-xs mt-0.5">
-                {isInstalled ? 'Đã cài đặt trên thiết bị này' : 'Cài đặt trực tiếp không qua kho ứng dụng'}
-              </p>
-            </div>
-          </div>
+        {/* Header - Clean Browser Install app title */}
+        <div className="pt-5 px-6 pb-2 flex items-center justify-between">
+          <h3 className="text-base font-bold text-gray-900">Cài đặt ứng dụng</h3>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded-md transition-colors cursor-pointer"
+            className="p-1 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
             aria-label="Đóng cửa sổ"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Modal Body */}
-        <div className="p-5 overflow-y-auto space-y-4">
+        {/* App Identity row - Như hình Install app của HRM */}
+        <div className="px-6 py-4 flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#EA580C] to-[#C2410C] flex items-center justify-center shrink-0 shadow-sm text-white">
+            <VietTrackLogoMark size={28} className="brightness-200" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h4 className="font-bold text-sm sm:text-base text-gray-900 truncate">
+              Đi Du Lịch Việt Nam
+            </h4>
+            <p className="text-xs text-gray-500 truncate mt-0.5 font-mono">
+              didulich.vn
+            </p>
+          </div>
+        </div>
+
+        {/* Modal Action Buttons (Install / Cancel) */}
+        <div className="px-6 pb-5 pt-2 flex items-center justify-end gap-2.5">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 rounded-full border border-gray-300 text-xs font-bold text-gray-700 hover:bg-gray-50 active:scale-95 transition-all cursor-pointer"
+          >
+            Hủy
+          </button>
+
+          <button
+            type="button"
+            onClick={handleInstallClick}
+            disabled={isInstalling}
+            className="px-5 py-2 rounded-full text-xs font-bold text-white bg-[#EA580C] hover:bg-[#C2410C] active:scale-95 transition-all shadow-xs cursor-pointer disabled:opacity-70"
+          >
+            {isInstalling ? 'Đang cài...' : 'Cài đặt'}
+          </button>
+        </div>
+
+        {/* Modal Body & Chi tiết hướng dẫn thiết bị */}
+        <div className="px-6 pb-5 border-t border-gray-100 pt-3 overflow-y-auto max-h-[60vh] space-y-3">
           {/* Trạng thái đã cài đặt */}
           {isInstalled ? (
-            <div className="bg-[#10B981]/10 border border-[#10B981]/30 rounded-md p-4 flex items-center gap-3">
-              <CheckCircle2 className="w-6 h-6 text-[#10B981] shrink-0" />
+            <div className="bg-[#10B981]/10 border border-[#10B981]/30 rounded-md p-3 flex items-center gap-2.5">
+              <CheckCircle2 className="w-5 h-5 text-[#10B981] shrink-0" />
               <div>
-                <h4 className="text-sm font-bold text-gray-900">Ứng dụng đã sẵn sàng!</h4>
-                <p className="text-xs text-gray-600 mt-0.5">
-                  Bạn đang sử dụng phiên bản ứng dụng cài đặt. Icon ứng dụng đã có trên Màn hình chính hoặc Menu máy tính.
+                <h5 className="text-xs font-bold text-gray-900">Ứng dụng đã được cài đặt!</h5>
+                <p className="text-[11px] text-gray-600 mt-0.5">
+                  Bạn có thể mở trực tiếp từ Màn hình chính hoặc Menu máy tính.
                 </p>
               </div>
             </div>
           ) : (
             <>
-              {/* Hành động Cài Đặt Nhanh (Nếu trình duyệt hỗ trợ beforeinstallprompt) */}
-              {canInstall ? (
-                <div className="bg-[#F6FAF8] border border-[#048C73]/25 rounded-md p-4 text-center space-y-3">
-                  <div className="flex items-center justify-center gap-2 text-xs font-bold text-[#048C73] uppercase tracking-wider">
-                    <Sparkles className="w-4 h-4 text-[#F59E0B]" />
-                    Hỗ trợ cài đặt tự động 1 chạm
-                  </div>
-                  <p className="text-xs text-gray-600 max-w-sm mx-auto">
-                    Bấm nút bên dưới để tải và đưa biểu tượng Đi Du Lịch ra màn hình chính ngay tức thì.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={handleInstallClick}
-                    disabled={isInstalling}
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-md text-sm font-bold text-white bg-gradient-to-r from-[#EA580C] to-[#F97316] hover:from-[#d34e0a] hover:to-[#ea580c] shadow-md transition-all active:scale-98 cursor-pointer disabled:opacity-70"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>{isInstalling ? 'Đang kích hoạt...' : 'Cài đặt App vào máy ngay'}</span>
-                  </button>
-                </div>
-              ) : null}
 
               {/* Navigation Tabs hướng dẫn theo thiết bị */}
               <div className="border-b border-gray-200">

@@ -117,6 +117,7 @@ public class PublicPlaceService {
         
         List<Long> placeIds = placesPage.getContent().stream().map(Place::getId).collect(Collectors.toList());
         Map<Long, List<PlaceDetailDto.ContactItemDto>> contactsByPlaceId = new java.util.HashMap<>();
+        Map<Long, List<String>> amenitiesByPlaceId = new java.util.HashMap<>();
         if (!placeIds.isEmpty()) {
             List<com.dulichso.bookingapi.entity.PlaceContact> contacts = placeContactRepository.findByPlaceIdInAndIsPublicTrue(placeIds);
             for (com.dulichso.bookingapi.entity.PlaceContact c : contacts) {
@@ -128,6 +129,14 @@ public class PublicPlaceService {
                                 .isPublic(c.getIsPublic())
                                 .sortOrder(c.getSortOrder())
                                 .build());
+            }
+
+            List<com.dulichso.bookingapi.entity.PlaceAmenity> placeAmenities = placeAmenityRepository.findByPlaceIdInWithAmenity(placeIds);
+            for (com.dulichso.bookingapi.entity.PlaceAmenity pa : placeAmenities) {
+                if (pa.getAmenity() != null && pa.getAmenity().getName() != null) {
+                    amenitiesByPlaceId.computeIfAbsent(pa.getPlace().getId(), k -> new ArrayList<>())
+                            .add(pa.getAmenity().getName());
+                }
             }
         }
 
@@ -158,6 +167,10 @@ public class PublicPlaceService {
             dto.setSuitableDateStart(p.getSuitableDateStart());
             dto.setSuitableDateEnd(p.getSuitableDateEnd());
             dto.setContacts(contactsByPlaceId.getOrDefault(p.getId(), Collections.emptyList()));
+            dto.setAmenities(amenitiesByPlaceId.getOrDefault(p.getId(), Collections.emptyList()));
+            if (p.getAttributes() != null && p.getAttributes().containsKey("tagBadge")) {
+                dto.setTagBadge((String) p.getAttributes().get("tagBadge"));
+            }
             return dto;
         });
     }
@@ -178,8 +191,8 @@ public class PublicPlaceService {
 
         // 2. Lấy tiện ích từ place_amenity JOIN amenity
         List<String> amenityNames = placeAmenityRepository.findAmenityNamesByPlaceId(place.getId());
-        if (amenityNames == null || amenityNames.isEmpty()) {
-            amenityNames = List.of("Wi-Fi miễn phí", "Bãi đỗ xe", "Không gian xanh", "Cảnh quan thiên nhiên");
+        if (amenityNames == null) {
+            amenityNames = Collections.emptyList();
         }
 
         // 3. Lấy danh sách phòng và ảnh từng phòng từ room_type JOIN room_type_media
@@ -198,6 +211,17 @@ public class PublicPlaceService {
                     .build();
         }).collect(Collectors.toList());
         
+        // 4. Lấy danh sách contacts liên hệ (SĐT, Zalo, TikTok, Facebook,...)
+        List<com.dulichso.bookingapi.entity.PlaceContact> contactEntities = placeContactRepository.findByPlaceIdAndIsPublicTrue(place.getId());
+        List<PlaceDetailDto.ContactItemDto> contactDtos = contactEntities.stream().map(c -> PlaceDetailDto.ContactItemDto.builder()
+                .id(c.getId())
+                .channel(c.getChannel())
+                .value(c.getValue())
+                .isPublic(c.getIsPublic())
+                .sortOrder(c.getSortOrder())
+                .build()
+        ).collect(Collectors.toList());
+
         return PlaceDetailDto.builder()
                 .id(place.getId())
                 .name(place.getName())
@@ -217,6 +241,7 @@ public class PublicPlaceService {
                 .images(images)
                 .amenities(amenityNames)
                 .rooms(roomDtos)
+                .contacts(contactDtos)
                 .build();
     }
 

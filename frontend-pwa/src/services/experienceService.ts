@@ -36,12 +36,7 @@ Khách phương xa sẽ cùng nghệ nhân ra ruộng hái những bông lúa c�
   hostPhone: '0389 456 712',
   hostWorkingHours: 'Giờ nghe máy: 07:00 – 19:00 hàng ngày',
   
-  images: [
-    'https://images.unsplash.com/photo-1542159040-3b03f0b2f059?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1583561917173-0498a44d7072?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=800&q=80'
-  ]
+  images: []
 };
 
 export const fetchExperienceDetail = async (slug: string): Promise<ExperienceDetail> => {

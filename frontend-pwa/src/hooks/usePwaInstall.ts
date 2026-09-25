@@ -53,6 +53,14 @@ export function usePwaInstall(): PwaInstallState {
 
     setIsInstalled(checkIsInstalled());
 
+    // Kiểm tra xem sự kiện beforeinstallprompt đã được bắt ở window sớm hơn chưa
+    const globalPrompt = (window as unknown as { __deferredPwaPrompt?: BeforeInstallPromptEvent }).__deferredPwaPrompt;
+    if (globalPrompt) {
+      promptRef.current = globalPrompt;
+      setDeferredPrompt(globalPrompt);
+      setCanInstall(true);
+    }
+
     // Lắng nghe sự kiện trước khi cài đặt của trình duyệt (Chrome, Edge, Android...)
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
@@ -60,6 +68,7 @@ export function usePwaInstall(): PwaInstallState {
       promptRef.current = promptEvent;
       setDeferredPrompt(promptEvent);
       setCanInstall(true);
+      (window as unknown as { __deferredPwaPrompt?: BeforeInstallPromptEvent }).__deferredPwaPrompt = promptEvent;
     };
 
     // Lắng nghe khi ứng dụng đã cài đặt xong thành công

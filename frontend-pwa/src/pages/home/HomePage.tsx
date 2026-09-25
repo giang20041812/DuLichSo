@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react"
 import { Link } from "react-router-dom"
 import SearchHub from "@/components/layout/SearchHub"
+import HeroPwaDownloadBanner from "@/components/pwa/HeroPwaDownloadBanner"
 import { MapPin, Heart, Star, Handshake, Tag, Headphones, ShieldCheck, Mountain, Tent, Calendar, Sparkles } from "lucide-react"
 import { fetchHomeData } from "@/services/homeService"
 import { HomeResponseDto, PlaceSummaryDto } from "@/types/home"
@@ -23,33 +24,14 @@ const PROVINCE_TAGS = [
 
 
 const getDestinationImage = (dest: PlaceSummaryDto): string => {
-  if (dest.coverImageUrl && dest.coverImageUrl.trim().length > 0) {
-    return dest.coverImageUrl;
-  }
-  const name = dest.name.toLowerCase();
-  if (name.includes('thác')) return 'https://images.unsplash.com/photo-1546587348-d12660c30c50?q=80&w=800&auto=format&fit=crop';
-  if (name.includes('đèo') || name.includes('sống lưng')) return 'https://images.unsplash.com/photo-1528127269322-539801943592?q=80&w=800&auto=format&fit=crop';
-  if (name.includes('thung lũng') || name.includes('chế cu nha')) return 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=800&auto=format&fit=crop';
-  if (name.includes('trúc') || name.includes('rừng')) return 'https://images.unsplash.com/photo-1542718610-a1d656d1884c?q=80&w=800&auto=format&fit=crop';
-  return 'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?q=80&w=800&auto=format&fit=crop';
+  return dest.coverImageUrl || '';
 };
 
-const SAMPLE_HOMESTAY_IMAGES = [
-  'https://images.unsplash.com/photo-1587061949409-02df41d5e562?q=80&w=800&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1542718610-a1d656d1884c?q=80&w=800&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1510798831971-661eb04b3739?q=80&w=800&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=800&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?q=80&w=800&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?q=80&w=800&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1571896349842-33c89424de2d?q=80&w=800&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=800&auto=format&fit=crop'
-];
 
-const getHomestayImage = (hs: PlaceSummaryDto, index: number): string => {
-  if (hs.coverImageUrl && hs.coverImageUrl.trim().length > 0) {
-    return hs.coverImageUrl;
-  }
-  return SAMPLE_HOMESTAY_IMAGES[index % SAMPLE_HOMESTAY_IMAGES.length] || 'https://images.unsplash.com/photo-1542718610-a1d656d1884c?q=80&w=800';
+
+
+const getHomestayImage = (hs: PlaceSummaryDto): string => {
+  return hs.coverImageUrl || '';
 };
 
 export default function HomePage() {
@@ -166,11 +148,11 @@ export default function HomePage() {
       {/* 1. Hero Section */}
       <section className="relative z-30 w-full min-h-[600px] md:min-h-[660px] flex items-start justify-center pt-[130px] md:pt-[150px] pb-16 md:pb-20">
         <div 
-          className="absolute inset-0 z-0 bg-cover bg-center"
-          style={{ backgroundImage: `url('https://images.unsplash.com/photo-1528127269322-539801943592?q=80&w=2000&auto=format&fit=crop')` }}
+          className="absolute inset-0 z-0 bg-cover bg-center bg-[#07362c]"
+          style={allDestinations[0]?.coverImageUrl ? { backgroundImage: `url('${allDestinations[0].coverImageUrl}')` } : undefined}
         >
           {/* Overlay gradient */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0f2d3c]/85 via-[#0f2d3c]/45 to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0f2d3c]/85 via-[#0f2d3c]/55 to-transparent"></div>
           {/* Bottom white glow & fade matching other pages */}
           <div className="absolute inset-x-0 bottom-0 h-24 md:h-32 bg-gradient-to-t from-[var(--color-canvas)] via-[var(--color-canvas)]/60 to-transparent pointer-events-none"></div>
         </div>
@@ -182,10 +164,13 @@ export default function HomePage() {
               Từ Những Đỉnh Núi Đến Bờ Biển Xanh
             </span>
           </h1>
-          <p className="text-white/90 text-base md:text-lg font-body max-w-2xl mx-auto mb-9">
+          <p className="text-white/90 text-base md:text-lg font-body max-w-2xl mx-auto mb-7">
             Hành trình trải nghiệm văn hóa bản địa, ẩm thực truyền thống và cảnh sắc thiên nhiên nguyên sơ trên khắp dải đất hình chữ S.
           </p>
           
+          {/* Banner Tải App kiểu HRM ngay trên SearchHub */}
+          <HeroPwaDownloadBanner />
+
           {/* SearchHub */}
           <div className="w-full max-w-5xl mx-auto">
             <SearchHub />
@@ -214,7 +199,7 @@ export default function HomePage() {
             </div>
             
             <Link 
-              to="/homestays" 
+              to="/destinations" 
               className="text-[#048c73] font-bold text-sm hover:text-[#ea580c] transition-colors flex items-center gap-1 shrink-0"
             >
               Khám phá thêm điểm đến <span className="text-base">&rarr;</span>
@@ -261,7 +246,7 @@ export default function HomePage() {
                         isSuitable ? 'border-[#048c73]/40 ring-1 ring-[#048c73]/20' : 'border-slate-200/90'
                       }`}
                     >
-                      <Link to={`/homestays?destination=${encodeURIComponent(dest.name)}`} className="relative aspect-[4/3] overflow-hidden bg-slate-100 block">
+                      <Link to={`/destinations/${dest.id}`} className="relative aspect-[4/3] overflow-hidden bg-slate-100 block">
                         <img 
                           src={getDestinationImage(dest)} 
                           alt={dest.name} 
@@ -313,12 +298,14 @@ export default function HomePage() {
                           </div>
                           <div className="flex items-center gap-1 text-xs shrink-0">
                             <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
-                            <span className="font-bold text-slate-800">{dest.ratingAvg || "4.9"}</span>
-                            <span className="text-slate-400 text-[10px]">({dest.ratingCount || "128"})</span>
+                            <span className="font-bold text-slate-800">{dest.ratingAvg ? dest.ratingAvg : "Chưa có"}</span>
+                            {dest.ratingCount != null && dest.ratingCount > 0 && (
+                              <span className="text-slate-400 text-[10px]">({dest.ratingCount})</span>
+                            )}
                           </div>
                         </div>
 
-                        <Link to={`/homestays?destination=${encodeURIComponent(dest.name)}`}>
+                        <Link to={`/destinations/${dest.id}`}>
                           <h3 className="text-base font-bold text-slate-900 mb-1 group-hover:text-[#048c73] transition-colors line-clamp-1">{dest.name}</h3>
                         </Link>
                         
@@ -348,7 +335,7 @@ export default function HomePage() {
                               {dest.priceRefMin != null && dest.priceRefMin > 0 ? `${dest.priceRefMin.toLocaleString()}đ` : 'Tham khảo'}
                             </div>
                           </div>
-                          <Link to={`/homestays?destination=${encodeURIComponent(dest.name)}`}>
+                          <Link to={`/destinations/${dest.id}`}>
                             <button className="bg-slate-50 hover:bg-[#048c73] text-slate-700 hover:text-white text-xs font-semibold px-3 py-1.5 rounded-sm transition-colors border border-slate-200">
                               Xem chi tiết
                             </button>
@@ -396,17 +383,24 @@ export default function HomePage() {
         <div className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-4 pb-4 md:grid md:grid-cols-2 lg:grid-cols-4 md:gap-6 -mx-4 px-4 md:mx-0 md:px-0">
           {displayedHomestays.length > 0 ? (
             <>
-              {displayedHomestays.map((hs, idx) => (
+              {displayedHomestays.map((hs) => (
                 <div 
                   key={hs.id} 
                   className="bg-white rounded-md overflow-hidden shadow-2xs hover:shadow-xs hover:border-[#048c73]/40 transition-all duration-200 border border-slate-200/90 flex flex-col group w-[calc(100vw-32px)] shrink-0 snap-center md:w-auto md:max-w-none"
                 >
                   <Link to={`/homestays/${hs.id}`} className="relative aspect-[4/3] bg-slate-100 overflow-hidden block">
-                    <img 
-                      src={getHomestayImage(hs, idx)} 
-                      alt={hs.name} 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
-                    />
+                    {getHomestayImage(hs) ? (
+                      <img 
+                        src={getHomestayImage(hs)} 
+                        alt={hs.name} 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+                      />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 text-slate-400">
+                        <Mountain className="w-8 h-8 opacity-40 mb-1" />
+                        <span className="text-[11px] font-medium">Bản địa</span>
+                      </div>
+                    )}
                     {hs.tagBadge && (
                       <div className="absolute top-2.5 left-2.5">
                         <span className="bg-[#048c73] text-white text-[10px] font-bold px-2 py-0.5 rounded-xs tracking-tight flex items-center gap-1">
@@ -432,8 +426,10 @@ export default function HomePage() {
                       </div>
                       <div className="flex items-center gap-1 text-xs">
                         <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
-                        <span className="font-bold text-slate-800">{hs.ratingAvg || "4.8"}</span>
-                        <span className="text-slate-400 text-[10px]">({hs.ratingCount || "0"})</span>
+                        <span className="font-bold text-slate-800">{hs.ratingAvg ? hs.ratingAvg : "Chưa có"}</span>
+                        {hs.ratingCount != null && hs.ratingCount > 0 && (
+                          <span className="text-slate-400 text-[10px]">({hs.ratingCount})</span>
+                        )}
                       </div>
                     </div>
 
@@ -508,12 +504,19 @@ export default function HomePage() {
                 key={item.id} 
                 className="bg-white rounded-md overflow-hidden border border-slate-200/90 shadow-2xs hover:shadow-xs hover:border-[#048c73]/40 transition-all duration-200 group flex flex-col w-[calc(100vw-32px)] shrink-0 snap-center md:w-auto md:max-w-none"
               >
-                <Link to="/food" className="relative aspect-[4/3] overflow-hidden bg-slate-100 block">
-                  <img 
-                    src={item.coverImageUrl || 'https://images.unsplash.com/photo-1542159040-3b03f0b2f059?q=80'} 
-                    alt={item.name} 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
-                  />
+                <Link to={`/food/${item.id}`} className="relative aspect-[4/3] overflow-hidden bg-slate-100 block">
+                  {item.coverImageUrl ? (
+                    <img 
+                      src={item.coverImageUrl} 
+                      alt={item.name} 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 text-slate-400">
+                      <Tag className="w-8 h-8 opacity-40 mb-1" />
+                      <span className="text-[11px] font-medium">Đặc sản</span>
+                    </div>
+                  )}
                   {item.tagBadge && (
                     <span className="absolute top-2.5 left-2.5 bg-slate-900/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-xs">
                       {item.tagBadge}
@@ -531,12 +534,14 @@ export default function HomePage() {
                     </div>
                     <div className="flex items-center gap-1 text-xs">
                       <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
-                      <span className="font-bold text-slate-800">{item.ratingAvg}</span>
-                      <span className="text-slate-400 text-[10px]">({item.ratingCount})</span>
+                      <span className="font-bold text-slate-800">{item.ratingAvg ? item.ratingAvg : "Chưa có"}</span>
+                      {item.ratingCount != null && item.ratingCount > 0 && (
+                        <span className="text-slate-400 text-[10px]">({item.ratingCount})</span>
+                      )}
                     </div>
                   </div>
 
-                  <Link to="/food">
+                  <Link to={`/food/${item.id}`}>
                     <h3 className="text-base font-bold text-slate-900 mb-1 group-hover:text-[#048c73] transition-colors line-clamp-1">
                       {item.name}
                     </h3>
@@ -554,7 +559,7 @@ export default function HomePage() {
                             : 'Tham khảo'}
                       </div>
                     </div>
-                    <Link to="/food">
+                    <Link to={`/food/${item.id}`}>
                       <button className="bg-slate-50 hover:bg-[#048c73] hover:text-white text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-sm transition-colors border border-slate-200">
                         Chi tiết
                       </button>
