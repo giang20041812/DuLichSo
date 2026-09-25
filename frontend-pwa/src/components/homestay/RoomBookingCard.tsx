@@ -11,6 +11,8 @@ import {
   CheckCircle2,
   CalendarX,
   XCircle,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { RoomTypeDto, HomestayDetailDto } from '@/types/homestay';
 import { BookedDateRangeDto } from '@/types/booking';
@@ -57,6 +59,7 @@ export default function RoomBookingCard({
 
   const [checkIn, setCheckIn] = useState<string>(initialIn);
   const [checkOut, setCheckOut] = useState<string>(initialOut);
+  const [showCalendar, setShowCalendar] = useState<boolean>(false);
 
   // Đồng bộ khi bộ lọc ngoài thay đổi ngày
   useEffect(() => {
@@ -386,96 +389,116 @@ export default function RoomBookingCard({
               )}
             </div>
 
-            {/* Thanh điều khiển: CHỌN SỐ PHÒNG & SỐ KHÁCH CHO PHÒNG NÀY */}
-            <div className="bg-[#f8faf9] border border-slate-200 rounded-md p-3 mb-3 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-3">
-                {/* Chọn số lượng phòng */}
-                <div className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-1.5 rounded-md shadow-2xs">
-                  <span className="text-xs font-bold text-[var(--color-ink-deep)]">Số lượng phòng:</span>
-                  <div className="flex items-center gap-1.5">
+            {/* Thanh chọn thông số phòng gọn gàng, tinh tế */}
+            <div className="bg-slate-50 border border-slate-200/90 rounded-md p-2.5 mb-3 flex flex-wrap items-center justify-between gap-2.5 text-xs">
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Chọn số phòng */}
+                <div className="flex items-center gap-1.5 bg-white border border-slate-200 px-2.5 py-1 rounded-sm shadow-2xs">
+                  <span className="font-semibold text-slate-700">Phòng:</span>
+                  <div className="flex items-center gap-1">
                     <button
                       type="button"
                       onClick={() => handleRoomCountChange(roomCount - 1)}
                       disabled={roomCount <= 1}
-                      className="w-6 h-6 rounded-sm bg-slate-50 border border-slate-300 flex items-center justify-center text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                      title="Giảm số phòng"
+                      className="w-5 h-5 rounded-xs bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                     >
-                      <Minus className="w-3 h-3" />
+                      <Minus className="w-2.5 h-2.5" />
                     </button>
-                    <span className="text-xs font-black text-[var(--color-primary)] w-7 text-center">
+                    <span className="font-black text-[var(--color-primary)] w-5 text-center text-xs">
                       {roomCount}
                     </span>
                     <button
                       type="button"
                       onClick={() => handleRoomCountChange(roomCount + 1)}
                       disabled={roomCount >= maxRooms}
-                      className="w-6 h-6 rounded-sm bg-slate-50 border border-slate-300 flex items-center justify-center text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                      title="Tăng số phòng"
+                      className="w-5 h-5 rounded-xs bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                     >
-                      <Plus className="w-3 h-3" />
+                      <Plus className="w-2.5 h-2.5" />
                     </button>
                   </div>
-                  <span className="text-[11px] text-slate-400 font-medium">
-                    (Tối đa {maxRooms} phòng)
-                  </span>
                 </div>
 
-                {/* Chọn số lượng khách */}
-                <div className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-1.5 rounded-md shadow-2xs">
-                  <span className="text-xs font-bold text-[var(--color-ink-deep)]">Số khách:</span>
-                  <div className="flex items-center gap-1.5">
+                {/* Chọn số khách */}
+                <div className="flex items-center gap-1.5 bg-white border border-slate-200 px-2.5 py-1 rounded-sm shadow-2xs">
+                  <span className="font-semibold text-slate-700">Khách:</span>
+                  <div className="flex items-center gap-1">
                     <button
                       type="button"
                       onClick={() => setGuestCount((prev) => Math.max(1, prev - 1))}
                       disabled={guestCount <= 1}
-                      className="w-6 h-6 rounded-sm bg-slate-50 border border-slate-300 flex items-center justify-center text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                      title="Giảm số khách"
+                      className="w-5 h-5 rounded-xs bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                     >
-                      <Minus className="w-3 h-3" />
+                      <Minus className="w-2.5 h-2.5" />
                     </button>
-                    <span className="text-xs font-black text-slate-800 w-7 text-center">
+                    <span className="font-black text-slate-800 w-5 text-center text-xs">
                       {guestCount}
                     </span>
                     <button
                       type="button"
                       onClick={() => setGuestCount((prev) => Math.min(maxGuests, prev + 1))}
                       disabled={guestCount >= maxGuests}
-                      className="w-6 h-6 rounded-sm bg-slate-50 border border-slate-300 flex items-center justify-center text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                      title="Tăng số khách"
+                      className="w-5 h-5 rounded-xs bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                     >
-                      <Plus className="w-3 h-3" />
+                      <Plus className="w-2.5 h-2.5" />
                     </button>
                   </div>
-                  <span className="text-[11px] text-slate-400 font-medium">
-                    (Tối đa {maxGuests} khách)
+                </div>
+
+                {/* Chọn khoảng ngày trực tiếp */}
+                <div className="flex items-center gap-1.5 bg-white border border-slate-200 px-2.5 py-1 rounded-sm shadow-2xs">
+                  <Calendar className="w-3.5 h-3.5 text-[var(--color-primary)] shrink-0" />
+                  <input
+                    type="date"
+                    min={todayStr}
+                    value={checkIn}
+                    onChange={(e) => setCheckIn(e.target.value)}
+                    className="border-0 p-0 text-xs font-semibold text-slate-800 focus:outline-none cursor-pointer bg-transparent w-[110px]"
+                  />
+                  <span className="text-slate-400">→</span>
+                  <input
+                    type="date"
+                    min={checkIn || todayStr}
+                    value={checkOut}
+                    onChange={(e) => setCheckOut(e.target.value)}
+                    className="border-0 p-0 text-xs font-semibold text-slate-800 focus:outline-none cursor-pointer bg-transparent w-[110px]"
+                  />
+                  <span className="text-[11px] font-bold text-[var(--color-primary)] bg-emerald-50 px-1.5 py-0.5 rounded-xs">
+                    {nights} đêm
                   </span>
                 </div>
               </div>
 
-              {/* Thông tin chọn ngày hiện tại của phòng */}
-              <div className="text-xs text-slate-600 font-medium flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-[var(--color-primary)] shrink-0" />
-                <span>
-                  Khoảng ngày: <strong className="text-[var(--color-ink-deep)]">{checkIn}</strong> →{' '}
-                  <strong className="text-[var(--color-ink-deep)]">{checkOut}</strong> ({nights} đêm)
-                </span>
-              </div>
+              {/* Nút bật/tắt Lịch trực quan */}
+              <button
+                type="button"
+                onClick={() => setShowCalendar((prev) => !prev)}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-sm border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-semibold transition-colors cursor-pointer shrink-0"
+              >
+                <span>{showCalendar ? 'Ẩn lịch chi tiết' : 'Xem lịch phòng'}</span>
+                {showCalendar ? (
+                  <ChevronUp className="w-3.5 h-3.5 text-slate-500" />
+                ) : (
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
+                )}
+              </button>
             </div>
 
-            {/* Lịch phòng độc lập của phòng này (check các booking & disable các ngày không đủ số phòng chọn) */}
-            <div className="bg-slate-50/70 p-3.5 rounded-md border border-slate-200 mb-3.5">
-              <RoomAvailabilityCalendar
-                bookedDates={roomBookedDates}
-                totalRoomCount={maxRooms}
-                requestedRoomCount={roomCount}
-                selectedCheckIn={checkIn}
-                selectedCheckOut={checkOut}
-                onSelectDates={(inDate, outDate) => {
-                  setCheckIn(inDate);
-                  setCheckOut(outDate);
-                }}
-              />
-            </div>
+            {/* Lịch phòng độc lập (chỉ hiện khi người dùng mở ra, không chiếm diện tích) */}
+            {showCalendar && (
+              <div className="bg-slate-50/70 p-3 rounded-md border border-slate-200 mb-3 animate-in fade-in-50 duration-200">
+                <RoomAvailabilityCalendar
+                  bookedDates={roomBookedDates}
+                  totalRoomCount={maxRooms}
+                  requestedRoomCount={roomCount}
+                  selectedCheckIn={checkIn}
+                  selectedCheckOut={checkOut}
+                  onSelectDates={(inDate, outDate) => {
+                    setCheckIn(inDate);
+                    setCheckOut(outDate);
+                  }}
+                />
+              </div>
+            )}
 
             {/* Thông báo tình trạng phòng cho khoảng ngày đã chọn */}
             {validation.isValid ? (

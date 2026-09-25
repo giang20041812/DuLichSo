@@ -22,8 +22,16 @@ interface PwaInstallModalProps {
 }
 
 export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClose }) => {
-  const { isInstalled, isIos, installApp } = usePwaInstall();
-  const [activeTab, setActiveTab] = useState<'quick' | 'ios' | 'android' | 'desktop'>('quick');
+  const { isInstalled, isIos, canInstall, platform, installApp } = usePwaInstall();
+  const [activeTab, setActiveTab] = useState<'quick' | 'ios' | 'android' | 'desktop'>(() => {
+    if (typeof window !== 'undefined') {
+      const ua = navigator.userAgent;
+      if (/iPad|iPhone|iPod/.test(ua)) return 'ios';
+      if (/Android/i.test(ua)) return 'android';
+      return 'quick';
+    }
+    return 'quick';
+  });
   const [isInstalling, setIsInstalling] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -32,14 +40,25 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
   const currentUrl = typeof window !== 'undefined' ? window.location.origin : 'https://didulich.vn';
 
   const handleInstallClick = async () => {
-    setIsInstalling(true);
-    try {
-      const res = await installApp();
-      if (res) {
-        onClose();
+    if (canInstall) {
+      setIsInstalling(true);
+      try {
+        const res = await installApp();
+        if (res) {
+          onClose();
+        }
+      } finally {
+        setIsInstalling(false);
       }
-    } finally {
-      setIsInstalling(false);
+    } else {
+      // Chuyển sang tab hướng dẫn tương ứng với thiết bị người dùng
+      if (isIos || platform === 'ios') {
+        setActiveTab('ios');
+      } else if (platform === 'android') {
+        setActiveTab('android');
+      } else {
+        setActiveTab('desktop');
+      }
     }
   };
 
@@ -104,7 +123,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
             disabled={isInstalling}
             className="px-5 py-2 rounded-full text-xs font-bold text-white bg-[#EA580C] hover:bg-[#C2410C] active:scale-95 transition-all shadow-xs cursor-pointer disabled:opacity-70"
           >
-            {isInstalling ? 'Đang cài...' : 'Cài đặt'}
+            {isInstalling ? 'Đang cài...' : canInstall ? 'Cài đặt' : 'Xem cách cài'}
           </button>
         </div>
 

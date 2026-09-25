@@ -5,49 +5,45 @@ interface TikTokEmbedProps {
   videoId: string;
 }
 
-export const TikTokEmbed: React.FC<TikTokEmbedProps> = ({ url, videoId }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
+export const TikTokEmbed: React.FC<TikTokEmbedProps> = ({ videoId }) => {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
-    // Tải script nhúng chính thức của TikTok
-    const scriptId = 'tiktok-embed-script';
-    let script = document.getElementById(scriptId) as HTMLScriptElement | null;
+    // Post message hoặc tương tác khi iframe tải xong nếu cần
+    const handleLoad = () => {
+      try {
+        if (iframeRef.current?.contentWindow) {
+          iframeRef.current.contentWindow.postMessage({ type: 'play' }, '*');
+        }
+      } catch {
+        // Safe catch cross-origin restriction
+      }
+    };
 
-    if (!script) {
-      script = document.createElement('script');
-      script.id = scriptId;
-      script.src = 'https://www.tiktok.com/embed.js';
-      script.async = true;
-      document.body.appendChild(script);
+    const currentIframe = iframeRef.current;
+    if (currentIframe) {
+      currentIframe.addEventListener('load', handleLoad);
     }
-
-    // Khi component render lại hoặc URL thay đổi, yêu cầu TikTok load lại iframe
-    const win = window as unknown as { tiktok?: { embed?: { load?: () => void } } };
-    if (win.tiktok?.embed?.load) {
-      win.tiktok.embed.load();
-    }
-  }, [url, videoId]);
+    return () => {
+      if (currentIframe) {
+        currentIframe.removeEventListener('load', handleLoad);
+      }
+    };
+  }, [videoId]);
 
   return (
-    <div ref={containerRef} className="w-full flex justify-center items-center">
-      <blockquote
-        className="tiktok-embed"
-        cite={url}
-        data-video-id={videoId}
-        style={{ maxWidth: '400px', minWidth: '288px', width: '100%', margin: '0 auto' }}
-      >
-        <section>
-          <a
-            target="_blank"
-            rel="noreferrer noopener"
-            title="Xem video trên TikTok"
-            href={url}
-            className="text-xs text-slate-400 hover:text-white"
-          >
-            Đang tải video TikTok...
-          </a>
-        </section>
-      </blockquote>
+    <div className="w-full flex justify-center items-center py-2">
+      <div className="w-full max-w-[340px] sm:max-w-[360px] aspect-[9/16] max-h-[640px] rounded-lg overflow-hidden bg-black shadow-xl border border-slate-700 relative">
+        <iframe
+          ref={iframeRef}
+          key={videoId}
+          src={`https://www.tiktok.com/embed/v2/${videoId}?autoplay=1&mute=1&playsinline=1`}
+          title={`TikTok Review - ${videoId}`}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          className="w-full h-full border-0 rounded-lg"
+        />
+      </div>
     </div>
   );
 };

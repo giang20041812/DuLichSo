@@ -27,6 +27,7 @@ import {
   PartnerHomestayDetailPage,
   PartnerHomestayEditPage,
   DesignSystemPage,
+  DownloadAppPage,
 } from '@/pages';
 
 export function AppRoutes() {
@@ -74,6 +75,9 @@ export function AppRoutes() {
         <Route path="rental" element={<UtilityListPage />} />
         <Route path="rental/:identifier" element={<PlaceDetailPage />} />
         <Route path="design-system" element={<DesignSystemPage />} />
+        <Route path="download" element={<DownloadAppPage />} />
+        <Route path="tai-app" element={<DownloadAppPage />} />
+        <Route path="cai-dat-app" element={<DownloadAppPage />} />
       </Route>
 
       {/* Trang Đặt phòng dùng layout độc lập, chỉ có Logo và Tên */}

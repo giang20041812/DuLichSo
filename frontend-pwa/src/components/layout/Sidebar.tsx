@@ -15,7 +15,8 @@ import {
   X, 
   LogIn, 
   UserPlus, 
-  LogOut 
+  LogOut,
+  Download,
 } from 'lucide-react';
 import { VietTrackLogoMark } from '../ui/logo';
 import { clearAllAuthSession } from '@/services/authService';
@@ -40,6 +41,7 @@ const navItems = [
   { id: 'tours', path: '/tours', label: 'Trải nghiệm du lịch', icon: <Sparkles className="w-5 h-5" /> },
   { id: 'transport', path: '/transport', label: 'Vận chuyển', icon: <Bus className="w-5 h-5" /> },
   { id: 'services', path: '/services', label: 'Dịch vụ & Tiện ích', icon: <Layers className="w-5 h-5" /> },
+  { id: 'download', path: '/download', label: 'Cài đặt ứng dụng', icon: <Download className="w-5 h-5" /> },
 ];
 
 export default function Sidebar({ 

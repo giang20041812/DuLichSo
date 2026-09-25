@@ -36,3 +36,4 @@ export { default as PartnerHomestayEditPage } from './partner/PartnerHomestayEdi
 
 // System & Design
 export { default as DesignSystemPage } from './system/DesignSystemPage';
+export { default as DownloadAppPage } from './system/DownloadAppPage';
