@@ -50,6 +50,8 @@ public class PlaceDetailServiceImpl implements PlaceDetailService {
     private final RoomTypeMediaRepository roomTypeMediaRepository;
     private final PlaceContactRepository placeContactRepository;
     private final PlaceHighlightRepository placeHighlightRepository;
+    private final com.dulichso.bookingapi.repository.HomestayProfileRepository homestayProfileRepository;
+    private final com.dulichso.bookingapi.service.HomestayOfferService offers;
 
     @Override
     @Transactional(readOnly = true)
@@ -330,19 +332,17 @@ public class PlaceDetailServiceImpl implements PlaceDetailService {
                 ? place.getLatitude() + " - " + place.getLongitude()
                 : null;
 
-        // 8. Default HomestayProfile & Policy dựa trên dữ liệu thực tế
-        PlaceDetailDto.HomestayProfileDto homestayProfile = PlaceDetailDto.HomestayProfileDto.builder()
-                .placeId(place.getId())
-                .checkInFrom("14:00")
-                .checkOutUntil("12:00")
-                .houseRules("Xuất trình CCCD/Hộ chiếu khi nhận phòng. Giữ gìn vệ sinh và trật tự chung.")
-                .surchargeNote("Vui lòng liên hệ trước với chỗ nghỉ nếu nhận phòng muộn hoặc có yêu cầu đặc biệt.")
-                .currentPolicy(PlaceDetailDto.PolicyDto.builder()
-                        .id(1L)
-                        .name("Chính sách hủy linh hoạt")
-                        .description("Miễn phí hủy trước 48 giờ so với thời điểm nhận phòng. Hủy trong vòng 48 giờ mất phí 50% tiền phòng.")
-                        .build())
-                .build();
+        // Read the provider's saved profile rather than displaying an invented policy.
+        PlaceDetailDto.HomestayProfileDto homestayProfile = homestayProfileRepository.findById(place.getId()).map(profile -> {
+            var policy = profile.getCurrentPolicy();
+            return PlaceDetailDto.HomestayProfileDto.builder().placeId(place.getId())
+                    .checkInFrom(profile.getCheckInFrom() == null ? null : profile.getCheckInFrom().toString())
+                    .checkOutUntil(profile.getCheckOutUntil() == null ? null : profile.getCheckOutUntil().toString())
+                    .houseRules(profile.getHouseRules()).surchargeNote(profile.getSurchargeNote())
+                    .childrenPolicy(profile.getChildrenPolicy()).petsPolicy(profile.getPetsPolicy()).guestPolicy(profile.getGuestPolicy())
+                    .currentPolicy(policy == null ? null : PlaceDetailDto.PolicyDto.builder().id(policy.getId())
+                            .name(policy.getName()).description(policy.getContentText()).build()).build();
+        }).orElse(null);
 
         return PlaceDetailDto.builder()
                 .id(place.getId())
@@ -378,6 +378,7 @@ public class PlaceDetailServiceImpl implements PlaceDetailService {
                 .contacts(contactDtos)
                 .highlights(highlightDtos)
                 .homestayProfile(homestayProfile)
+                .services(offers.publicList(place.getId()))
                 .build();
     }
 

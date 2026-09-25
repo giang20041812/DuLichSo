@@ -69,3 +69,25 @@ export interface AvailabilityFilterParams {
   guestsCount: number;
   roomsCount: number;
 }
+
+export interface PartnerRoomInput {
+  name: string;
+  description: string;
+  maxOccupancy: number;
+  totalRoomCount: number;
+  privateBathroom: AmenityValue;
+  areaSqm: number | null;
+  basePrice: number;
+  status: 'ACTIVE' | 'INACTIVE';
+  viewDescription: string;
+  beds: RoomBedInfo[];
+  amenityIds: number[];
+}
+export interface PartnerRoom extends PartnerRoomInput { id: number; placeId: number }
+export interface RoomPriceInput { name: string; periodStart: string; periodEnd: string; price: number }
+export interface RoomPrice extends RoomPriceInput { id: number }
+export interface RoomInventoryInput { startDate: string; endDate: string; totalRooms: number; stopSell: boolean }
+export interface RoomInventoryDay {
+  stayDate: string; totalRooms: number; heldRooms: number; confirmedRooms: number; availableRooms: number; stopSell: boolean; price: number;
+}
+export interface RoomQuote { roomTypeId: number; availableRooms: number; suitable: boolean; totalAmount: number; nights: RoomInventoryDay[] }

@@ -37,6 +37,11 @@ export interface PlaceHighlightItem {
   content: string;
 }
 
+export interface HomestayServiceOffer {
+  id: number; name: string; description: string | null; price: number | null; priceUnit: string | null; active: boolean;
+}
+export type HomestayServiceInput = Omit<HomestayServiceOffer, 'id'>;
+
 export interface CancellationPolicySummary {
   id: number;
   name: string;
@@ -45,11 +50,14 @@ export interface CancellationPolicySummary {
 
 export interface HomestayProfileDetail {
   placeId: number;
-  checkInFrom: string; // e.g. "14:00"
-  checkOutUntil: string; // e.g. "12:00"
-  houseRules?: string;
-  surchargeNote?: string;
-  currentPolicy?: CancellationPolicySummary;
+  checkInFrom: string | null; // e.g. "14:00"
+  checkOutUntil: string | null; // e.g. "12:00"
+  houseRules?: string | null;
+  surchargeNote?: string | null;
+  childrenPolicy?: string | null;
+  petsPolicy?: string | null;
+  guestPolicy?: string | null;
+  currentPolicy?: CancellationPolicySummary | null;
 }
 
 export interface PlaceDetail {
@@ -82,7 +90,8 @@ export interface PlaceDetail {
   amenities: PlaceAmenityItem[];
   contacts: PlaceContactItem[];
   highlights: PlaceHighlightItem[];
-  homestayProfile?: HomestayProfileDetail;
+  homestayProfile?: HomestayProfileDetail | null;
+  services?: HomestayServiceOffer[];
 }
 
 export interface HomestayDto {

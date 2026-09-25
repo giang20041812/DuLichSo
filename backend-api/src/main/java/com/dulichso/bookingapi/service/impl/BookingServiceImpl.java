@@ -35,6 +35,8 @@ public class BookingServiceImpl implements BookingService {
     private final RoomInventoryDayRepository roomInventoryDayRepository;
     private final PlaceRepository placeRepository;
     private final RoomTypeRepository roomTypeRepository;
+    private final HomestayProfileRepository homestayProfileRepository;
+    private final com.dulichso.bookingapi.service.RoomCalendarService roomCalendarService;
 
     private static final SecureRandom RANDOM = new SecureRandom();
 
@@ -60,7 +62,7 @@ public class BookingServiceImpl implements BookingService {
         Place place = placeRepository.findById(request.getPlaceId())
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy chỗ nghỉ với ID: " + request.getPlaceId()));
 
-        RoomType roomType = roomTypeRepository.findById(request.getRoomTypeId())
+        RoomType roomType = roomTypeRepository.findLockedById(request.getRoomTypeId())
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy loại phòng với ID: " + request.getRoomTypeId()));
 
         if (!roomType.getPlace().getId().equals(place.getId())) {
@@ -72,6 +74,13 @@ public class BookingServiceImpl implements BookingService {
         }
 
         int requestedRooms = request.getRoomCount();
+        if (place.getVisibility() != com.dulichso.bookingapi.entity.enums.PlaceVisibility.PUBLISHED
+                || place.getOperationStatus() != com.dulichso.bookingapi.entity.enums.PlaceOperationStatus.OPERATING
+                || Boolean.TRUE.equals(place.getIsDeleted()) || !"ACTIVE".equals(roomType.getStatus()))
+            throw new IllegalStateException("Chỗ nghỉ hoặc loại phòng đang ngừng nhận đặt phòng.");
+        if (request.getCheckIn().isBefore(LocalDate.now())) throw new IllegalArgumentException("Không thể đặt phòng trong quá khứ.");
+        var quote = roomCalendarService.quote(roomType,request.getCheckIn(),request.getCheckOut(),requestedRooms,request.getGuestCount());
+        if (!quote.suitable()) throw new IllegalStateException("Không đủ phòng hoặc sức chứa cho yêu cầu.");
         int totalCapacity = roomType.getTotalRoomCount() != null ? roomType.getTotalRoomCount() : 5;
 
         // 3. Chống race-condition: Kiểm tra và giữ chỗ tồn kho phòng (RoomInventoryDay) với Pessimistic Lock
@@ -110,18 +119,24 @@ public class BookingServiceImpl implements BookingService {
         }
 
         // 4. Tính toán giá tiền
-        BigDecimal unitPrice = roomType.getBasePrice() != null ? roomType.getBasePrice() : BigDecimal.valueOf(500000);
-        BigDecimal totalAmount = unitPrice.multiply(BigDecimal.valueOf(nightsCount)).multiply(BigDecimal.valueOf(requestedRooms));
+        BigDecimal unitPrice = quote.nights().get(0).price();
+        BigDecimal totalAmount = quote.totalAmount();
 
         // 5. Sinh mã đặt phòng duy nhất
         String bookingCode = generateUniqueBookingCode();
 
         // 6. Snapshot chính sách hủy phòng
         Map<String, Object> policySnapshot = new HashMap<>();
-        policySnapshot.put("policyName", "Miễn phí hủy phòng");
-        policySnapshot.put("freeCancelCutoffHours", 24);
-        policySnapshot.put("refundType", "FULL_REFUND");
-        policySnapshot.put("description", "Miễn phí hủy phòng trước 24 giờ nhận phòng.");
+        CancellationPolicy policy = homestayProfileRepository.findById(place.getId())
+                .map(HomestayProfile::getCurrentPolicy).orElse(null);
+        if (policy != null) {
+                policySnapshot.put("policyId", policy.getId());
+                policySnapshot.put("policyVersion", policy.getVersion());
+                policySnapshot.put("policyName", policy.getName());
+                policySnapshot.put("freeCancelCutoffHours", policy.getFreeCancelCutoffHours());
+                policySnapshot.put("refundType", policy.getRefundOnLateCancel().name());
+                policySnapshot.put("description", policy.getContentText());
+        }
 
         // 7. Tạo bản ghi Booking
         LocalDateTime now = LocalDateTime.now();
@@ -145,6 +160,7 @@ public class BookingServiceImpl implements BookingService {
                 .currency("VND")
                 .totalAmount(totalAmount)
                 .policySnapshot(policySnapshot)
+                .policy(policy)
                 .createdAt(now)
                 .build();
 
@@ -155,7 +171,7 @@ public class BookingServiceImpl implements BookingService {
             BookingNight night = BookingNight.builder()
                     .id(new BookingNightId(savedBooking.getId(), date))
                     .booking(savedBooking)
-                    .unitPrice(unitPrice)
+                    .unitPrice(quote.nights().get((int) ChronoUnit.DAYS.between(request.getCheckIn(), date)).price())
                     .roomCount(requestedRooms)
                     .build();
             bookingNightRepository.save(night);

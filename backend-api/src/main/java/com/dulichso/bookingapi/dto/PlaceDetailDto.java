@@ -54,6 +54,7 @@ public class PlaceDetailDto {
     private List<ContactItemDto> contacts;
     private List<HighlightItemDto> highlights;
     private HomestayProfileDto homestayProfile;
+    private List<com.dulichso.bookingapi.dto.partner.HomestayServiceDtos.ServiceDto> services;
 
     @Data
     @NoArgsConstructor
@@ -112,6 +113,9 @@ public class PlaceDetailDto {
         private String checkOutUntil;
         private String houseRules;
         private String surchargeNote;
+        private String childrenPolicy;
+        private String petsPolicy;
+        private String guestPolicy;
         private PolicyDto currentPolicy;
     }
 

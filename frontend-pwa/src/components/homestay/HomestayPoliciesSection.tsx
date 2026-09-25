@@ -2,14 +2,14 @@ import { ShieldAlert, IdCard, CalendarX2, PawPrint } from 'lucide-react';
 import { HomestayProfileDetail } from '../../types/homestay';
 
 interface HomestayPoliciesSectionProps {
-  profile?: HomestayProfileDetail;
+  profile?: HomestayProfileDetail | null;
 }
 
 export default function HomestayPoliciesSection({ profile }: HomestayPoliciesSectionProps) {
-  const checkIn = profile?.checkInFrom || '14:00';
-  const checkOut = profile?.checkOutUntil || '12:00';
+  const checkIn = profile?.checkInFrom || 'Chưa công bố';
+  const checkOut = profile?.checkOutUntil || 'Chưa công bố';
   const policyDesc = profile?.currentPolicy?.description || 
-    'Miễn phí hủy trước 48 giờ so với thời điểm nhận phòng tiêu chuẩn (14:00). Hủy trong vòng 48 giờ mất phí 50% tổng cọc.';
+    'Chưa công bố chính sách hủy phòng. Vui lòng liên hệ chỗ nghỉ.';
 
   return (
     <section className="space-y-3.5 pt-2">
@@ -40,7 +40,7 @@ export default function HomestayPoliciesSection({ profile }: HomestayPoliciesSec
         <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50/60 border border-slate-100">
           <IdCard className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
           <p className="leading-relaxed">
-            <strong className="font-semibold text-slate-800">Giấy tờ tùy thân:</strong> Xuất trình CCCD/Hộ chiếu khi nhận phòng theo quy định lưu trú bản địa.
+            <strong className="font-semibold text-slate-800">Nội quy lưu trú:</strong> {profile?.houseRules || 'Chưa công bố nội quy.'}
           </p>
         </div>
 
@@ -54,7 +54,7 @@ export default function HomestayPoliciesSection({ profile }: HomestayPoliciesSec
         <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50/60 border border-slate-100">
           <PawPrint className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
           <p className="leading-relaxed">
-            <strong className="font-semibold text-slate-800">Trẻ em & thú cưng:</strong> Trẻ em dưới 6 tuổi ngủ chung miễn phí; homestay cho phép mang thú cưng nếu có lồng hoặc xích riêng.
+            <strong className="font-semibold text-slate-800">Phụ thu:</strong> {profile?.surchargeNote || 'Vui lòng liên hệ chỗ nghỉ để biết quy định phụ thu.'}
           </p>
         </div>
       </div>
