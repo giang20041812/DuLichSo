@@ -13,8 +13,8 @@ export interface PartnerHomestaySummaryDto {
   visibility: PlaceVisibility;
   operationStatus: PlaceOperationStatus;
   roomTypesCount: number;
-  priceRefMin: number;
-  priceRefMax: number;
+  priceRefMin: number | null;
+  priceRefMax: number | null;
   priceUnitNote?: string;
   lastUpdatedText: string;
   auditStatus: 'STANDARD' | 'MAINTENANCE' | 'NEEDS_DATA';
@@ -45,14 +45,6 @@ export interface UpdateStatusRequest {
   operationStatus?: PlaceOperationStatus;
 }
 
-export interface QuickCreateHomestayRequest {
-  name: string;
-  address: string;
-  description?: string;
-  priceRefMin?: number;
-  priceRefMax?: number;
-}
-
 export interface PartnerHomestayDetailDto {
   id: number;
   code: string;
@@ -62,9 +54,10 @@ export interface PartnerHomestayDetailDto {
   contactPhone: string;
   contactEmail?: string;
   regionName: string;
+  regionId?: number | null;
   address: string;
-  latitude: number;
-  longitude: number;
+  latitude: number | null;
+  longitude: number | null;
   accessNote?: string;
   coverImageUrl: string;
   galleryUrls: string[];
@@ -73,6 +66,14 @@ export interface PartnerHomestayDetailDto {
   checkOutUntil: string;
   houseRules: string;
   cancellationPolicy: string;
+  policyName?: string;
+  freeCancelCutoffHours?: number | null;
+  refundOnLateCancel?: 'FULL_REFUND' | 'NO_REFUND' | null;
+  policyVersion?: number | null;
+  surchargeNote?: string;
+  childrenPolicy?: string;
+  petsPolicy?: string;
+  guestPolicy?: string;
   visibility: PlaceVisibility;
   operationStatus: PlaceOperationStatus;
   isReadyToPublish: boolean;
@@ -81,10 +82,69 @@ export interface PartnerHomestayDetailDto {
   alertNote?: string;
   roomTypesCount?: number;
   roomTypesSummary?: string;
-  priceRefMin?: number;
-  priceRefMax?: number;
+  priceRefMin?: number | null;
+  priceRefMax?: number | null;
   pricingSummary?: string;
   availabilitySummary?: string;
   stopSellSummary?: string;
   heroStatusBadge?: string;
+}
+
+export interface HomestayOptionsDto {
+  regions: { id: number; name: string }[];
+  amenities: { id: number; name: string }[];
+}
+
+// ---- Ảnh Homestay / loại phòng — khớp PartnerMediaDtos.java ----
+
+export interface MediaDto {
+  mediaId: number;
+  url: string;
+  role: 'COVER' | 'GALLERY';
+  caption: string | null;
+  sortOrder: number;
+}
+
+export interface DirectUploadDto {
+  uploadUrl: string;
+  imageId: string;
+  maxFileBytes: number;
+  allowedTypes: string[];
+}
+
+// ---- Đăng ký NCC (UC-NCC-08) — khớp ProviderApplicationDtos.java ----
+
+export type ProviderApplicationStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface ProviderRegisterInput {
+  businessName: string;
+  contactName: string;
+  contactPhone: string;
+  contactEmail: string;
+  password: string;
+  address: string;
+  businessLicenseNo: string;
+  description: string;
+}
+
+export interface ProviderRegisterResult {
+  applicationId: number;
+  status: ProviderApplicationStatus;
+  message: string;
+}
+
+// ---- Phản hồi đánh giá (UC-NCC-10) — khớp PartnerReviewDtos.ReviewDto ----
+
+export interface PartnerReviewDto {
+  id: number;
+  placeId: number;
+  placeName: string;
+  bookingCode: string | null;
+  guestName: string;
+  rating: number;
+  content: string | null;
+  status: 'VISIBLE' | 'HIDDEN';
+  createdAt: string;
+  providerReply: string | null;
+  providerReplyAt: string | null;
 }

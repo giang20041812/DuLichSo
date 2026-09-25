@@ -1,6 +1,10 @@
 import { Routes, Route } from 'react-router-dom';
 import SidebarLayout from '@/components/layout/SidebarLayout';
 import PartnerLayout from '@/components/partner/PartnerLayout';
+import PartnerRoomsPage from '@/pages/partner/PartnerRoomsPage';
+import PartnerBookingProcessPage from '@/pages/partner/PartnerBookingProcessPage';
+import PartnerReviewsPage from '@/pages/partner/PartnerReviewsPage';
+import ProviderRegisterPage from '@/pages/auth/ProviderRegisterPage';
 import {
   HomePage,
   HomestayListPage,
@@ -74,15 +78,19 @@ export function AppRoutes() {
       <Route path="portal/login" element={<PortalLoginPage />} />
       <Route path="login" element={<PortalLoginPage />} />
       <Route path="register" element={<RegisterPage />} />
+      <Route path="register/partner" element={<ProviderRegisterPage />} />
       <Route path="portal/suspended" element={<ProviderSuspendedPage />} />
       <Route path="admin" element={<AdminDashboardPage />} />
       <Route element={<PartnerLayout />}>
         <Route path="partner" element={<PartnerDashboardPage />} />
         <Route path="partner/bookings" element={<PartnerBookingsPage />} />
+        <Route path="partner/bookings/:id" element={<PartnerBookingProcessPage />} />
+        <Route path="partner/reviews" element={<PartnerReviewsPage />} />
         <Route path="partner/homestays" element={<PartnerDashboardPage />} />
         <Route path="partner/homestay/create" element={<PartnerHomestayEditPage />} />
         <Route path="partner/homestay/:id" element={<PartnerHomestayDetailPage />} />
         <Route path="partner/homestay/:id/edit" element={<PartnerHomestayEditPage />} />
+        <Route path="partner/homestay/:id/rooms" element={<PartnerRoomsPage />} />
       </Route>
     </Routes>
   );
