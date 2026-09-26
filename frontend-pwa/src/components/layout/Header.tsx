@@ -145,7 +145,7 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
                 className="transition-all duration-300 group-hover:scale-105 drop-shadow-sm shrink-0"
               />
               <span
-                className={`tracking-tight italic transition-all duration-300 ${
+                className={`tracking-tight italic font-bold transition-all duration-300 ${
                   isScrolled ? 'text-[22px] sm:text-[24px]' : 'text-[26px] sm:text-[28px]'
                 } text-[var(--color-sun)] drop-shadow-sm whitespace-nowrap`}
                 style={{ fontFamily: 'var(--font-brush)', lineHeight: 1 }}
@@ -163,12 +163,12 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
                 <Link
                   key={item.id}
                   to={item.path}
-                  className={`flex items-center gap-1.5 lg:gap-2 px-3 lg:px-4 py-2 text-sm lg:text-[15px] font-bold whitespace-nowrap transition-all duration-200 shrink-0 border-b-2 rounded-none ${
+                  className={`flex items-center gap-1.5 lg:gap-2 px-3 lg:px-4 py-2 text-sm lg:text-[15px] font-extrabold whitespace-nowrap transition-all duration-200 shrink-0 border-b-2 rounded-none ${
                     active
                       ? 'border-[var(--color-sun)] text-[var(--color-sun)] bg-transparent drop-shadow-md'
                       : isSolid
-                        ? 'border-transparent text-slate-700 hover:text-[var(--color-sun)] bg-transparent'
-                        : 'border-transparent text-white/95 hover:text-[var(--color-sun)] drop-shadow-xs bg-transparent'
+                        ? 'border-transparent text-slate-800 hover:text-[var(--color-sun)] bg-transparent'
+                        : 'border-transparent text-white hover:text-[var(--color-sun)] drop-shadow-sm bg-transparent'
                   }`}
                 >
                   <span className="shrink-0 flex items-center justify-center">
@@ -351,12 +351,12 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
                 <Link
                   key={item.id}
                   to={item.path}
-                  className={`flex items-center gap-1.5 px-3.5 py-2 text-[13px] sm:text-sm font-bold whitespace-nowrap transition-all duration-200 shrink-0 border-b-2 rounded-none ${
+                  className={`flex items-center gap-1.5 px-3.5 py-2 text-[13px] sm:text-sm font-extrabold whitespace-nowrap transition-all duration-200 shrink-0 border-b-2 rounded-none ${
                     active
                       ? 'border-[var(--color-sun)] text-[var(--color-sun)] bg-transparent drop-shadow-md'
                       : isSolid
-                        ? 'border-transparent text-slate-700 hover:text-[var(--color-sun)] bg-transparent'
-                        : 'border-transparent text-white/95 hover:text-[var(--color-sun)] drop-shadow-xs bg-transparent'
+                        ? 'border-transparent text-slate-800 hover:text-[var(--color-sun)] bg-transparent'
+                        : 'border-transparent text-white hover:text-[var(--color-sun)] drop-shadow-sm bg-transparent'
                   }`}
                 >
                   <span className="shrink-0 flex items-center justify-center">

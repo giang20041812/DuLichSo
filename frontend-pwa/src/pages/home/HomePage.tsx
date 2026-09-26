@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react"
 import { Link } from "react-router-dom"
 import SearchHub from "@/components/layout/SearchHub"
 import HeroPwaDownloadBanner from "@/components/pwa/HeroPwaDownloadBanner"
-import { MapPin, Star, Handshake, Tag, Headphones, ShieldCheck, Mountain, Tent, Calendar } from "lucide-react"
+import { MapPin, Star, Handshake, Tag, Headphones, ShieldCheck, Mountain, Tent, Calendar, Check } from "lucide-react"
 import { fetchHomeData } from "@/services/homeService"
 import { HomeResponseDto, PlaceSummaryDto } from "@/types/home"
 import { getCurrentCustomer, googleLogin, saveTravelerSession } from "@/services/authService"
@@ -33,6 +33,29 @@ export default function HomePage() {
   const [homeData, setHomeData] = useState<HomeResponseDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedProvince, setSelectedProvince] = useState<string>('Tất cả');
+  const [copiedShare, setCopiedShare] = useState(false);
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Đi Du Lịch - Mù Cang Chải',
+          text: 'Mỗi chuyến đi là một kỷ niệm đẹp. Cùng khám phá trải nghiệm du lịch di sản, sinh thái Việt Nam!',
+          url: window.location.href,
+        });
+      } catch {
+        // Người dùng hủy chia sẻ
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        setCopiedShare(true);
+        setTimeout(() => setCopiedShare(false), 2200);
+      } catch (err) {
+        console.error('Không thể sao chép liên kết:', err);
+      }
+    }
+  };
 
   useEffect(() => {
     fetchHomeData().then(data => {
@@ -152,10 +175,10 @@ export default function HomePage() {
 
         <div className="relative z-30 flex flex-col items-start justify-center px-4 md:px-8 max-w-[1280px] mx-auto w-full mt-10 md:mt-16">
           <div className="max-w-4xl text-left mb-10 md:mb-16">
-            <h1 className="italic text-[70px] md:text-[100px] lg:text-[120px] text-[var(--color-sun)] leading-[0.9] mb-4 drop-shadow-lg" style={{ fontFamily: 'var(--font-brush)' }}>
+            <h1 className="italic font-bold text-[70px] md:text-[100px] lg:text-[120px] text-[var(--color-sun)] leading-[0.9] mb-4 drop-shadow-lg" style={{ fontFamily: 'var(--font-brush)' }}>
               Đi Du Lịch
             </h1>
-            <p className="text-2xl md:text-3xl lg:text-4xl font-semibold text-white/95 leading-relaxed mb-0 drop-shadow-md">
+            <p className="text-2xl md:text-3xl lg:text-4xl font-bold md:font-extrabold text-white leading-relaxed mb-0 drop-shadow-md">
               Nền tảng đặt phòng Homestay & khám phá trải nghiệm du lịch di sản, sinh thái Việt Nam.
             </p>
           </div>
@@ -170,6 +193,74 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+
+        {/* Góc truyền cảm hứng nhẹ nhàng & nút chia sẻ */}
+        <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 md:bottom-8 md:right-10 lg:right-14 z-30 flex items-center gap-3 select-none pointer-events-auto">
+          <div className="flex flex-col items-end text-right drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]">
+            <div
+              className="text-white text-lg sm:text-xl md:text-2xl lg:text-[26px] leading-tight tracking-wide font-bold"
+              style={{ fontFamily: 'var(--font-brush)' }}
+            >
+              Mỗi chuyến đi
+            </div>
+            <div
+              className="text-white text-lg sm:text-xl md:text-2xl lg:text-[26px] leading-tight tracking-wide font-bold flex items-center justify-end gap-1.5"
+              style={{ fontFamily: 'var(--font-brush)' }}
+            >
+              <span>là một kỷ niệm đẹp</span>
+              {/* Trái tim nét vẽ tay nhỏ xinh */}
+              <svg
+                className="w-4 h-4 md:w-5 md:h-5 text-white/90 inline-block -mt-1 rotate-12 transition-transform hover:scale-125"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+              </svg>
+            </div>
+            {/* Calligraphy underline flourish */}
+            <svg
+              className="w-28 sm:w-36 md:w-44 h-3.5 text-white/80 mt-0.5 overflow-visible"
+              viewBox="0 0 160 14"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+            >
+              <path d="M4 8 Q 40 1 80 7 T 148 6 C 153 6 156 4 154 2 C 152 0.5 147 3 151 8" />
+            </svg>
+          </div>
+
+          {/* Nút chia sẻ trang */}
+          <button
+            type="button"
+            onClick={handleShare}
+            className="w-10 h-10 md:w-11 md:h-11 rounded-[6px] border border-white/40 bg-white/10 hover:bg-white/20 active:scale-95 backdrop-blur-md flex items-center justify-center text-white transition-all shadow-[0_2px_8px_rgba(0,0,0,0.3)] group cursor-pointer"
+            title={copiedShare ? "Đã sao chép liên kết!" : "Chia sẻ hành trình"}
+            aria-label="Chia sẻ"
+          >
+            {copiedShare ? (
+              <Check className="w-5 h-5 text-emerald-300 animate-in fade-in zoom-in-75 duration-200" />
+            ) : (
+              <svg
+                className="w-5 h-5 transition-transform group-hover:-translate-y-0.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                <polyline points="16 6 12 2 8 6" />
+                <line x1="12" y1="2" x2="12" y2="15" />
+              </svg>
+            )}
+          </button>
+        </div>
       </section>
 
 
@@ -180,7 +271,7 @@ export default function HomePage() {
           {/* Header row: Tiêu đề bên trái, Nút khám phá thêm ở góc phải trên */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
             <div>
-              <h2 className="text-2xl md:text-3xl lg:text-[34px] font-normal text-[#0f2d3c] tracking-tight">
+              <h2 className="text-2xl md:text-3xl lg:text-[34px] font-extrabold text-[#0f2d3c] tracking-tight">
                 Điểm Đến Thích Hợp Theo Mùa
               </h2>
             </div>
@@ -330,7 +421,7 @@ export default function HomePage() {
       <section className="max-w-[1280px] mx-auto w-full px-4 md:px-8 py-14">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
           <div>
-            <h2 className="text-2xl md:text-3xl lg:text-[34px] font-normal text-slate-800 tracking-tight">
+            <h2 className="text-2xl md:text-3xl lg:text-[34px] font-extrabold text-slate-800 tracking-tight">
               Homestay Bản Địa & Chốn Nghỉ Bình Yên
             </h2>
           </div>
@@ -426,7 +517,7 @@ export default function HomePage() {
         <div className="max-w-[1280px] mx-auto w-full px-4 md:px-8">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
             <div>
-              <h2 className="text-2xl md:text-3xl lg:text-[34px] font-normal text-slate-800 tracking-tight">
+              <h2 className="text-2xl md:text-3xl lg:text-[34px] font-extrabold text-slate-800 tracking-tight">
                 Đặc Sản Nổi Tiếng
               </h2>
             </div>
@@ -513,7 +604,7 @@ export default function HomePage() {
       <section className="bg-white py-14 border-t border-[#10b981]/10">
         <div className="max-w-[1280px] mx-auto w-full px-4 md:px-8">
           <div className="text-center mb-8">
-            <h2 className="text-2xl md:text-3xl font-normal text-[#0a2e26] tracking-tight">
+            <h2 className="text-2xl md:text-3xl font-extrabold text-[#0a2e26] tracking-tight">
               Cam Kết Giá Trị Từ Đi Du Lịch
             </h2>
           </div>

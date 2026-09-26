@@ -221,7 +221,7 @@ public class BookingServiceImpl implements BookingService {
             throw new IllegalArgumentException("Yêu cầu cung cấp số điện thoại để tra cứu chi tiết đơn đặt phòng");
         }
         
-        if (!booking.getCustomerPhone().equals(phone.trim())) {
+        if (booking.getGuestPhone() == null || !booking.getGuestPhone().equals(phone.trim())) {
              // Return not found to not confirm existence if phone is wrong
              throw new IllegalArgumentException("Không tìm thấy đơn đặt phòng với mã: " + bookingCode);
         }
