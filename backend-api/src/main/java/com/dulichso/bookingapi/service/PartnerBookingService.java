@@ -74,12 +74,16 @@ public class PartnerBookingService {
         }
 
         BookingStatus from = booking.getStatus();
-        booking.setStatus(BookingStatus.AWAITING_PAYMENT);
-        booking.setPaymentDeadlineAt(now.plus(PAYMENT_WINDOW));
+        booking.setStatus(BookingStatus.CONFIRMED);
+        booking.setConfirmedAt(now);
+        
+        RoomType finalRoom = rooms.findLockedById(booking.getRoomType().getId()).orElseThrow(PartnerBookingService::notFound);
+        confirmHold(finalRoom, booking);
+
         String note = trimToNull(input.note());
         history(booking, from, actor, note != null ? note : "Nhà cung cấp chấp nhận đơn đặt phòng");
         flush("Khách đã có một đơn khác còn hiệu lực cho loại phòng và khoảng ngày này.");
-        notifyCustomer("BOOKING_ACCEPTED_CUSTOMER", booking, Map.of("payment_deadline", booking.getPaymentDeadlineAt().toString(),
+        notifyCustomer("BOOKING_ACCEPTED_CUSTOMER", booking, Map.of(
                 "room_type", booking.getRoomType().getName(), "message", note == null ? "" : note));
         return toDetail(booking);
     }
@@ -138,19 +142,19 @@ public class PartnerBookingService {
             throw conflict(switch (input.action()) {
                 case CHECK_IN -> "Chỉ nhận phòng được với đơn đã xác nhận, trong khoảng ngày lưu trú.";
                 case CHECK_OUT -> "Chỉ trả phòng được với đơn đang lưu trú.";
-                case COMPLETE -> "Chỉ hoàn thành được đơn khách đã trả phòng.";
+                case COMPLETE -> "Hành động này đã gộp chung với Trả phòng.";
                 case NO_SHOW -> "Chỉ đánh dấu khách không đến với đơn đã xác nhận, từ sau ngày nhận phòng.";
             });
         BookingStatus from = booking.getStatus();
         String note = trimToNull(input.note());
         switch (input.action()) {
             case CHECK_IN -> booking.setStatus(BookingStatus.CHECKED_IN);
-            case CHECK_OUT -> booking.setStatus(BookingStatus.CHECKED_OUT);
-            case COMPLETE -> {
+            case CHECK_OUT -> {
                 booking.setStatus(BookingStatus.COMPLETED);
                 booking.setClosedAt(LocalDateTime.now());
                 booking.setClosedByActor(ActorType.PROVIDER);
             }
+            case COMPLETE -> throw bad("Hành động này đã bị loại bỏ.");
             case NO_SHOW -> {
                 RoomType room = rooms.findLockedById(booking.getRoomType().getId()).orElseThrow(PartnerBookingService::notFound);
                 LocalDate from0 = booking.getCheckIn().isAfter(today) ? booking.getCheckIn() : today;
@@ -167,7 +171,7 @@ public class PartnerBookingService {
         }
         history(booking, from, actor, note != null ? note : switch (input.action()) {
             case CHECK_IN -> "Khách đã nhận phòng";
-            case CHECK_OUT -> "Khách đã trả phòng";
+            case CHECK_OUT -> "Khách đã trả phòng, hoàn thành đơn";
             case COMPLETE -> "Hoàn thành đơn đặt phòng";
             case NO_SHOW -> "Khách không đến nhận phòng";
         });
@@ -184,7 +188,7 @@ public class PartnerBookingService {
                 yield actions;
             }
             case CHECKED_IN -> List.of(StayAction.CHECK_OUT);
-            case CHECKED_OUT -> List.of(StayAction.COMPLETE);
+            case CHECKED_OUT -> List.of();
             default -> List.of();
         };
     }
@@ -200,7 +204,7 @@ public class PartnerBookingService {
         String message = template.equals("BOOKING_INFO_REQUESTED") ? String.valueOf(extra.get("message"))
                 : booking.getStatus() == BookingStatus.REJECTED ? String.valueOf(extra.get("reason"))
                 : "Phòng: " + booking.getRoomType().getName() + ". Tổng tiền: " + booking.getTotalAmount()
-                    + " VND. Thanh toán trước " + booking.getPaymentDeadlineAt() + ". " + extra.getOrDefault("message", "");
+                    + " VND. Khách hàng vui lòng thanh toán trực tiếp tại chỗ nghỉ. " + extra.getOrDefault("message", "");
         payload.put("message", message);
         payload.put("homestay_name", booking.getPlace().getName());
         notifications.toCustomer(template, booking.getGuestPhone(), booking.getGuestEmail(), "booking", booking.getId(), payload);
@@ -248,6 +252,15 @@ public class PartnerBookingService {
         for (LocalDate date = booking.getCheckIn(); date.isBefore(booking.getCheckOut()); date = date.plusDays(1)) {
             RoomInventoryDay day = calendar.lockedDay(room, date);
             day.setHeldRooms(Math.max(0, day.getHeldRooms() - booking.getRoomCount()));
+            day.setUpdatedAt(LocalDateTime.now());
+        }
+    }
+
+    private void confirmHold(RoomType room, Booking booking) {
+        for (LocalDate date = booking.getCheckIn(); date.isBefore(booking.getCheckOut()); date = date.plusDays(1)) {
+            RoomInventoryDay day = calendar.lockedDay(room, date);
+            day.setHeldRooms(Math.max(0, day.getHeldRooms() - booking.getRoomCount()));
+            day.setConfirmedRooms(day.getConfirmedRooms() + booking.getRoomCount());
             day.setUpdatedAt(LocalDateTime.now());
         }
     }

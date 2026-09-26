@@ -285,8 +285,8 @@ function DecisionPanel({ booking, onDone }: { booking: PartnerBookingDetailDto; 
 
 const STAY_ACTION: Record<StayAction, { label: string; confirm: string; body: string; tone: ConfirmRequest['tone'] }> = {
   CHECK_IN: { label: 'Khách đã nhận phòng', confirm: 'Xác nhận nhận phòng', body: 'Đơn chuyển sang “Đã nhận phòng”.', tone: 'primary' },
-  CHECK_OUT: { label: 'Khách đã trả phòng', confirm: 'Xác nhận trả phòng', body: 'Đơn chuyển sang “Đã trả phòng”.', tone: 'primary' },
-  COMPLETE: { label: 'Hoàn thành đơn', confirm: 'Hoàn thành đơn', body: 'Đơn được đóng ở trạng thái “Hoàn tất”; khách có thể viết đánh giá.', tone: 'coral' },
+  CHECK_OUT: { label: 'Khách đã trả phòng', confirm: 'Xác nhận trả phòng', body: 'Đơn được đóng ở trạng thái “Hoàn tất”; khách có thể viết đánh giá.', tone: 'primary' },
+  COMPLETE: { label: 'Hoàn thành đơn', confirm: 'Hoàn thành đơn', body: 'Hành động này đã gộp chung với Trả phòng.', tone: 'coral' },
   NO_SHOW: { label: 'Khách không đến', confirm: 'Đánh dấu không đến', body: 'Đơn được đóng; các đêm từ hôm nay trở đi được mở bán lại. Không hoàn tác được.', tone: 'danger' },
 };
 

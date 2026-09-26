@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
   Calendar,
@@ -40,8 +40,13 @@ export default function UserBookingDetailPage() {
 
   const [booking, setBooking] = useState<BookingResponseDto | null>(null);
   const [existingReview, setExistingReview] = useState<ReviewDto | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const phoneParam = searchParams.get('phone') || '';
+  const [phoneInput, setPhoneInput] = useState(phoneParam);
+  const [isPhoneVerified, setIsPhoneVerified] = useState(!!phoneParam);
 
   // Modal đánh giá
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
@@ -53,12 +58,12 @@ export default function UserBookingDetailPage() {
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
   const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlaceDto[]>([]);
 
-  const loadBookingData = useCallback(async () => {
+  const loadBookingData = useCallback(async (phoneToUse: string) => {
     if (!bookingCode) return;
     setIsLoading(true);
     setErrorMsg(null);
     try {
-      const data = await getBookingByCode(bookingCode);
+      const data = await getBookingByCode(bookingCode, phoneToUse);
       setBooking(data);
 
       // Tải danh sách địa điểm/dịch vụ lân cận để liên kết bản đồ
@@ -88,8 +93,17 @@ export default function UserBookingDetailPage() {
   }, [bookingCode]);
 
   useEffect(() => {
-    loadBookingData();
-  }, [loadBookingData]);
+    if (isPhoneVerified && phoneParam) {
+      loadBookingData(phoneParam);
+    }
+  }, [loadBookingData, isPhoneVerified, phoneParam]);
+
+  const handlePhoneSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!phoneInput.trim()) return;
+    setSearchParams({ phone: phoneInput.trim() });
+    setIsPhoneVerified(true);
+  };
 
   const getStatusBadge = (status: BookingStatus) => {
     switch (status) {
@@ -100,7 +114,7 @@ export default function UserBookingDetailPage() {
             <div>
               <span className="font-bold">Đã xác nhận đặt chỗ thành công!</span>
               <p className="text-xs text-emerald-700 font-normal mt-0.5">
-                Homestay đã sẵn sàng đón tiếp quý khách đúng vào ngày nhận phòng.
+                Homestay đã sẵn sàng đón tiếp. Quý khách vui lòng <strong>Thanh toán trực tiếp</strong> bằng tiền mặt hoặc chuyển khoản khi đến nhận phòng.
               </p>
             </div>
           </div>
@@ -153,18 +167,6 @@ export default function UserBookingDetailPage() {
             </div>
           </div>
         );
-      case 'AWAITING_PAYMENT':
-        return (
-          <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-md text-amber-800 text-xs sm:text-sm font-semibold">
-            <Clock className="w-5 h-5 text-amber-600 shrink-0" />
-            <div>
-              <span className="font-bold">Đang chờ hoàn tất thanh toán</span>
-              <p className="text-xs text-amber-700 font-normal mt-0.5">
-                Vui lòng thanh toán theo hướng dẫn để đảm bảo phòng không bị hủy tự động.
-              </p>
-            </div>
-          </div>
-        );
       case 'PENDING':
         return (
           <div className="flex items-center gap-2 p-3 bg-sky-50 border border-sky-200 rounded-md text-sky-800 text-xs sm:text-sm font-semibold">
@@ -172,7 +174,7 @@ export default function UserBookingDetailPage() {
             <div>
               <span className="font-bold">Đang chờ chủ nhà xác nhận</span>
               <p className="text-xs text-sky-700 font-normal mt-0.5">
-                Homestay đang kiểm tra tình trạng phòng còn trống và sẽ phản hồi sớm.
+                Chủ nhà có tối đa <strong>120 phút</strong> để duyệt đơn đặt phòng. Quá thời gian này đơn sẽ tự động bị hủy.
               </p>
             </div>
           </div>
@@ -199,6 +201,46 @@ export default function UserBookingDetailPage() {
         );
     }
   };
+
+  if (!isPhoneVerified) {
+    return (
+      <div className="min-h-screen bg-[#F6FAF8] flex flex-col items-center justify-center p-6">
+        <form onSubmit={handlePhoneSubmit} className="bg-white rounded-lg border border-gray-100 p-8 max-w-md w-full text-center space-y-6 shadow-[0_4px_20px_-4px_rgba(4,140,115,0.08)] transition-all duration-300 hover:-translate-y-0.5">
+          <div className="w-14 h-14 rounded-md bg-teal-50 flex items-center justify-center mx-auto text-[var(--color-primary)]">
+            <ShieldCheck className="w-7 h-7" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-slate-800 mb-2">Xác minh bảo mật</h2>
+            <p className="text-sm text-gray-500">
+              Vui lòng nhập số điện thoại bạn đã dùng để đặt phòng <strong>{bookingCode}</strong> để xem chi tiết.
+            </p>
+          </div>
+          <div className="text-left space-y-1.5">
+            <label className="text-xs font-semibold text-gray-700">Số điện thoại <span className="text-rose-500">*</span></label>
+            <input
+              type="tel"
+              value={phoneInput}
+              onChange={(e) => setPhoneInput(e.target.value)}
+              className="w-full bg-white border border-gray-200 text-sm rounded-md px-4 py-2.5 outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] transition-shadow"
+              placeholder="Ví dụ: 0912345678"
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            className="w-full bg-[var(--color-primary)] hover:bg-teal-700 text-white font-semibold py-2.5 px-4 rounded-md text-sm transition-all shadow-sm active:scale-[0.98]"
+          >
+            Tra cứu đơn
+          </button>
+        </form>
+        
+        <Link to="/" className="mt-8 flex items-center gap-2 text-sm text-gray-500 hover:text-[var(--color-primary)] transition-colors">
+          <ArrowLeft className="w-4 h-4" />
+          Quay lại trang chủ
+        </Link>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

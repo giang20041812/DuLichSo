@@ -9,7 +9,7 @@ import java.util.List;
 
 public interface BookingService {
     BookingResponseDto createBooking(CreateBookingRequest request);
-    BookingResponseDto getBookingByCode(String bookingCode);
+    BookingResponseDto getBookingByCode(String bookingCode, String phone);
     List<BookingResponseDto> findMyBookings(String email, String phone, List<String> codes);
     com.dulichso.bookingapi.dto.ReviewDto createBookingReview(String bookingCode, com.dulichso.bookingapi.dto.CreateReviewRequest request);
     com.dulichso.bookingapi.dto.ReviewDto updateBookingReview(String bookingCode, com.dulichso.bookingapi.dto.CreateReviewRequest request);
