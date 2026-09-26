@@ -33,11 +33,14 @@ class AdminAccountServiceTest {
     @Mock
     private AuditLogService auditLogService;
 
+    @Mock
+    private com.dulichso.bookingapi.repository.ProviderRepository providerRepository;
+
     private AdminAccountService service;
 
     @BeforeEach
     void setUp() {
-        service = new AdminAccountService(accountRepository, passwordEncoder, auditLogService);
+        service = new AdminAccountService(accountRepository, passwordEncoder, auditLogService, providerRepository);
     }
 
     @Test
@@ -148,7 +151,19 @@ class AdminAccountServiceTest {
 
         AccountDto dto = service.updateAccountStatus(2L, req, 1L);
         assertEquals(AccountStatus.INACTIVE, dto.getStatus());
+        assertEquals(1, acc.getTokenVersion(), "Khóa tài khoản phải thu hồi phiên đang có (NFR-SEC-03)");
         verify(auditLogService, times(1)).record(eq(1L), eq("UPDATE_ACCOUNT_STATUS"), eq("Account"), eq(2L), anyString(), anyMap(), anyMap());
+    }
+
+    @Test
+    @DisplayName("updateAccountStatus: Giữ nguyên trạng thái thì không thu hồi phiên")
+    void updateAccountStatus_SameStatus_KeepsSessions() {
+        Account acc = Account.builder().id(2L).email("u2@taybactrails.vn").status(AccountStatus.ACTIVE).build();
+        when(accountRepository.findById(2L)).thenReturn(Optional.of(acc));
+        when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.updateAccountStatus(2L, UpdateAccountStatusRequest.builder().status(AccountStatus.ACTIVE).build(), 1L);
+        assertEquals(0, acc.getTokenVersion());
     }
 
     @Test
@@ -159,6 +174,65 @@ class AdminAccountServiceTest {
 
         UpdateAccountStatusRequest req = UpdateAccountStatusRequest.builder().status(AccountStatus.INACTIVE).build();
         assertThrows(IllegalArgumentException.class, () -> service.updateAccountStatus(2L, req, 1L));
+        verify(accountRepository, never()).save(any(Account.class));
+    }
+
+    @Test
+    @DisplayName("updateAccountRole: PROVIDER -> ADMIN, bỏ liên kết NCC, thu hồi phiên và ghi audit")
+    void updateAccountRole_providerToAdmin() {
+        Account acc = Account.builder().id(2L).email("p@x.vn").role(AccountRole.PROVIDER).status(AccountStatus.ACTIVE)
+                .provider(com.dulichso.bookingapi.entity.Provider.builder().id(12L).build()).build();
+        when(accountRepository.findById(2L)).thenReturn(Optional.of(acc));
+        when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AccountDto dto = service.updateAccountRole(2L, UpdateAccountRoleRequest.builder().role(AccountRole.ADMIN).reason("Bổ nhiệm").build(), 1L);
+
+        assertEquals(AccountRole.ADMIN, dto.getRole());
+        assertNull(acc.getProvider());
+        assertEquals(1, acc.getTokenVersion(), "Đổi quyền phải thu hồi phiên đang có (NFR-SEC-03)");
+        verify(auditLogService).record(eq(1L), eq("UPDATE_ACCOUNT_ROLE"), eq("Account"), eq(2L), eq("Bổ nhiệm"), anyMap(), anyMap());
+    }
+
+    @Test
+    @DisplayName("updateAccountRole: ADMIN -> PROVIDER cần NCC hợp lệ và chưa có tài khoản")
+    void updateAccountRole_adminToProvider() {
+        Account acc = Account.builder().id(2L).email("a@x.vn").role(AccountRole.ADMIN).status(AccountStatus.ACTIVE).build();
+        when(accountRepository.findById(2L)).thenReturn(Optional.of(acc));
+        when(accountRepository.countByRoleAndStatus(AccountRole.ADMIN, AccountStatus.ACTIVE)).thenReturn(5L);
+
+        UpdateAccountRoleRequest noProvider = UpdateAccountRoleRequest.builder().role(AccountRole.PROVIDER).reason("Chuyển bộ phận").build();
+        assertThrows(IllegalArgumentException.class, () -> service.updateAccountRole(2L, noProvider, 1L));
+
+        com.dulichso.bookingapi.entity.Provider provider = com.dulichso.bookingapi.entity.Provider.builder().id(12L).build();
+        when(providerRepository.findById(12L)).thenReturn(Optional.of(provider));
+        when(accountRepository.findByProviderIdOrderByIdAsc(12L)).thenReturn(List.of(Account.builder().id(9L).build()));
+        UpdateAccountRoleRequest taken = UpdateAccountRoleRequest.builder().role(AccountRole.PROVIDER).providerId(12L).reason("Chuyển bộ phận").build();
+        assertThrows(IllegalStateException.class, () -> service.updateAccountRole(2L, taken, 1L));
+        assertEquals(AccountRole.ADMIN, acc.getRole());
+
+        when(accountRepository.findByProviderIdOrderByIdAsc(12L)).thenReturn(List.of());
+        when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        AccountDto dto = service.updateAccountRole(2L, taken, 1L);
+        assertEquals(AccountRole.PROVIDER, dto.getRole());
+        assertSame(provider, acc.getProvider());
+    }
+
+    @Test
+    @DisplayName("updateAccountRole: chặn tự đổi quyền, thiếu lý do, cùng quyền và hạ quyền Admin cuối cùng")
+    void updateAccountRole_guards() {
+        Account lastAdmin = Account.builder().id(2L).email("a@x.vn").role(AccountRole.ADMIN).status(AccountStatus.ACTIVE).build();
+        when(accountRepository.findById(2L)).thenReturn(Optional.of(lastAdmin));
+
+        UpdateAccountRoleRequest ok = UpdateAccountRoleRequest.builder().role(AccountRole.PROVIDER).providerId(12L).reason("Lý do").build();
+        assertThrows(IllegalStateException.class, () -> service.updateAccountRole(2L, ok, 2L));
+        assertThrows(IllegalArgumentException.class, () -> service.updateAccountRole(2L,
+                UpdateAccountRoleRequest.builder().role(AccountRole.PROVIDER).providerId(12L).reason(" ").build(), 1L));
+        assertThrows(IllegalArgumentException.class, () -> service.updateAccountRole(2L,
+                UpdateAccountRoleRequest.builder().role(AccountRole.ADMIN).reason("Lý do").build(), 1L));
+
+        when(accountRepository.countByRoleAndStatus(AccountRole.ADMIN, AccountStatus.ACTIVE)).thenReturn(1L);
+        assertThrows(IllegalStateException.class, () -> service.updateAccountRole(2L, ok, 1L));
+        assertEquals(AccountRole.ADMIN, lastAdmin.getRole());
         verify(accountRepository, never()).save(any(Account.class));
     }
 
@@ -180,6 +254,7 @@ class AdminAccountServiceTest {
 
         service.resetPassword(3L, req, 1L);
         assertEquals("$2a$10$newHashedPass", acc.getPasswordHash());
+        assertEquals(1, acc.getTokenVersion(), "Đặt lại mật khẩu phải thu hồi phiên cũ (NFR-SEC-03)");
         verify(accountRepository, times(1)).save(acc);
         verify(auditLogService, times(1)).record(eq(1L), eq("RESET_PASSWORD"), eq("Account"), eq(3L), anyString(), isNull(), anyMap());
     }

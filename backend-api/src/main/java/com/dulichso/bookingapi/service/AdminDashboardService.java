@@ -160,10 +160,13 @@ public class AdminDashboardService {
                 .build();
     }
 
+    /** Sự kiện xác thực dày đặc không đưa vào bảng "Hoạt động gần đây"; vẫn tra cứu được ở Nhật ký hệ thống. */
+    private static final java.util.Set<String> FEED_EXCLUDED_ACTIONS = java.util.Set.of("LOGIN_SUCCESS", "LOGIN_FAILED", "LOGIN_BLOCKED", "LOGOUT");
+
     /** Nhật ký hoạt động gần đây cho Live Audit Feed. */
     @Transactional(readOnly = true)
     public List<AuditLogEntryDto> recentActivity(int limit) {
-        List<AuditLog> logs = auditLogRepository.findTop20ByOrderByCreatedAtDescIdDesc();
+        List<AuditLog> logs = auditLogRepository.findTop20ByActionNotInOrderByCreatedAtDescIdDesc(FEED_EXCLUDED_ACTIONS);
         java.util.Set<Long> actorIds = new java.util.HashSet<>();
         for (AuditLog l : logs) if (l.getActorId() != null) actorIds.add(l.getActorId());
         java.util.Map<Long, String> names = new java.util.HashMap<>();

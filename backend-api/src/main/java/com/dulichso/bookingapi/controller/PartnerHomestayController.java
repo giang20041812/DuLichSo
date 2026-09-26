@@ -2,6 +2,7 @@ package com.dulichso.bookingapi.controller;
 
 import com.dulichso.bookingapi.dto.partner.PartnerHomestayDtos.*;
 import com.dulichso.bookingapi.security.UserPrincipal;
+import com.dulichso.bookingapi.service.PartnerChangeService;
 import com.dulichso.bookingapi.service.PartnerHomestayService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -16,6 +17,8 @@ import java.util.Map;
 @RequestMapping("/api/v1/partner/homestays")
 public class PartnerHomestayController {
     private final PartnerHomestayService service;
+    /** Sửa Homestay đang công khai: gửi yêu cầu chờ Admin duyệt (202) thay vì ghi trực tiếp. */
+    private final PartnerChangeService changes;
 
     @GetMapping
     public PartnerHomestayPageResponse list(@AuthenticationPrincipal UserPrincipal principal,
@@ -39,8 +42,11 @@ public class PartnerHomestayController {
     }
 
     @PutMapping("/{id}")
-    public PartnerHomestayDetailDto update(@AuthenticationPrincipal UserPrincipal principal, @PathVariable Long id,
-            @RequestBody PartnerHomestayDetailDto dto) { return service.saveHomestayDetail(principal, id, dto); }
+    public ResponseEntity<Object> update(@AuthenticationPrincipal UserPrincipal principal, @PathVariable Long id,
+            @RequestBody PartnerHomestayDetailDto dto) {
+        var outcome = changes.saveHomestay(principal, id, dto);
+        return outcome.isPending() ? ResponseEntity.accepted().body(outcome.pending()) : ResponseEntity.ok(outcome.saved());
+    }
 
     @PatchMapping("/{id}/status")
     public PartnerHomestaySummaryDto status(@AuthenticationPrincipal UserPrincipal principal, @PathVariable Long id,

@@ -3,9 +3,11 @@ package com.dulichso.bookingapi.repository;
 import com.dulichso.bookingapi.entity.Account;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -15,6 +17,12 @@ public interface AccountRepository extends JpaRepository<Account, Long>, JpaSpec
 
     @Query("SELECT a FROM Account a LEFT JOIN FETCH a.provider WHERE a.email = :identifier OR a.phone = :identifier")
     Optional<Account> findByIdentifier(@Param("identifier") String identifier);
+
+    /** Ghi nhận hoạt động của phiên mà không nạp/ghi lại toàn bộ entity (chạy ngoài transaction của request). */
+    @Modifying
+    @Transactional
+    @Query("UPDATE Account a SET a.lastActivityAt = :at WHERE a.id = :id")
+    int touchActivity(@Param("id") Long id, @Param("at") java.time.LocalDateTime at);
 
     Optional<Account> findByEmail(String email);
 
@@ -27,6 +35,8 @@ public interface AccountRepository extends JpaRepository<Account, Long>, JpaSpec
     boolean existsByPhone(String phone);
 
     long countByStatus(com.dulichso.bookingapi.entity.enums.AccountStatus status);
+
+    long countByRoleAndStatus(com.dulichso.bookingapi.entity.enums.AccountRole role, com.dulichso.bookingapi.entity.enums.AccountStatus status);
 
     @Query("""
         SELECT a FROM Account a LEFT JOIN FETCH a.provider 

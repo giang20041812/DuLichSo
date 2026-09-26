@@ -48,6 +48,31 @@ public class JwtUtils {
     }
 
     /**
+     * Token của tài khoản Admin/NCC: mang thêm phiên bản token ("tv") để có thể thu hồi khi
+     * đổi quyền, khóa tài khoản, đặt lại mật khẩu hoặc đăng xuất (NFR-SEC-03).
+     */
+    public String generateToken(String username, String role, int tokenVersion) {
+        return Jwts.builder()
+                .setSubject(username)
+                .claim("role", role)
+                .claim("tv", tokenVersion)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
+                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    /** Phiên bản token; null nếu token không mang claim này (token cấp trước khi có cơ chế thu hồi). */
+    public Integer getTokenVersionFromToken(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .get("tv", Integer.class);
+    }
+
+    /**
      * Kiểm tra JWT token có hợp lệ không (chữ ký + chưa hết hạn).
      *
      * @param token JWT token string

@@ -189,6 +189,8 @@ public class PasswordResetService {
         if (PasswordResetToken.SUBJECT_ACCOUNT.equals(s.type())) {
             Account a = accountRepository.findById(s.id()).orElseThrow(() -> new InvalidResetException(generic));
             a.setPasswordHash(hash);
+            // NFR-SEC-03: đặt lại mật khẩu thu hồi các phiên cũ.
+            a.setTokenVersion(a.getTokenVersion() + 1);
             accountRepository.save(a);
         } else {
             Traveler t = travelerRepository.findById(s.id()).orElseThrow(() -> new InvalidResetException(generic));

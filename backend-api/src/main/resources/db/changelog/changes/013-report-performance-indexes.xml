@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+  <!--
+    NFR-PERF-03 / NFR-SCA-01: tra cứu Booking, báo cáo và dòng tiền lọc theo khoảng thời gian.
+    Trước đây chỉ có index theo (provider_id, status, check_in) nên các truy vấn theo created_at / paid_at / processed_at phải quét toàn bảng.
+  -->
+  <changeSet id="013-booking-created-indexes" author="claude">
+    <createIndex tableName="booking" indexName="idx_booking_created">
+      <column name="created_at"/>
+    </createIndex>
+    <createIndex tableName="booking" indexName="idx_booking_status_created">
+      <column name="status"/>
+      <column name="created_at"/>
+    </createIndex>
+    <createIndex tableName="booking" indexName="idx_booking_provider_created">
+      <column name="provider_id"/>
+      <column name="created_at"/>
+    </createIndex>
+  </changeSet>
+  <changeSet id="013-payment-refund-indexes" author="claude">
+    <createIndex tableName="payment_transaction" indexName="idx_payment_status_paid">
+      <column name="status"/>
+      <column name="paid_at"/>
+    </createIndex>
+    <createIndex tableName="refund" indexName="idx_refund_status_processed">
+      <column name="status"/>
+      <column name="processed_at"/>
+    </createIndex>
+  </changeSet>
+</databaseChangeLog>

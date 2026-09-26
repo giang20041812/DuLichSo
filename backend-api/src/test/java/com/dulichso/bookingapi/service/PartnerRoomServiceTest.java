@@ -142,6 +142,29 @@ class PartnerRoomServiceTest {
         verify(audit).record(eq(account), eq("HOMESTAY_CLOSE_DAYS"), eq(PartnerAuditRecorder.HOMESTAY), eq(21L), eq("Nghỉ lễ gia đình"), isNull(), anyMap());
     }
 
+    @Test void publishedHomestayRoomCannotBeWrittenDirectly() {
+        place.setVisibility(com.dulichso.bookingapi.entity.enums.PlaceVisibility.PUBLISHED);
+        assertEquals(409, assertThrows(ResponseStatusException.class, () -> service.save(principal, 21L, 3L, input(3))).getStatusCode().value());
+        assertEquals(5, room.getTotalRoomCount());
+        verifyNoInteractions(audit);
+    }
+
+    @Test void publishedHomestayPriceCannotBeWrittenOrDeletedDirectly() {
+        place.setVisibility(com.dulichso.bookingapi.entity.enums.PlaceVisibility.PUBLISHED);
+        var price = new PriceInput("Mùa lúa", LocalDate.now(), LocalDate.now().plusDays(3), new BigDecimal("900000"));
+        assertEquals(409, assertThrows(ResponseStatusException.class, () -> service.savePrice(principal, 21L, 3L, null, price)).getStatusCode().value());
+        assertEquals(409, assertThrows(ResponseStatusException.class, () -> service.deletePrice(principal, 21L, 3L, 8L)).getStatusCode().value());
+        verifyNoInteractions(audit);
+    }
+
+    @Test void approvedRoomChangeIsAppliedToPublishedHomestay() {
+        place.setVisibility(com.dulichso.bookingapi.entity.enums.PlaceVisibility.PUBLISHED);
+        stubSaveQueries(List.of());
+        var result = service.applyApproved(account, 21L, 3L, input(6));
+        assertEquals("Phòng đôi", result.name());
+        verify(audit).record(eq(account), anyString(), anyString(), eq(3L), any(), any(), any());
+    }
+
     @Test void cannotEditPastCalendar() {
         var past = new HomestayBlockInput(LocalDate.now().minusDays(1), LocalDate.now().plusDays(1), true, "Lý do");
         assertEquals(400, assertThrows(ResponseStatusException.class, () -> service.blockHomestay(principal, 21L, past)).getStatusCode().value());

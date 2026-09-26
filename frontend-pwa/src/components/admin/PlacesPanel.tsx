@@ -27,6 +27,8 @@ import {
 import { StatusBadge } from './StatusBadge';
 import { actionButtonClass } from './statusStyles';
 import PlaceQuickPreview from './PlaceQuickPreview';
+import ChangeRequestsPanel from './ChangeRequestsPanel';
+import ReviewsPanel from './ReviewsPanel';
 import { KIND_META, kindMeta, VERIFICATION_LABEL, VERIFICATION_TONE, VISIBILITY_LABEL, VISIBILITY_TONE } from './placeMeta';
 
 interface PlacesPanelProps {
@@ -74,6 +76,11 @@ export default function PlacesPanel({ notify }: PlacesPanelProps) {
   const [reload, setReload] = useState(0);
   const [selected, setSelected] = useState<number[]>([]);
   const [preview, setPreview] = useState<AdminPlaceSummaryDto | null>(null);
+  // Tab "Yêu cầu thay đổi": thay đổi Homestay/phòng/giá của NCC chờ Admin duyệt.
+  const [showChanges, setShowChanges] = useState(false);
+  // Tab "Đánh giá": kiểm duyệt đánh giá vi phạm (FR-AD-15).
+  const [showReviews, setShowReviews] = useState(false);
+  const [pendingChanges, setPendingChanges] = useState<number | null>(null);
 
   const [pending, setPending] = useState<PendingAction | null>(null);
   const [dialogError, setDialogError] = useState('');
@@ -131,10 +138,27 @@ export default function PlacesPanel({ notify }: PlacesPanelProps) {
     void load();
   }, [load, reload]);
 
+  useEffect(() => {
+    let alive = true;
+    adminService
+      .getPendingChangeRequestCount()
+      .then((n) => {
+        if (alive) setPendingChanges(n);
+      })
+      .catch(() => {
+        if (alive) setPendingChanges(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [reload, showChanges]);
+
   const totalAll = summary ? VERIFICATION_ORDER.reduce((a, v) => a + (summary[v] ?? 0), 0) : null;
-  const tabs: TabItem<PlaceVerificationStatus>[] = [
+  const tabs: TabItem<PlaceVerificationStatus | 'CHANGE_REQUESTS' | 'REVIEWS'>[] = [
     { value: '', label: 'Tất cả', count: totalAll },
     ...VERIFICATION_ORDER.map((v) => ({ value: v, label: VERIFICATION_LABEL[v], count: summary ? summary[v] ?? 0 : null, tone: VERIFICATION_TONE[v] })),
+    { value: 'CHANGE_REQUESTS', label: 'Yêu cầu thay đổi', count: pendingChanges, tone: 'warning' },
+    { value: 'REVIEWS', label: 'Đánh giá' },
   ];
 
   const rows = data?.content ?? [];
@@ -200,7 +224,23 @@ export default function PlacesPanel({ notify }: PlacesPanelProps) {
 
   return (
     <section className="rounded-lg border border-border bg-white shadow-sm">
-      <UnderlineTabs ariaLabel="Trạng thái kiểm duyệt" items={tabs} value={verification} onChange={resetPage(setVerification)} />
+      <UnderlineTabs
+        ariaLabel="Trạng thái kiểm duyệt"
+        items={tabs}
+        value={showReviews ? 'REVIEWS' : showChanges ? 'CHANGE_REQUESTS' : verification}
+        onChange={(v) => {
+          setShowChanges(v === 'CHANGE_REQUESTS');
+          setShowReviews(v === 'REVIEWS');
+          if (v !== 'CHANGE_REQUESTS' && v !== 'REVIEWS') resetPage(setVerification)(v);
+        }}
+      />
+
+      {showReviews ? (
+        <ReviewsPanel notify={notify} />
+      ) : showChanges ? (
+        <ChangeRequestsPanel notify={notify} onChanged={() => setReload((n) => n + 1)} />
+      ) : (
+      <>
 
       <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2.5">
         <FilterSearch value={keyword} onChange={resetPage(setKeyword)} placeholder="Tìm theo tên, slug, địa chỉ hoặc nhà cung cấp..." />
@@ -390,6 +430,8 @@ export default function PlacesPanel({ notify }: PlacesPanelProps) {
           onCancel={() => setPending(null)}
           onConfirm={confirm}
         />
+      )}
+      </>
       )}
     </section>
   );

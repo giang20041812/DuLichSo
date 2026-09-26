@@ -136,7 +136,7 @@ class AdminDashboardServiceTest {
                 .id(1L).actor(com.dulichso.bookingapi.entity.enums.ActorType.SYSTEM)
                 .action("SOS_RESOLVED").entityType("SosRequest").entityId(7L)
                 .createdAt(java.time.LocalDateTime.now().minusMinutes(5)).build();
-        when(auditLogRepository.findTop20ByOrderByCreatedAtDescIdDesc()).thenReturn(List.of(log1, log2));
+        when(auditLogRepository.findTop20ByActionNotInOrderByCreatedAtDescIdDesc(org.mockito.ArgumentMatchers.anyCollection())).thenReturn(List.of(log1, log2));
         when(accountRepository.findAllById(java.util.Set.of(9L))).thenReturn(List.of(
                 com.dulichso.bookingapi.entity.Account.builder().id(9L).fullName("Nguyễn Quản Trị").build()));
 

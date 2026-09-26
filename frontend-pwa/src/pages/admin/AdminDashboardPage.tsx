@@ -5,8 +5,10 @@ import OverviewPanel from '@/components/admin/OverviewPanel';
 import BookingsPanel, { type BookingsPreset } from '@/components/admin/BookingsPanel';
 import ReportsPanel from '@/components/admin/ReportsPanel';
 import ProvidersPanel from '@/components/admin/ProvidersPanel';
+import CashflowPanel from '@/components/admin/CashflowPanel';
 import AdminSidebar, { type SidebarItem } from '@/components/admin/AdminSidebar';
 import { getApiErrorMessage } from '@/lib/apiError';
+import { clearPortalSession } from '@/lib/authInterceptor';
 import { StatusBadge } from '@/components/admin/StatusBadge';
 import { actionButtonClass } from '@/components/admin/statusStyles';
 import type { StatusTone } from '@/components/admin/StatusBadge';
@@ -182,8 +184,7 @@ export default function AdminDashboardPage() {
   >([]);
 
   const handleLogout = () => {
-    localStorage.removeItem('portal_token');
-    localStorage.removeItem('portal_user');
+    clearPortalSession();
     navigate('/admin/login');
   };
 
@@ -548,6 +549,13 @@ export default function AdminDashboardPage() {
                   {refunds.length === 0 && <div className="py-12 text-center text-xs text-muted">Hiện không có yêu cầu hoàn tiền nào.</div>}
                 </div>
               </section>
+
+              <CashflowPanel
+                onDrill={(preset) => {
+                  setBookingsPreset((p) => ({ key: p.key + 1, preset }));
+                  setActiveTab('bookings');
+                }}
+              />
             </>
           )}
         </main>

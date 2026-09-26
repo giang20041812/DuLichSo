@@ -11,7 +11,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: ${JPA_DDL_AUTO:validate}
-    show-sql: true
+    show-sql: ${JPA_SHOW_SQL:false}
     properties:
       hibernate:
         format_sql: true
@@ -47,6 +47,16 @@ app:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000,https://du-lich-so-o5a9-jx5r27akq-du-lich-so.vercel.app}
   # Tài khoản mẫu QA (admin@taybactrails.vn / ncc@taybactrails.vn...) — CHỈ bật khi dev. Production phải để false.
   qa-mock-accounts: ${APP_QA_MOCK_ACCOUNTS:false}
+  # NFR-PRI-02: thời hạn lưu giữ dữ liệu theo từng loại; job dọn chạy mỗi ngày. Booking/đánh giá/tài khoản không tự xóa.
+  retention:
+    enabled: ${RETENTION_ENABLED:true}
+    audit-log-days: ${RETENTION_AUDIT_LOG_DAYS:180}
+    password-reset-token-days: ${RETENTION_RESET_TOKEN_DAYS:7}
+    notification-days: ${RETENTION_NOTIFICATION_DAYS:90}
+    cron: ${RETENTION_CRON:0 30 3 * * *}
+  security:
+    # NFR-SEC-03: Admin/NCC không hoạt động quá số phút này thì phiên hết hiệu lực (tài liệu tham khảo 30 phút).
+    idle-timeout-minutes: ${SESSION_IDLE_TIMEOUT_MINUTES:30}
   mail:
     # Địa chỉ người gửi hiển thị; mặc định = MAIL_USERNAME
     from: ${MAIL_FROM:}
@@ -85,4 +95,4 @@ firebase:
 
 jwt:
   secret: ${JWT_SECRET:dulichso-secret-key-must-be-at-least-256-bits-long-for-hs256-algorithm}
-  expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+  expiration-ms: ${JWT_EXPIRATION_MS:28800000}

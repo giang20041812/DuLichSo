@@ -42,4 +42,18 @@ public interface PaymentTransactionRepository extends JpaRepository<PaymentTrans
     BigDecimal sumTotalRevenue(@org.springframework.data.repository.query.Param("status") PaymentStatus status);
 
     List<PaymentTransaction> findByBookingId(Long bookingId);
+
+    /**
+     * Dòng tiền thu vào theo Homestay trong kỳ (giao dịch SUCCESS, theo ngày thanh toán):
+     * [placeId, placeName, providerId, providerName, số booking đã thu tiền, tổng tiền thu].
+     */
+    @Query("SELECT pl.id, pl.name, p.id, p.name, COUNT(DISTINCT b.id), COALESCE(SUM(pt.amount), 0) " +
+           "FROM PaymentTransaction pt JOIN pt.booking b JOIN b.place pl JOIN b.provider p " +
+           "WHERE pt.status = :status AND pt.paidAt >= :from AND pt.paidAt < :to " +
+           "AND (:providerId IS NULL OR p.id = :providerId) " +
+           "GROUP BY pl.id, pl.name, p.id, p.name")
+    List<Object[]> sumPaidByPlace(@org.springframework.data.repository.query.Param("status") PaymentStatus status,
+                                  @org.springframework.data.repository.query.Param("from") java.time.LocalDateTime from,
+                                  @org.springframework.data.repository.query.Param("to") java.time.LocalDateTime to,
+                                  @org.springframework.data.repository.query.Param("providerId") Long providerId);
 }

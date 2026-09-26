@@ -26,7 +26,9 @@ public class PartnerRoomService {
     private final PartnerAuditRecorder audit;
 
     public RoomType owned(UserPrincipal principal, Long placeId, Long roomId, boolean writing) {
-        var actor=homestays.actor(principal,writing);
+        return ownedRoom(homestays.actor(principal,writing),placeId,roomId,writing);
+    }
+    private RoomType ownedRoom(Account actor, Long placeId, Long roomId, boolean writing) {
         homestays.owned(placeId,actor,false);
         RoomType room=(writing?rooms.findLockedById(roomId):rooms.findById(roomId)).orElseThrow(()->bad("Không tìm thấy loại phòng."));
         if (!room.getPlace().getId().equals(placeId)) throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Không tìm thấy loại phòng của Homestay.");
@@ -38,7 +40,11 @@ public class PartnerRoomService {
                 .setParameter("scope",AmenityScope.ROOM).getResultStream().map(a->new OptionDto(a.getId(),a.getName())).toList();
     }
     public List<RoomDto> list(UserPrincipal principal, Long placeId) {
-        homestays.owned(placeId,homestays.actor(principal,false),false);
+        return listAs(homestays.actor(principal,false),placeId);
+    }
+    /** Danh sách loại phòng của Homestay thuộc NCC của {@code actor} (dùng cả khi Admin đối chiếu yêu cầu thay đổi). */
+    public List<RoomDto> listAs(Account actor, Long placeId) {
+        homestays.owned(placeId,actor,false);
         List<RoomType> list=rooms.findByPlaceId(placeId);
         List<Long> ids=list.stream().map(RoomType::getId).toList();
         if(ids.isEmpty()) return List.of();
@@ -51,12 +57,21 @@ public class PartnerRoomService {
                 beds.getOrDefault(r.getId(),List.of()).stream().map(b->new BedDto(b.getBedType(),b.getQuantity())).toList(),
                 amenities.getOrDefault(r.getId(),List.of()).stream().map(a->a.getId().getAmenityId()).toList())).toList();
     }
+    /** Ghi trực tiếp loại phòng của Homestay chưa công khai; Homestay đang công khai phải gửi yêu cầu chờ duyệt. */
     @Transactional
     public RoomDto save(UserPrincipal principal,Long placeId,Long roomId,RoomInput input) {
-        var actor=homestays.actor(principal,true);
+        return saveAs(homestays.actor(principal,true),placeId,roomId,input,false);
+    }
+    /** Áp dụng loại phòng đã được Admin duyệt. */
+    @Transactional
+    public RoomDto applyApproved(Account submitter,Long placeId,Long roomId,RoomInput input) {
+        return saveAs(submitter,placeId,roomId,input,true);
+    }
+    private RoomDto saveAs(Account actor,Long placeId,Long roomId,RoomInput input,boolean approved) {
         // Parent lock serializes room names and base capacity edits for this property.
         Place place=homestays.owned(placeId,actor,true);
-        RoomType room=roomId==null?RoomType.builder().place(place).build():owned(principal,placeId,roomId,true);
+        if(!approved) PartnerHomestayService.requireNotPublic(place);
+        RoomType room=roomId==null?RoomType.builder().place(place).build():ownedRoom(actor,placeId,roomId,true);
         Long duplicate=em.createQuery("select count(r) from RoomType r where r.place.id=:place and lower(r.name)=:name and (:id is null or r.id<>:id)",Long.class)
                 .setParameter("place",placeId).setParameter("name",input.name().trim().toLowerCase(Locale.ROOT)).setParameter("id",roomId).getSingleResult();
         if(duplicate>0) throw bad("Tên loại phòng đã tồn tại trong Homestay.");
@@ -94,14 +109,27 @@ public class PartnerRoomService {
         return new RoomDto(room.getId(),placeId,room.getName(),room.getDescription(),room.getMaxOccupancy(),room.getTotalRoomCount(),room.getPrivateBathroom(),room.getAreaSqm(),room.getBasePrice(),room.getWeekendPrice(),room.getStatus(),room.getViewDescription(),input.beds(),input.amenityIds());
     }
     public List<PriceDto> prices(UserPrincipal p,Long placeId,Long id) {
-        owned(p,placeId,id,false);
+        return pricesAs(homestays.actor(p,false),placeId,id);
+    }
+    public List<PriceDto> pricesAs(Account actor,Long placeId,Long id) {
+        ownedRoom(actor,placeId,id,false);
         return em.createQuery("select p from RoomSpecialPrice p where p.roomType.id=:id order by p.periodStart",RoomSpecialPrice.class).setParameter("id",id)
                 .getResultStream().map(v->new PriceDto(v.getId(),v.getName(),v.getPeriodStart(),v.getPeriodEnd(),v.getPrice())).toList();
     }
+    /** Ghi trực tiếp bảng giá của Homestay chưa công khai; Homestay đang công khai phải gửi yêu cầu chờ duyệt. */
     @Transactional
     public PriceDto savePrice(UserPrincipal p,Long placeId,Long id,Long priceId,PriceInput input) {
-        RoomType room=owned(p,placeId,id,true);
         var actor=homestays.actor(p,true);
+        RoomType room=ownedRoom(actor,placeId,id,true);
+        PartnerHomestayService.requireNotPublic(room.getPlace());
+        return savePriceAs(actor,room,id,priceId,input);
+    }
+    /** Áp dụng bảng giá đã được Admin duyệt. */
+    @Transactional
+    public PriceDto applyPrice(Account submitter,Long placeId,Long id,Long priceId,PriceInput input) {
+        return savePriceAs(submitter,ownedRoom(submitter,placeId,id,true),id,priceId,input);
+    }
+    private PriceDto savePriceAs(Account actor,RoomType room,Long id,Long priceId,PriceInput input) {
         if(input.periodEnd().isBefore(input.periodStart())) throw bad("Ngày kết thúc giá phải bằng hoặc sau ngày bắt đầu.");
         Long overlap=em.createQuery("select count(p) from RoomSpecialPrice p where p.roomType.id=:room and p.periodStart<=:end and p.periodEnd>=:start and (:id is null or p.id<>:id)",Long.class)
                 .setParameter("room",id).setParameter("start",input.periodStart()).setParameter("end",input.periodEnd()).setParameter("id",priceId).getSingleResult();
@@ -114,12 +142,24 @@ public class PartnerRoomService {
         audit.record(actor,priceId==null?"SPECIAL_PRICE_CREATE":"SPECIAL_PRICE_UPDATE",PartnerAuditRecorder.ROOM_TYPE,id,null,before,priceSnapshot(price));
         return new PriceDto(price.getId(),price.getName(),price.getPeriodStart(),price.getPeriodEnd(),price.getPrice());
     }
+    /** Xóa trực tiếp bảng giá của Homestay chưa công khai; Homestay đang công khai phải gửi yêu cầu chờ duyệt. */
     @Transactional
     public void deletePrice(UserPrincipal p,Long placeId,Long id,Long priceId) {
-        owned(p,placeId,id,true);
+        var actor=homestays.actor(p,true);
+        RoomType room=ownedRoom(actor,placeId,id,true);
+        PartnerHomestayService.requireNotPublic(room.getPlace());
+        deletePriceAs(actor,id,priceId);
+    }
+    /** Áp dụng việc xóa bảng giá đã được Admin duyệt. */
+    @Transactional
+    public void applyDeletePrice(Account submitter,Long placeId,Long id,Long priceId) {
+        ownedRoom(submitter,placeId,id,true);
+        deletePriceAs(submitter,id,priceId);
+    }
+    private void deletePriceAs(Account actor,Long id,Long priceId) {
         RoomSpecialPrice price=em.find(RoomSpecialPrice.class,priceId);
         if(price==null || !price.getRoomType().getId().equals(id)) throw bad("Không tìm thấy bảng giá.");
-        audit.record(homestays.actor(p,true),"SPECIAL_PRICE_DELETE",PartnerAuditRecorder.ROOM_TYPE,id,null,priceSnapshot(price),null);
+        audit.record(actor,"SPECIAL_PRICE_DELETE",PartnerAuditRecorder.ROOM_TYPE,id,null,priceSnapshot(price),null);
         em.remove(price);
     }
     public List<InventoryDto> calendar(UserPrincipal p,Long placeId,Long id,LocalDate start,LocalDate end) {return calendar.calendar(owned(p,placeId,id,false),start,end);}

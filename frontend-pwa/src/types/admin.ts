@@ -91,6 +91,13 @@ export interface UpdateAccountRequest {
   fullName?: string;
 }
 
+/** Khớp AdminAccountDtos.UpdateAccountRoleRequest (FR-AD-05). Chuyển sang PROVIDER phải có providerId. */
+export interface UpdateAccountRoleRequest {
+  role: AccountRole;
+  providerId?: number;
+  reason: string;
+}
+
 export interface UpdateAccountStatusRequest {
   status: AccountStatus;
   reason?: string;

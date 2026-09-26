@@ -37,4 +37,16 @@
     <include file="db/changelog/changes/009-add-weekend-price.xml"/>
     <include file="db/changelog/changes/010-add-images-to-review.xml"/>
     <include file="db/changelog/changes/010-room-inventory-block-reason.xml"/>
+
+    <!-- Bảo mật phiên và Audit Log: token_version, last_activity_at, audit_log.result/ip -->
+    <include file="db/changelog/changes/011-security-session-audit.xml"/>
+
+    <!-- Yêu cầu thay đổi Homestay/phòng/giá của NCC chờ Admin duyệt -->
+    <include file="db/changelog/changes/012-partner-change-request.xml"/>
+
+    <!-- Index cho tra cứu Booking / báo cáo / dòng tiền theo thời gian -->
+    <include file="db/changelog/changes/013-report-performance-indexes.xml"/>
+
+    <!-- Kiểm duyệt đánh giá: trạng thái REMOVED + người/lý do xử lý -->
+    <include file="db/changelog/changes/014-review-moderation.xml"/>
 </databaseChangeLog>

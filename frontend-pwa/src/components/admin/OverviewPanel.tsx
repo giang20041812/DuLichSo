@@ -18,6 +18,7 @@ import { adminService } from '@/services/adminService';
 import type { AdminDashboardSummaryDto, AuditLogEntryDto, BookingStatusSummary, MonthlyRevenuePoint } from '@/types/admin';
 import { StatusBadge, type StatusTone } from './StatusBadge';
 import { AUDIT_ACTION, AUDIT_ENTITY, timeAgo } from './auditMeta';
+import AuditLogDrawer from './AuditLogDrawer';
 
 export type OverviewTarget = 'accounts' | 'providers' | 'places' | 'finance' | 'bookings';
 
@@ -39,6 +40,7 @@ const pct = (part: number, total: number) => (total > 0 ? Math.round((part / tot
 
 export default function OverviewPanel({ data, bookingSummary, loading, error, onRetry, onNavigate }: OverviewPanelProps) {
   const [activity, setActivity] = useState<AuditLogEntryDto[] | null>(null);
+  const [showAudit, setShowAudit] = useState(false);
   const [activityError, setActivityError] = useState(false);
   const [activityKey, setActivityKey] = useState(0);
   const [now, setNow] = useState(() => Date.now());
@@ -241,6 +243,9 @@ export default function OverviewPanel({ data, bookingSummary, loading, error, on
                 <Activity className="h-4 w-4 text-primary" />
                 <h3 className="font-display text-sm font-bold text-ink-deep">Hoạt động gần đây</h3>
               </div>
+              <button type="button" onClick={() => setShowAudit(true)} className="text-[11px] font-semibold text-primary hover:underline">
+                Xem tất cả
+              </button>
               <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-primary-700">
                 <span className="relative flex h-1.5 w-1.5">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-60" />
@@ -249,6 +254,7 @@ export default function OverviewPanel({ data, bookingSummary, loading, error, on
                 Trực tiếp
               </span>
             </header>
+            {showAudit && <AuditLogDrawer onClose={() => setShowAudit(false)} />}
             {activityError && !activity ? (
               <p className="px-4 py-6 text-center text-xs text-danger">Không tải được nhật ký hoạt động.</p>
             ) : !activity ? (

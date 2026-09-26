@@ -24,10 +24,16 @@ public class AuditLog {
     private String action;
     @Column(name = "entity_type", nullable = false, length = 64)
     private String entityType;
-    @Column(name = "entity_id", nullable = false)
+    /** Null với sự kiện không gắn đối tượng cụ thể (vd: đăng nhập thất bại với tài khoản không tồn tại). */
+    @Column(name = "entity_id")
     private Long entityId;
     @Column(length = 500)
     private String reason;
+    /** SUCCESS | FAILURE | DENIED. Null với bản ghi cũ trước khi có cột này. */
+    @Column(length = 16)
+    private String result;
+    @Column(length = 64)
+    private String ip;
     
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "before_data", columnDefinition = "json")

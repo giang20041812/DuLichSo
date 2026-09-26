@@ -63,6 +63,20 @@ public class AdminAccountDtos {
         private String fullName;
     }
 
+    /** FR-AD-05: đổi quyền truy cập. Chuyển sang PROVIDER phải chỉ rõ NCC (mỗi NCC chỉ có một tài khoản). */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class UpdateAccountRoleRequest {
+        @NotNull(message = "Quyền mới không được để trống")
+        private AccountRole role;
+        private Long providerId;
+        @NotBlank(message = "Vui lòng nhập lý do đổi quyền")
+        @Size(max = 500, message = "Lý do tối đa 500 ký tự")
+        private String reason;
+    }
+
     @Data
     @NoArgsConstructor
     @AllArgsConstructor

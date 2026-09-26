@@ -51,6 +51,14 @@ public class Review {
     @Column(name = "provider_reply_by")
     private Long providerReplyBy;
 
+    /** FR-AD-15: kết quả kiểm duyệt gần nhất của Admin (ẩn/gỡ/khôi phục). */
+    @Column(name = "moderated_by")
+    private Long moderatedBy;
+    @Column(name = "moderated_at")
+    private LocalDateTime moderatedAt;
+    @Column(name = "moderation_reason", length = 500)
+    private String moderationReason;
+
     @PreUpdate
     protected void onUpdate() { updatedAt = LocalDateTime.now(); }
 }

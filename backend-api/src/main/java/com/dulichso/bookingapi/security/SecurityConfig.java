@@ -30,13 +30,15 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final AuditingAccessDeniedHandler accessDeniedHandler;
 
     /** Danh sách origin frontend được phép, cấu hình qua CORS_ALLOWED_ORIGINS (phân tách bằng dấu phẩy). */
     @org.springframework.beans.factory.annotation.Value("${app.cors.allowed-origins}")
     private List<String> allowedOrigins;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, AuditingAccessDeniedHandler accessDeniedHandler) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.accessDeniedHandler = accessDeniedHandler;
     }
 
     @Bean
@@ -62,6 +64,8 @@ public class SecurityConfig {
                         // Tất cả còn lại: phải đăng nhập
                         .anyRequest().authenticated()
                 )
+                // NFR-SEC-05: ghi audit log khi người dùng đã đăng nhập bị từ chối truy cập.
+                .exceptionHandling(ex -> ex.accessDeniedHandler(accessDeniedHandler))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

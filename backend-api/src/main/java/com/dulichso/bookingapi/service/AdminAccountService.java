@@ -19,13 +19,16 @@ public class AdminAccountService {
     private final AccountRepository accountRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
+    private final com.dulichso.bookingapi.repository.ProviderRepository providerRepository;
 
     public AdminAccountService(AccountRepository accountRepository,
                                PasswordEncoder passwordEncoder,
-                               AuditLogService auditLogService) {
+                               AuditLogService auditLogService,
+                               com.dulichso.bookingapi.repository.ProviderRepository providerRepository) {
         this.accountRepository = accountRepository;
         this.passwordEncoder = passwordEncoder;
         this.auditLogService = auditLogService;
+        this.providerRepository = providerRepository;
     }
 
     private static final java.util.Set<String> ACCOUNT_SORT_FIELDS = java.util.Set.of("createdAt", "lastLoginAt", "fullName", "email");
@@ -182,6 +185,8 @@ public class AdminAccountService {
 
         AccountStatus oldStatus = account.getStatus();
         account.setStatus(request.getStatus());
+        // NFR-SEC-03: đổi trạng thái là vô hiệu hóa mọi phiên đang có của tài khoản.
+        if (oldStatus != request.getStatus()) account.setTokenVersion(account.getTokenVersion() + 1);
         Account saved = accountRepository.save(account);
 
         auditLogService.record(
@@ -197,12 +202,65 @@ public class AdminAccountService {
         return mapToDto(saved);
     }
 
+    /**
+     * FR-AD-05: đổi quyền ADMIN ⇄ PROVIDER, có hiệu lực ngay (phiên cũ bị thu hồi), bắt buộc lý do và ghi audit.
+     * Không tự đổi quyền của chính mình, không hạ quyền Admin đang hoạt động cuối cùng.
+     */
+    @Transactional
+    public AccountDto updateAccountRole(Long id, UpdateAccountRoleRequest request, Long callerAccountId) {
+        Account account = accountRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản với ID: " + id));
+        if (Objects.equals(callerAccountId, id)) {
+            throw new IllegalStateException("Bạn không thể tự đổi quyền của chính mình");
+        }
+        if (request.getReason() == null || request.getReason().isBlank()) {
+            throw new IllegalArgumentException("Vui lòng nhập lý do đổi quyền.");
+        }
+        AccountRole oldRole = account.getRole();
+        AccountRole newRole = request.getRole();
+        if (oldRole == newRole) {
+            throw new IllegalArgumentException("Tài khoản đã có quyền " + newRole.name() + ".");
+        }
+        // Luôn còn ít nhất một quản trị viên đang hoạt động: chặn hạ quyền Admin cuối cùng.
+        if (oldRole == AccountRole.ADMIN && account.getStatus() == AccountStatus.ACTIVE
+                && accountRepository.countByRoleAndStatus(AccountRole.ADMIN, AccountStatus.ACTIVE) <= 1) {
+            throw new IllegalStateException("Không thể hạ quyền quản trị viên đang hoạt động cuối cùng.");
+        }
+        Map<String, Object> before = Map.of("role", oldRole.name(),
+                "providerId", account.getProvider() != null ? account.getProvider().getId() : 0L);
+        Long newProviderId = null;
+        if (newRole == AccountRole.PROVIDER) {
+            if (request.getProviderId() == null) {
+                throw new IllegalArgumentException("Vui lòng chọn nhà cung cấp cho tài khoản.");
+            }
+            com.dulichso.bookingapi.entity.Provider provider = providerRepository.findById(request.getProviderId())
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đối tác NCC với ID: " + request.getProviderId()));
+            if (!accountRepository.findByProviderIdOrderByIdAsc(provider.getId()).isEmpty()) {
+                throw new IllegalStateException("Nhà cung cấp này đã có tài khoản đăng nhập.");
+            }
+            account.setProvider(provider);
+            newProviderId = provider.getId();
+        } else {
+            account.setProvider(null);
+        }
+        account.setRole(newRole);
+        // NFR-SEC-03: đổi quyền có hiệu lực ngay, mọi phiên đang có bị thu hồi.
+        account.setTokenVersion(account.getTokenVersion() + 1);
+        Account saved = accountRepository.save(account);
+
+        auditLogService.record(callerAccountId, "UPDATE_ACCOUNT_ROLE", "Account", saved.getId(), request.getReason().trim(),
+                before, Map.of("role", newRole.name(), "providerId", newProviderId != null ? newProviderId : 0L));
+        return mapToDto(saved);
+    }
+
     @Transactional
     public void resetPassword(Long id, ResetPasswordRequest request, Long callerAccountId) {
         Account account = accountRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản với ID: " + id));
 
         account.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        // NFR-SEC-03: đặt lại mật khẩu thu hồi các phiên cũ.
+        account.setTokenVersion(account.getTokenVersion() + 1);
         accountRepository.save(account);
 
         auditLogService.record(

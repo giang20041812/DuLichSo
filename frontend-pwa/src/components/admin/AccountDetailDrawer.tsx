@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { KeyRound, Pencil, ShieldCheck, X } from 'lucide-react';
 import { adminService } from '@/services/adminService';
 import { getApiErrorMessage } from '@/lib/apiError';
-import type { AccountRole, AccountStatus, AdminAccountDto, AdminTravelerDto } from '@/types/admin';
+import type { AccountRole, AccountStatus, AdminAccountDto, AdminProviderSummaryDto, AdminTravelerDto } from '@/types/admin';
 import { StatusBadge } from './StatusBadge';
 import { actionButtonClass } from './statusStyles';
 import OverlayPortal from './OverlayPortal';
@@ -61,6 +61,11 @@ export default function AccountDetailDrawer({ target, currentAccountId, onClose,
   const [form, setForm] = useState({ fullName: '', phone: '', email: '' });
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+  // FR-AD-05: đổi quyền ADMIN ⇄ PROVIDER — xem lại nội dung rồi xác nhận (NFR-USA-02).
+  const [roleForm, setRoleForm] = useState<{ providerId: string; reason: string; confirming: boolean } | null>(null);
+  const [freeProviders, setFreeProviders] = useState<AdminProviderSummaryDto[]>([]);
+  const [roleSaving, setRoleSaving] = useState(false);
+  const [roleError, setRoleError] = useState('');
 
   const load = useCallback(async () => {
     if (staffId == null) return;
@@ -109,6 +114,54 @@ export default function AccountDetailDrawer({ target, currentAccountId, onClose,
       setFormError(getApiErrorMessage(err, 'Không cập nhật được tài khoản.'));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const openRoleForm = () => {
+    setRoleError('');
+    setRoleForm({ providerId: '', reason: '', confirming: false });
+    if (account?.role === 'ADMIN') {
+      // Chỉ NCC chưa có tài khoản đăng nhập mới gán được (mỗi NCC một tài khoản).
+      adminService
+        .getProviders()
+        .then((list) => setFreeProviders(list.filter((p) => p.accountCount === 0)))
+        .catch(() => setRoleError('Không tải được danh sách nhà cung cấp.'));
+    }
+  };
+
+  const submitRole = async () => {
+    if (!account || !roleForm) return;
+    const newRole: AccountRole = account.role === 'ADMIN' ? 'PROVIDER' : 'ADMIN';
+    if (newRole === 'PROVIDER' && !roleForm.providerId) {
+      setRoleError('Vui lòng chọn nhà cung cấp.');
+      return;
+    }
+    if (!roleForm.reason.trim()) {
+      setRoleError('Vui lòng nhập lý do đổi quyền.');
+      return;
+    }
+    if (!roleForm.confirming) {
+      setRoleError('');
+      setRoleForm({ ...roleForm, confirming: true });
+      return;
+    }
+    setRoleSaving(true);
+    setRoleError('');
+    try {
+      const updated = await adminService.updateAccountRole(account.id, {
+        role: newRole,
+        providerId: newRole === 'PROVIDER' ? Number(roleForm.providerId) : undefined,
+        reason: roleForm.reason.trim(),
+      });
+      setAccount(updated);
+      setRoleForm(null);
+      notify('success', 'Đã đổi quyền tài khoản. Mọi phiên đăng nhập cũ đã bị thu hồi.');
+      onChanged();
+    } catch (err: unknown) {
+      setRoleError(getApiErrorMessage(err, 'Không đổi được quyền tài khoản.'));
+      setRoleForm({ ...roleForm, confirming: false });
+    } finally {
+      setRoleSaving(false);
     }
   };
 
@@ -218,6 +271,66 @@ export default function AccountDetailDrawer({ target, currentAccountId, onClose,
                     <li key={it}>{it}</li>
                   ))}
                 </ul>
+                {account && !roleForm && (
+                  <button
+                    type="button"
+                    onClick={openRoleForm}
+                    disabled={account.id === currentAccountId}
+                    title={account.id === currentAccountId ? 'Bạn không thể tự đổi quyền của chính mình' : undefined}
+                    className={`${actionButtonClass('brand')} w-fit disabled:cursor-not-allowed disabled:opacity-50`}
+                  >
+                    <ShieldCheck className="h-3 w-3" /> Đổi quyền
+                  </button>
+                )}
+                {account && roleForm && (
+                  <div className="flex flex-col gap-2 rounded-md bg-canvas p-3 text-xs">
+                    <p className="font-semibold text-ink-deep">
+                      Đổi quyền: {account.role === 'ADMIN' ? 'Quản trị viên → Nhà cung cấp' : 'Nhà cung cấp → Quản trị viên'}
+                    </p>
+                    {account.role === 'ADMIN' && (
+                      <select
+                        value={roleForm.providerId}
+                        onChange={(e) => setRoleForm({ ...roleForm, providerId: e.target.value, confirming: false })}
+                        className={inputClass}
+                        aria-label="Nhà cung cấp"
+                      >
+                        <option value="">— Chọn nhà cung cấp chưa có tài khoản —</option>
+                        {freeProviders.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    <textarea
+                      rows={2}
+                      value={roleForm.reason}
+                      onChange={(e) => setRoleForm({ ...roleForm, reason: e.target.value, confirming: false })}
+                      placeholder="Lý do đổi quyền (bắt buộc)"
+                      aria-label="Lý do đổi quyền"
+                      className="w-full rounded-md border border-border bg-white px-3 py-2 text-xs text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                    {roleForm.confirming && (
+                      <p role="alert" className="rounded-md bg-sun/10 px-3 py-2 text-[11px] text-amber-700">
+                        Xác nhận: quyền của tài khoản sẽ đổi ngay và mọi phiên đăng nhập đang mở của tài khoản này bị đăng xuất.
+                      </p>
+                    )}
+                    {roleError && <p className="text-danger">{roleError}</p>}
+                    <div className="flex justify-end gap-2">
+                      <button type="button" onClick={() => setRoleForm(null)} className="rounded-md px-3 py-1.5 text-xs font-medium text-muted hover:bg-hover">
+                        Hủy
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void submitRole()}
+                        disabled={roleSaving}
+                        className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                      >
+                        {roleSaving ? 'Đang đổi...' : roleForm.confirming ? 'Xác nhận đổi quyền' : 'Xem lại'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </Section>
             )}
 

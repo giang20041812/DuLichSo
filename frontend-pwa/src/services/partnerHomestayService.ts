@@ -1,4 +1,5 @@
 import axios from 'axios';
+import type { SubmittedChange } from '@/types/changeRequest';
 import type { GeocodeResult, HomestayOptionsDto, PartnerHomestayPageResponse, PartnerHomestaySummaryDto, PartnerHomestayDetailDto, UpdateStatusRequest } from '@/types/partner';
 
 const API = '/api/v1/partner/homestays';
@@ -19,8 +20,9 @@ export async function fetchHomestayOptions(): Promise<HomestayOptionsDto> {
 export async function createPartnerHomestay(detail: PartnerHomestayDetailDto): Promise<PartnerHomestayDetailDto> {
   return (await axios.post<PartnerHomestayDetailDto>(API, detail, config())).data;
 }
-export async function savePartnerHomestayDetail(id: number, detail: PartnerHomestayDetailDto): Promise<PartnerHomestayDetailDto> {
-  return (await axios.put<PartnerHomestayDetailDto>(`${API}/${id}`, detail, config())).data;
+/** Homestay đang công khai: backend trả 202 + SubmittedChange (chờ Admin duyệt), dữ liệu chính thức chưa đổi. */
+export async function savePartnerHomestayDetail(id: number, detail: PartnerHomestayDetailDto): Promise<PartnerHomestayDetailDto | SubmittedChange> {
+  return (await axios.put<PartnerHomestayDetailDto | SubmittedChange>(`${API}/${id}`, detail, config())).data;
 }
 export async function updateHomestayStatus(id: number, request: UpdateStatusRequest): Promise<PartnerHomestaySummaryDto> {
   return (await axios.patch<PartnerHomestaySummaryDto>(`${API}/${id}/status`, request, config())).data;

@@ -2,9 +2,10 @@ import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Building2, Check, Copy, Eye, EyeOff, KeyRound, Plus } from 'lucide-react';
 import { adminService } from '@/services/adminService';
 import type { AdminProviderSummaryDto, ProviderAccountDto, ProviderStatus } from '@/types/admin';
-import { FilterSearch, RefreshButton, UnderlineTabs, type TabItem } from './AdminFilters';
+import { FilterSearch, RefreshButton, TableFooter, UnderlineTabs, type TabItem } from './AdminFilters';
 import { StatusBadge } from './StatusBadge';
 import { PROVIDER_STATUS, actionButtonClass } from './statusStyles';
+import ProviderApplicationsPanel from './ProviderApplicationsPanel';
 
 interface ProvidersPanelProps {
   providers: AdminProviderSummaryDto[];
@@ -17,6 +18,7 @@ interface ProvidersPanelProps {
 }
 
 const th = 'px-3 py-2.5';
+const PAGE_SIZE = 15;
 const dateTime = (d?: string | null) => (d ? new Date(d).toLocaleString('vi-VN') : 'Chưa đăng nhập');
 
 /** Sinh mật khẩu ngẫu nhiên mạnh bằng CSPRNG (đủ chữ hoa, thường, số, ký tự đặc biệt). */
@@ -35,6 +37,26 @@ export default function ProvidersPanel({ providers, loading, error, onReload, on
   const [keyword, setKeyword] = useState('');
   const [status, setStatus] = useState<ProviderStatus | ''>('');
   const [openId, setOpenId] = useState<number | null>(null);
+  const [page, setPage] = useState(0);
+  // Tab "Hồ sơ đăng ký": hồ sơ NCC mới chờ Admin thẩm định (FR-AD-16).
+  const [showApplications, setShowApplications] = useState(false);
+  const [pendingApplications, setPendingApplications] = useState<number | null>(null);
+  const [applicationsReload, setApplicationsReload] = useState(0);
+
+  useEffect(() => {
+    let alive = true;
+    adminService
+      .getPendingProviderApplicationCount()
+      .then((n) => {
+        if (alive) setPendingApplications(n);
+      })
+      .catch(() => {
+        if (alive) setPendingApplications(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [applicationsReload, showApplications]);
 
   const counts = useMemo(() => {
     const c: Record<ProviderStatus, number> = { ACTIVE: 0, SUSPENDED: 0, TERMINATED: 0 };
@@ -44,7 +66,7 @@ export default function ProvidersPanel({ providers, loading, error, onReload, on
     return c;
   }, [providers]);
 
-  const statusTabs: TabItem<ProviderStatus>[] = [
+  const statusTabs: TabItem<ProviderStatus | 'APPLICATIONS'>[] = [
     { value: '', label: 'Tất cả', count: providers.length },
     ...(Object.keys(PROVIDER_STATUS) as ProviderStatus[]).map((s) => ({
       value: s,
@@ -52,6 +74,7 @@ export default function ProvidersPanel({ providers, loading, error, onReload, on
       count: counts[s],
       tone: PROVIDER_STATUS[s].tone,
     })),
+    { value: 'APPLICATIONS', label: 'Hồ sơ đăng ký', count: pendingApplications, tone: 'warning' },
   ];
 
   const rows = useMemo(() => {
@@ -63,12 +86,38 @@ export default function ProvidersPanel({ providers, loading, error, onReload, on
     );
   }, [providers, keyword, status]);
 
+  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages - 1);
+  const pageRows = rows.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE);
+
   return (
     <section className="rounded-lg border border-border bg-white shadow-sm">
-      <UnderlineTabs ariaLabel="Trạng thái đối tác" items={statusTabs} value={status} onChange={setStatus} />
+      <UnderlineTabs
+        ariaLabel="Trạng thái đối tác"
+        items={statusTabs}
+        value={showApplications ? 'APPLICATIONS' : status}
+        onChange={(v) => {
+          setShowApplications(v === 'APPLICATIONS');
+          if (v !== 'APPLICATIONS') {
+            setStatus(v);
+            setPage(0);
+          }
+        }}
+      />
+
+      {showApplications ? (
+        <ProviderApplicationsPanel
+          notify={notify}
+          onChanged={(approved) => {
+            setApplicationsReload((n) => n + 1);
+            if (approved) onReload();
+          }}
+        />
+      ) : (
+      <>
 
       <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2.5">
-        <FilterSearch value={keyword} onChange={setKeyword} placeholder="Tìm theo tên đối tác, người liên hệ, SĐT, email..." />
+        <FilterSearch value={keyword} onChange={(v) => { setKeyword(v); setPage(0); }} placeholder="Tìm theo tên đối tác, người liên hệ, SĐT, email..." />
         <RefreshButton loading={loading} onClick={onReload} />
         <button
           type="button"
@@ -98,7 +147,7 @@ export default function ProvidersPanel({ providers, loading, error, onReload, on
             </tr>
           </thead>
           <tbody className="divide-y divide-border/70">
-            {rows.map((p) => {
+            {pageRows.map((p) => {
               const st = PROVIDER_STATUS[p.status];
               const open = openId === p.id;
               return (
@@ -172,9 +221,20 @@ export default function ProvidersPanel({ providers, loading, error, onReload, on
         )}
       </div>
 
-      <div className="border-t border-border px-4 py-2.5 text-xs text-muted">
-        <strong className="tabular-nums text-ink">{rows.length}</strong> / {providers.length} đối tác
-      </div>
+      <TableFooter
+        total={rows.length}
+        activeCount={[keyword.trim(), status].filter(Boolean).length}
+        onClear={() => {
+          setKeyword('');
+          setStatus('');
+          setPage(0);
+        }}
+        page={safePage}
+        totalPages={totalPages}
+        onPage={setPage}
+      />
+      </>
+      )}
     </section>
   );
 }

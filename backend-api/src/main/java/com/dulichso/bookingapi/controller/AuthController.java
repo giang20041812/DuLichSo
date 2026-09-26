@@ -86,6 +86,17 @@ public class AuthController {
     }
 
     /**
+     * Đăng xuất Cổng Quản Trị: thu hồi mọi phiên đang có của tài khoản (NFR-SEC-03).
+     * Luôn trả 204 để không lộ trạng thái token (token hết hạn/không hợp lệ cũng coi như đã đăng xuất).
+     */
+    @PostMapping("/portal/logout")
+    public ResponseEntity<Void> portalLogout(@org.springframework.security.core.annotation.AuthenticationPrincipal
+                                             com.dulichso.bookingapi.security.UserPrincipal principal) {
+        if (principal != null) accountAuthService.logout(principal.identifier());
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
      * Đăng nhập khách du lịch bằng Google: xác minh ID token phía server rồi cấp JWT hệ thống.
      */
     @PostMapping("/google/login")

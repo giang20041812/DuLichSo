@@ -5,6 +5,7 @@ import type {
   UpdateAccountRequest,
   UpdateAccountStatusRequest,
   ResetPasswordRequest,
+  UpdateAccountRoleRequest,
   AdminProviderSummaryDto,
   ProviderAccountDto,
   CreateProviderWithAccountRequest,
@@ -37,6 +38,21 @@ import type {
   TravelerSearchParams,
 } from '../types/admin';
 import type { BookingStatus } from '../types/booking';
+import type { CashflowReport, CashflowSearchParams } from '../types/cashflow';
+import type { AuditLogItem, AuditLogSearchParams } from '../types/auditLog';
+import type { AdminReview, AdminReviewSearchParams, ReviewModerationAction } from '../types/adminReview';
+import type {
+  PendingApplicationCount,
+  ProviderApplicationDetail,
+  ProviderApplicationSearchParams,
+  ProviderApplicationSummary,
+} from '../types/providerApplication';
+import type {
+  ChangeRequestDetail,
+  ChangeRequestSearchParams,
+  ChangeRequestSummary,
+  PendingChangeCount,
+} from '../types/changeRequest';
 
 const API_BASE = '/api/v1/admin';
 
@@ -103,8 +119,96 @@ export const adminService = {
     return res.data;
   },
 
+  /** Đổi quyền ADMIN ⇄ PROVIDER (hiệu lực ngay, phiên cũ bị thu hồi, bắt buộc lý do). */
+  async updateAccountRole(id: number, data: UpdateAccountRoleRequest): Promise<AdminAccountDto> {
+    const res = await axios.patch<AdminAccountDto>(`${API_BASE}/accounts/${id}/role`, data, getAuthHeaders());
+    return res.data;
+  },
+
   async resetPassword(id: number, data: ResetPasswordRequest): Promise<void> {
     await axios.patch(`${API_BASE}/accounts/${id}/reset-password`, data, getAuthHeaders());
+  },
+
+  // ─────────────────────────────────────────────
+  // Duyệt thay đổi Homestay / phòng / giá của NCC (/change-requests)
+  // ─────────────────────────────────────────────
+  async getChangeRequests(params?: ChangeRequestSearchParams): Promise<PageResponse<ChangeRequestSummary>> {
+    const res = await axios.get<PageResponse<ChangeRequestSummary>>(`${API_BASE}/change-requests`, { ...getAuthHeaders(), params });
+    return res.data;
+  },
+
+  async getPendingChangeRequestCount(): Promise<number> {
+    const res = await axios.get<PendingChangeCount>(`${API_BASE}/change-requests/summary`, getAuthHeaders());
+    return res.data.pending;
+  },
+
+  async getChangeRequest(id: number): Promise<ChangeRequestDetail> {
+    const res = await axios.get<ChangeRequestDetail>(`${API_BASE}/change-requests/${id}`, getAuthHeaders());
+    return res.data;
+  },
+
+  async approveChangeRequest(id: number, note?: string): Promise<ChangeRequestDetail> {
+    const res = await axios.post<ChangeRequestDetail>(`${API_BASE}/change-requests/${id}/approve`, { note }, getAuthHeaders());
+    return res.data;
+  },
+
+  async rejectChangeRequest(id: number, reason: string): Promise<ChangeRequestDetail> {
+    const res = await axios.post<ChangeRequestDetail>(`${API_BASE}/change-requests/${id}/reject`, { reason }, getAuthHeaders());
+    return res.data;
+  },
+
+  // ─────────────────────────────────────────────
+  // Nhật ký hệ thống (/audit-logs) — chỉ đọc
+  // ─────────────────────────────────────────────
+  async getAuditLogs(params?: AuditLogSearchParams): Promise<PageResponse<AuditLogItem>> {
+    const res = await axios.get<PageResponse<AuditLogItem>>(`${API_BASE}/audit-logs`, { ...getAuthHeaders(), params });
+    return res.data;
+  },
+
+  async getAuditLog(id: number): Promise<AuditLogItem> {
+    const res = await axios.get<AuditLogItem>(`${API_BASE}/audit-logs/${id}`, getAuthHeaders());
+    return res.data;
+  },
+
+  // ─────────────────────────────────────────────
+  // Kiểm duyệt đánh giá (/reviews)
+  // ─────────────────────────────────────────────
+  async getReviews(params?: AdminReviewSearchParams): Promise<PageResponse<AdminReview>> {
+    const res = await axios.get<PageResponse<AdminReview>>(`${API_BASE}/reviews`, { ...getAuthHeaders(), params });
+    return res.data;
+  },
+
+  async moderateReview(id: number, action: ReviewModerationAction, reason?: string): Promise<AdminReview> {
+    const res = await axios.post<AdminReview>(`${API_BASE}/reviews/${id}/moderate`, { action, reason }, getAuthHeaders());
+    return res.data;
+  },
+
+  // ─────────────────────────────────────────────
+  // Duyệt hồ sơ đăng ký NCC (/provider-applications)
+  // ─────────────────────────────────────────────
+  async getProviderApplications(params?: ProviderApplicationSearchParams): Promise<PageResponse<ProviderApplicationSummary>> {
+    const res = await axios.get<PageResponse<ProviderApplicationSummary>>(`${API_BASE}/provider-applications`, { ...getAuthHeaders(), params });
+    return res.data;
+  },
+
+  async getPendingProviderApplicationCount(): Promise<number> {
+    const res = await axios.get<PendingApplicationCount>(`${API_BASE}/provider-applications/summary`, getAuthHeaders());
+    return res.data.pending;
+  },
+
+  async getProviderApplication(id: number): Promise<ProviderApplicationDetail> {
+    const res = await axios.get<ProviderApplicationDetail>(`${API_BASE}/provider-applications/${id}`, getAuthHeaders());
+    return res.data;
+  },
+
+  async approveProviderApplication(id: number, note?: string): Promise<ProviderApplicationDetail> {
+    const res = await axios.post<ProviderApplicationDetail>(`${API_BASE}/provider-applications/${id}/approve`, { note }, getAuthHeaders());
+    return res.data;
+  },
+
+  async rejectProviderApplication(id: number, reason: string): Promise<ProviderApplicationDetail> {
+    const res = await axios.post<ProviderApplicationDetail>(`${API_BASE}/provider-applications/${id}/reject`, { reason }, getAuthHeaders());
+    return res.data;
   },
 
   // ─────────────────────────────────────────────
@@ -265,6 +369,12 @@ export const adminService = {
 
   async approveRefund(id: number, note?: string): Promise<void> {
     await axios.post(`${API_BASE}/finance/refunds/${id}/approve`, { note }, getAuthHeaders());
+  },
+
+  /** Dòng tiền theo NCC / Homestay (thu, hoàn, chờ hoàn, ròng) theo kỳ, có lọc, sắp xếp và phân trang. */
+  async getCashflow(params?: CashflowSearchParams): Promise<CashflowReport> {
+    const res = await axios.get<CashflowReport>(`${API_BASE}/finance/cashflow`, { ...getAuthHeaders(), params });
+    return res.data;
   },
 
   async rejectRefund(id: number, note: string): Promise<void> {

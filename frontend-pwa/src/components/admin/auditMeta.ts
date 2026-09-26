@@ -25,6 +25,20 @@ export const AUDIT_ACTION: Record<string, { label: string; tone: StatusTone }> =
   EMERGENCY_CONTACT_DELETED: { label: 'Xóa đầu mối khẩn cấp', tone: 'neutral' },
   BOOKING_MONITOR_VERIFICATION: { label: 'Ghi nhận xác minh đơn', tone: 'info' },
   BOOKING_MONITOR_OUTCOME: { label: 'Ghi nhận kết quả giám sát', tone: 'brand' },
+  UPDATE_ACCOUNT_ROLE: { label: 'Đổi quyền tài khoản', tone: 'warning' },
+  LOGIN_SUCCESS: { label: 'Đăng nhập', tone: 'success' },
+  LOGIN_FAILED: { label: 'Đăng nhập thất bại', tone: 'danger' },
+  LOGIN_BLOCKED: { label: 'Đăng nhập bị chặn', tone: 'warning' },
+  LOGOUT: { label: 'Đăng xuất', tone: 'neutral' },
+  ACCESS_DENIED: { label: 'Bị từ chối truy cập', tone: 'danger' },
+  CHANGE_REQUEST_APPROVED: { label: 'Duyệt thay đổi của NCC', tone: 'success' },
+  CHANGE_REQUEST_REJECTED: { label: 'Từ chối thay đổi của NCC', tone: 'danger' },
+  PROVIDER_APPLICATION_APPROVED: { label: 'Duyệt hồ sơ NCC', tone: 'success' },
+  PROVIDER_APPLICATION_REJECTED: { label: 'Từ chối hồ sơ NCC', tone: 'danger' },
+  REVIEW_KEPT: { label: 'Giữ nguyên đánh giá', tone: 'success' },
+  REVIEW_HIDDEN: { label: 'Ẩn đánh giá', tone: 'warning' },
+  REVIEW_REMOVED: { label: 'Gỡ đánh giá', tone: 'danger' },
+  REVIEW_RESTORED: { label: 'Khôi phục đánh giá', tone: 'info' },
 };
 
 export const AUDIT_ENTITY: Record<string, string> = {
@@ -37,6 +51,10 @@ export const AUDIT_ENTITY: Record<string, string> = {
   AffiliateLink: 'Affiliate',
   SosRequest: 'SOS',
   EmergencyContact: 'Đầu mối',
+  ChangeRequest: 'Yêu cầu thay đổi',
+  ProviderApplication: 'Hồ sơ NCC',
+  Review: 'Đánh giá',
+  Endpoint: 'API',
 };
 
 export function timeAgo(iso: string, now: number = Date.now()): string {

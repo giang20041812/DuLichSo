@@ -20,7 +20,12 @@ import java.util.Map;
         AdminReportController.class,
         AdminFinanceController.class,
         AdminDashboardController.class,
-        AdminSosController.class
+        AdminSosController.class,
+        AdminAuditLogController.class,
+        AdminChangeRequestController.class,
+        AdminProviderApplicationController.class,
+        AdminCashflowController.class,
+        AdminReviewController.class
 })
 public class AdminExceptionHandler {
 
@@ -38,6 +43,12 @@ public class AdminExceptionHandler {
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<Map<String, Object>> conflict(IllegalStateException ex) {
         return body(HttpStatus.CONFLICT, ex.getMessage() != null ? ex.getMessage() : "Thao tác không được phép ở trạng thái hiện tại.");
+    }
+
+    /** Lỗi nghiệp vụ có mã trạng thái rõ ràng (vd: dữ liệu NCC không hợp lệ khi áp dụng thay đổi được duyệt). */
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<Map<String, Object>> status(org.springframework.web.server.ResponseStatusException ex) {
+        return body(HttpStatus.valueOf(ex.getStatusCode().value()), ex.getReason() != null ? ex.getReason() : "Yêu cầu không hợp lệ.");
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

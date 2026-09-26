@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, LocateFixed, Save } from 'lucide-react';
 import type { HomestayOptionsDto, PartnerHomestayDetailDto } from '@/types/partner';
+import { isSubmittedChange } from '@/services/changeRequestService';
 import { createPartnerHomestay, fetchHomestayOptions, fetchPartnerHomestayDetail, geocodeAddress, homestayError, savePartnerHomestayDetail } from '@/services/partnerHomestayService';
 
 const EMPTY: PartnerHomestayDetailDto = {
@@ -67,6 +68,12 @@ export default function PartnerHomestayEditPage() {
     setSaveError('');
     try {
       const saved = id ? await savePartnerHomestayDetail(Number(id), form) : await createPartnerHomestay(form);
+      if (isSubmittedChange(saved)) {
+        // Homestay đang công khai: thay đổi chờ Admin duyệt, dữ liệu hiện hành chưa đổi.
+        window.alert(saved.message);
+        navigate(`/partner/homestay/${id}`, { replace: true });
+        return;
+      }
       navigate(`/partner/homestay/${saved.id}`, { replace: true });
     } catch (error: unknown) { setSaveError(homestayError(error)); }
     finally { setSaving(false); }

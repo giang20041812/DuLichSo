@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import { PortalLoginRequest, PortalLoginResponse, AuthErrorResponse } from '../types/user';
 import type { GoogleLoginResponse } from '../types/integrations/google-identity';
+import { revokePortalToken } from '../lib/authInterceptor';
 
 const API_BASE_URL = '/api/v1/auth';
 
@@ -173,6 +174,7 @@ export const getCurrentCustomer = (): CurrentCustomer | null => {
 
 /** Xóa sạch phiên đăng nhập của mọi vai trò */
 export const clearAllAuthSession = () => {
+  revokePortalToken();
   localStorage.removeItem('portal_token');
   localStorage.removeItem('portal_user');
   localStorage.removeItem('traveler_token');
