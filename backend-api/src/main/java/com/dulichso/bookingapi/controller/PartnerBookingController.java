@@ -3,6 +3,7 @@ package com.dulichso.bookingapi.controller;
 import com.dulichso.bookingapi.dto.partner.PartnerBookingDtos.AcceptInput;
 import com.dulichso.bookingapi.dto.partner.PartnerBookingDtos.BookingDetailDto;
 import com.dulichso.bookingapi.dto.partner.PartnerBookingDtos.InfoRequestInput;
+import com.dulichso.bookingapi.dto.partner.PartnerBookingDtos.StayActionInput;
 import com.dulichso.bookingapi.dto.partner.PartnerBookingDtos.RejectInput;
 import com.dulichso.bookingapi.entity.Account;
 import com.dulichso.bookingapi.entity.enums.AccountRole;
@@ -110,6 +111,13 @@ public class PartnerBookingController {
         Long providerId = resolveProviderId(principal);
         if (providerId == null) return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
 
+        // Row-level authorization (NFR-SEC-02): chỉ duyệt yêu cầu thay đổi của đơn thuộc chính nhà cung cấp này.
+        boolean owned = bookingChangeRequestRepository.findById(id)
+                .map(cr -> cr.getBooking() != null && cr.getBooking().getProvider() != null
+                        && providerId.equals(cr.getBooking().getProvider().getId()))
+                .orElse(false);
+        if (!owned) return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+
         boolean approved = Boolean.TRUE.equals(body.get("approved"));
         String rejectionReason = body.get("rejectionReason") != null ? String.valueOf(body.get("rejectionReason")) : null;
         Long reviewerId = principal != null ? principal.accountId() : null;
@@ -152,6 +160,13 @@ public class PartnerBookingController {
     public BookingDetailDto reject(@AuthenticationPrincipal UserPrincipal principal, @PathVariable Long id,
                                    @Valid @RequestBody RejectInput input) {
         return partnerBookingService.reject(principal, id, input);
+    }
+
+    /** Nhận phòng / trả phòng / hoàn thành / khách không đến cho đơn đã xác nhận. */
+    @PostMapping("/{id}/stay")
+    public BookingDetailDto stay(@AuthenticationPrincipal UserPrincipal principal, @PathVariable Long id,
+                                 @Valid @RequestBody StayActionInput input) {
+        return partnerBookingService.stayAction(principal, id, input);
     }
 
     /** FR-NCC-14: yêu cầu khách bổ sung/điều chỉnh thông tin. */

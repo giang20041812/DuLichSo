@@ -23,7 +23,12 @@ public final class PartnerRoomDtos {
             @NotNull @DecimalMin("0") @DecimalMax("999999999999") @Digits(integer=12,fraction=0) BigDecimal price) {}
     public record PriceDto(Long id, String name, LocalDate periodStart, LocalDate periodEnd, BigDecimal price) {}
     public record InventoryInput(@NotNull LocalDate startDate, @NotNull LocalDate endDate,
-            @NotNull @Min(0) @Max(10000) Integer totalRooms, @NotNull Boolean stopSell) {}
-    public record InventoryDto(LocalDate stayDate, int totalRooms, int heldRooms, int confirmedRooms, int availableRooms, boolean stopSell, BigDecimal price) {}
+            @NotNull @Min(0) @Max(10000) Integer totalRooms, @NotNull Boolean stopSell, @Size(max=255) String reason) {}
+    public record InventoryDto(LocalDate stayDate, int totalRooms, int heldRooms, int confirmedRooms, int availableRooms, boolean stopSell, BigDecimal price, String blockReason) {}
+    /** Ngừng / mở phục vụ cả Homestay (mọi loại phòng) trong khoảng ngày [startDate, endDate). */
+    public record HomestayBlockInput(@NotNull LocalDate startDate, @NotNull LocalDate endDate, @NotNull Boolean stopSell, @Size(max=255) String reason) {}
+    /** NFR-AUD-02: lịch sử thay đổi giá, số phòng, lịch bán của Homestay. */
+    public record ChangeLogDto(Long id, String action, String entityType, Long entityId, String reason,
+            java.util.Map<String,Object> before, java.util.Map<String,Object> after, java.time.LocalDateTime createdAt) {}
     public record QuoteDto(Long roomTypeId, int availableRooms, boolean suitable, BigDecimal totalAmount, List<InventoryDto> nights) {}
 }

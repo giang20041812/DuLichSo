@@ -29,4 +29,5 @@
     <include file="db/changelog/changes/008-booking-feedback-reviews-provider-applications.xml"/>
     <include file="db/changelog/changes/009-add-weekend-price.xml"/>
     <include file="db/changelog/changes/010-add-images-to-review.xml"/>
+    <include file="db/changelog/changes/010-room-inventory-block-reason.xml"/>
 </databaseChangeLog>

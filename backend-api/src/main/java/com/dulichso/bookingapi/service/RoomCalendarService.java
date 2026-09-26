@@ -46,7 +46,7 @@ public class RoomCalendarService {
             }
             for (RoomSpecialPrice p:prices) if (!date.isBefore(p.getPeriodStart()) && !date.isAfter(p.getPeriodEnd())) price=p.getPrice();
             if (price==null) throw new ResponseStatusException(HttpStatus.CONFLICT,"Loại phòng chưa có giá.");
-            result.add(new InventoryDto(date,total,held,confirmed,stopped?0:Math.max(0,total-held-confirmed),stopped,price));
+            result.add(new InventoryDto(date,total,held,confirmed,stopped?0:Math.max(0,total-held-confirmed),stopped,price,d==null?null:d.getBlockReason()));
         }
         return result;
     }

@@ -23,6 +23,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class PartnerHomestayService {
+    /** Trang Homestay của khách lấy id video theo mẫu /video/<số>, nên chỉ nhận link video TikTok đầy đủ. */
+    private static final java.util.regex.Pattern TIKTOK_VIDEO = java.util.regex.Pattern.compile("https://(www\\.|m\\.)?tiktok\\.com/@[\\w.-]+/video/\\d+([/?#].*)?");
     private final PartnerHomestayRepository repository;
     private final AccountRepository accounts;
     private final PlaceContactRepository contacts;
@@ -139,6 +141,7 @@ public class PartnerHomestayService {
         place.setUpdatedBy(account);
         saveContact(place, ContactChannel.PHONE, dto.getContactPhone());
         saveContact(place, ContactChannel.EMAIL, dto.getContactEmail());
+        saveContact(place, ContactChannel.TIKTOK, dto.getReviewVideoUrl());
 
         List<String> requested = dto.getAmenities() == null ? List.of() : dto.getAmenities();
         List<PlaceAmenity> existing = placeAmenities.findByPlaceIdWithAmenity(place.getId());
@@ -208,6 +211,7 @@ public class PartnerHomestayService {
                 .regionId(p.getRegion() == null ? null : p.getRegion().getId()).regionName(p.getRegion() == null ? "" : p.getRegion().getName())
                 .latitude(p.getLatitude() == null ? null : p.getLatitude().doubleValue()).longitude(p.getLongitude() == null ? null : p.getLongitude().doubleValue())
                 .accessNote(text(p.getAccessNote())).contactPhone(contact(cs, ContactChannel.PHONE)).contactEmail(contact(cs, ContactChannel.EMAIL))
+                .reviewVideoUrl(contact(cs, ContactChannel.TIKTOK))
                 .coverImageUrl(cover).galleryUrls(ms.stream().map(m -> m.getMedia().getPublicUrl()).filter(Objects::nonNull).toList())
                 .amenities(placeAmenities.findByPlaceIdWithAmenity(p.getId()).stream().filter(a -> a.getValue() == AmenityValue.YES).map(a -> a.getAmenity().getName()).toList())
                 .checkInFrom(profile == null || profile.getCheckInFrom() == null ? "" : profile.getCheckInFrom().toString())
@@ -259,6 +263,8 @@ public class PartnerHomestayService {
                 || text(dto.getSurchargeNote()).length() > 10000 || text(dto.getAccessNote()).length() > 10000) throw bad("Nội dung tối đa 10.000 ký tự.");
         if (!text(dto.getContactPhone()).matches("[+0-9() .-]{6,32}")) throw bad("Số điện thoại không hợp lệ.");
         if (!text(dto.getContactEmail()).isEmpty() && (dto.getContactEmail().length() > 254 || !dto.getContactEmail().matches("[^\\s@]+@[^\\s@]+\\.[^\\s@]+"))) throw bad("Email không hợp lệ.");
+        if (!text(dto.getReviewVideoUrl()).isEmpty() && (dto.getReviewVideoUrl().length() > 500 || !TIKTOK_VIDEO.matcher(dto.getReviewVideoUrl().trim()).matches()))
+            throw bad("Link video review phải là link video TikTok đầy đủ, dạng https://www.tiktok.com/@tenkenh/video/123456...");
         if ((dto.getLatitude() == null) != (dto.getLongitude() == null)) throw bad("Cần nhập cả vĩ độ và kinh độ.");
         if (dto.getLatitude() != null && (!Double.isFinite(dto.getLatitude()) || Math.abs(dto.getLatitude()) > 90
                 || !Double.isFinite(dto.getLongitude()) || Math.abs(dto.getLongitude()) > 180)) throw bad("Tọa độ không hợp lệ.");

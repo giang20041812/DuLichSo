@@ -27,7 +27,11 @@ public class RoomInventoryDay {
     @Column(name = "stop_sell", nullable = false)
     @Builder.Default
     private Boolean stopSell = false;
-    
+
+    /** Lý do NCC ngừng bán / giảm số phòng ngày này (bảo trì, phòng hỏng, nghỉ phục vụ...). */
+    @Column(name = "block_reason", length = 255)
+    private String blockReason;
+
     @Column(name = "available_rooms", insertable = false, updatable = false)
     private Integer availableRooms;
     

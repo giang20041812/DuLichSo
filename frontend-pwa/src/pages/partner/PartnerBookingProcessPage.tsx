@@ -4,7 +4,8 @@ import { AlertTriangle, ArrowLeft, CheckCircle2, Clock, Mail, Phone, StickyNote,
 import { partnerBookingService } from '@/services/partnerBookingService';
 import { homestayError } from '@/services/partnerHomestayService';
 import { BOOKING_STATUS_LABEL, BOOKING_STATUS_TONE } from '@/lib/bookingStatus';
-import type { BookingCheckLevel, BookingRoomOptionDto, PartnerBookingDetailDto } from '@/types/booking';
+import ConfirmDialog, { type ConfirmRequest } from '@/components/partner/ConfirmDialog';
+import type { BookingCheckLevel, BookingRoomOptionDto, PartnerBookingDetailDto, StayAction } from '@/types/booking';
 
 const vnd = (n?: number | null) => (n == null ? '—' : new Intl.NumberFormat('vi-VN').format(n) + 'đ');
 const date = (d?: string | null) => (d ? new Date(d).toLocaleDateString('vi-VN') : '—');
@@ -175,7 +176,7 @@ export default function PartnerBookingProcessPage() {
         <div className="lg:sticky lg:top-4">
           {booking.canAccept || booking.canReject
             ? <DecisionPanel key={`${booking.id}-${booking.status}-${booking.infoRequests.length}`} booking={booking} onDone={setBooking} />
-            : <ResultPanel booking={booking} />}
+            : <ResultPanel booking={booking} onDone={setBooking} />}
         </div>
       </div>
     </div>
@@ -188,6 +189,7 @@ function DecisionPanel({ booking, onDone }: { booking: PartnerBookingDetailDto; 
   const [mode, setMode] = useState<'accept' | 'info' | 'reject'>(booking.canAccept ? 'accept' : 'reject');
   const [reason, setReason] = useState('');
   const [infoMessage, setInfoMessage] = useState('');
+  const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const chosen: BookingRoomOptionDto | undefined = booking.roomOptions.find((o) => o.roomTypeId === roomTypeId);
@@ -210,7 +212,7 @@ function DecisionPanel({ booking, onDone }: { booking: PartnerBookingDetailDto; 
       {error && <p role="alert" className="rounded-md border border-danger/30 bg-danger/5 p-2.5 text-sm text-danger">{error}</p>}
 
       {mode === 'accept' ? (
-        <form className="flex flex-col gap-4" onSubmit={(e) => { e.preventDefault(); void submit(() => partnerBookingService.accept(booking.id, { roomTypeId: changed ? roomTypeId : null, note: note.trim() })); }}>
+        <form className="flex flex-col gap-4" onSubmit={(e) => { e.preventDefault(); setConfirm({ title: `Chấp nhận đơn ${booking.bookingCode}?`, confirmLabel: "Chấp nhận đơn", tone: "coral", body: <>Phương án: <b>{chosen?.name}</b> · {booking.roomCount} phòng · {booking.nights} đêm · tổng <b>{vnd(chosen?.totalAmount)}</b>.<br />Đơn chuyển sang <b>Chờ thanh toán</b>, khách có 15 phút để thanh toán.{note.trim() && <><br />Lời nhắn: “{note.trim()}”</>}</>, onConfirm: () => void submit(() => partnerBookingService.accept(booking.id, { roomTypeId: changed ? roomTypeId : null, note: note.trim() })) }); }}>
           <fieldset disabled={busy} className="flex flex-col gap-2">
             <legend className="mb-2 text-xs font-semibold text-muted">Phương án phòng ({booking.roomCount} phòng · {booking.nights} đêm)</legend>
             {booking.roomOptions.map((o) => (
@@ -244,7 +246,7 @@ function DecisionPanel({ booking, onDone }: { booking: PartnerBookingDetailDto; 
         </form>
       ) : mode === 'info' ? (
         booking.canRequestInfo ? (
-          <form className="flex flex-col gap-3" onSubmit={(e) => { e.preventDefault(); void submit(() => partnerBookingService.requestInfo(booking.id, { message: infoMessage.trim() })); }}>
+          <form className="flex flex-col gap-3" onSubmit={(e) => { e.preventDefault(); setConfirm({ title: "Gửi yêu cầu bổ sung cho khách?", confirmLabel: "Gửi yêu cầu", body: <>“{infoMessage.trim()}”<br />Đơn vẫn chờ xử lý và giữ phòng; hạn xử lý không đổi.</>, onConfirm: () => void submit(() => partnerBookingService.requestInfo(booking.id, { message: infoMessage.trim() })) }); }}>
             <fieldset disabled={busy} className="flex flex-col gap-3">
               <p className="text-xs font-semibold text-muted">Nội dung cần khách bổ sung hoặc điều chỉnh</p>
               <textarea className={field} rows={4} required maxLength={500} value={infoMessage} onChange={(e) => setInfoMessage(e.target.value)}
@@ -260,7 +262,7 @@ function DecisionPanel({ booking, onDone }: { booking: PartnerBookingDetailDto; 
           <p className="rounded-md bg-canvas p-3 text-sm text-muted">Đang chờ khách phản hồi yêu cầu trước, hoặc đơn đã quá hạn xử lý.</p>
         )
       ) : (
-        <form className="flex flex-col gap-3" onSubmit={(e) => { e.preventDefault(); void submit(() => partnerBookingService.reject(booking.id, { reason: reason.trim() })); }}>
+        <form className="flex flex-col gap-3" onSubmit={(e) => { e.preventDefault(); setConfirm({ title: `Từ chối đơn ${booking.bookingCode}?`, confirmLabel: "Từ chối đơn", tone: "danger", body: <>Lý do: “{reason.trim()}”<br />Phòng đang giữ sẽ được mở bán lại. Thao tác này không hoàn tác được.</>, onConfirm: () => void submit(() => partnerBookingService.reject(booking.id, { reason: reason.trim() })) }); }}>
           <fieldset disabled={busy} className="flex flex-col gap-3">
             <p className="text-xs font-semibold text-muted">Lý do từ chối (khách xem được khi tra cứu đơn)</p>
             <div className="flex flex-wrap gap-1.5">
@@ -276,11 +278,32 @@ function DecisionPanel({ booking, onDone }: { booking: PartnerBookingDetailDto; 
           </fieldset>
         </form>
       )}
+      <ConfirmDialog request={confirm} onClose={() => setConfirm(null)} />
     </section>
   );
 }
 
-function ResultPanel({ booking }: { booking: PartnerBookingDetailDto }) {
+const STAY_ACTION: Record<StayAction, { label: string; confirm: string; body: string; tone: ConfirmRequest['tone'] }> = {
+  CHECK_IN: { label: 'Khách đã nhận phòng', confirm: 'Xác nhận nhận phòng', body: 'Đơn chuyển sang “Đã nhận phòng”.', tone: 'primary' },
+  CHECK_OUT: { label: 'Khách đã trả phòng', confirm: 'Xác nhận trả phòng', body: 'Đơn chuyển sang “Đã trả phòng”.', tone: 'primary' },
+  COMPLETE: { label: 'Hoàn thành đơn', confirm: 'Hoàn thành đơn', body: 'Đơn được đóng ở trạng thái “Hoàn tất”; khách có thể viết đánh giá.', tone: 'coral' },
+  NO_SHOW: { label: 'Khách không đến', confirm: 'Đánh dấu không đến', body: 'Đơn được đóng; các đêm từ hôm nay trở đi được mở bán lại. Không hoàn tác được.', tone: 'danger' },
+};
+
+/** Kết quả xử lý + vận hành lưu trú sau khi đơn đã xác nhận (nhận phòng, trả phòng, hoàn thành, khách không đến). */
+function ResultPanel({ booking, onDone }: { booking: PartnerBookingDetailDto; onDone: (b: PartnerBookingDetailDto) => void }) {
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
+
+  async function run(action: StayAction) {
+    setBusy(true); setError('');
+    try { onDone(await partnerBookingService.stayAction(booking.id, { action, note: note.trim() || undefined })); setNote(''); }
+    catch (e: unknown) { setError(homestayError(e)); }
+    finally { setBusy(false); }
+  }
+
   return (
     <section className="flex flex-col gap-3 rounded-lg border border-border bg-surface p-5 shadow-[var(--shadow-card)]">
       <h2 className="font-semibold text-primary">Kết quả xử lý</h2>
@@ -289,6 +312,28 @@ function ResultPanel({ booking }: { booking: PartnerBookingDetailDto }) {
       {booking.confirmedAt && <Row k="Xác nhận lúc" v={dateTime(booking.confirmedAt)} />}
       {booking.closedAt && <Row k="Đóng đơn lúc" v={dateTime(booking.closedAt)} />}
       {booking.closeReason && <p className="whitespace-pre-wrap rounded-md bg-canvas p-2.5 text-sm text-ink">{booking.closeReason}</p>}
+
+      {booking.status === 'CONFIRMED' && booking.stayActions.length === 0 && (
+        <p className="text-xs text-muted">Nút nhận phòng mở từ ngày {date(booking.checkIn)}.</p>
+      )}
+      {booking.stayActions.length > 0 && (
+        <div className="flex flex-col gap-2 border-t border-border pt-3">
+          <p className="text-xs font-semibold text-muted">Vận hành lưu trú</p>
+          {error && <p role="alert" className="rounded-md border border-danger/30 bg-danger/5 p-2.5 text-sm text-danger">{error}</p>}
+          <input className={field} maxLength={500} disabled={busy} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ghi chú (không bắt buộc)" />
+          {booking.stayActions.map((action) => (
+            <button key={action} type="button" disabled={busy}
+              onClick={() => setConfirm({ title: `${STAY_ACTION[action].label}?`, confirmLabel: STAY_ACTION[action].confirm, tone: STAY_ACTION[action].tone,
+                body: <>{STAY_ACTION[action].body}{note.trim() && <><br />Ghi chú: “{note.trim()}”</>}</>, onConfirm: () => void run(action) })}
+              className={action === 'NO_SHOW'
+                ? 'rounded-md border border-danger px-4 py-2 text-sm font-semibold text-danger transition-colors duration-200 hover:bg-danger/5 disabled:opacity-50'
+                : 'rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors duration-200 hover:bg-primary-700 disabled:opacity-50'}>
+              {busy ? 'Đang xử lý...' : STAY_ACTION[action].label}
+            </button>
+          ))}
+        </div>
+      )}
+      <ConfirmDialog request={confirm} onClose={() => setConfirm(null)} />
     </section>
   );
 }

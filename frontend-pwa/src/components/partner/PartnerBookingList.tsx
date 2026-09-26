@@ -13,6 +13,8 @@ const vnd = (n?: number | null) => (n == null ? '—' : new Intl.NumberFormat('v
 const date = (d?: string | null) => (d ? new Date(d).toLocaleDateString('vi-VN') : '—');
 const dateTime = (d?: string | null) => (d ? new Date(d).toLocaleString('vi-VN') : '—');
 const STATUSES = Object.keys(BOOKING_STATUS_LABEL) as BookingStatus[];
+/** Đơn cần NCC thao tác: chờ duyệt, hoặc đang trong vòng nhận phòng → trả phòng → hoàn thành. */
+const ACTIONABLE: BookingStatus[] = ['PENDING', 'CONFIRMED', 'CHECKED_IN', 'CHECKED_OUT'];
 
 /** FR-NCC-11: danh sách yêu cầu đặt phòng của nhà cung cấp; đơn chờ xử lý có nút mở màn hình xử lý. */
 export default function PartnerBookingList() {
@@ -86,10 +88,10 @@ export default function PartnerBookingList() {
                 <td className={th}><span className={`rounded-sm border px-2 py-0.5 text-[10px] font-bold ${BOOKING_STATUS_TONE[b.status]}`}>{BOOKING_STATUS_LABEL[b.status]}</span></td>
                 <td className={`${th} text-muted`}>{dateTime(b.createdAt)}</td>
                 <td className={`${th} text-right`}>
-                  <Link to={`/partner/bookings/${b.id}`} className={b.status === 'PENDING'
+                  <Link to={`/partner/bookings/${b.id}`} className={ACTIONABLE.includes(b.status)
                     ? 'inline-block whitespace-nowrap rounded-md bg-coral px-3 py-1.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-coral-hover'
                     : 'inline-block whitespace-nowrap rounded-md border border-border px-3 py-1.5 text-xs font-semibold text-primary transition-colors duration-200 hover:border-primary'}>
-                    {b.status === 'PENDING' ? 'Xử lý' : 'Xem'}
+                    {ACTIONABLE.includes(b.status) ? 'Xử lý' : 'Xem'}
                   </Link>
                 </td>
               </tr>

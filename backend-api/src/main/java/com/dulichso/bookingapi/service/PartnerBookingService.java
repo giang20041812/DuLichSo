@@ -125,6 +125,70 @@ public class PartnerBookingService {
                 .setParameter("id", bookingId).getSingleResult() > 0;
     }
 
+    /**
+     * Vận hành lưu trú (CONFIRMED → CHECKED_IN → CHECKED_OUT → COMPLETED, hoặc CONFIRMED → NO_SHOW).
+     * Nhận/trả phòng không đổi tồn kho vì phòng đã nằm trong confirmed_rooms; NO_SHOW nhả các đêm từ hôm nay trở đi để bán lại.
+     */
+    @Transactional
+    public BookingDetailDto stayAction(UserPrincipal principal, Long id, StayActionInput input) {
+        Account actor = homestays.actor(principal, true);
+        Booking booking = lockedOwned(id, actor);
+        LocalDate today = LocalDate.now();
+        if (!allowedStayActions(booking, today).contains(input.action()))
+            throw conflict(switch (input.action()) {
+                case CHECK_IN -> "Chỉ nhận phòng được với đơn đã xác nhận, trong khoảng ngày lưu trú.";
+                case CHECK_OUT -> "Chỉ trả phòng được với đơn đang lưu trú.";
+                case COMPLETE -> "Chỉ hoàn thành được đơn khách đã trả phòng.";
+                case NO_SHOW -> "Chỉ đánh dấu khách không đến với đơn đã xác nhận, từ sau ngày nhận phòng.";
+            });
+        BookingStatus from = booking.getStatus();
+        String note = trimToNull(input.note());
+        switch (input.action()) {
+            case CHECK_IN -> booking.setStatus(BookingStatus.CHECKED_IN);
+            case CHECK_OUT -> booking.setStatus(BookingStatus.CHECKED_OUT);
+            case COMPLETE -> {
+                booking.setStatus(BookingStatus.COMPLETED);
+                booking.setClosedAt(LocalDateTime.now());
+                booking.setClosedByActor(ActorType.PROVIDER);
+            }
+            case NO_SHOW -> {
+                RoomType room = rooms.findLockedById(booking.getRoomType().getId()).orElseThrow(PartnerBookingService::notFound);
+                LocalDate from0 = booking.getCheckIn().isAfter(today) ? booking.getCheckIn() : today;
+                for (LocalDate date = from0; date.isBefore(booking.getCheckOut()); date = date.plusDays(1)) {
+                    RoomInventoryDay day = calendar.lockedDay(room, date);
+                    day.setConfirmedRooms(Math.max(0, day.getConfirmedRooms() - booking.getRoomCount()));
+                    day.setUpdatedAt(LocalDateTime.now());
+                }
+                booking.setStatus(BookingStatus.NO_SHOW);
+                booking.setClosedAt(LocalDateTime.now());
+                booking.setClosedByActor(ActorType.PROVIDER);
+                booking.setCloseReason(note != null ? note : "Khách không đến nhận phòng.");
+            }
+        }
+        history(booking, from, actor, note != null ? note : switch (input.action()) {
+            case CHECK_IN -> "Khách đã nhận phòng";
+            case CHECK_OUT -> "Khách đã trả phòng";
+            case COMPLETE -> "Hoàn thành đơn đặt phòng";
+            case NO_SHOW -> "Khách không đến nhận phòng";
+        });
+        flush("Không thể cập nhật đơn đặt phòng.");
+        return toDetail(booking);
+    }
+
+    static List<StayAction> allowedStayActions(Booking b, LocalDate today) {
+        return switch (b.getStatus()) {
+            case CONFIRMED -> {
+                List<StayAction> actions = new ArrayList<>();
+                if (!today.isBefore(b.getCheckIn()) && today.isBefore(b.getCheckOut())) actions.add(StayAction.CHECK_IN);
+                if (today.isAfter(b.getCheckIn())) actions.add(StayAction.NO_SHOW);
+                yield actions;
+            }
+            case CHECKED_IN -> List.of(StayAction.CHECK_OUT);
+            case CHECKED_OUT -> List.of(StayAction.COMPLETE);
+            default -> List.of();
+        };
+    }
+
     private void notifyCustomer(String template, Booking booking, Map<String, Object> extra) {
         Map<String, Object> payload = new HashMap<>(extra);
         payload.put("booking_code", booking.getBookingCode());
@@ -231,7 +295,8 @@ public class PartnerBookingService {
                 nights, services, history, infoRequests,
                 pending ? checks(b, services, infoRequests, withinDeadline) : List.of(), options,
                 pending && withinDeadline && !b.getCheckIn().isBefore(LocalDate.now()), pending,
-                pending && withinDeadline && infoRequests.stream().allMatch(r -> r.respondedAt() != null));
+                pending && withinDeadline && infoRequests.stream().allMatch(r -> r.respondedAt() != null),
+                allowedStayActions(b, LocalDate.now()));
     }
 
     /** FR-NCC-13/15/16/17: các kiểm tra tự động trên đơn đang chờ xử lý. */

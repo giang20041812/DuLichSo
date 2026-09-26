@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { HomestayOptionsDto, PartnerHomestayPageResponse, PartnerHomestaySummaryDto, PartnerHomestayDetailDto, UpdateStatusRequest } from '@/types/partner';
+import type { GeocodeResult, HomestayOptionsDto, PartnerHomestayPageResponse, PartnerHomestaySummaryDto, PartnerHomestayDetailDto, UpdateStatusRequest } from '@/types/partner';
 
 const API = '/api/v1/partner/homestays';
 const config = () => {
@@ -24,6 +24,10 @@ export async function savePartnerHomestayDetail(id: number, detail: PartnerHomes
 }
 export async function updateHomestayStatus(id: number, request: UpdateStatusRequest): Promise<PartnerHomestaySummaryDto> {
   return (await axios.patch<PartnerHomestaySummaryDto>(`${API}/${id}/status`, request, config())).data;
+}
+/** Gợi ý tọa độ từ địa chỉ (backend gọi OpenStreetMap Nominatim). */
+export async function geocodeAddress(address: string): Promise<GeocodeResult> {
+  return (await axios.get<GeocodeResult>('/api/v1/partner/geocode', { ...config(), params: { address } })).data;
 }
 export function homestayError(error: unknown): string {
   if (axios.isAxiosError<unknown>(error)) {
