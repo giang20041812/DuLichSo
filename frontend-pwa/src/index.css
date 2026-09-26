@@ -65,17 +65,25 @@ body {
   scrollbar-width: none;
 }
 
-/* Leaflet Custom Marker & Popup Enhancements */
-.osm-custom-marker {
+/* VietMap Custom Marker & Popup Enhancements */
+.vietmap-custom-marker {
   transition: z-index 0.2s ease;
 }
 
-.osm-custom-marker:hover .osm-modern-marker-wrapper {
-  transform: translate(-50%, -108%) scale(1.08) !important;
+.vietmap-custom-marker:hover .vietmap-modern-marker-wrapper {
   z-index: 9999 !important;
 }
 
-.osm-custom-popup .leaflet-popup-content-wrapper {
+.vietmap-custom-marker:hover .vietmap-pin-badge {
+  transform: rotate(-45deg) scale(1.15) !important;
+}
+
+.vietmap-custom-marker:hover .vietmap-pin-label {
+  border-color: #CBD5E1 !important;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.18) !important;
+}
+
+.vietmap-custom-popup .leaflet-popup-content-wrapper {
   padding: 0 !important;
   border-radius: 8px !important;
   box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.2), 0 6px 12px -2px rgba(0, 0, 0, 0.08) !important;
@@ -84,17 +92,17 @@ body {
   background: #FFFFFF !important;
 }
 
-.osm-custom-popup .leaflet-popup-content {
+.vietmap-custom-popup .leaflet-popup-content {
   margin: 10px 12px !important;
   line-height: 1.4 !important;
 }
 
-.osm-custom-popup .leaflet-popup-tip {
+.vietmap-custom-popup .leaflet-popup-tip {
   background: #FFFFFF !important;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
 }
 
-.osm-custom-popup a.leaflet-popup-close-button {
+.vietmap-custom-popup a.leaflet-popup-close-button {
   top: 6px !important;
   right: 6px !important;
   color: #64748B !important;
@@ -104,7 +112,8 @@ body {
   transition: color 0.15s ease !important;
 }
 
-.osm-custom-popup a.leaflet-popup-close-button:hover {
+.vietmap-custom-popup a.leaflet-popup-close-button:hover {
   color: #0F172A !important;
 }
+
 

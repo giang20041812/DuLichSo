@@ -16,6 +16,8 @@ public class ReviewDto {
     private Long placeId;
     private Byte rating;
     private String content;
+    private java.util.List<String> images;
     private String guestName;
     private LocalDateTime createdAt;
+    private LocalDateTime editableUntil;
 }

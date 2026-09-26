@@ -24,4 +24,6 @@ public class CreateReviewRequest {
     @NotBlank(message = "Nội dung nhận xét không được để trống")
     @Size(min = 5, max = 2000, message = "Nội dung đánh giá phải từ 5 đến 2000 ký tự")
     private String content;
+
+    private java.util.List<String> images;
 }

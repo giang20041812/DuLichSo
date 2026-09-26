@@ -12,6 +12,8 @@ public interface BookingService {
     BookingResponseDto getBookingByCode(String bookingCode);
     List<BookingResponseDto> findMyBookings(String email, String phone, List<String> codes);
     com.dulichso.bookingapi.dto.ReviewDto createBookingReview(String bookingCode, com.dulichso.bookingapi.dto.CreateReviewRequest request);
+    com.dulichso.bookingapi.dto.ReviewDto updateBookingReview(String bookingCode, com.dulichso.bookingapi.dto.CreateReviewRequest request);
+    void deleteBookingReview(String bookingCode);
     com.dulichso.bookingapi.dto.ReviewDto getBookingReview(String bookingCode);
     BookingResponseDto cancelBooking(String bookingCode, String reason, String note);
     List<BookedDateRangeDto> getBookedDatesByRoomType(Long roomTypeId, LocalDate startDate, LocalDate endDate);

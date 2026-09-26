@@ -23,7 +23,7 @@ import {
   Flame,
   Phone
 } from 'lucide-react';
-import OpenStreetMapView from '@/components/map/OpenStreetMapView';
+import VietmapView from '@/components/map/VietmapView';
 
 function FacebookIcon({ className = "w-3 h-3" }: { className?: string }) {
   return (
@@ -436,7 +436,7 @@ export default function HomestayListPage() {
                 <span className="text-xs text-gray-500 font-medium hidden md:inline">Sắp xếp:</span>
                 <select
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as any)}
+                  onChange={(e) => setSortBy(e.target.value as 'recommended' | 'price_asc' | 'price_desc' | 'rating_desc')}
                   className="bg-transparent text-xs md:text-sm font-semibold text-[var(--color-ink-deep)] focus:outline-none cursor-pointer"
                 >
                   <option value="recommended">Gợi ý hàng đầu</option>
@@ -446,17 +446,17 @@ export default function HomestayListPage() {
                 </select>
               </div>
 
-              {/* Map Button (OpenStreetMap) */}
+              {/* Map Button (VietMap) */}
               <button
                 onClick={() => setShowMap(!showMap)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-xs md:text-sm font-semibold rounded-md border transition-all shadow-2xs active:scale-98 cursor-pointer ${showMap
                     ? 'border-[#048c73] bg-[#048c73] text-white'
                     : 'border-[var(--color-primary)] bg-[var(--color-primary-50)] text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-white'
                   }`}
-                title="Bật/Tắt chế độ xem bản đồ OpenStreetMap"
+                title="Bật/Tắt chế độ xem bản đồ VietMap"
               >
                 <Map className="w-3.5 h-3.5" />
-                <span>{showMap ? 'Ẩn bản đồ' : 'Bản đồ OpenStreetMap'}</span>
+                <span>{showMap ? 'Ẩn bản đồ' : 'Bản đồ VietMap'}</span>
               </button>
             </div>
           </div>
@@ -707,12 +707,12 @@ export default function HomestayListPage() {
 
           {/* Main List */}
           <div className="flex-1 flex flex-col gap-4">
-            {/* OpenStreetMap Interactive Viewer */}
+            {/* VietMap Interactive Viewer */}
             {showMap && (
               <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-xs mb-2 animate-in fade-in duration-300">
                 <div className="px-4 py-2.5 bg-[#edfbf7] border-b border-gray-200 flex items-center justify-between">
                   <span className="text-xs font-bold text-[#048c73] flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5" /> Bản đồ vị trí homestay (Nguồn: OpenStreetMap)
+                    <MapPin className="w-3.5 h-3.5" /> Bản đồ vị trí homestay (Nguồn: VietMap)
                   </span>
                   <button
                     onClick={() => setShowMap(false)}
@@ -722,7 +722,7 @@ export default function HomestayListPage() {
                   </button>
                 </div>
                 <div className="h-[360px] w-full">
-                  <OpenStreetMapView
+                  <VietmapView
                     centerLat={homestays[0]?.latitude || 21.85}
                     centerLng={homestays[0]?.longitude || 104.08}
                     zoomLevel={12}
@@ -820,18 +820,17 @@ export default function HomestayListPage() {
                                 </h2>
                               </Link>
 
-                              {/* Vị trí với liên kết OpenStreetMap */}
+                              {/* Vị trí với liên kết xem trên bản đồ VietMap */}
                               <div className="text-xs sm:text-[13px] text-[var(--color-primary)] font-semibold flex items-center gap-1 mb-2">
-                                <a
-                                  href={`https://www.openstreetmap.org/search?query=${encodeURIComponent(hs.name + ' ' + (hs.district || ''))}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="hover:underline flex items-center gap-1 truncate text-[#048c73]"
-                                  title="Xem vị trí trên OpenStreetMap"
+                                <button
+                                  type="button"
+                                  onClick={() => setShowMap(true)}
+                                  className="hover:underline flex items-center gap-1 truncate text-[#048c73] cursor-pointer"
+                                  title="Xem vị trí trên bản đồ VietMap"
                                 >
                                   <MapPin className="w-3.5 h-3.5 shrink-0" />
                                   <span className="truncate">{hs.district || 'Yên Bái'}</span>
-                                </a>
+                                </button>
                                 {hs.distanceFromCenter && (
                                   <span className="text-gray-400 shrink-0 text-xs font-normal">• {hs.distanceFromCenter}</span>
                                 )}

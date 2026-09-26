@@ -45,6 +45,20 @@ public class PublicBookingController {
         return ResponseEntity.status(HttpStatus.CREATED).body(review);
     }
 
+    @PutMapping("/{bookingCode}/review")
+    public ResponseEntity<com.dulichso.bookingapi.dto.ReviewDto> updateBookingReview(
+            @PathVariable("bookingCode") String bookingCode,
+            @Valid @RequestBody com.dulichso.bookingapi.dto.CreateReviewRequest request) {
+        com.dulichso.bookingapi.dto.ReviewDto review = bookingService.updateBookingReview(bookingCode, request);
+        return ResponseEntity.ok(review);
+    }
+
+    @DeleteMapping("/{bookingCode}/review")
+    public ResponseEntity<Void> deleteBookingReview(@PathVariable("bookingCode") String bookingCode) {
+        bookingService.deleteBookingReview(bookingCode);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/{bookingCode}/review")
     public ResponseEntity<com.dulichso.bookingapi.dto.ReviewDto> getBookingReview(
             @PathVariable("bookingCode") String bookingCode) {

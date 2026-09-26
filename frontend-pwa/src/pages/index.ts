@@ -7,22 +7,21 @@ export { default as HomestayDetailPage } from './homestay/HomestayDetailPage';
 export { default as RoomAvailabilityPage } from './homestay/RoomAvailabilityPage';
 export { default as FullScreenMapPage } from './homestay/FullScreenMapPage';
 
-// Booking
-export { default as BookingPage } from './booking/BookingPage';
-export { default as UserBookingListPage } from './booking/UserBookingListPage';
-export { default as UserBookingDetailPage } from './booking/UserBookingDetailPage';
+// Customer - Booking
+export { default as BookingPage } from './customer/booking/BookingPage';
+export { default as UserBookingListPage } from './customer/booking/UserBookingListPage';
+export { default as UserBookingDetailPage } from './customer/booking/UserBookingDetailPage';
 
-// Experience & Culture
-export { default as ExperienceDetailPage } from './experience/ExperienceDetailPage';
-export { default as CultureFestivalPage } from './explore/CultureFestivalPage';
-export { default as FestivalDetailPage } from './explore/FestivalDetailPage';
-export { default as DestinationListPage } from './explore/DestinationListPage';
-export { default as PlaceDetailPage } from './explore/PlaceDetailPage';
+// Customer - Services (Dining, Transport, Utilities/Rentals)
+export { default as RestaurantListPage } from './customer/services/RestaurantListPage';
+export { default as TransportListPage } from './customer/services/TransportListPage';
+export { default as UtilityListPage } from './customer/services/UtilityListPage';
 
-// Local Services (Dining, Transport, Utilities)
-export { default as RestaurantListPage } from './services/RestaurantListPage';
-export { default as TransportListPage } from './services/TransportListPage';
-export { default as UtilityListPage } from './services/UtilityListPage';
+// Customer - Culture & Discovery (Festivals, Specialties, Destinations)
+export { default as CultureFestivalPage } from './customer/culture/CultureFestivalPage';
+export { default as FestivalDetailPage } from './customer/culture/FestivalDetailPage';
+export { default as DestinationListPage } from './customer/culture/DestinationListPage';
+export { default as PlaceDetailPage } from './customer/culture/PlaceDetailPage';
 
 // Portal & Management
 export { default as PortalLoginPage } from './portal/PortalLoginPage';

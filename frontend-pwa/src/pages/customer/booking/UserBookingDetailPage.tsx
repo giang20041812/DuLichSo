@@ -295,8 +295,8 @@ export default function UserBookingDetailPage() {
 
             {/* Hiển thị nội dung review đã gửi */}
             {existingReview && (
-              <div className="mt-4 pt-4 border-t border-gray-100 bg-[#F6FAF8] p-4 rounded-md space-y-2">
-                <div className="flex items-center justify-between">
+              <div className="mt-4 pt-4 border-t border-gray-100 bg-[#F6FAF8] p-4 rounded-md space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5">
                     {[1, 2, 3, 4, 5].map((s) => (
                       <Star
@@ -312,13 +312,69 @@ export default function UserBookingDetailPage() {
                       {existingReview.rating}/5 sao
                     </span>
                   </div>
-                  <span className="text-[11px] text-gray-400">
-                    {new Date(existingReview.createdAt).toLocaleDateString('vi-VN')}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[11px] text-gray-400">
+                      {new Date(existingReview.createdAt).toLocaleDateString('vi-VN')}
+                    </span>
+                    {/* Kiểm tra thời hạn 14 ngày */}
+                    {(!existingReview.editableUntil || new Date(existingReview.editableUntil).getTime() > Date.now()) && (
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setIsReviewModalOpen(true)}
+                          className="px-2.5 py-1 text-xs font-semibold text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 rounded border border-[var(--color-primary)]/20 transition-colors cursor-pointer"
+                        >
+                          Sửa đánh giá
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (window.confirm('Bạn có chắc chắn muốn xóa đánh giá này?')) {
+                              try {
+                                const { deleteBookingReview } = await import('@/services/bookingService');
+                                await deleteBookingReview(booking.bookingCode);
+                                setExistingReview(null);
+                              } catch (err) {
+                                alert(err instanceof Error ? err.message : 'Không thể xóa đánh giá.');
+                              }
+                            }
+                          }}
+                          className="px-2.5 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded border border-rose-200 transition-colors cursor-pointer"
+                        >
+                          Xóa
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
+
                 <p className="text-xs sm:text-sm text-gray-700 italic leading-relaxed">
                   "{existingReview.content}"
                 </p>
+
+                {/* Danh sách ảnh trong review nếu có */}
+                {existingReview.images && existingReview.images.length > 0 && (
+                  <div className="pt-2">
+                    <div className="text-[11px] font-semibold text-gray-500 mb-1.5">Hình ảnh chuyến đi:</div>
+                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                      {existingReview.images.map((imgUrl, i) => (
+                        <a
+                          key={i}
+                          href={imgUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="rounded-md overflow-hidden aspect-video border border-gray-200 bg-gray-100 block group"
+                        >
+                          <img
+                            src={imgUrl}
+                            alt={`Ảnh đánh giá ${i + 1}`}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -727,6 +783,7 @@ export default function UserBookingDetailPage() {
           bookingCode={booking.bookingCode}
           placeName={booking.placeName}
           roomTypeName={booking.roomTypeName}
+          existingReview={existingReview}
           onSuccess={(newReview) => {
             setExistingReview(newReview);
             setIsReviewModalOpen(false);

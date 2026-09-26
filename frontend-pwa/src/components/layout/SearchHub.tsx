@@ -248,7 +248,7 @@ export default function SearchHub() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // 3 distinct filter tabs: 'location' (province+district+ward), 'attractions', 'dates'
+  // 3 distinct filter tabs: 'location', 'attractions', 'dates'
   const [activeTab, setActiveTab] = useState<'location' | 'attractions' | 'dates' | null>(null);
   const [mountedTab, setMountedTab] = useState<'location' | 'attractions' | 'dates' | null>(null);
 
@@ -258,7 +258,7 @@ export default function SearchHub() {
   // Sticky state for responsive mobile view
   const [isSticky, setIsSticky] = useState(false);
 
-  // Date state: Ngày đi mong muốn
+  // Date state: Ngày nhận phòng & Ngày trả phòng (Check-in & Check-out)
   const [checkInDate, setCheckInDate] = useState<{ day: number, month: number, year: number } | null>(() => {
     const today = new Date();
     return {
@@ -267,6 +267,16 @@ export default function SearchHub() {
       year: today.getFullYear()
     };
   });
+  const [checkOutDate, setCheckOutDate] = useState<{ day: number, month: number, year: number } | null>(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return {
+      day: tomorrow.getDate(),
+      month: tomorrow.getMonth() + 1,
+      year: tomorrow.getFullYear()
+    };
+  });
+  const [calendarTarget, setCalendarTarget] = useState<'checkIn' | 'checkOut'>('checkIn');
   const [calendarMonth, setCalendarMonth] = useState<number>(new Date().getMonth() + 1);
   const [calendarYear, setCalendarYear] = useState<number>(new Date().getFullYear());
 
@@ -297,6 +307,7 @@ export default function SearchHub() {
     const dist = searchParams.get('district');
     const wrd = searchParams.get('ward');
     const checkIn = searchParams.get('checkIn');
+    const checkOut = searchParams.get('checkOut');
 
     if (prov) setSelectedProvince(prov);
     if (dist) setSelectedDistrict(dist);
@@ -311,6 +322,20 @@ export default function SearchHub() {
           const d = parseInt(p2, 10);
           if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
             setCheckInDate({ year: y, month: m, day: d });
+          }
+        }
+      }
+    }
+    if (checkOut) {
+      const parts = checkOut.split('-');
+      if (parts.length === 3) {
+        const [p0, p1, p2] = parts;
+        if (p0 !== undefined && p1 !== undefined && p2 !== undefined) {
+          const y = parseInt(p0, 10);
+          const m = parseInt(p1, 10);
+          const d = parseInt(p2, 10);
+          if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+            setCheckOutDate({ year: y, month: m, day: d });
           }
         }
       }
@@ -355,9 +380,16 @@ export default function SearchHub() {
   }, [selectedWard, selectedDistrict, selectedProvince]);
 
   const displayDate = useMemo(() => {
-    if (!checkInDate) return "Chọn ngày";
-    return `${checkInDate.day} Th${checkInDate.month}`;
-  }, [checkInDate]);
+    if (!checkInDate && !checkOutDate) return "Chọn ngày";
+    if (checkInDate && !checkOutDate) return `${checkInDate.day} Th${checkInDate.month}`;
+    if (checkInDate && checkOutDate) {
+      if (checkInDate.month === checkOutDate.month && checkInDate.year === checkOutDate.year) {
+        return `${checkInDate.day} - ${checkOutDate.day} Th${checkInDate.month}`;
+      }
+      return `${checkInDate.day}/${checkInDate.month} - ${checkOutDate.day}/${checkOutDate.month}`;
+    }
+    return "Chọn ngày";
+  }, [checkInDate, checkOutDate]);
 
   const displayAttractions = useMemo(() => {
     if (selectedAttractions.length === 0) return "Điểm vui chơi";
@@ -470,6 +502,26 @@ export default function SearchHub() {
       if (timer) clearTimeout(timer);
     };
   }, [activeTab]);
+
+  const TAB_ORDER: Array<'location' | 'attractions' | 'dates'> = ['location', 'attractions', 'dates'];
+
+  const goNext = () => {
+    if (!activeTab) return;
+    const idx = TAB_ORDER.indexOf(activeTab);
+    if (idx < TAB_ORDER.length - 1) {
+      setActiveTab(TAB_ORDER[idx + 1]!);
+    } else {
+      setActiveTab(null); // last tab → close popover
+    }
+  };
+
+  const goPrev = () => {
+    if (!activeTab) return;
+    const idx = TAB_ORDER.indexOf(activeTab);
+    if (idx > 0) {
+      setActiveTab(TAB_ORDER[idx - 1]!);
+    }
+  };
 
   const closeModal = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -619,6 +671,10 @@ export default function SearchHub() {
       const startStr = `${checkInDate.year}-${String(checkInDate.month).padStart(2, '0')}-${String(checkInDate.day).padStart(2, '0')}`;
       params.append('checkIn', startStr);
     }
+    if (checkOutDate) {
+      const endStr = `${checkOutDate.year}-${String(checkOutDate.month).padStart(2, '0')}-${String(checkOutDate.day).padStart(2, '0')}`;
+      params.append('checkOut', endStr);
+    }
 
     // Build human-friendly label for destination parameter
     const labelParts: string[] = [];
@@ -640,14 +696,20 @@ export default function SearchHub() {
     setActiveTab(null);
   };
 
-  // Render bộ chọn ngày đi mong muốn
+  // Render bộ chọn ngày nhận phòng & trả phòng — hiển thị 2 tháng cạnh nhau
   const renderCalendar = () => {
-    const daysInMonth = new Date(calendarYear, calendarMonth, 0).getDate();
-    const rawFirstDay = new Date(calendarYear, calendarMonth - 1, 1).getDay();
-    const firstDayIndex = (rawFirstDay + 6) % 7;
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    const currentDay = now.getDate();
+
+    // Tháng thứ 2 (tháng kế tiếp tháng 1)
+    const month2 = calendarMonth === 12 ? 1 : calendarMonth + 1;
+    const year2  = calendarMonth === 12 ? calendarYear + 1 : calendarYear;
 
     const handlePrevMonth = (e: React.MouseEvent) => {
       e.stopPropagation();
+      if (calendarYear === currentYear && calendarMonth <= currentMonth) return;
       if (calendarMonth === 1) {
         setCalendarMonth(12);
         setCalendarYear(prev => prev - 1);
@@ -666,107 +728,202 @@ export default function SearchHub() {
       }
     };
 
-    const setQuickDate = (offsetDays: number, e?: React.MouseEvent) => {
+    const setQuickDate = (offsetDays: number, stayNights = 1, e?: React.MouseEvent) => {
       if (e) e.stopPropagation();
-      const d = new Date();
-      d.setDate(d.getDate() + offsetDays);
-      setCheckInDate({ day: d.getDate(), month: d.getMonth() + 1, year: d.getFullYear() });
-      setCalendarMonth(d.getMonth() + 1);
-      setCalendarYear(d.getFullYear());
+      const inDate = new Date();
+      inDate.setDate(inDate.getDate() + offsetDays);
+      const outDate = new Date(inDate);
+      outDate.setDate(outDate.getDate() + stayNights);
+      setCheckInDate({ day: inDate.getDate(), month: inDate.getMonth() + 1, year: inDate.getFullYear() });
+      setCheckOutDate({ day: outDate.getDate(), month: outDate.getMonth() + 1, year: outDate.getFullYear() });
+      setCalendarMonth(inDate.getMonth() + 1);
+      setCalendarYear(inDate.getFullYear());
+      setCalendarTarget('checkIn');
+    };
+
+    const isPrevMonthDisabled = calendarYear === currentYear && calendarMonth <= currentMonth;
+
+    // Helper: render lưới ngày cho 1 tháng bất kỳ
+    const renderMonthGrid = (mon: number, yr: number) => {
+      const daysInMonth = new Date(yr, mon, 0).getDate();
+      const rawFirstDay = new Date(yr, mon - 1, 1).getDay();
+      const firstDayIndex = (rawFirstDay + 6) % 7;
+      const todayStart = new Date(currentYear, currentMonth - 1, currentDay);
+
+      return (
+        <div className="flex flex-col gap-1.5 min-w-0">
+          {/* Tên tháng */}
+          <div className="text-center font-bold text-sm text-[#0a2e26] py-0.5">
+            Tháng {mon}, {yr}
+          </div>
+          {/* Tiêu đề ngày trong tuần */}
+          <div className="grid grid-cols-7 text-center text-[11px] font-bold text-slate-400">
+            {['T2','T3','T4','T5','T6','T7','CN'].map(d => (
+              <div key={d} className="py-1">{d}</div>
+            ))}
+          </div>
+          {/* Lưới ngày */}
+          <div className="grid grid-cols-7 gap-0.5 text-center">
+            {Array.from({ length: firstDayIndex }).map((_, i) => (
+              <div key={`empty-${i}`} className="py-1.5" />
+            ))}
+            {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => {
+              const thisDate  = new Date(yr, mon - 1, d);
+              const isPast    = thisDate < todayStart;
+              const isCheckIn  = checkInDate?.day === d && checkInDate?.month === mon && checkInDate?.year === yr;
+              const isCheckOut = checkOutDate?.day === d && checkOutDate?.month === mon && checkOutDate?.year === yr;
+              const isToday   = currentDay === d && currentMonth === mon && currentYear === yr;
+
+              let inBetween = false;
+              if (checkInDate && checkOutDate) {
+                const start = new Date(checkInDate.year, checkInDate.month - 1, checkInDate.day);
+                const end   = new Date(checkOutDate.year, checkOutDate.month - 1, checkOutDate.day);
+                if (thisDate > start && thisDate < end) inBetween = true;
+              }
+
+              const handleDayClick = (e: React.MouseEvent) => {
+                e.stopPropagation();
+                if (isPast) return;
+
+                if (calendarTarget === 'checkIn') {
+                  setCheckInDate({ day: d, month: mon, year: yr });
+                  if (checkOutDate) {
+                    const selectedIn  = new Date(yr, mon - 1, d);
+                    const currentOut  = new Date(checkOutDate.year, checkOutDate.month - 1, checkOutDate.day);
+                    if (currentOut <= selectedIn) {
+                      const nextD = new Date(selectedIn);
+                      nextD.setDate(nextD.getDate() + 1);
+                      setCheckOutDate({ day: nextD.getDate(), month: nextD.getMonth() + 1, year: nextD.getFullYear() });
+                    }
+                  } else {
+                    const nextD = new Date(yr, mon - 1, d);
+                    nextD.setDate(nextD.getDate() + 1);
+                    setCheckOutDate({ day: nextD.getDate(), month: nextD.getMonth() + 1, year: nextD.getFullYear() });
+                  }
+                  setCalendarTarget('checkOut');
+                } else {
+                  const selectedOut = new Date(yr, mon - 1, d);
+                  if (checkInDate) {
+                    const currentIn = new Date(checkInDate.year, checkInDate.month - 1, checkInDate.day);
+                    if (selectedOut <= currentIn) {
+                      setCheckInDate({ day: d, month: mon, year: yr });
+                      const nextD = new Date(selectedOut);
+                      nextD.setDate(nextD.getDate() + 1);
+                      setCheckOutDate({ day: nextD.getDate(), month: nextD.getMonth() + 1, year: nextD.getFullYear() });
+                      setCalendarTarget('checkOut');
+                      return;
+                    }
+                  }
+                  setCheckOutDate({ day: d, month: mon, year: yr });
+                  setCalendarTarget('checkIn');
+                }
+              };
+
+              return (
+                <button
+                  key={d}
+                  type="button"
+                  disabled={isPast}
+                  onClick={handleDayClick}
+                  className={`py-1.5 text-xs sm:text-sm font-bold rounded-md border transition-all ${
+                    isPast
+                      ? 'border-transparent text-slate-300 opacity-40 cursor-not-allowed pointer-events-none line-through'
+                      : isCheckIn || isCheckOut
+                        ? 'bg-[#048C73] text-white border-[#025a4a] shadow-xs scale-105 cursor-pointer'
+                        : inBetween
+                          ? 'bg-[#edfbf7] text-[#048C73] border-transparent font-semibold cursor-pointer'
+                          : isToday
+                            ? 'border-2 border-[#048c73] text-[#048c73] hover:bg-[#edfbf7] cursor-pointer'
+                            : 'border-transparent text-slate-700 hover:bg-[#edfbf7] hover:border-slate-200 cursor-pointer'
+                  }`}
+                >
+                  {d}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      );
     };
 
     return (
       <div className="flex flex-col gap-3" onClick={(e) => e.stopPropagation()}>
-        {/* Quick select buttons */}
-        <div className="flex items-center gap-2 pb-2 border-b border-slate-100 overflow-x-auto">
+        {/* Nhận / Trả phòng toggle */}
+        <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-lg">
           <button
             type="button"
-            onClick={(e) => setQuickDate(0, e)}
-            className="px-2.5 py-1 text-base font-bold rounded-lg border-2 border-slate-200 hover:border-[#048C73] text-slate-700 hover:text-[#048C73] bg-slate-50 transition-colors cursor-pointer"
+            onClick={(e) => { e.stopPropagation(); setCalendarTarget('checkIn'); }}
+            className={`flex-1 py-1.5 px-3 rounded-md text-xs sm:text-sm font-bold transition-all flex flex-col items-center justify-center cursor-pointer ${
+              calendarTarget === 'checkIn'
+                ? 'bg-white text-[#048C73] shadow-xs border border-slate-200'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
           >
-            Hôm nay
+            <span className="text-[11px] text-slate-400 font-semibold uppercase">Nhận phòng</span>
+            <span>{checkInDate ? `${checkInDate.day} Th${checkInDate.month}, ${checkInDate.year}` : 'Chọn ngày'}</span>
           </button>
           <button
             type="button"
-            onClick={(e) => setQuickDate(1, e)}
-            className="px-2.5 py-1 text-base font-bold rounded-lg border-2 border-slate-200 hover:border-[#048C73] text-slate-700 hover:text-[#048C73] bg-slate-50 transition-colors cursor-pointer"
+            onClick={(e) => { e.stopPropagation(); setCalendarTarget('checkOut'); }}
+            className={`flex-1 py-1.5 px-3 rounded-md text-xs sm:text-sm font-bold transition-all flex flex-col items-center justify-center cursor-pointer ${
+              calendarTarget === 'checkOut'
+                ? 'bg-white text-[#048C73] shadow-xs border border-slate-200'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
           >
-            Ngày mai
-          </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              const d = new Date();
-              const day = d.getDay();
-              const diff = day === 6 ? 0 : (6 - day);
-              setQuickDate(diff, e);
-            }}
-            className="px-2.5 py-1 text-base font-bold rounded-lg border-2 border-amber-200 hover:border-amber-400 text-amber-800 bg-amber-50 transition-colors cursor-pointer"
-          >
-            Thứ Bảy tuần này
+            <span className="text-[11px] text-slate-400 font-semibold uppercase">Trả phòng</span>
+            <span>{checkOutDate ? `${checkOutDate.day} Th${checkOutDate.month}, ${checkOutDate.year}` : 'Chọn ngày'}</span>
           </button>
         </div>
 
-        {/* Month selector header */}
+        {/* Quick select */}
+        <div className="flex items-center gap-2 pb-2 border-b border-slate-100 overflow-x-auto">
+          <button type="button" onClick={(e) => setQuickDate(0, 1, e)}
+            className="px-2.5 py-1 text-xs font-bold rounded-md border-2 border-slate-200 hover:border-[#048C73] text-slate-700 hover:text-[#048C73] bg-slate-50 transition-colors cursor-pointer shrink-0">
+            Hôm nay (1 đêm)
+          </button>
+          <button type="button" onClick={(e) => setQuickDate(1, 1, e)}
+            className="px-2.5 py-1 text-xs font-bold rounded-md border-2 border-slate-200 hover:border-[#048C73] text-slate-700 hover:text-[#048C73] bg-slate-50 transition-colors cursor-pointer shrink-0">
+            Ngày mai (1 đêm)
+          </button>
+          <button type="button" onClick={(e) => {
+            const day = new Date().getDay();
+            setQuickDate(day === 6 ? 0 : (6 - day), 2, e);
+          }}
+            className="px-2.5 py-1 text-xs font-bold rounded-md border-2 border-amber-200 hover:border-amber-400 text-amber-800 bg-amber-50 transition-colors cursor-pointer shrink-0">
+            Cuối tuần (T7 + CN)
+          </button>
+        </div>
+
+        {/* Prev / Next navigation header */}
         <div className="flex items-center justify-between px-1">
-          <button
-            type="button"
-            onClick={handlePrevMonth}
-            className="w-7 h-7 rounded-lg border border-slate-200 hover:border-[#048C73] flex items-center justify-center text-slate-600 hover:text-[#048C73] cursor-pointer"
-          >
+          <button type="button" onClick={handlePrevMonth} disabled={isPrevMonthDisabled}
+            className={`w-7 h-7 rounded-md border flex items-center justify-center transition-colors ${
+              isPrevMonthDisabled
+                ? 'border-slate-100 text-slate-300 cursor-not-allowed'
+                : 'border-slate-200 hover:border-[#048C73] text-slate-600 hover:text-[#048C73] cursor-pointer'
+            }`}>
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <span className="font-bold text-base text-[#0a2e26]">
-            Tháng {calendarMonth}, {calendarYear}
+          <span className="text-xs text-slate-500 font-semibold">
+            <span className="md:hidden">Tháng {calendarMonth}/{calendarYear}</span>
+            <span className="hidden md:inline">Tháng {calendarMonth}/{calendarYear} – Tháng {month2}/{year2}</span>
           </span>
-          <button
-            type="button"
-            onClick={handleNextMonth}
-            className="w-7 h-7 rounded-lg border border-slate-200 hover:border-[#048C73] flex items-center justify-center text-slate-600 hover:text-[#048C73] cursor-pointer"
-          >
+          <button type="button" onClick={handleNextMonth}
+            className="w-7 h-7 rounded-md border border-slate-200 hover:border-[#048C73] flex items-center justify-center text-slate-600 hover:text-[#048C73] cursor-pointer">
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Days of week header */}
-        <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold text-slate-400">
-          {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map(d => (
-            <div key={d} className="py-1">{d}</div>
-          ))}
-        </div>
-
-        {/* Calendar days grid */}
-        <div className="grid grid-cols-7 gap-1 text-center">
-          {Array.from({ length: firstDayIndex }).map((_, i) => (
-            <div key={`empty-${i}`} className="py-1.5" />
-          ))}
-          {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => {
-            const isSelected = checkInDate?.day === d && checkInDate?.month === calendarMonth && checkInDate?.year === calendarYear;
-            const isToday = new Date().getDate() === d && (new Date().getMonth() + 1) === calendarMonth && new Date().getFullYear() === calendarYear;
-            return (
-              <button
-                key={d}
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setCheckInDate({ day: d, month: calendarMonth, year: calendarYear });
-                }}
-                className={`py-1.5 text-base font-bold rounded-lg border transition-all cursor-pointer ${
-                  isSelected
-                    ? 'bg-[#048C73] text-white border-2 border-[#025a4a] shadow-xs scale-105'
-                    : isToday
-                      ? 'border-2 border-[#048c73] text-[#048c73] hover:bg-[#edfbf7]'
-                      : 'border-transparent text-slate-700 hover:bg-[#edfbf7] hover:border-slate-200'
-                }`}
-              >
-                {d}
-              </button>
-            );
-          })}
+        {/* Lưới lịch: Mobile hiển thị 1 tháng gọn gàng, Desktop hiển thị 2 tháng song song */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 md:divide-x md:divide-slate-100">
+          <div>{renderMonthGrid(calendarMonth, calendarYear)}</div>
+          <div className="hidden md:block md:pl-4">{renderMonthGrid(month2, year2)}</div>
         </div>
       </div>
     );
   };
+
 
   return (
     <div 
@@ -775,9 +932,9 @@ export default function SearchHub() {
     >
       {/* ---------------- KHU VỰC TÌM KIẾM GỐC TRÊN TRANG (GIỮ NGUYÊN KHI CHƯA CUỘN) ---------------- */}
       <div className={`w-full flex flex-col md:flex-row items-stretch md:items-center gap-2 md:gap-2.5 p-2 sm:p-2.5 rounded-xl bg-white/95 backdrop-blur-md shadow-xl border border-white/80 transition-opacity duration-200 text-left ${isSticky ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-        {/* BỘ LỌC ĐỊA ĐIỂM & NGÀY ĐI (3 CỘT GỘP) */}
+        {/* BỘ LỌC ĐỊA ĐIỂM & NGÀY ĐI (3 CỘT) */}
         <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
-          {/* Cột 1: Thành phố & Khu vực (GỘP) */}
+          {/* Cột 1: Thành phố & Khu vực */}
           <div 
             className={`bg-white rounded-lg shadow-xs border-2 px-3 sm:px-3.5 h-[52px] sm:h-[58px] flex items-center gap-2.5 cursor-pointer transition-all relative ${
               activeTab === 'location' 
@@ -791,12 +948,12 @@ export default function SearchHub() {
               <span className="text-xs font-bold text-[#66716c] uppercase tracking-wider mb-0.5 truncate">
                 Thành phố &amp; Khu vực
               </span>
-              <span className="text-base font-bold text-[#0a2e26] truncate">
+              <span className="text-sm sm:text-base font-bold text-[#0a2e26] truncate">
                 {selectedWard
                   ? `${selectedWard}, ${selectedDistrict || selectedProvince}`
                   : selectedDistrict
                     ? `${selectedDistrict}, ${selectedProvince}`
-                    : (selectedProvince || "Chọn điểm đến / tỉnh thành")}
+                    : (selectedProvince || "Chọn điểm đến")}
               </span>
             </div>
           </div>
@@ -820,7 +977,7 @@ export default function SearchHub() {
                   </span>
                 )}
               </span>
-              <span className="text-base font-bold text-[#0a2e26] truncate">
+              <span className="text-sm sm:text-base font-bold text-[#0a2e26] truncate">
                 {selectedAttractions.length === 0
                   ? "Chọn điểm đến"
                   : selectedAttractions.length === 1
@@ -830,7 +987,7 @@ export default function SearchHub() {
             </div>
           </div>
 
-          {/* Cột 3: Ngày đi mong muốn */}
+          {/* Cột 3: Ngày nhận & trả phòng */}
           <div 
             className={`bg-white rounded-lg shadow-xs border-2 px-3 sm:px-3.5 h-[52px] sm:h-[58px] flex items-center gap-2.5 cursor-pointer transition-all relative ${
               activeTab === 'dates' 
@@ -842,20 +999,21 @@ export default function SearchHub() {
             <Calendar className="text-[#048c73] w-5 h-5 shrink-0" />
             <div className="flex flex-col justify-center min-w-0 flex-1">
               <span className="text-xs font-bold text-[#66716c] uppercase tracking-wider mb-0.5 truncate">
-                Ngày đi mong muốn
+                Nhận - Trả phòng
               </span>
-              <span className="text-base font-bold text-[#0a2e26] truncate">
-                {checkInDate ? `${checkInDate.day} Th${checkInDate.month}, ${checkInDate.year}` : "Chọn ngày đi"}
+              <span className="text-sm sm:text-base font-bold text-[#0a2e26] truncate">
+                {displayDate}
               </span>
             </div>
           </div>
+
         </div>
 
         {/* Nút Tìm kiếm */}
         <div className="flex items-center shrink-0">
           <Button 
             onClick={handleSearch}
-            className="h-[52px] sm:h-[58px] px-7 sm:px-8 bg-[#048c73] hover:bg-[#03725e] text-white font-bold rounded-lg border-2 border-[#025a4a] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all active:scale-95 flex items-center justify-center gap-2 text-[15px] sm:text-[16px] cursor-pointer w-full md:w-auto"
+            className="h-[52px] sm:h-[58px] px-6 sm:px-8 bg-[#048c73] hover:bg-[#03725e] text-white font-bold rounded-lg border-2 border-[#025a4a] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all active:scale-95 flex items-center justify-center gap-2 text-[15px] sm:text-[16px] cursor-pointer w-full md:w-auto"
           >
             <Search className="w-5 h-5 text-[#7ef2dd]" strokeWidth={2.5} />
             Tìm kiếm
@@ -977,7 +1135,7 @@ export default function SearchHub() {
                   </div>
                 </div>
 
-                {/* Cột 3: Ngày đi mong muốn */}
+                {/* Cột 3: Ngày nhận & trả phòng */}
                 <div 
                   onClick={() => setActiveTab(activeTab === 'dates' ? null : 'dates')}
                   className={`bg-white rounded-lg shadow-2xs border-2 px-3 h-[48px] flex items-center gap-2.5 cursor-pointer transition-all ${
@@ -989,13 +1147,14 @@ export default function SearchHub() {
                   <Calendar className="text-[#048c73] w-4.5 h-4.5 shrink-0" />
                   <div className="flex flex-col justify-center min-w-0 flex-1 text-left">
                     <span className="text-[10px] font-bold text-[#66716c] uppercase tracking-wider leading-none mb-0.5 truncate">
-                      Ngày đi mong muốn
+                      Nhận - Trả phòng
                     </span>
                     <span className="text-sm font-bold text-[#0a2e26] truncate">
-                      {checkInDate ? `${checkInDate.day} Th${checkInDate.month}, ${checkInDate.year}` : "Chọn ngày đi"}
+                      {displayDate}
                     </span>
                   </div>
                 </div>
+
               </div>
 
               {/* Nút Tìm kiếm */}
@@ -1023,40 +1182,33 @@ export default function SearchHub() {
           } bg-white rounded-lg border border-gray-200 p-4 z-[100] flex-col gap-3.5 animate-in fade-in slide-in-from-top-2 duration-200`}
           onClick={stopPropagation}
         >
-          {/* Header Switcher: 3 Tabs (Chia đều 3 thẻ chọn 1/3 - 1/3 - 1/3) */}
+          {/* Header Switcher: 3 Tabs */}
           <div className="flex items-center justify-between border-b border-gray-100 pb-2.5 gap-3">
             <div className="grid grid-cols-3 gap-1.5 p-1 bg-gray-100 rounded-md flex-1">
               <button
                 type="button"
                 onClick={() => setActiveTab('location')}
-                className={`py-2 px-2.5 text-xs sm:text-sm font-bold rounded transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center truncate ${
+                className={`py-2 px-2 text-xs sm:text-sm font-bold rounded transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center truncate ${
                   activeTab === 'location' 
                     ? 'bg-white text-[#048c73] shadow-xs' 
                     : 'text-gray-600 hover:text-gray-900 hover:bg-white/60'
                 }`}
               >
                 <MapPin className="w-4 h-4 text-[#048c73] shrink-0" />
-                <span className="truncate">1. Thành phố &amp; Khu vực</span>
-                {selectedWard ? (
-                  <span className="text-[11px] text-[#048c73] font-normal shrink-0">({selectedWard})</span>
-                ) : selectedDistrict ? (
-                  <span className="text-[11px] text-[#048c73] font-normal shrink-0">({selectedDistrict})</span>
-                ) : selectedProvince ? (
-                  <span className="text-[11px] text-[#048c73] font-normal shrink-0">({selectedProvince})</span>
-                ) : null}
+                <span className="truncate">1. Điểm đến</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab('attractions')}
-                className={`py-2 px-2.5 text-xs sm:text-sm font-bold rounded transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center truncate ${
+                className={`py-2 px-2 text-xs sm:text-sm font-bold rounded transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center truncate ${
                   activeTab === 'attractions' 
                     ? 'bg-white text-[#048c73] shadow-xs' 
                     : 'text-gray-600 hover:text-gray-900 hover:bg-white/60'
                 }`}
               >
                 <Sparkles className="w-4 h-4 text-[#f59e0b] shrink-0" />
-                <span className="truncate">2. Điểm vui chơi</span>
+                <span className="truncate">2. Vui chơi</span>
                 {selectedAttractions.length > 0 && (
                   <span className="bg-[#f59e0b] text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold shrink-0">
                     {selectedAttractions.length}
@@ -1067,7 +1219,7 @@ export default function SearchHub() {
               <button
                 type="button"
                 onClick={() => setActiveTab('dates')}
-                className={`py-2 px-2.5 text-xs sm:text-sm font-bold rounded transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center truncate ${
+                className={`py-2 px-2 text-xs sm:text-sm font-bold rounded transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center truncate ${
                   activeTab === 'dates' 
                     ? 'bg-white text-[#048c73] shadow-xs' 
                     : 'text-gray-600 hover:text-gray-900 hover:bg-white/60'
@@ -1075,29 +1227,44 @@ export default function SearchHub() {
               >
                 <Calendar className="w-4 h-4 text-[#048c73] shrink-0" />
                 <span className="truncate">3. Ngày đi</span>
-                {checkInDate && (
-                  <span className="text-[11px] text-[#048c73] font-normal shrink-0">
-                    ({checkInDate.day}/{checkInDate.month})
-                  </span>
-                )}
               </button>
             </div>
 
-            {/* Nút đặt lại lựa chọn nếu có */}
-            {(selectedDistrict || selectedWard || selectedAttractions.length > 0 || checkInDate) && (
+            {/* Prev / Reset / Next navigation */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              {(selectedDistrict || selectedWard || selectedAttractions.length > 0 || checkInDate) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedDistrict(null);
+                    setSelectedWard(null);
+                    setSelectedAttractions([]);
+                  }}
+                  className="text-[11px] font-semibold text-gray-400 hover:text-red-500 cursor-pointer shrink-0 whitespace-nowrap px-2 py-1 rounded hover:bg-red-50 transition-colors"
+                >
+                  Đặt lại
+                </button>
+              )}
+              {/* Prev arrow */}
               <button
                 type="button"
-                onClick={() => {
-                  setSelectedDistrict(null);
-                  setSelectedWard(null);
-                  setSelectedAttractions([]);
-                  setCheckInDate(null);
-                }}
-                className="text-xs font-semibold text-gray-400 hover:text-red-500 cursor-pointer shrink-0 whitespace-nowrap"
+                onClick={goPrev}
+                disabled={activeTab === 'location'}
+                title="Quay lại"
+                className="w-7 h-7 rounded-md border border-gray-200 flex items-center justify-center text-gray-500 hover:border-[#048c73] hover:text-[#048c73] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
               >
-                Bỏ chọn lọc
+                <ChevronLeft className="w-3.5 h-3.5" />
               </button>
-            )}
+              {/* Next arrow */}
+              <button
+                type="button"
+                onClick={goNext}
+                title={activeTab === 'dates' ? 'Hoàn tất' : 'Tiếp theo'}
+                className="w-7 h-7 rounded-md border border-[#048c73] bg-[#048c73] flex items-center justify-center text-white hover:bg-[#03725e] transition-colors cursor-pointer shadow-xs"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
 
           {/* TAB 1: THÀNH PHỐ & KHU VỰC (GỘP THÀNH 1 PANEL ĐA NĂNG) */}
@@ -1265,10 +1432,12 @@ export default function SearchHub() {
 
                 <div className="pt-2 border-t border-gray-100 flex justify-end">
                   <button
-                    onClick={() => setActiveTab('attractions')}
-                    className="text-xs font-bold text-[#048c73] hover:text-[#03725e] flex items-center gap-1 cursor-pointer"
+                    type="button"
+                    onClick={goNext}
+                    className="flex items-center gap-1 text-xs font-bold text-[#048c73] hover:text-[#03725e] cursor-pointer transition-colors"
                   >
-                    Tiếp tục: Chọn điểm vui chơi &rarr;
+                    Tiếp: Vui chơi
+                    <ChevronRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
@@ -1368,29 +1537,34 @@ export default function SearchHub() {
                     ? `Sẽ tìm homestay quanh ${selectedAttractions.length} điểm vui chơi đã chọn.` 
                     : 'Có thể chọn nhiều địa điểm vui chơi cùng lúc.'}
                 </span>
-                <Button
-                  className="bg-[#048c73] hover:bg-[#03725e] text-white text-base font-bold px-4 py-1.5 h-auto rounded-md border-2 border-[#025a4a] cursor-pointer"
-                  onClick={() => setActiveTab(null)}
+                <button
+                  type="button"
+                  onClick={goNext}
+                  className="flex items-center gap-1.5 text-xs font-bold text-[#048c73] hover:text-[#03725e] cursor-pointer transition-colors"
                 >
-                  Xác nhận điểm đến
-                </Button>
+                  Tiếp: Chọn ngày
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
           )}
 
-          {/* TAB 3: NGÀY ĐI MONG MUỐN */}
+          {/* TAB 3: NGÀY NHẬN & TRẢ PHÒNG */}
           {activeTab === 'dates' && (
             <div className="flex flex-col gap-2.5">
               {renderCalendar()}
               <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
                 <span className="text-xs text-gray-500">
-                  {checkInDate ? `Ngày đã chọn: ${checkInDate.day}/${checkInDate.month}/${checkInDate.year}` : 'Chọn một ngày mong muốn để tìm phòng sẵn sàng.'}
+                  {checkInDate && checkOutDate 
+                    ? `Đã chọn: ${checkInDate.day}/${checkInDate.month}/${checkInDate.year} – ${checkOutDate.day}/${checkOutDate.month}/${checkOutDate.year}` 
+                    : 'Chọn ngày nhận và trả phòng.'}
                 </span>
                 <Button
-                  className="bg-[#048c73] hover:bg-[#03725e] text-white text-base font-bold px-4 py-1.5 h-auto rounded-md border-2 border-[#025a4a] cursor-pointer"
-                  onClick={() => setActiveTab(null)}
+                  className="bg-[#048c73] hover:bg-[#03725e] text-white text-sm font-bold px-5 py-1.5 h-auto rounded-md border-2 border-[#025a4a] cursor-pointer flex items-center gap-1.5"
+                  onClick={handleSearch}
                 >
-                  Xong
+                  <Search className="w-3.5 h-3.5 text-[#7ef2dd]" />
+                  Tìm kiếm
                 </Button>
               </div>
             </div>
@@ -1424,15 +1598,15 @@ export default function SearchHub() {
             <div className="grid grid-cols-3 gap-1 p-2 bg-gray-100 border-b border-gray-200">
               <button
                 onClick={() => setActiveTab('location')}
-                className={`py-1.5 text-xs font-bold rounded text-center transition-all ${
+                className={`py-1.5 text-xs font-bold rounded text-center transition-all truncate ${
                   activeTab === 'location' ? 'bg-white text-[#048c73] shadow-xs' : 'text-gray-600'
                 }`}
               >
-                1. Điểm đến &amp; Khu vực
+                1. Điểm đến
               </button>
               <button
                 onClick={() => setActiveTab('attractions')}
-                className={`py-1.5 text-xs font-bold rounded text-center transition-all ${
+                className={`py-1.5 text-xs font-bold rounded text-center transition-all truncate ${
                   activeTab === 'attractions' ? 'bg-white text-[#048c73] shadow-xs' : 'text-gray-600'
                 }`}
               >
@@ -1440,7 +1614,7 @@ export default function SearchHub() {
               </button>
               <button
                 onClick={() => setActiveTab('dates')}
-                className={`py-1.5 text-xs font-bold rounded text-center transition-all ${
+                className={`py-1.5 text-xs font-bold rounded text-center transition-all truncate ${
                   activeTab === 'dates' ? 'bg-white text-[#048c73] shadow-xs' : 'text-gray-600'
                 }`}
               >
@@ -1629,34 +1803,47 @@ export default function SearchHub() {
                 </div>
               )}
 
-              {/* Tab 5: Ngày đi */}
+              {/* Tab 3: Ngày nhận & trả phòng */}
               {activeTab === 'dates' && (
                 <div className="flex flex-col gap-2">
-                  <span className="text-base font-bold text-gray-700">Chọn ngày bạn dự định khởi hành:</span>
+                  <span className="text-sm font-bold text-gray-700">Chọn khoảng ngày nhận phòng &amp; trả phòng:</span>
                   {renderCalendar()}
                 </div>
               )}
             </div>
 
             <div className="p-3 border-t border-gray-100 flex items-center justify-between gap-2 shrink-0 bg-white">
-              <span className="text-xs sm:text-sm text-gray-600 truncate flex-1">
-                {selectedAttractions.length > 0 ? `${selectedAttractions.length} điểm đã chọn` : (checkInDate ? `Ngày: ${checkInDate.day}/${checkInDate.month}/${checkInDate.year}` : 'Toàn bộ địa điểm')}
+              <span className="text-xs text-gray-600 truncate flex-1">
+                {displayDate}
               </span>
               <div className="flex items-center gap-2 shrink-0">
-                <Button
-                  variant="outline"
-                  className="text-xs font-semibold px-3 py-1.5 h-9 rounded-md border-gray-300 text-gray-700 hover:bg-gray-100 cursor-pointer"
-                  onClick={closeModal}
+                {/* Prev arrow */}
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); goPrev(); }}
+                  disabled={activeTab === 'location'}
+                  className="w-8 h-8 rounded-md border border-gray-200 flex items-center justify-center text-gray-500 hover:border-[#048c73] hover:text-[#048c73] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                 >
-                  Đóng
-                </Button>
-                <Button
-                  className="bg-[#048c73] hover:bg-[#03725e] text-white text-xs font-bold px-4 py-1.5 h-9 rounded-md border-2 border-[#025a4a] shadow-xs active:scale-95 flex items-center gap-1.5 cursor-pointer"
-                  onClick={handleSearch}
-                >
-                  <Search className="w-3.5 h-3.5 text-[#7ef2dd]" />
-                  Tìm kiếm
-                </Button>
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                {/* Next arrow or Search on last tab */}
+                {activeTab === 'dates' ? (
+                  <Button
+                    className="bg-[#048c73] hover:bg-[#03725e] text-white text-xs font-bold px-4 py-1.5 h-8 rounded-md border-2 border-[#025a4a] shadow-xs active:scale-95 flex items-center gap-1.5 cursor-pointer"
+                    onClick={handleSearch}
+                  >
+                    <Search className="w-3.5 h-3.5 text-[#7ef2dd]" />
+                    Tìm
+                  </Button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); goNext(); }}
+                    className="w-8 h-8 rounded-md border border-[#048c73] bg-[#048c73] flex items-center justify-center text-white hover:bg-[#03725e] transition-colors cursor-pointer shadow-xs"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             </div>
           </div>

@@ -4,7 +4,8 @@ import { fetchFestivalByIdOrSlug } from '@/services/festivalService';
 import { FestivalDto } from '@/types/festival';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import OpenStreetMapView, { OsmMarkerItem } from '@/components/map/OpenStreetMapView';
+import VietmapView from '@/components/map/VietmapView';
+import type { VietmapMarkerItem } from '@/types/integrations/vietmap';
 import {
   Calendar,
   MapPin,
@@ -220,8 +221,8 @@ export default function FestivalDetailPage() {
     ]
   };
 
-  // Markers cho Leaflet OpenStreetMap
-  const markers: OsmMarkerItem[] = [
+  // Markers cho VietMap
+  const markers: VietmapMarkerItem[] = [
     {
       id: festival.id,
       name: festival.name,
@@ -484,16 +485,16 @@ export default function FestivalDetailPage() {
             </div>
           </div>
 
-          {/* 5. Tọa độ & Bản đồ OpenStreetMap */}
+          {/* 5. Tọa độ & Bản đồ VietMap */}
           <div className="bg-white rounded-lg border border-gray-200 p-5 md:p-6 shadow-xs">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-gray-100">
               <div>
                 <h2 className="text-lg md:text-xl font-bold text-[var(--color-ink-deep)] flex items-center gap-2">
                   <MapIcon className="w-5 h-5 text-[var(--color-primary)]" />
-                  Vị Trí & Bản Đồ Đi Lại (Street Map)
+                  Vị Trí & Bản Đồ Đi Lại (VietMap)
                 </h2>
                 <p className="text-xs text-[var(--color-muted)] mt-0.5">
-                  Định vị chính xác không gian tổ chức trên nền tảng bản đồ OpenStreetMap
+                  Định vị chính xác không gian tổ chức trên nền tảng bản đồ số VietMap
                 </p>
               </div>
 
@@ -525,9 +526,9 @@ export default function FestivalDetailPage() {
               </div>
             </div>
 
-            {/* OpenStreetMap Interactive Container */}
+            {/* VietMap Interactive Container */}
             <div className="w-full h-[320px] md:h-[400px] rounded-lg overflow-hidden border border-gray-200 relative">
-              <OpenStreetMapView
+              <VietmapView
                 centerLat={geoInfo.lat}
                 centerLng={geoInfo.lng}
                 zoomLevel={14}

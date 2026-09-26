@@ -44,7 +44,8 @@ import { HomestayDetailDto, RoomTypeDto, NearbyPlaceDto, HomestayDto } from '@/t
 import { BookedDateRangeDto } from '@/types/booking';
 import { ReviewDto } from '@/types/review';
 import { Button } from '@/components/ui/button';
-import OpenStreetMapView, { OsmMarkerItem } from '@/components/map/OpenStreetMapView';
+import VietmapView from '@/components/map/VietmapView';
+import type { VietmapMarkerItem } from '@/types/integrations/vietmap';
 import RoomBookingCard from '@/components/homestay/RoomBookingCard';
 import { TikTokEmbed } from '@/components/homestay/TikTokEmbed';
 
@@ -55,7 +56,7 @@ function extractTikTokVideoId(url: string): string | null {
   return (match && match[1]) ? match[1] : null;
 }
 
-// Helper tính khoảng cách Haversine chính xác theo OpenStreetMap / GPS tọa độ
+// Helper tính khoảng cách Haversine chính xác theo tọa độ GPS
 function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371; // Earth radius in km
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -79,7 +80,7 @@ export default function HomestayDetailPage() {
 
   // Modals
   const [showAmenitiesModal, setShowAmenitiesModal] = useState(false);
-  const [showOsmModal, setShowOsmModal] = useState(false);
+  const [showMapModal, setShowMapModal] = useState(false);
   const [interactionModal, setInteractionModal] = useState<{ isOpen: boolean; type: 'share' | 'heart' | null }>({
     isOpen: false,
     type: null,
@@ -236,11 +237,11 @@ export default function HomestayDetailPage() {
     });
   }, [processedNearbyPlaces, nearbyCategory]);
 
-  // Markers for OpenStreetMapView modal
-  const mapMarkers = useMemo<OsmMarkerItem[]>(() => {
+  // Markers for VietmapView modal
+  const mapMarkers = useMemo<VietmapMarkerItem[]>(() => {
     if (!homestay) return [];
 
-    const list: OsmMarkerItem[] = [
+    const list: VietmapMarkerItem[] = [
       {
         id: `homestay-${homestay.id}`,
         name: homestay.name,
@@ -364,7 +365,7 @@ export default function HomestayDetailPage() {
               <span>{homestay.address || homestay.district}</span>
               <span className="text-slate-300">·</span>
               <button
-                onClick={() => setShowOsmModal(true)}
+                onClick={() => setShowMapModal(true)}
                 className="text-[#048c73] font-semibold hover:underline cursor-pointer flex items-center gap-1"
               >
                 <MapIcon className="w-4 h-4" /> Xem bản đồ
@@ -641,7 +642,7 @@ export default function HomestayDetailPage() {
                   <div
                     onClick={() => {
                       setSelectedMapTarget({ lat: item.latitude, lng: item.longitude, zoom: 16 });
-                      setShowOsmModal(true);
+                      setShowMapModal(true);
                     }}
                     className="flex items-center justify-between cursor-pointer"
                   >
@@ -720,7 +721,7 @@ export default function HomestayDetailPage() {
                       type="button"
                       onClick={() => {
                         setSelectedMapTarget({ lat: item.latitude, lng: item.longitude, zoom: 16 });
-                        setShowOsmModal(true);
+                        setShowMapModal(true);
                       }}
                       className="text-xs md:text-sm font-semibold text-[#048c73] hover:underline flex items-center gap-0.5 ml-auto cursor-pointer"
                     >
@@ -736,18 +737,18 @@ export default function HomestayDetailPage() {
             )}
           </div>
 
-          {/* NÚT MỞ BẢN ĐỒ OPENSTREETMAP Ở DƯỚI ĐỊA ĐIỂM XUNG QUANH */}
+          {/* NÚT MỞ BẢN ĐỒ VIETMAP Ở DƯỚI ĐỊA ĐIỂM XUNG QUANH */}
           <div className="pt-1 flex justify-center">
             <Button
               onClick={() => {
                 setSelectedMapTarget(null);
-                setShowOsmModal(true);
+                setShowMapModal(true);
               }}
               variant="outline"
               className="rounded-md font-bold text-sm flex items-center gap-2 px-6 py-2.5 border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary-50)]"
             >
               <MapIcon className="w-4 h-4" />
-              Mở bản đồ OpenStreetMap toàn cảnh ({filteredNearbyPlaces.length} địa điểm)
+              Mở bản đồ VietMap toàn cảnh ({filteredNearbyPlaces.length} địa điểm)
             </Button>
           </div>
         </div>
@@ -951,19 +952,19 @@ export default function HomestayDetailPage() {
 
       </div>
 
-      {/* MODAL OPENSTREETMAP TOÀN CẢNH */}
-      {showOsmModal && (
+      {/* MODAL VIETMAP TOÀN CẢNH */}
+      {showMapModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
           <div className="bg-white rounded-lg max-w-4xl w-full h-[85vh] p-4 md:p-5 shadow-xl relative flex flex-col border border-gray-200">
             <div className="flex items-center justify-between pb-3 border-b border-gray-200 mb-3">
               <div className="flex items-center gap-2">
                 <MapIcon className="w-5 h-5 text-[var(--color-primary)]" />
                 <h3 className="text-base md:text-lg font-bold text-[var(--color-ink-deep)]">
-                  Bản đồ OpenStreetMap: {homestay.name} & Địa điểm xung quanh
+                  Bản đồ VietMap: {homestay.name} & Địa điểm xung quanh
                 </h3>
               </div>
               <button
-                onClick={() => setShowOsmModal(false)}
+                onClick={() => setShowMapModal(false)}
                 className="p-1.5 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100 transition-colors cursor-pointer"
                 aria-label="Đóng"
               >
@@ -995,7 +996,7 @@ export default function HomestayDetailPage() {
 
             {/* Map Canvas */}
             <div className="flex-1 rounded-md overflow-hidden border border-gray-200 relative">
-              <OpenStreetMapView
+              <VietmapView
                 centerLat={selectedMapTarget?.lat || homestay.latitude || 21.85}
                 centerLng={selectedMapTarget?.lng || homestay.longitude || 104.08}
                 zoomLevel={selectedMapTarget?.zoom || 14}
@@ -1009,7 +1010,7 @@ export default function HomestayDetailPage() {
                 variant="outline"
                 size="sm"
                 className="rounded-md"
-                onClick={() => setShowOsmModal(false)}
+                onClick={() => setShowMapModal(false)}
               >
                 Đóng bản đồ
               </Button>

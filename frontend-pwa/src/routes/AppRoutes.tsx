@@ -14,7 +14,6 @@ import {
   BookingPage,
   UserBookingListPage,
   UserBookingDetailPage,
-  ExperienceDetailPage,
   CultureFestivalPage,
   FestivalDetailPage,
   DestinationListPage,
@@ -92,11 +91,6 @@ export function AppRoutes() {
       <Route path="homestay/:slug/check-rooms" element={<RoomAvailabilityPage />} />
       <Route path="homestay/:slug/map" element={<FullScreenMapPage />} />
       <Route path="map" element={<FullScreenMapPage />} />
-
-      {/* Local Cultural Experience Routes */}
-      <Route path="experience" element={<ExperienceDetailPage />} />
-      <Route path="experience/:slug" element={<ExperienceDetailPage />} />
-      <Route path="trai-nghiem/:slug" element={<ExperienceDetailPage />} />
 
       {/* UC-08 & UC-10: Admin & NCC Partner Portal Login, Dashboards & Homestay Management */}
       <Route path="admin/login" element={<PortalLoginPage />} />

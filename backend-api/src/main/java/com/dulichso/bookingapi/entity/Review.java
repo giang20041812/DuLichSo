@@ -23,6 +23,10 @@ public class Review {
     private Byte rating;
     @Column(columnDefinition = "TEXT")
     private String content;
+
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    @Column(columnDefinition = "json")
+    private java.util.List<String> images;
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

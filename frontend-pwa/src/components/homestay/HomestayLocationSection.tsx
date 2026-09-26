@@ -30,7 +30,7 @@ export default function HomestayLocationSection({
         onClick={() => navigate(`/homestay/${slug}/map`)}
         className="relative h-44 sm:h-48 w-full rounded-2xl overflow-hidden border border-slate-200/90 shadow-xs cursor-pointer group bg-emerald-50"
       >
-        {/* Stylized Mountainous Map Graphic / OSM Layer Preview */}
+        {/* Stylized Mountainous Map Graphic / Map Layer Preview */}
         <div className="absolute inset-0 bg-[radial-gradient(#a7f3d0_1px,transparent_1px)] [background-size:16px_16px] bg-emerald-50/80 flex items-center justify-center">
           <div className="absolute inset-0 opacity-40 bg-gradient-to-tr from-emerald-200 via-teal-100 to-sky-100" />
           

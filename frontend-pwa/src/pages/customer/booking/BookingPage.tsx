@@ -37,9 +37,10 @@ import { getCurrentCustomer } from '@/services/authService';
 import { NearbyPlaceDto } from '@/types/homestay';
 import { Button } from '@/components/ui/button';
 import { VietTrackLogoMark } from '@/components/ui/logo';
-import OpenStreetMapView, { OsmMarkerItem } from '@/components/map/OpenStreetMapView';
+import VietmapView from '@/components/map/VietmapView';
+import type { VietmapMarkerItem } from '@/types/integrations/vietmap';
 
-// Helper tính khoảng cách Haversine chuẩn theo tọa độ GPS/OSM
+// Helper tính khoảng cách Haversine chuẩn theo tọa độ GPS
 function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371; // Bán kính Trái Đất (km)
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -216,7 +217,7 @@ export default function BookingPage() {
   const [radius, setRadius] = useState<number>(10);
   const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlaceDto[]>([]);
   const [nearbyCategory, setNearbyCategory] = useState<'ALL' | 'ATTRACTION' | 'FOOD' | 'TRANSPORT'>('ALL');
-  const [showOsmModal, setShowOsmModal] = useState<boolean>(false);
+  const [showMapModal, setShowMapModal] = useState<boolean>(false);
   const [selectedMapTarget, setSelectedMapTarget] = useState<{ lat: number; lng: number; zoom: number } | null>(null);
 
   // Modal thêm nhanh ghi chú khi add dịch vụ quanh đây
@@ -275,9 +276,9 @@ export default function BookingPage() {
     });
   }, [processedNearbyPlaces, nearbyCategory]);
 
-  // Markers cho modal OpenStreetMap
-  const mapMarkers = useMemo<OsmMarkerItem[]>(() => {
-    const list: OsmMarkerItem[] = [
+  // Markers cho modal VietMap
+  const mapMarkers = useMemo<VietmapMarkerItem[]>(() => {
+    const list: VietmapMarkerItem[] = [
       {
         id: `homestay-${roomInfo.placeId}`,
         name: roomInfo.placeName,
@@ -1082,7 +1083,7 @@ export default function BookingPage() {
                                   const targetLat = item.latitude ?? roomInfo.latitude ?? 21.5833;
                                   const targetLng = item.longitude ?? roomInfo.longitude ?? 104.1833;
                                   setSelectedMapTarget({ lat: targetLat, lng: targetLng, zoom: 16 });
-                                  setShowOsmModal(true);
+                                  setShowMapModal(true);
                                 }}
                                 className="text-[11px] font-semibold text-gray-500 hover:text-[var(--color-primary)] flex items-center gap-1 cursor-pointer transition-colors"
                               >
@@ -1121,19 +1122,19 @@ export default function BookingPage() {
                     )}
                   </div>
 
-                  {/* Nút mở bản đồ OpenStreetMap toàn cảnh */}
+                  {/* Nút mở bản đồ VietMap toàn cảnh */}
                   <div className="pt-2 flex justify-center">
                     <Button
                       type="button"
                       onClick={() => {
                         setSelectedMapTarget(null);
-                        setShowOsmModal(true);
+                        setShowMapModal(true);
                       }}
                       variant="outline"
                       className="rounded-md font-bold text-xs md:text-sm flex items-center gap-2 px-5 py-2 border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary-50)] cursor-pointer"
                     >
                       <MapIcon className="w-4 h-4" />
-                      Mở bản đồ OpenStreetMap toàn cảnh ({filteredNearbyPlaces.length} địa điểm)
+                      Mở bản đồ VietMap toàn cảnh ({filteredNearbyPlaces.length} địa điểm)
                     </Button>
                   </div>
                 </div>
@@ -1740,20 +1741,20 @@ export default function BookingPage() {
         </div>
       )}
 
-      {/* ================= MODAL OPENSTREETMAP TOÀN CẢNH ================= */}
-      {showOsmModal && (
+      {/* ================= MODAL VIETMAP TOÀN CẢNH ================= */}
+      {showMapModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
           <div className="bg-white rounded-lg max-w-4xl w-full h-[85vh] p-4 md:p-5 shadow-2xl flex flex-col border border-gray-200 relative">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-3">
               <div className="flex items-center gap-2">
                 <MapIcon className="w-5 h-5 text-[var(--color-primary)]" />
                 <h3 className="font-bold text-base md:text-lg text-[var(--color-ink-deep)]">
-                  Bản đồ OpenStreetMap xung quanh {roomInfo.placeName}
+                  Bản đồ VietMap xung quanh {roomInfo.placeName}
                 </h3>
               </div>
               <button
                 type="button"
-                onClick={() => setShowOsmModal(false)}
+                onClick={() => setShowMapModal(false)}
                 className="p-1 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
@@ -1776,9 +1777,9 @@ export default function BookingPage() {
               </div>
             </div>
 
-            {/* Khung bản đồ OSM */}
+            {/* Khung bản đồ VietMap */}
             <div className="flex-1 rounded-md overflow-hidden border border-gray-200 relative">
-              <OpenStreetMapView
+              <VietmapView
                 centerLat={selectedMapTarget?.lat || roomInfo.latitude || 21.85}
                 centerLng={selectedMapTarget?.lng || roomInfo.longitude || 104.08}
                 zoomLevel={selectedMapTarget?.zoom || 14}
@@ -1792,7 +1793,7 @@ export default function BookingPage() {
                 variant="outline"
                 size="sm"
                 className="rounded-md cursor-pointer"
-                onClick={() => setShowOsmModal(false)}
+                onClick={() => setShowMapModal(false)}
               >
                 Đóng bản đồ
               </Button>

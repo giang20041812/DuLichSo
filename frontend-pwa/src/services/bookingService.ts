@@ -212,6 +212,63 @@ export async function submitBookingReview(
   return response.json() as Promise<import('../types/review').ReviewDto>;
 }
 
+export async function updateBookingReview(
+  bookingCode: string,
+  request: import('../types/review').CreateReviewRequest
+): Promise<import('../types/review').ReviewDto> {
+  const response = await fetch(
+    `/api/public/bookings/${encodeURIComponent(bookingCode)}/review`,
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    }
+  );
+
+  if (!response.ok) {
+    let message = `Cập nhật đánh giá thất bại (HTTP ${response.status})`;
+    try {
+      const err = (await response.json()) as { message?: string; error?: string };
+      message = err.message ?? err.error ?? message;
+    } catch {
+      // ignore
+    }
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<import('../types/review').ReviewDto>;
+}
+
+export async function deleteBookingReview(bookingCode: string): Promise<void> {
+  const response = await fetch(
+    `/api/public/bookings/${encodeURIComponent(bookingCode)}/review`,
+    {
+      method: 'DELETE',
+    }
+  );
+
+  if (!response.ok) {
+    let message = `Xóa đánh giá thất bại (HTTP ${response.status})`;
+    try {
+      const err = (await response.json()) as { message?: string; error?: string };
+      message = err.message ?? err.error ?? message;
+    } catch {
+      // ignore
+    }
+    throw new Error(message);
+  }
+
+  if (typeof window !== 'undefined') {
+    try {
+      const set = getReviewedBookingCodes();
+      set.delete(bookingCode);
+      localStorage.setItem('user_reviewed_booking_codes', JSON.stringify(Array.from(set)));
+    } catch {
+      // ignore
+    }
+  }
+}
+
 export async function fetchBookingReview(
   bookingCode: string
 ): Promise<import('../types/review').ReviewDto | null> {

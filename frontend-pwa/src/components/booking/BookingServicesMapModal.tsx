@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { X, MapPin, Navigation, Utensils, Car, Compass, Package, Phone } from 'lucide-react';
-import OpenStreetMapView, { OsmMarkerItem } from '@/components/map/OpenStreetMapView';
+import VietmapView from '@/components/map/VietmapView';
+import type { VietmapMarkerItem } from '@/types/integrations/vietmap';
 import { BookingServiceItemDto } from '@/types/booking';
 import { NearbyPlaceDto } from '@/types/homestay';
 
@@ -63,8 +64,8 @@ export default function BookingServicesMapModal({
   }, [serviceItems, nearbyPlaces]);
 
   // Tạo danh sách markers cho bản đồ
-  const markers: OsmMarkerItem[] = useMemo(() => {
-    const list: OsmMarkerItem[] = [];
+  const markers: VietmapMarkerItem[] = useMemo(() => {
+    const list: VietmapMarkerItem[] = [];
 
     // 1. Marker của Homestay (Trung tâm, isMain = true)
     list.push({
@@ -145,9 +146,9 @@ export default function BookingServicesMapModal({
 
         {/* Content: Map + Services List Sidebar */}
         <div className="flex-1 min-h-[380px] sm:min-h-[460px] grid grid-cols-1 md:grid-cols-3 overflow-hidden">
-          {/* Cột bản đồ OpenStreetMap */}
+          {/* Cột bản đồ VietMap */}
           <div className="md:col-span-2 relative h-[300px] md:h-full bg-slate-100 border-b md:border-b-0 md:border-r border-gray-200">
-            <OpenStreetMapView
+            <VietmapView
               centerLat={centerLat}
               centerLng={centerLng}
               zoomLevel={15}

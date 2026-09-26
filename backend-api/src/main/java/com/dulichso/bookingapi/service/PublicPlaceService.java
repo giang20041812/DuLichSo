@@ -338,8 +338,10 @@ public class PublicPlaceService {
                 .placeId(r.getPlace().getId())
                 .rating(r.getRating())
                 .content(r.getContent())
+                .images(r.getImages())
                 .guestName(r.getBooking() != null ? r.getBooking().getGuestName() : "Khách du lịch")
                 .createdAt(r.getCreatedAt())
+                .editableUntil(r.getEditableUntil())
                 .build()
         ).collect(Collectors.toList());
     }

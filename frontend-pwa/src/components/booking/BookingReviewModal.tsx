@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { Star, X, CheckCircle2, AlertCircle, MessageSquare } from 'lucide-react';
-import { submitBookingReview } from '@/services/bookingService';
+import React, { useState } from 'react';
+import { Star, X, CheckCircle2, AlertCircle, MessageSquare, Image as ImageIcon, Plus, Trash2 } from 'lucide-react';
+import { submitBookingReview, updateBookingReview } from '@/services/bookingService';
 import type { ReviewDto } from '@/types/review';
 
 interface BookingReviewModalProps {
@@ -9,6 +9,7 @@ interface BookingReviewModalProps {
   bookingCode: string;
   placeName: string;
   roomTypeName?: string;
+  existingReview?: ReviewDto | null;
   onSuccess: (review: ReviewDto) => void;
 }
 
@@ -18,15 +19,39 @@ export default function BookingReviewModal({
   bookingCode,
   placeName,
   roomTypeName,
+  existingReview,
   onSuccess,
 }: BookingReviewModalProps) {
-  const [rating, setRating] = useState<number>(5);
+  const isEditMode = Boolean(existingReview);
+  const [rating, setRating] = useState<number>(existingReview?.rating || 5);
   const [hoverRating, setHoverRating] = useState<number>(0);
-  const [content, setContent] = useState('');
+  const [content, setContent] = useState(existingReview?.content || '');
+  const [images, setImages] = useState<string[]>(existingReview?.images || []);
+  const [imageUrlInput, setImageUrlInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   if (!isOpen) return null;
+
+  const handleAddImage = () => {
+    const url = imageUrlInput.trim();
+    if (!url) return;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      setErrorMsg('Vui lòng nhập đường dẫn URL ảnh hợp lệ (bắt đầu bằng http:// hoặc https://).');
+      return;
+    }
+    if (images.length >= 8) {
+      setErrorMsg('Tối đa 8 hình ảnh cho một đánh giá.');
+      return;
+    }
+    setImages((prev) => [...prev, url]);
+    setImageUrlInput('');
+    setErrorMsg(null);
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setImages((prev) => prev.filter((_, idx) => idx !== index));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,14 +63,24 @@ export default function BookingReviewModal({
     try {
       setIsSubmitting(true);
       setErrorMsg(null);
-      const newReview = await submitBookingReview(bookingCode, {
-        rating,
-        content: content.trim(),
-      });
-      onSuccess(newReview);
+      let resultReview: ReviewDto;
+      if (isEditMode) {
+        resultReview = await updateBookingReview(bookingCode, {
+          rating,
+          content: content.trim(),
+          images,
+        });
+      } else {
+        resultReview = await submitBookingReview(bookingCode, {
+          rating,
+          content: content.trim(),
+          images,
+        });
+      }
+      onSuccess(resultReview);
       onClose();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Có lỗi xảy ra khi gửi đánh giá.';
+      const msg = err instanceof Error ? err.message : 'Có lỗi xảy ra khi lưu đánh giá.';
       setErrorMsg(msg);
     } finally {
       setIsSubmitting(false);
@@ -72,8 +107,8 @@ export default function BookingReviewModal({
   const activeScore = hoverRating || rating;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 pt-24 sm:pt-28 pb-8 overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg bg-white rounded-lg border border-[var(--color-border)] shadow-2xl overflow-hidden flex flex-col max-h-[85vh] my-auto">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 pt-20 sm:pt-24 pb-8 overflow-y-auto animate-in fade-in duration-200">
+      <div className="relative w-full max-w-lg bg-white rounded-lg border border-[var(--color-border)] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] my-auto">
         {/* Header modal */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-[#F6FAF8]">
           <div className="flex items-center gap-2.5">
@@ -81,7 +116,9 @@ export default function BookingReviewModal({
               <MessageSquare className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-800">Đánh giá kỳ nghỉ của bạn</h3>
+              <h3 className="text-base font-bold text-slate-800">
+                {isEditMode ? 'Chỉnh sửa đánh giá kỳ nghỉ' : 'Đánh giá kỳ nghỉ của bạn'}
+              </h3>
               <p className="text-xs text-gray-500">Mã đơn: #{bookingCode}</p>
             </div>
           </div>
@@ -106,7 +143,7 @@ export default function BookingReviewModal({
           </div>
 
           {/* Chọn số sao */}
-          <div className="space-y-1.5 text-center py-2">
+          <div className="space-y-1.5 text-center py-1">
             <label className="block text-xs font-bold uppercase tracking-wider text-gray-700">
               Mức độ hài lòng của bạn
             </label>
@@ -156,6 +193,68 @@ export default function BookingReviewModal({
             </div>
           </div>
 
+          {/* Thêm hình ảnh trải nghiệm thực tế */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                <ImageIcon className="w-3.5 h-3.5 text-[var(--color-primary)]" />
+                Hình ảnh thực tế chuyến đi ({images.length}/8)
+              </label>
+              <span className="text-[11px] text-gray-400">Không bắt buộc</span>
+            </div>
+
+            {/* Input URL ảnh */}
+            <div className="flex gap-2">
+              <input
+                type="url"
+                value={imageUrlInput}
+                onChange={(e) => setImageUrlInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddImage();
+                  }
+                }}
+                placeholder="Dán link ảnh (https://...)"
+                className="flex-1 px-3 py-1.5 text-xs rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] placeholder:text-gray-400"
+              />
+              <button
+                type="button"
+                onClick={handleAddImage}
+                className="px-3 py-1.5 text-xs font-semibold bg-[var(--color-primary-50)] text-[var(--color-primary)] border border-[var(--color-primary-200)] rounded-md hover:bg-[var(--color-primary-100)] flex items-center gap-1 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Thêm ảnh
+              </button>
+            </div>
+
+            {/* Danh sách ảnh đã thêm */}
+            {images.length > 0 && (
+              <div className="grid grid-cols-4 gap-2 pt-1">
+                {images.map((imgUrl, idx) => (
+                  <div key={idx} className="relative group rounded-md overflow-hidden aspect-video border border-gray-200 bg-gray-50">
+                    <img
+                      src={imgUrl}
+                      alt={`Ảnh review ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1528127269322-539801943592?q=80&w=400';
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(idx)}
+                      className="absolute top-1 right-1 p-1 bg-black/60 text-white rounded hover:bg-rose-600 transition-colors opacity-90 group-hover:opacity-100 cursor-pointer"
+                      title="Xóa ảnh"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {errorMsg && (
             <div className="flex items-center gap-2 p-3 rounded-md bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
               <AlertCircle className="w-4 h-4 shrink-0" />
@@ -163,12 +262,15 @@ export default function BookingReviewModal({
             </div>
           )}
 
-          {/* Lời cam kết xanh */}
+          {/* Lời cam kết xanh & Thời hạn 14 ngày */}
           <div className="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-md flex items-start gap-2.5 text-xs text-emerald-800">
             <CheckCircle2 className="w-4 h-4 text-[var(--color-accent)] shrink-0 mt-0.5" />
-            <p className="leading-relaxed">
-              Đánh giá của bạn sẽ giúp cộng đồng du khách tiếp cận dịch vụ chân thực và khích lệ các chủ homestay bản địa không ngừng nâng cao chất lượng.
-            </p>
+            <div className="leading-relaxed">
+              <p>Đánh giá của bạn sẽ giúp cộng đồng du khách tiếp cận dịch vụ chân thực.</p>
+              <p className="mt-0.5 font-semibold text-emerald-900">
+                Quy định: Bạn có quyền gửi hoặc chỉnh sửa đánh giá trong vòng 14 ngày kể từ khi trả phòng.
+              </p>
+            </div>
           </div>
 
           {/* Action buttons */}
@@ -189,10 +291,10 @@ export default function BookingReviewModal({
               {isSubmitting ? (
                 <>
                   <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Đang gửi...</span>
+                  <span>Đang lưu...</span>
                 </>
               ) : (
-                <span>Gửi đánh giá</span>
+                <span>{isEditMode ? 'Cập nhật đánh giá' : 'Gửi đánh giá'}</span>
               )}
             </button>
           </div>

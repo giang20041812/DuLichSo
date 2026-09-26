@@ -29,7 +29,8 @@ import type { BookingResponseDto, UpdateBookingDetailsRequest, BookingServiceIte
 import type { NearbyPlaceDto } from '@/types/homestay';
 import { updateBookingDetails, checkRoomAvailability } from '@/services/bookingService';
 import { fetchNearbyPlaces } from '@/services/homestayService';
-import OpenStreetMapView, { OsmMarkerItem } from '@/components/map/OpenStreetMapView';
+import VietmapView from '@/components/map/VietmapView';
+import type { VietmapMarkerItem } from '@/types/integrations/vietmap';
 
 interface BookingEditModalProps {
   isOpen: boolean;
@@ -76,7 +77,7 @@ export default function BookingEditModal({
   } | null>(null);
 
   // Modal xem bản đồ vị trí địa điểm
-  const [showOsmModal, setShowOsmModal] = useState(false);
+  const [showMapModal, setShowMapModal] = useState(false);
   const [selectedMapTarget, setSelectedMapTarget] = useState<{ lat?: number; lng?: number; zoom?: number } | null>(null);
 
   // Kiểm tra lịch phòng trống
@@ -232,9 +233,9 @@ export default function BookingEditModal({
     setServiceItems((prev) => prev.filter((_, idx) => idx !== index));
   };
 
-  // Danh sách markers bản đồ OSM
-  const mapMarkers: OsmMarkerItem[] = useMemo(() => {
-    const list: OsmMarkerItem[] = [];
+  // Danh sách markers bản đồ VietMap
+  const mapMarkers: VietmapMarkerItem[] = useMemo(() => {
+    const list: VietmapMarkerItem[] = [];
 
     // Marker homestay
     const centerLat = booking.latitude || 21.84912;
@@ -519,6 +520,7 @@ export default function BookingEditModal({
                 <input
                   type="date"
                   required
+                  min={new Date().toISOString().split('T')[0]}
                   value={checkIn}
                   onChange={(e) => handleDateOrRoomChange(e.target.value, checkOut, roomCount)}
                   className="w-full px-3 py-1.5 bg-white border border-gray-200 rounded-md text-slate-800 text-xs focus:ring-1 focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)] outline-hidden"
@@ -532,6 +534,7 @@ export default function BookingEditModal({
                 <input
                   type="date"
                   required
+                  min={checkIn || new Date().toISOString().split('T')[0]}
                   value={checkOut}
                   onChange={(e) => handleDateOrRoomChange(checkIn, e.target.value, roomCount)}
                   className="w-full px-3 py-1.5 bg-white border border-gray-200 rounded-md text-slate-800 text-xs focus:ring-1 focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)] outline-hidden"
@@ -723,7 +726,7 @@ export default function BookingEditModal({
                             type="button"
                             onClick={() => {
                               setSelectedMapTarget({ lat: item.latitude, lng: item.longitude, zoom: 16 });
-                              setShowOsmModal(true);
+                              setShowMapModal(true);
                             }}
                             className="text-[11px] font-semibold text-gray-500 hover:text-[var(--color-primary)] flex items-center gap-1 cursor-pointer transition-colors"
                           >
@@ -952,8 +955,8 @@ export default function BookingEditModal({
         </div>
       )}
 
-      {/* ================= MODAL OPENSTREETMAP XEM VỊ TRÍ ================= */}
-      {showOsmModal && (
+      {/* ================= MODAL VIETMAP XEM VỊ TRÍ ================= */}
+      {showMapModal && (
         <div className="fixed inset-0 z-[10001] flex items-start justify-center p-3 pt-20 sm:pt-24 pb-8 bg-black/65 backdrop-blur-xs animate-in fade-in duration-200 overflow-y-auto">
           <div className="bg-white rounded-lg max-w-4xl w-full h-[75vh] max-h-[calc(100vh-7rem)] p-4 shadow-2xl flex flex-col border border-gray-200 relative my-auto sm:my-0">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-2">
@@ -965,7 +968,7 @@ export default function BookingEditModal({
               </div>
               <button
                 type="button"
-                onClick={() => setShowOsmModal(false)}
+                onClick={() => setShowMapModal(false)}
                 className="p-1 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100 cursor-pointer"
               >
                 <X className="w-5 h-5" />
@@ -973,7 +976,7 @@ export default function BookingEditModal({
             </div>
 
             <div className="flex-1 rounded-md overflow-hidden border border-gray-200 relative">
-              <OpenStreetMapView
+              <VietmapView
                 centerLat={selectedMapTarget?.lat || booking.latitude || 21.84912}
                 centerLng={selectedMapTarget?.lng || booking.longitude || 104.09245}
                 zoomLevel={selectedMapTarget?.zoom || 14}
@@ -985,7 +988,7 @@ export default function BookingEditModal({
             <div className="pt-2 flex justify-end">
               <button
                 type="button"
-                onClick={() => setShowOsmModal(false)}
+                onClick={() => setShowMapModal(false)}
                 className="px-4 py-1.5 text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md cursor-pointer"
               >
                 Đóng bản đồ

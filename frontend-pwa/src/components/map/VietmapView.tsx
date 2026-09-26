@@ -1,34 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { AlertCircle, KeyRound } from 'lucide-react';
+import type { VietmapMarkerItem, VietmapViewProps } from '@/types/integrations/vietmap';
 
-export interface OsmMarkerItem {
-  id: string | number;
-  name: string;
-  latitude: number;
-  longitude: number;
-  price?: number;
-  coverImageUrl?: string;
-  district?: string;
-  address?: string;
-  ratingScore?: number;
-  url?: string;
-  isMain?: boolean;
-  kind?: string;
-  category?: string;
-  distance?: number;
-  displayMode?: 'name' | 'price' | 'auto';
-  tagText?: string;
-}
-
-interface OpenStreetMapViewProps {
-  centerLat: number;
-  centerLng: number;
-  zoomLevel?: number;
-  markers?: OsmMarkerItem[];
-  className?: string;
-  onMarkerClick?: (marker: OsmMarkerItem) => void;
-}
+export type { VietmapMarkerItem, VietmapViewProps };
 
 interface CategoryStyle {
   label: string;
@@ -41,7 +17,7 @@ interface CategoryStyle {
   badgeText: string;
 }
 
-function getMarkerCategoryStyle(item: OsmMarkerItem): CategoryStyle {
+function getMarkerCategoryStyle(item: VietmapMarkerItem): CategoryStyle {
   const rawKind = (item.kind || item.category || '').toUpperCase();
 
   // 1. Homestay / Chỗ nghỉ: Solid Deep Forest Teal
@@ -141,22 +117,24 @@ function getMarkerCategoryStyle(item: OsmMarkerItem): CategoryStyle {
   };
 }
 
-export default function OpenStreetMapView({
+export default function VietmapView({
   centerLat = 21.85,
   centerLng = 104.08,
   zoomLevel = 13,
   markers = [],
   className = "w-full h-full min-h-[350px] rounded-lg overflow-hidden",
   onMarkerClick
-}: OpenStreetMapViewProps) {
+}: VietmapViewProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
 
+  const vietmapApiKey = (import.meta.env.VITE_VIETMAP_API_KEY as string | undefined)?.trim() || '';
+  const [hasTileError, setHasTileError] = useState(false);
+
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
-    // Check if map is already initialized on this container
     if (!mapInstanceRef.current) {
       const map = L.map(mapContainerRef.current, {
         center: [centerLat, centerLng],
@@ -165,11 +143,25 @@ export default function OpenStreetMapView({
         scrollWheelZoom: true,
       });
 
-      // Add OpenStreetMap Standard Tile Layer
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19,
-      }).addTo(map);
+      // Tải VietMap Raster Tiles
+      // Sử dụng VietMap Tile endpoint với API Key
+      if (vietmapApiKey) {
+        const tileUrl = `https://maps.vietmap.vn/tm/{z}/{x}/{y}.png?apikey=${encodeURIComponent(vietmapApiKey)}`;
+        const vietmapTileLayer = L.tileLayer(tileUrl, {
+          attribution: '&copy; <a href="https://maps.vietmap.vn" target="_blank" rel="noopener noreferrer">VietMap</a> contributors',
+          maxZoom: 19,
+        });
+
+        vietmapTileLayer.on('tileerror', () => {
+          setHasTileError(true);
+        });
+
+        vietmapTileLayer.addTo(map);
+      } else {
+        // Fallback: Nếu chưa có VietMap key, hiển thị nền bản đồ trung lập
+        // Tuyệt đối không dùng OSM để tránh vi phạm chủ quyền Hoàng Sa - Trường Sa
+        setHasTileError(false);
+      }
 
       const markersLayer = L.layerGroup().addTo(map);
       mapInstanceRef.current = map;
@@ -185,7 +177,7 @@ export default function OpenStreetMapView({
         markersLayerRef.current = null;
       }
     };
-  }, []);
+  }, [vietmapApiKey]);
 
   // Update center when props change
   useEffect(() => {
@@ -227,58 +219,78 @@ export default function OpenStreetMapView({
         ? `${displayTagText.slice(0, maxLen - 2)}...`
         : displayTagText;
 
-      // Create Custom Leaflet DivIcon with Solid & Clean styling
+      // Custom Pin Marker: Biểu tượng location pin chuẩn + nhãn tên nằm cạnh pin (không nằm trong pin)
+      const pinSize = isMainHomestay ? 32 : 26;
+      const innerIconSize = isMainHomestay ? 16 : 13;
       const markerHtml = `
-        <div class="osm-modern-marker-wrapper" style="
-          display: flex;
-          flex-direction: column;
+        <div class="vietmap-modern-marker-wrapper" style="
+          display: inline-flex;
           align-items: center;
+          gap: 6px;
           cursor: pointer;
-          transform: translate(-50%, -100%);
+          transform: translate(-${pinSize / 2}px, -100%);
           z-index: ${isMainHomestay ? '1000' : '500'};
-          transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+          white-space: nowrap;
+          pointer-events: auto;
         ">
-          <div style="
-            background: ${catStyle.bgColor};
-            color: ${catStyle.textColor};
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            font-size: ${isMainHomestay ? '12px' : '11px'};
-            font-weight: ${isMainHomestay ? '700' : '600'};
-            letter-spacing: -0.01em;
-            padding: ${isMainHomestay ? '3px 8px' : '2px 7px'};
-            border-radius: 4px;
-            box-shadow: 0 2px 8px ${catStyle.shadowColor};
-            border: 1.5px solid ${isMainHomestay ? '#F59E0B' : '#FFFFFF'};
-            white-space: nowrap;
+          <!-- 1. Biểu tượng Location Pin sắc nét -->
+          <div class="vietmap-pin-badge" style="
+            position: relative;
+            width: ${pinSize}px;
+            height: ${pinSize}px;
+            flex-shrink: 0;
             display: flex;
             align-items: center;
-            gap: 5px;
-            line-height: 1.25;
+            justify-content: center;
+            background: ${catStyle.bgColor};
+            color: ${catStyle.textColor};
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            border: 2px solid ${isMainHomestay ? '#F59E0B' : '#FFFFFF'};
+            box-shadow: 0 4px 10px ${catStyle.shadowColor};
+            transition: transform 0.18s ease;
           ">
             <span style="
+              transform: rotate(45deg);
               display: inline-flex;
               align-items: center;
               justify-content: center;
-              color: ${catStyle.textColor};
-              opacity: 0.95;
-            ">${catStyle.svgIcon}</span>
-            <span>${formattedLabel}</span>
-            ${isMainHomestay ? `<span style="font-size: 9px; background: #F59E0B; color: #FFFFFF; padding: 1px 4px; border-radius: 2px; font-weight: 700; margin-left: 1px;">Chính</span>` : ''}
+              width: ${innerIconSize}px;
+              height: ${innerIconSize}px;
+            ">
+              ${catStyle.svgIcon}
+            </span>
           </div>
-          <div style="
-            width: 0;
-            height: 0;
-            border-left: 4px solid transparent;
-            border-right: 4px solid transparent;
-            border-top: 5px solid ${catStyle.bgColor};
-            margin-top: -1px;
-          "></div>
+
+          <!-- 2. Nhãn tên / giá nằm cạnh (bên phải) biểu tượng Location -->
+          <div class="vietmap-pin-label" style="
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #FFFFFF;
+            color: #0F172A;
+            border: 1px solid #E2E8F0;
+            border-left: 3px solid ${catStyle.bgColor};
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
+            padding: ${isMainHomestay ? '3px 8px' : '2px 6px'};
+            border-radius: 4px;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: ${isMainHomestay ? '11.5px' : '10.5px'};
+            font-weight: ${isMainHomestay ? '700' : '600'};
+            line-height: 1.25;
+            letter-spacing: -0.01em;
+            transform: translateY(-${pinSize / 3}px);
+            pointer-events: auto;
+          ">
+            <span>${formattedLabel}</span>
+            ${isMainHomestay ? `<span style="font-size: 8.5px; background: #F59E0B; color: #FFFFFF; padding: 0.5px 3.5px; border-radius: 2px; font-weight: 700;">Chính</span>` : ''}
+          </div>
         </div>
       `;
 
       const customIcon = L.divIcon({
         html: markerHtml,
-        className: 'osm-custom-marker',
+        className: 'vietmap-custom-marker',
         iconSize: [0, 0],
         iconAnchor: [0, 0]
       });
@@ -301,7 +313,7 @@ export default function OpenStreetMapView({
                 font-size: 10px; 
                 font-weight: 700; 
                 padding: 2px 6px; 
-                border-radius: 3px;
+                border-radius: 3px; 
                 box-shadow: 0 2px 4px rgba(0,0,0,0.25);
                 display: flex;
                 align-items: center;
@@ -377,7 +389,7 @@ export default function OpenStreetMapView({
       `;
 
       const leafletMarker = L.marker(position, { icon: customIcon })
-        .bindPopup(popupHtml, { maxWidth: 250, className: 'osm-custom-popup' });
+        .bindPopup(popupHtml, { maxWidth: 250, className: 'vietmap-custom-popup' });
 
       leafletMarker.on('click', () => {
         onMarkerClick?.(item);
@@ -396,8 +408,34 @@ export default function OpenStreetMapView({
 
   return (
     <div className={`relative ${className}`}>
-      <div ref={mapContainerRef} className="w-full h-full min-h-[350px] z-10" />
+      {/* Cảnh báo chưa có API Key */}
+      {!vietmapApiKey && (
+        <div className="absolute top-3 left-3 right-3 z-[1000] p-3 rounded-md bg-amber-500/95 text-white backdrop-blur-xs shadow-md border border-amber-600/30 flex items-start gap-2.5 text-xs">
+          <KeyRound className="w-4 h-4 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-bold">Chưa cấu hình API Key VietMap (VITE_VIETMAP_API_KEY)</p>
+            <p className="text-[11px] opacity-90 mt-0.5">
+              Vui lòng mở file <code className="bg-black/20 px-1 py-0.5 rounded font-mono">.env</code> và nhập API Key của <strong>Tilemap Consumer</strong> từ VietMap Console để hiển thị bản đồ nền.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Cảnh báo lỗi tải Tile (Do nhầm API key của Services Consumer) */}
+      {hasTileError && vietmapApiKey && (
+        <div className="absolute top-3 left-3 right-3 z-[1000] p-3 rounded-md bg-rose-600/95 text-white backdrop-blur-xs shadow-md border border-rose-700/30 flex items-start gap-2.5 text-xs">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-bold">Lỗi tải bản đồ nền VietMap (Kiểm tra API Key)</p>
+            <p className="text-[11px] opacity-90 mt-0.5">
+              Nếu bạn thấy thông báo <em>"This consumer only has APIs enabled..."</em>, nghĩa là bạn đang dùng API Key của dịch vụ APIs (Search/Route).
+              Hãy vào VietMap Console &gt; Consumers, tạo/chọn consumer loại <strong>Tilemap</strong> và copy API Key đó vào <code className="bg-black/20 px-1 py-0.5 rounded font-mono">VITE_VIETMAP_API_KEY</code>.
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div ref={mapContainerRef} className="w-full h-full min-h-[350px] z-10 bg-slate-100" />
     </div>
   );
 }
-
