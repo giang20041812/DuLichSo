@@ -354,8 +354,8 @@ export default function SearchHub() {
 
       if (!searchRef.current) return;
       const rect = searchRef.current.getBoundingClientRect();
-      // Tự động sticky thu gọn ngay khi vị trí thanh tìm kiếm cuộn chạm vào đáy navigation
-      const shouldStick = rect.top <= hHeight || window.scrollY > 140;
+      // Tự động sticky thu gọn chỉ khi khối tìm kiếm gốc đã cuộn qua đáy navigation header
+      const shouldStick = rect.bottom <= hHeight;
       setIsSticky(shouldStick);
     };
 
