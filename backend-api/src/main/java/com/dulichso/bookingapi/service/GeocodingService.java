@@ -62,10 +62,11 @@ public class GeocodingService {
 
     private synchronized Optional<GeocodeResult> call(String address) {
         waitForSlot();
-        String url = UriComponentsBuilder.fromHttpUrl(endpoint)
+        // Truyền java.net.URI (đã encode một lần) để RestTemplate không encode lại, tránh hỏng tiếng Việt có dấu.
+        java.net.URI url = UriComponentsBuilder.fromHttpUrl(endpoint)
                 .queryParam("q", address).queryParam("format", "jsonv2").queryParam("limit", 1)
                 .queryParam("countrycodes", "vn").queryParam("accept-language", "vi")
-                .build().encode().toUriString();
+                .build().encode().toUri();
         HttpHeaders headers = new HttpHeaders();
         headers.set(HttpHeaders.USER_AGENT, userAgent);
         headers.setAccept(java.util.List.of(MediaType.APPLICATION_JSON));
