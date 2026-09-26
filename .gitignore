@@ -42,3 +42,29 @@ build/
 __pycache__/
 *.pyc
 *.pyo
+
+# Logs & Temporary files
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
+*~
+~$*
+
+# Compilation and runner artifacts
+cp.txt
+cpline.txt
+classpath.txt
+sources.txt
+java_sources.txt
+javac_opts.txt
+cp_arg.txt
+maven.zip
+mvn_temp/
+
+# Tunnel output files
+tunnel*.txt
+
+# Scripts temp
+**/scripts/tmp/

@@ -253,8 +253,8 @@ export default function FestivalDetailPage() {
 
   return (
     <div className="w-full flex flex-col min-h-screen bg-[var(--color-canvas)]">
-      {/* Top Breadcrumb & Navigation */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-20 shadow-2xs">
+      {/* Top Breadcrumb & Navigation - ghim ngay dưới Header khi scroll */}
+      <div className="bg-white border-b border-gray-200/80 sticky top-[88px] md:top-[92px] z-20 shadow-2xs">
         <div className="max-w-[1240px] mx-auto px-4 md:px-8 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-xs md:text-sm text-[var(--color-muted)] truncate">
             <Link to="/" className="hover:text-[var(--color-primary)] transition-colors shrink-0">

@@ -143,7 +143,7 @@ export default function RoomAvailabilityCalendar({
     const days = [];
     // Padding before first day
     for (let i = 0; i < firstDayOfWeek; i++) {
-      days.push(<div key={`pad-${i}`} className="h-8 md:h-9" />);
+      days.push(<div key={`pad-${i}`} className="h-9 md:h-10" />);
     }
 
     for (let d = 1; d <= totalDays; d++) {
@@ -158,23 +158,23 @@ export default function RoomAvailabilityCalendar({
         ? (dayStr >= selectedCheckIn && dayStr <= selectedCheckOut) 
         : (pickingStart && dayStr === pickingStart);
 
-      let cellStyle = "text-gray-700 hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary)] font-medium cursor-pointer";
+      let cellStyle = "text-gray-800 hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary)] font-semibold cursor-pointer";
       let cellBadge = null;
 
       if (isPast) {
-        cellStyle = "text-gray-300 line-through cursor-not-allowed bg-gray-50/50";
+        cellStyle = "text-gray-300 line-through cursor-not-allowed bg-gray-50/50 font-normal";
       } else if (isFullyBooked) {
         cellStyle = "bg-rose-50 text-rose-400 font-bold cursor-not-allowed border border-rose-200 line-through";
-        cellBadge = <span className="absolute bottom-0.5 text-[8px] text-rose-600 font-extrabold leading-none">Kín</span>;
+        cellBadge = <span className="absolute bottom-0.5 text-[9px] md:text-[10px] text-rose-600 font-extrabold leading-none">Kín</span>;
       } else if (isNotEnough) {
         cellStyle = "bg-amber-50 text-amber-700 font-semibold cursor-not-allowed border border-amber-200";
-        cellBadge = <span className="absolute bottom-0.5 text-[8px] text-amber-700 font-bold leading-none">Còn {available}</span>;
+        cellBadge = <span className="absolute bottom-0.5 text-[9px] md:text-[10px] text-amber-700 font-bold leading-none">Còn {available}</span>;
       } else if (isSelectedStart || isSelectedEnd) {
         cellStyle = "bg-[var(--color-coral)] text-white font-extrabold shadow-sm scale-105 z-10";
       } else if (isInSelectedRange) {
         cellStyle = "bg-[var(--color-coral)]/15 text-[var(--color-coral)] font-bold";
       } else if (totalRooms > 1 && !isPast) {
-        cellBadge = <span className="absolute bottom-0.5 text-[8px] text-emerald-700/80 font-medium leading-none">Còn {available}</span>;
+        cellBadge = <span className="absolute bottom-0.5 text-[9px] md:text-[10px] text-emerald-700/80 font-medium leading-none">Còn {available}</span>;
       }
 
       const cellTitle = isPast
@@ -191,7 +191,7 @@ export default function RoomAvailabilityCalendar({
           type="button"
           disabled={isPast || isBooked}
           onClick={() => handleDateClick(dayStr)}
-          className={`h-8 md:h-9 w-full flex flex-col items-center justify-center rounded-md relative text-xs md:text-sm transition-all ${cellStyle} ${isToday && !isSelectedStart && !isBooked ? 'ring-1 ring-[var(--color-primary)] font-bold text-[var(--color-primary)]' : ''}`}
+          className={`h-9 md:h-10 w-full flex flex-col items-center justify-center rounded-md relative text-sm md:text-base transition-all ${cellStyle} ${isToday && !isSelectedStart && !isBooked ? 'ring-2 ring-[var(--color-primary)] font-bold text-[var(--color-primary)]' : ''}`}
           title={cellTitle}
         >
           <span>{d}</span>
@@ -202,13 +202,13 @@ export default function RoomAvailabilityCalendar({
 
     return (
       <div className="bg-white border border-gray-200 rounded-lg p-3 md:p-4 flex-1 shadow-2xs">
-        <h5 className="text-center font-bold text-sm md:text-base text-[var(--color-ink-deep)] mb-3 flex items-center justify-center gap-1.5">
-          <CalendarIcon className="w-3.5 h-3.5 text-[var(--color-primary)]" />
+        <h5 className="text-center font-bold text-base md:text-lg text-[var(--color-ink-deep)] mb-3 flex items-center justify-center gap-1.5">
+          <CalendarIcon className="w-4 h-4 text-[var(--color-primary)]" />
           {monthName}
         </h5>
         
         {/* Day header */}
-        <div className="grid grid-cols-7 text-center text-xs font-semibold text-[var(--color-muted)] mb-2">
+        <div className="grid grid-cols-7 text-center text-xs md:text-sm font-bold text-[var(--color-muted)] mb-2">
           <span>CN</span><span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span>
         </div>
 
@@ -241,13 +241,13 @@ export default function RoomAvailabilityCalendar({
     <div className={`flex flex-col gap-3 ${className}`}>
       {/* Calendar Navigation Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <div className="text-xs md:text-sm font-bold text-[var(--color-ink-deep)] flex flex-wrap items-center gap-2">
+        <div className="text-sm md:text-base font-bold text-[var(--color-ink-deep)] flex flex-wrap items-center gap-2">
           <span>Lịch trống & Tình trạng đặt</span>
-          <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-sm">
+          <span className="text-xs font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-sm">
             Đang đối soát: {neededRooms} phòng
           </span>
           {pickingStart && (
-            <span className="text-xs font-semibold text-[var(--color-coral)] bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-md">
+            <span className="text-xs md:text-sm font-semibold text-[var(--color-coral)] bg-orange-50 border border-orange-200 px-2.5 py-0.5 rounded-md">
               Đã chọn nhận phòng: {pickingStart} · Bấm ngày trả phòng
             </span>
           )}
@@ -281,7 +281,7 @@ export default function RoomAvailabilityCalendar({
       </div>
 
       {/* Legends */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-1 text-xs text-[var(--color-muted)] font-medium">
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-1 text-xs md:text-sm text-[var(--color-muted)] font-medium">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-1.5">
             <div className="w-3.5 h-3.5 rounded-sm bg-white border border-gray-300"></div>
@@ -309,7 +309,7 @@ export default function RoomAvailabilityCalendar({
           </div>
         </div>
 
-        <span className="text-[11px] text-gray-400">
+        <span className="text-xs text-gray-400">
           * Bấm ngày nhận phòng và ngày trả phòng trực tiếp trên lịch
         </span>
       </div>

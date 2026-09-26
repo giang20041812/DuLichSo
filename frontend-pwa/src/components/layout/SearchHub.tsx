@@ -1,15 +1,12 @@
 import React, { useState, useRef, useEffect, useMemo } from "react"
 import { createPortal } from "react-dom"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import { Button } from "../ui/button"
 import { 
   Search, 
-  Building2, 
-  Landmark, 
+  MapPin,
   Sparkles, 
-  LocateFixed, 
   Check, 
-  Loader2,
   X,
   Calendar,
   ChevronLeft,
@@ -249,12 +246,17 @@ const DEFAULT_LOCATIONS: ProvinceData[] = [
 
 export default function SearchHub() {
   const navigate = useNavigate();
-  // 4 distinct filter tabs: 'province', 'area' (district+ward), 'attractions', 'dates'
-  const [activeTab, setActiveTab] = useState<'province' | 'area' | 'attractions' | 'dates' | null>(null);
-  const [mountedTab, setMountedTab] = useState<'province' | 'area' | 'attractions' | 'dates' | null>(null);
+  const [searchParams] = useSearchParams();
 
-  // Sub-step inside 'area' panel: 'district' or 'ward'
-  const [areaStep, setAreaStep] = useState<'district' | 'ward'>('district');
+  // 3 distinct filter tabs: 'location' (province+district+ward), 'attractions', 'dates'
+  const [activeTab, setActiveTab] = useState<'location' | 'attractions' | 'dates' | null>(null);
+  const [mountedTab, setMountedTab] = useState<'location' | 'attractions' | 'dates' | null>(null);
+
+  // Sub-step inside mobile 'location' panel: 'province' or 'area'
+  const [locationMobileStep, setLocationMobileStep] = useState<'province' | 'area'>('province');
+
+  // Sticky state for responsive mobile view
+  const [isSticky, setIsSticky] = useState(false);
 
   // Date state: Ngày đi mong muốn
   const [checkInDate, setCheckInDate] = useState<{ day: number, month: number, year: number } | null>(() => {
@@ -287,11 +289,78 @@ export default function SearchHub() {
   const [dbAttractions, setDbAttractions] = useState<AttractionItem[]>([]);
   const [isLoadingAttractions, setIsLoadingAttractions] = useState(false);
 
-  // Near me geolocation loading
-  const [isLocating, setIsLocating] = useState(false);
-  const [locationStatus, setLocationStatus] = useState<string | null>(null);
-
   const searchRef = useRef<HTMLDivElement>(null);
+
+  // Sync state with URL params
+  useEffect(() => {
+    const prov = searchParams.get('province');
+    const dist = searchParams.get('district');
+    const wrd = searchParams.get('ward');
+    const checkIn = searchParams.get('checkIn');
+
+    if (prov) setSelectedProvince(prov);
+    if (dist) setSelectedDistrict(dist);
+    if (wrd) setSelectedWard(wrd);
+    if (checkIn) {
+      const parts = checkIn.split('-');
+      if (parts.length === 3) {
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10);
+        const d = parseInt(parts[2], 10);
+        if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+          setCheckInDate({ year: y, month: m, day: d });
+        }
+      }
+    }
+  }, [searchParams]);
+
+  // Chiều cao thực tế của thanh Navigation Header để ghim thanh tìm kiếm nằm chính xác ở dưới
+  const [headerHeight, setHeaderHeight] = useState<number>(112);
+
+  // Đo chiều cao Header và theo dõi cuộn trang
+  useEffect(() => {
+    const handleScrollAndResize = () => {
+      const headerEl = document.querySelector('header');
+      const hHeight = headerEl ? headerEl.offsetHeight : 112;
+      setHeaderHeight(hHeight);
+
+      if (!searchRef.current) return;
+      const rect = searchRef.current.getBoundingClientRect();
+      // Tự động sticky thu gọn ngay khi vị trí thanh tìm kiếm cuộn chạm vào đáy navigation
+      const shouldStick = rect.top <= hHeight || window.scrollY > 140;
+      setIsSticky(shouldStick);
+    };
+
+    window.addEventListener('scroll', handleScrollAndResize, { passive: true });
+    window.addEventListener('resize', handleScrollAndResize, { passive: true });
+    handleScrollAndResize();
+    return () => {
+      window.removeEventListener('scroll', handleScrollAndResize);
+      window.removeEventListener('resize', handleScrollAndResize);
+    };
+  }, []);
+
+  // Display helpers for compact / collapsed responsive view
+  const displayLocation = useMemo(() => {
+    if (selectedWard) {
+      return `${selectedWard}, ${selectedDistrict || selectedProvince}`;
+    }
+    if (selectedDistrict) {
+      return `${selectedDistrict}, ${selectedProvince}`;
+    }
+    return selectedProvince || "Chọn điểm đến";
+  }, [selectedWard, selectedDistrict, selectedProvince]);
+
+  const displayDate = useMemo(() => {
+    if (!checkInDate) return "Chọn ngày";
+    return `${checkInDate.day} Th${checkInDate.month}`;
+  }, [checkInDate]);
+
+  const displayAttractions = useMemo(() => {
+    if (selectedAttractions.length === 0) return "Điểm vui chơi";
+    if (selectedAttractions.length === 1) return selectedAttractions[0]?.name ?? '';
+    return `${selectedAttractions.length} điểm chơi`;
+  }, [selectedAttractions]);
 
   // Load Regions from API on mount
   useEffect(() => {
@@ -306,9 +375,7 @@ export default function SearchHub() {
             wards: d.wards || []
           }));
           setLocations(mapped);
-          if (!mapped.some(d => d.province === selectedProvince)) {
-            setSelectedProvince(mapped[0]?.province ?? "Yên Bái");
-          }
+          setSelectedProvince(prev => !mapped.some(d => d.province === prev) ? (mapped[0]?.province ?? "Yên Bái") : prev);
         }
       })
       .catch((err) => {
@@ -353,18 +420,40 @@ export default function SearchHub() {
   // Click outside to close popover
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      const target = event.target as Element;
+      const target = event.target as Element | null;
+      if (!target) return;
       if (
-        searchRef.current && 
-        !searchRef.current.contains(target) &&
-        !target.closest('.search-modal-portal')
+        target.closest('.search-popover-panel') ||
+        target.closest('.search-modal-portal') ||
+        target.closest('.search-sticky-bar') ||
+        (searchRef.current && searchRef.current.contains(target))
       ) {
-        setActiveTab(null);
+        return;
       }
+      setActiveTab(null);
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Tự động chuyển tab sang 'attractions' khi chọn xong Xã/Phường
+  const handleSelectWard = (wardName: string | null) => {
+    if (!wardName) {
+      setSelectedWard(null);
+    } else {
+      setSelectedWard(wardName);
+      // Tự động suy ra Huyện nếu người dùng tìm/chọn thẳng Xã
+      if (!selectedDistrict && currentProvinceObj?.districts) {
+        const parentDist = currentProvinceObj.districts.find(d => 
+          d.wards.some(w => w.name.toLowerCase() === wardName.toLowerCase())
+        );
+        if (parentDist) {
+          setSelectedDistrict(parentDist.name);
+        }
+      }
+    }
+    setActiveTab('attractions');
+  };
 
   // Mount/Unmount modal animation for mobile
   useEffect(() => {
@@ -514,90 +603,6 @@ export default function SearchHub() {
     });
   }, [dbAttractions, selectedProvince, selectedDistrict, selectedWard, currentProvinceObj, attractionSearch]);
 
-  // "Gần tôi" Geolocation using OpenStreetMap Reverse Geocoding
-  const handleNearMe = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!navigator.geolocation) {
-      alert("Trình duyệt của bạn không hỗ trợ định vị GPS.");
-      return;
-    }
-
-    setIsLocating(true);
-    setLocationStatus("Đang lấy vị trí GPS...");
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        try {
-          setLocationStatus("Đang định vị...");
-          const response = await fetch(`https://photon.komoot.io/reverse?lat=${latitude}&lon=${longitude}`);
-          if (!response.ok) throw new Error('OSM Reverse Geocoding failed');
-          const data = await response.json();
-          const props = data.features?.[0]?.properties || {};
-          
-          const osmState = props.state || props.province || props.city || "";
-          const osmDistrict = props.district || props.county || "";
-          const osmWard = props.suburb || props.quarter || "";
-
-          // Tìm tỉnh tương ứng trong danh sách động
-          const matchedProv = locations.find(p => 
-            p.province.toLowerCase().includes(osmState.toLowerCase()) || 
-            osmState.toLowerCase().includes(p.province.toLowerCase())
-          );
-
-          if (matchedProv) {
-            setSelectedProvince(matchedProv.province);
-            const matchedDist = matchedProv.districts?.find(d => 
-              osmDistrict.toLowerCase().includes(d.name.toLowerCase()) ||
-              d.name.toLowerCase().includes(osmDistrict.toLowerCase())
-            );
-            if (matchedDist) {
-              setSelectedDistrict(matchedDist.name);
-              const matchedWard = matchedDist.wards.find(w => 
-                osmWard.toLowerCase().includes(w.name.toLowerCase()) ||
-                w.name.toLowerCase().includes(osmWard.toLowerCase())
-              );
-              if (matchedWard) {
-                setSelectedWard(matchedWard.name);
-              } else {
-                setSelectedWard(null);
-              }
-            } else {
-              setSelectedDistrict(null);
-              setSelectedWard(null);
-            }
-          } else {
-            setSelectedProvince(locations[0]?.province || "Yên Bái");
-            setSelectedDistrict(null);
-            setSelectedWard(null);
-          }
-
-          setLocationStatus(null);
-          setIsLocating(false);
-          setActiveTab('attractions');
-        } catch (err) {
-          console.warn("Geocoding fallback:", err);
-          setSelectedProvince(locations[0]?.province || "Yên Bái");
-          setSelectedDistrict(null);
-          setSelectedWard(null);
-          setLocationStatus(null);
-          setIsLocating(false);
-          setActiveTab('attractions');
-        }
-      },
-      (error) => {
-        console.warn("GPS error:", error);
-        setIsLocating(false);
-        setLocationStatus(null);
-        setSelectedProvince(locations[0]?.province || "Yên Bái");
-        setSelectedDistrict(null);
-        setSelectedWard(null);
-        setActiveTab('attractions');
-      },
-      { timeout: 10000, enableHighAccuracy: true }
-    );
-  };
-
   // Perform actual search
   const handleSearch = () => {
     const params = new URLSearchParams();
@@ -658,42 +663,42 @@ export default function SearchHub() {
       }
     };
 
-    const setQuickDate = (offsetDays: number) => {
+    const setQuickDate = (offsetDays: number, e?: React.MouseEvent) => {
+      if (e) e.stopPropagation();
       const d = new Date();
       d.setDate(d.getDate() + offsetDays);
       setCheckInDate({ day: d.getDate(), month: d.getMonth() + 1, year: d.getFullYear() });
       setCalendarMonth(d.getMonth() + 1);
       setCalendarYear(d.getFullYear());
-      setActiveTab(null);
     };
 
     return (
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3" onClick={(e) => e.stopPropagation()}>
         {/* Quick select buttons */}
         <div className="flex items-center gap-2 pb-2 border-b border-slate-100 overflow-x-auto">
           <button
             type="button"
-            onClick={() => setQuickDate(0)}
-            className="px-2.5 py-1 text-base font-bold rounded-lg border-2 border-slate-200 hover:border-[#048C73] text-slate-700 hover:text-[#048C73] bg-slate-50 transition-colors"
+            onClick={(e) => setQuickDate(0, e)}
+            className="px-2.5 py-1 text-base font-bold rounded-lg border-2 border-slate-200 hover:border-[#048C73] text-slate-700 hover:text-[#048C73] bg-slate-50 transition-colors cursor-pointer"
           >
             Hôm nay
           </button>
           <button
             type="button"
-            onClick={() => setQuickDate(1)}
-            className="px-2.5 py-1 text-base font-bold rounded-lg border-2 border-slate-200 hover:border-[#048C73] text-slate-700 hover:text-[#048C73] bg-slate-50 transition-colors"
+            onClick={(e) => setQuickDate(1, e)}
+            className="px-2.5 py-1 text-base font-bold rounded-lg border-2 border-slate-200 hover:border-[#048C73] text-slate-700 hover:text-[#048C73] bg-slate-50 transition-colors cursor-pointer"
           >
             Ngày mai
           </button>
           <button
             type="button"
-            onClick={() => {
+            onClick={(e) => {
               const d = new Date();
               const day = d.getDay();
               const diff = day === 6 ? 0 : (6 - day);
-              setQuickDate(diff);
+              setQuickDate(diff, e);
             }}
-            className="px-2.5 py-1 text-base font-bold rounded-lg border-2 border-amber-200 hover:border-amber-400 text-amber-800 bg-amber-50 transition-colors"
+            className="px-2.5 py-1 text-base font-bold rounded-lg border-2 border-amber-200 hover:border-amber-400 text-amber-800 bg-amber-50 transition-colors cursor-pointer"
           >
             Thứ Bảy tuần này
           </button>
@@ -739,9 +744,9 @@ export default function SearchHub() {
               <button
                 key={d}
                 type="button"
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   setCheckInDate({ day: d, month: calendarMonth, year: calendarYear });
-                  setActiveTab(null);
                 }}
                 className={`py-1.5 text-base font-bold rounded-lg border transition-all cursor-pointer ${
                   isSelected
@@ -763,211 +768,312 @@ export default function SearchHub() {
   return (
     <div 
       ref={searchRef} 
-      className="w-full relative z-30 flex flex-col md:flex-row items-stretch md:items-center gap-2 md:gap-2.5 p-2 sm:p-2.5 rounded-xl bg-white/95 backdrop-blur-md shadow-xl border border-white/80 transition-all text-left"
+      className="w-full relative z-30 transition-all text-left"
     >
-      {/* ---------------- 1. BỘ LỌC ĐỊA ĐIỂM & NGÀY ĐI (4 CỘT) ---------------- */}
-      <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-        {/* Cột 1: Thành phố / Tỉnh */}
-        <div 
-          className={`bg-white rounded-lg shadow-xs border-2 px-3 sm:px-3 h-[52px] sm:h-[58px] flex items-center gap-2 cursor-pointer transition-all relative ${
-            activeTab === 'province' 
-              ? 'border-[#048c73] ring-2 ring-[#048c73]/20 bg-[#edfbf7]/20 z-40' 
-              : 'border-slate-200 hover:border-[#048c73] z-20'
-          }`}
-          onClick={() => setActiveTab(activeTab === 'province' ? null : 'province')}
-        >
-          <Building2 className="text-[#048c73] w-4.5 h-4.5 shrink-0" />
-          <div className="flex flex-col justify-center min-w-0 flex-1">
-            <span className="text-xs font-bold text-[#66716c] uppercase tracking-wider mb-0.5 truncate">
-              Thành phố / Tỉnh
-            </span>
-            <span className="text-base font-bold text-[#0a2e26] truncate">
-              {selectedProvince || "Chọn tỉnh/TP"}
-            </span>
+      {/* ---------------- KHU VỰC TÌM KIẾM GỐC TRÊN TRANG (GIỮ NGUYÊN KHI CHƯA CUỘN) ---------------- */}
+      <div className={`w-full flex flex-col md:flex-row items-stretch md:items-center gap-2 md:gap-2.5 p-2 sm:p-2.5 rounded-xl bg-white/95 backdrop-blur-md shadow-xl border border-white/80 transition-opacity duration-200 text-left ${isSticky ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+        {/* BỘ LỌC ĐỊA ĐIỂM & NGÀY ĐI (3 CỘT GỘP) */}
+        <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
+          {/* Cột 1: Thành phố & Khu vực (GỘP) */}
+          <div 
+            className={`bg-white rounded-lg shadow-xs border-2 px-3 sm:px-3.5 h-[52px] sm:h-[58px] flex items-center gap-2.5 cursor-pointer transition-all relative ${
+              activeTab === 'location' 
+                ? 'border-[#048c73] ring-2 ring-[#048c73]/20 bg-[#edfbf7]/20 z-40' 
+                : 'border-slate-200 hover:border-[#048c73] z-20'
+            }`}
+            onClick={() => setActiveTab(activeTab === 'location' ? null : 'location')}
+          >
+            <MapPin className="text-[#048c73] w-5 h-5 shrink-0" />
+            <div className="flex flex-col justify-center min-w-0 flex-1">
+              <span className="text-xs font-bold text-[#66716c] uppercase tracking-wider mb-0.5 truncate">
+                Thành phố &amp; Khu vực
+              </span>
+              <span className="text-base font-bold text-[#0a2e26] truncate">
+                {selectedWard
+                  ? `${selectedWard}, ${selectedDistrict || selectedProvince}`
+                  : selectedDistrict
+                    ? `${selectedDistrict}, ${selectedProvince}`
+                    : (selectedProvince || "Chọn điểm đến / tỉnh thành")}
+              </span>
+            </div>
+          </div>
+
+          {/* Cột 2: Địa điểm vui chơi */}
+          <div 
+            className={`bg-white rounded-lg shadow-xs border-2 px-3 sm:px-3.5 h-[52px] sm:h-[58px] flex items-center gap-2.5 cursor-pointer transition-all relative ${
+              activeTab === 'attractions' 
+                ? 'border-[#048c73] ring-2 ring-[#048c73]/20 bg-[#edfbf7]/20 z-40' 
+                : 'border-slate-200 hover:border-[#048c73] z-20'
+            }`}
+            onClick={() => setActiveTab(activeTab === 'attractions' ? null : 'attractions')}
+          >
+            <Sparkles className="text-[#f59e0b] w-5 h-5 shrink-0" />
+            <div className="flex flex-col justify-center min-w-0 flex-1">
+              <span className="text-xs font-bold text-[#66716c] uppercase tracking-wider mb-0.5 truncate flex items-center gap-1">
+                Điểm vui chơi
+                {selectedAttractions.length > 0 && (
+                  <span className="bg-[#f59e0b] text-white text-[11px] px-1.5 py-0.2 rounded-xs font-bold leading-none">
+                    {selectedAttractions.length}
+                  </span>
+                )}
+              </span>
+              <span className="text-base font-bold text-[#0a2e26] truncate">
+                {selectedAttractions.length === 0
+                  ? "Chọn điểm đến"
+                  : selectedAttractions.length === 1
+                    ? (selectedAttractions[0]?.name ?? '')
+                    : `${selectedAttractions.length} điểm đã chọn`}
+              </span>
+            </div>
+          </div>
+
+          {/* Cột 3: Ngày đi mong muốn */}
+          <div 
+            className={`bg-white rounded-lg shadow-xs border-2 px-3 sm:px-3.5 h-[52px] sm:h-[58px] flex items-center gap-2.5 cursor-pointer transition-all relative ${
+              activeTab === 'dates' 
+                ? 'border-[#048c73] ring-2 ring-[#048c73]/20 bg-[#edfbf7]/20 z-40' 
+                : 'border-slate-200 hover:border-[#048c73] z-20'
+            }`}
+            onClick={() => setActiveTab(activeTab === 'dates' ? null : 'dates')}
+          >
+            <Calendar className="text-[#048c73] w-5 h-5 shrink-0" />
+            <div className="flex flex-col justify-center min-w-0 flex-1">
+              <span className="text-xs font-bold text-[#66716c] uppercase tracking-wider mb-0.5 truncate">
+                Ngày đi mong muốn
+              </span>
+              <span className="text-base font-bold text-[#0a2e26] truncate">
+                {checkInDate ? `${checkInDate.day} Th${checkInDate.month}, ${checkInDate.year}` : "Chọn ngày đi"}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Cột 2 (gộp): Khu vực (Quận/Huyện + Phường/Xã) */}
-        <div 
-          className={`bg-white rounded-lg shadow-xs border-2 px-3 sm:px-3 h-[52px] sm:h-[58px] flex items-center gap-2 cursor-pointer transition-all relative ${
-            activeTab === 'area'
-              ? 'border-[#048c73] ring-2 ring-[#048c73]/20 bg-[#edfbf7]/20 z-40' 
-              : 'border-slate-200 hover:border-[#048c73] z-20'
-          }`}
-          onClick={() => {
-            if (activeTab === 'area') {
-              setActiveTab(null);
-            } else {
-              setActiveTab('area');
-              setAreaStep('district');
-            }
-          }}
-        >
-          <Landmark className="text-[#048c73] w-4.5 h-4.5 shrink-0" />
-          <div className="flex flex-col justify-center min-w-0 flex-1">
-            <span className="text-xs font-bold text-[#66716c] uppercase tracking-wider mb-0.5 truncate">
-              Khu vực
-            </span>
-            <span className="text-base font-bold text-[#0a2e26] truncate">
-              {selectedWard
-                ? selectedWard
-                : selectedDistrict
-                  ? selectedDistrict
-                  : "Toàn tỉnh"}
-            </span>
-          </div>
-        </div>
-
-        {/* Cột 4: Địa điểm vui chơi */}
-        <div 
-          className={`bg-white rounded-lg shadow-xs border-2 px-3 sm:px-3 h-[52px] sm:h-[58px] flex items-center gap-2 cursor-pointer transition-all relative ${
-            activeTab === 'attractions' 
-              ? 'border-[#048c73] ring-2 ring-[#048c73]/20 bg-[#edfbf7]/20 z-40' 
-              : 'border-slate-200 hover:border-[#048c73] z-20'
-          }`}
-          onClick={() => setActiveTab(activeTab === 'attractions' ? null : 'attractions')}
-        >
-          <Sparkles className="text-[#f59e0b] w-4.5 h-4.5 shrink-0" />
-          <div className="flex flex-col justify-center min-w-0 flex-1">
-            <span className="text-xs font-bold text-[#66716c] uppercase tracking-wider mb-0.5 truncate flex items-center gap-1">
-              Điểm vui chơi
-              {selectedAttractions.length > 0 && (
-                <span className="bg-[#f59e0b] text-white text-[11px] px-1.5 py-0.2 rounded-xs font-bold leading-none">
-                  {selectedAttractions.length}
-                </span>
-              )}
-            </span>
-            <span className="text-base font-bold text-[#0a2e26] truncate">
-              {selectedAttractions.length === 0
-                ? "Chọn điểm đến"
-                : selectedAttractions.length === 1
-                  ? (selectedAttractions[0]?.name ?? '')
-                  : `${selectedAttractions.length} điểm đã chọn`}
-            </span>
-          </div>
-        </div>
-
-        {/* Cột 5: Ngày đi mong muốn */}
-        <div 
-          className={`bg-white rounded-lg shadow-xs border-2 px-3 sm:px-3 h-[52px] sm:h-[58px] flex items-center gap-2 cursor-pointer transition-all relative ${
-            activeTab === 'dates' 
-              ? 'border-[#048c73] ring-2 ring-[#048c73]/20 bg-[#edfbf7]/20 z-40' 
-              : 'border-slate-200 hover:border-[#048c73] z-20'
-          }`}
-          onClick={() => setActiveTab(activeTab === 'dates' ? null : 'dates')}
-        >
-          <Calendar className="text-[#048c73] w-4.5 h-4.5 shrink-0" />
-          <div className="flex flex-col justify-center min-w-0 flex-1">
-            <span className="text-xs font-bold text-[#66716c] uppercase tracking-wider mb-0.5 truncate">
-              Ngày đi mong muốn
-            </span>
-            <span className="text-base font-bold text-[#0a2e26] truncate">
-              {checkInDate ? `${checkInDate.day} Th${checkInDate.month}, ${checkInDate.year}` : "Chọn ngày đi"}
-            </span>
-          </div>
+        {/* Nút Tìm kiếm */}
+        <div className="flex items-center shrink-0">
+          <Button 
+            onClick={handleSearch}
+            className="h-[52px] sm:h-[58px] px-7 sm:px-8 bg-[#048c73] hover:bg-[#03725e] text-white font-bold rounded-lg border-2 border-[#025a4a] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all active:scale-95 flex items-center justify-center gap-2 text-[15px] sm:text-[16px] cursor-pointer w-full md:w-auto"
+          >
+            <Search className="w-5 h-5 text-[#7ef2dd]" strokeWidth={2.5} />
+            Tìm kiếm
+          </Button>
         </div>
       </div>
 
-      {/* ---------------- 2. NÚT ĐỊNH VỊ GẦN TÔI & TÌM KIẾM (CÓ VIỀN XUNG QUANH) ---------------- */}
-      <div className="flex items-center gap-2 shrink-0">
-        <button
-          onClick={handleNearMe}
-          disabled={isLocating}
-          className="h-[52px] sm:h-[58px] px-3.5 bg-teal-50/80 hover:bg-teal-100/90 text-[#048c73] rounded-lg border-2 border-teal-300 hover:border-[#048c73] transition-all flex items-center gap-1.5 sm:gap-2 shrink-0 group shadow-xs hover:shadow-sm cursor-pointer active:scale-95 disabled:opacity-60"
-          title="Tự động nhận diện Tỉnh / Huyện / Xã hiện tại qua OpenStreetMap"
+      {/* ---------------- THANH TÌM KIẾM STICKY THEO WEB KHI LƯỚT XUỐNG ---------------- */}
+      {isSticky && typeof window !== 'undefined' && createPortal(
+        <div 
+          style={{ top: `${headerHeight}px` }}
+          className="search-sticky-bar fixed inset-x-0 z-40 px-3 sm:px-6 py-2 bg-white/95 backdrop-blur-md shadow-md border-b border-gray-200/90 transition-all duration-200 animate-in slide-in-from-top-2"
         >
-          {isLocating ? (
-            <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 text-[#048c73] animate-spin shrink-0" />
-          ) : (
-            <LocateFixed className="w-4 h-4 sm:w-5 sm:h-5 text-[#048c73] group-hover:scale-110 transition-transform shrink-0" />
-          )}
-          <div className="flex flex-col text-left">
-            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-teal-700">Định vị</span>
-            <span className="text-xs sm:text-base font-bold text-[#0a2e26] whitespace-nowrap">
-              {locationStatus ? locationStatus : (isLocating ? "Đang tìm..." : "Gần tôi")}
-            </span>
+          <div className="max-w-5xl mx-auto w-full">
+            {/* 1. KHI RESPONSIVE (MOBILE < md): THU GỌN THÔNG TIN LẠI THÀNH 1 Ô */}
+            <div 
+              onClick={() => setActiveTab('location')}
+              className="md:hidden w-full bg-[#f6faf8] hover:bg-white rounded-lg border border-[#048c73]/35 shadow-xs px-3 py-1.5 flex items-center justify-between gap-2.5 transition-all cursor-pointer"
+            >
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <div className="w-7 h-7 rounded-md bg-[#048c73] text-white flex items-center justify-center shrink-0 shadow-2xs">
+                  <Search className="w-3.5 h-3.5 text-[#7ef2dd]" strokeWidth={2.5} />
+                </div>
+                <div className="flex flex-col min-w-0 text-left">
+                  <span className="text-xs font-bold text-[#0a2e26] truncate">
+                    {displayLocation}
+                  </span>
+                  <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium truncate">
+                    <span 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveTab('dates');
+                      }}
+                      className="hover:text-[#048c73]"
+                    >
+                      {displayDate}
+                    </span>
+                    <span className="text-slate-300">•</span>
+                    <span 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveTab('attractions');
+                      }}
+                      className="text-amber-700 font-semibold hover:underline"
+                    >
+                      {displayAttractions}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <Button 
+                type="button"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSearch();
+                }}
+                className="h-8 px-3 bg-[#048c73] hover:bg-[#03725e] text-white font-bold rounded-md border border-[#025a4a] shadow-xs active:scale-95 flex items-center gap-1.5 text-xs cursor-pointer shrink-0"
+              >
+                <Search className="w-3.5 h-3.5 text-[#7ef2dd]" strokeWidth={2.5} />
+                <span>Tìm</span>
+              </Button>
+            </div>
+
+            {/* 2. KHI KHÔNG RESPONSIVE (DESKTOP >= md): VẪN HIỆN ĐẦY ĐỦ 3 THẺ THÔNG TIN NHƯ CŨ */}
+            <div className="hidden md:flex items-center gap-2.5">
+              <div className="flex-1 grid grid-cols-3 gap-2">
+                {/* Cột 1: Thành phố & Khu vực */}
+                <div 
+                  onClick={() => setActiveTab(activeTab === 'location' ? null : 'location')}
+                  className={`bg-white rounded-lg shadow-2xs border-2 px-3 h-[48px] flex items-center gap-2.5 cursor-pointer transition-all ${
+                    activeTab === 'location' 
+                      ? 'border-[#048c73] ring-2 ring-[#048c73]/20 bg-[#edfbf7]/30' 
+                      : 'border-slate-200 hover:border-[#048c73]'
+                  }`}
+                >
+                  <MapPin className="text-[#048c73] w-4.5 h-4.5 shrink-0" />
+                  <div className="flex flex-col justify-center min-w-0 flex-1 text-left">
+                    <span className="text-[10px] font-bold text-[#66716c] uppercase tracking-wider leading-none mb-0.5 truncate">
+                      Thành phố &amp; Khu vực
+                    </span>
+                    <span className="text-sm font-bold text-[#0a2e26] truncate">
+                      {selectedWard
+                        ? `${selectedWard}, ${selectedDistrict || selectedProvince}`
+                        : selectedDistrict
+                          ? `${selectedDistrict}, ${selectedProvince}`
+                          : (selectedProvince || "Chọn điểm đến")}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Cột 2: Điểm vui chơi */}
+                <div 
+                  onClick={() => setActiveTab(activeTab === 'attractions' ? null : 'attractions')}
+                  className={`bg-white rounded-lg shadow-2xs border-2 px-3 h-[48px] flex items-center gap-2.5 cursor-pointer transition-all ${
+                    activeTab === 'attractions' 
+                      ? 'border-[#048c73] ring-2 ring-[#048c73]/20 bg-[#edfbf7]/30' 
+                      : 'border-slate-200 hover:border-[#048c73]'
+                  }`}
+                >
+                  <Sparkles className="text-[#f59e0b] w-4.5 h-4.5 shrink-0" />
+                  <div className="flex flex-col justify-center min-w-0 flex-1 text-left">
+                    <span className="text-[10px] font-bold text-[#66716c] uppercase tracking-wider leading-none mb-0.5 truncate flex items-center gap-1">
+                      Điểm vui chơi
+                      {selectedAttractions.length > 0 && (
+                        <span className="bg-[#f59e0b] text-white text-[10px] px-1.5 py-0.2 rounded-xs font-bold leading-none">
+                          {selectedAttractions.length}
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-sm font-bold text-[#0a2e26] truncate">
+                      {selectedAttractions.length === 0
+                        ? "Chọn điểm đến"
+                        : selectedAttractions.length === 1
+                          ? (selectedAttractions[0]?.name ?? '')
+                          : `${selectedAttractions.length} điểm đã chọn`}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Cột 3: Ngày đi mong muốn */}
+                <div 
+                  onClick={() => setActiveTab(activeTab === 'dates' ? null : 'dates')}
+                  className={`bg-white rounded-lg shadow-2xs border-2 px-3 h-[48px] flex items-center gap-2.5 cursor-pointer transition-all ${
+                    activeTab === 'dates' 
+                      ? 'border-[#048c73] ring-2 ring-[#048c73]/20 bg-[#edfbf7]/30' 
+                      : 'border-slate-200 hover:border-[#048c73]'
+                  }`}
+                >
+                  <Calendar className="text-[#048c73] w-4.5 h-4.5 shrink-0" />
+                  <div className="flex flex-col justify-center min-w-0 flex-1 text-left">
+                    <span className="text-[10px] font-bold text-[#66716c] uppercase tracking-wider leading-none mb-0.5 truncate">
+                      Ngày đi mong muốn
+                    </span>
+                    <span className="text-sm font-bold text-[#0a2e26] truncate">
+                      {checkInDate ? `${checkInDate.day} Th${checkInDate.month}, ${checkInDate.year}` : "Chọn ngày đi"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Nút Tìm kiếm */}
+              <Button 
+                onClick={handleSearch}
+                className="h-[48px] px-7 bg-[#048c73] hover:bg-[#03725e] text-white font-bold rounded-lg border-2 border-[#025a4a] shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all active:scale-95 flex items-center gap-2 text-sm cursor-pointer shrink-0"
+              >
+                <Search className="w-4.5 h-4.5 text-[#7ef2dd]" strokeWidth={2.5} />
+                <span>Tìm kiếm</span>
+              </Button>
+            </div>
           </div>
-        </button>
+        </div>,
+        document.body
+      )}
 
-        <Button 
-          onClick={handleSearch}
-          className="h-[52px] sm:h-[58px] px-6 sm:px-7 bg-[#048c73] hover:bg-[#03725e] text-white font-bold rounded-lg border-2 border-[#025a4a] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all active:scale-95 flex items-center justify-center gap-2 text-[15px] sm:text-[16px] cursor-pointer"
-        >
-          <Search className="w-5 h-5 text-[#7ef2dd]" strokeWidth={2.5} />
-          Tìm kiếm
-        </Button>
-      </div>
-
-      {/* ---------------- DESKTOP UNIFIED 4-PHẦN POPOVER ---------------- */}
+      {/* ---------------- DESKTOP UNIFIED 3-PHẦN POPOVER ---------------- */}
       {activeTab && (
         <div 
-          className="hidden md:flex absolute top-[110%] left-0 w-full max-w-[760px] bg-white rounded-lg shadow-2xl border border-gray-200 p-4 z-[100] flex-col gap-3.5 animate-in fade-in slide-in-from-top-2 duration-200"
+          style={isSticky ? { top: `${headerHeight + 66}px` } : undefined}
+          className={`search-popover-panel hidden md:flex ${
+            isSticky 
+              ? 'fixed left-1/2 -translate-x-1/2 w-[820px] max-w-[calc(100vw-32px)] shadow-2xl' 
+              : 'absolute top-[110%] left-0 w-full max-w-[820px] shadow-2xl'
+          } bg-white rounded-lg border border-gray-200 p-4 z-[100] flex-col gap-3.5 animate-in fade-in slide-in-from-top-2 duration-200`}
           onClick={stopPropagation}
         >
-          {/* Header Switcher: 4 Tabs */}
-          <div className="flex items-center justify-between border-b border-gray-100 pb-2.5">
-            <div className="flex items-center gap-1.5 p-1 bg-gray-100 rounded-md overflow-x-auto">
+          {/* Header Switcher: 3 Tabs (Chia đều 3 thẻ chọn 1/3 - 1/3 - 1/3) */}
+          <div className="flex items-center justify-between border-b border-gray-100 pb-2.5 gap-3">
+            <div className="grid grid-cols-3 gap-1.5 p-1 bg-gray-100 rounded-md flex-1">
               <button
-                onClick={() => setActiveTab('province')}
-                className={`px-3 py-1.5 text-base font-bold rounded transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                  activeTab === 'province' 
+                type="button"
+                onClick={() => setActiveTab('location')}
+                className={`py-2 px-2.5 text-xs sm:text-sm font-bold rounded transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center truncate ${
+                  activeTab === 'location' 
                     ? 'bg-white text-[#048c73] shadow-xs' 
-                    : 'text-gray-600 hover:text-gray-900'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-white/60'
                 }`}
               >
-                <Building2 className="w-3.5 h-3.5" />
-                1. Tỉnh/TP
-                {selectedProvince && <span className="text-xs text-[#048c73] font-normal">({selectedProvince})</span>}
-              </button>
-
-              <button
-                onClick={() => { setActiveTab('area'); setAreaStep('district'); }}
-                className={`px-3 py-1.5 text-base font-bold rounded transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                  activeTab === 'area' 
-                    ? 'bg-white text-[#048c73] shadow-xs' 
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                <Landmark className="w-3.5 h-3.5" />
-                2. Khu vực
+                <MapPin className="w-4 h-4 text-[#048c73] shrink-0" />
+                <span className="truncate">1. Thành phố &amp; Khu vực</span>
                 {selectedWard ? (
-                  <span className="text-xs text-[#048c73] font-normal">({selectedWard})</span>
+                  <span className="text-[11px] text-[#048c73] font-normal shrink-0">({selectedWard})</span>
                 ) : selectedDistrict ? (
-                  <span className="text-xs text-[#048c73] font-normal">({selectedDistrict})</span>
-                ) : (
-                  <span className="text-xs text-gray-400 font-normal">(Toàn tỉnh)</span>
-                )}
+                  <span className="text-[11px] text-[#048c73] font-normal shrink-0">({selectedDistrict})</span>
+                ) : selectedProvince ? (
+                  <span className="text-[11px] text-[#048c73] font-normal shrink-0">({selectedProvince})</span>
+                ) : null}
               </button>
 
               <button
+                type="button"
                 onClick={() => setActiveTab('attractions')}
-                className={`px-3 py-1.5 text-base font-bold rounded transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                className={`py-2 px-2.5 text-xs sm:text-sm font-bold rounded transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center truncate ${
                   activeTab === 'attractions' 
                     ? 'bg-white text-[#048c73] shadow-xs' 
-                    : 'text-gray-600 hover:text-gray-900'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-white/60'
                 }`}
               >
-                <Sparkles className="w-3.5 h-3.5 text-[#f59e0b]" />
-                3. Điểm vui chơi
+                <Sparkles className="w-4 h-4 text-[#f59e0b] shrink-0" />
+                <span className="truncate">2. Điểm vui chơi</span>
                 {selectedAttractions.length > 0 && (
-                  <span className="bg-[#f59e0b] text-white text-xs px-1.5 py-0.2 rounded-full font-bold">
+                  <span className="bg-[#f59e0b] text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold shrink-0">
                     {selectedAttractions.length}
                   </span>
                 )}
               </button>
 
               <button
+                type="button"
                 onClick={() => setActiveTab('dates')}
-                className={`px-3 py-1.5 text-base font-bold rounded transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                className={`py-2 px-2.5 text-xs sm:text-sm font-bold rounded transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center truncate ${
                   activeTab === 'dates' 
                     ? 'bg-white text-[#048c73] shadow-xs' 
-                    : 'text-gray-600 hover:text-gray-900'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-white/60'
                 }`}
               >
-                <Calendar className="w-3.5 h-3.5 text-[#048c73]" />
-                4. Ngày đi
+                <Calendar className="w-4 h-4 text-[#048c73] shrink-0" />
+                <span className="truncate">3. Ngày đi</span>
                 {checkInDate && (
-                  <span className="text-xs text-[#048c73] font-normal">
+                  <span className="text-[11px] text-[#048c73] font-normal shrink-0">
                     ({checkInDate.day}/{checkInDate.month})
                   </span>
                 )}
@@ -977,176 +1083,196 @@ export default function SearchHub() {
             {/* Nút đặt lại lựa chọn nếu có */}
             {(selectedDistrict || selectedWard || selectedAttractions.length > 0 || checkInDate) && (
               <button
+                type="button"
                 onClick={() => {
                   setSelectedDistrict(null);
                   setSelectedWard(null);
                   setSelectedAttractions([]);
                   setCheckInDate(null);
                 }}
-                className="text-base text-gray-400 hover:text-red-500 font-semibold cursor-pointer shrink-0 ml-2"
+                className="text-xs font-semibold text-gray-400 hover:text-red-500 cursor-pointer shrink-0 whitespace-nowrap"
               >
                 Bỏ chọn lọc
               </button>
             )}
           </div>
 
-          {/* TAB 1: THÀNH PHỐ / TỈNH */}
-          {activeTab === 'province' && (
-            <div className="flex flex-col gap-2.5">
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Tìm nhanh thành phố, tỉnh..."
-                  value={provinceSearch}
-                  onChange={(e) => setProvinceSearch(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 text-base bg-gray-50 border border-gray-200 rounded-md outline-none focus:border-[#048c73] focus:bg-white text-gray-800"
-                  autoFocus
-                />
-              </div>
-
-              <div className="grid grid-cols-4 gap-2 max-h-[230px] overflow-y-auto p-1">
-                {filteredProvinces.map(p => {
-                  const isSelected = selectedProvince === p.province;
-                  const districtCount = p.districts?.length || 0;
-                  return (
-                    <button
-                      key={p.province}
-                      onClick={() => {
-                        setSelectedProvince(p.province);
-                        setSelectedDistrict(null);
-                        setSelectedWard(null);
-                        setSelectedAttractions([]);
-                        setActiveTab('area');
-                        setAreaStep('district');
-                      }}
-                      className={`p-2.5 rounded-md text-base font-bold border transition-all text-left flex flex-col justify-between cursor-pointer ${
-                        isSelected
-                          ? 'bg-[#edfbf7] border-[#048c73] text-[#048c73] shadow-xs'
-                          : 'bg-white border-gray-200 text-gray-800 hover:border-[#048c73] hover:bg-gray-50'
-                      }`}
-                    >
-                      <span>{p.province}</span>
-                      <span className="text-xs text-gray-400 font-normal mt-1">
-                        {districtCount > 0 ? `${districtCount} quận/huyện` : 'Toàn tỉnh'}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: KHU VỰC (Quận/Huyện + Phường/Xã gộp, 2 cột phân cấp) */}
-          {activeTab === 'area' && (
-            <div className="flex gap-3">
-              {/* Cột trái: Quận/Huyện */}
-              <div className="flex flex-col gap-2 w-1/2">
+          {/* TAB 1: THÀNH PHỐ & KHU VỰC (GỘP THÀNH 1 PANEL ĐA NĂNG) */}
+          {activeTab === 'location' && (
+            <div className="flex gap-4">
+              {/* Cột trái (38%): Thành phố / Tỉnh */}
+              <div className="flex flex-col gap-2 w-[38%] border-r border-gray-100 pr-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Quận / Huyện</span>
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">1. Chọn Tỉnh / Thành phố</span>
                 </div>
                 <div className="relative">
                   <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
-                    placeholder={`Tìm huyện tại ${selectedProvince}...`}
-                    value={districtSearch}
-                    onChange={(e) => setDistrictSearch(e.target.value)}
-                    className="w-full pl-8 pr-3 py-1.5 text-base bg-gray-50 border border-gray-200 rounded-md outline-none focus:border-[#048c73] focus:bg-white text-gray-800"
+                    placeholder="Tìm tỉnh, TP..."
+                    value={provinceSearch}
+                    onChange={(e) => setProvinceSearch(e.target.value)}
+                    className="w-full pl-8 pr-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-md outline-none focus:border-[#048c73] focus:bg-white text-gray-800"
                     autoFocus
                   />
                 </div>
-                <div className="flex flex-col gap-1.5 max-h-[220px] overflow-y-auto pr-1">
-                  <button
-                    onClick={() => { setSelectedDistrict(null); setSelectedWard(null); }}
-                    className={`p-2 rounded-md text-base font-bold border transition-all text-left flex items-center justify-between cursor-pointer ${
-                      selectedDistrict === null
-                        ? 'bg-[#048c73] text-white border-[#048c73] shadow-xs'
-                        : 'bg-white border-gray-200 text-gray-800 hover:border-[#048c73] hover:bg-[#edfbf7]'
-                    }`}
-                  >
-                    <span>Toàn tỉnh</span>
-                    {selectedDistrict === null && <Check className="w-3.5 h-3.5 text-white shrink-0" />}
-                  </button>
-                  {currentDistricts.map(d => {
-                    const isSelected = selectedDistrict === d.name;
+                <div className="flex flex-col gap-1.5 max-h-[250px] overflow-y-auto pr-1">
+                  {filteredProvinces.map(p => {
+                    const isSelected = selectedProvince === p.province;
+                    const districtCount = p.districts?.length || 0;
                     return (
                       <button
-                        key={d.name}
-                        onClick={() => { setSelectedDistrict(d.name); setSelectedWard(null); }}
-                        className={`p-2 rounded-md text-base border transition-all text-left flex items-center justify-between cursor-pointer ${
+                        key={p.province}
+                        onClick={() => {
+                          setSelectedProvince(p.province);
+                          setSelectedDistrict(null);
+                          setSelectedWard(null);
+                          setSelectedAttractions([]);
+                        }}
+                        className={`p-2 rounded-md text-sm font-bold border transition-all text-left flex items-center justify-between cursor-pointer ${
                           isSelected
-                            ? 'bg-[#048c73] text-white border-[#048c73] font-bold shadow-xs'
-                            : 'bg-white border-gray-200 text-gray-700 hover:border-[#048c73] hover:bg-[#edfbf7]'
+                            ? 'bg-[#edfbf7] border-[#048c73] text-[#048c73] shadow-xs'
+                            : 'bg-white border-gray-200 text-gray-800 hover:border-[#048c73] hover:bg-gray-50'
                         }`}
                       >
                         <div className="flex flex-col truncate">
-                          <span className="truncate">{d.name}</span>
-                          <span className={`text-[11px] font-normal ${isSelected ? 'text-teal-100' : 'text-gray-400'}`}>
-                            {d.wards?.length || 0} xã/phường
+                          <span className="truncate">{p.province}</span>
+                          <span className="text-[11px] text-gray-400 font-normal">
+                            {districtCount > 0 ? `${districtCount} quận/huyện` : 'Toàn tỉnh'}
                           </span>
                         </div>
-                        {isSelected && <Check className="w-3 h-3 text-white shrink-0" />}
+                        {isSelected && <Check className="w-3.5 h-3.5 text-[#048c73] shrink-0" />}
                       </button>
                     );
                   })}
                 </div>
               </div>
 
-              {/* Cột phải: Phường/Xã của huyện đang chọn */}
-              <div className="flex flex-col gap-2 w-1/2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                    Phường / Xã
-                    {selectedDistrict && <span className="normal-case text-gray-400 font-normal"> — {selectedDistrict}</span>}
+              {/* Cột phải (62%): Khu vực (Quận/Huyện & Phường/Xã) */}
+              <div className="flex flex-col gap-2 flex-1">
+                <div className="flex items-center justify-between pb-1 border-b border-gray-100">
+                  <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+                    2. Khu vực tại <span className="text-[#048c73]">{selectedProvince}</span>
                   </span>
-                </div>
-                <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    placeholder={selectedDistrict ? `Tìm xã tại ${selectedDistrict}...` : 'Chọn huyện trước...'}
-                    value={wardSearch}
-                    onChange={(e) => setWardSearch(e.target.value)}
-                    disabled={!selectedDistrict}
-                    className="w-full pl-8 pr-3 py-1.5 text-base bg-gray-50 border border-gray-200 rounded-md outline-none focus:border-[#048c73] focus:bg-white text-gray-800 disabled:opacity-50"
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5 max-h-[220px] overflow-y-auto pr-1">
                   <button
-                    onClick={() => { setSelectedWard(null); setActiveTab('attractions'); }}
-                    className={`p-2 rounded-md text-base font-bold border transition-all text-left flex items-center justify-between cursor-pointer ${
-                      selectedWard === null
+                    onClick={() => { setSelectedDistrict(null); handleSelectWard(null); }}
+                    className={`px-2.5 py-1 text-xs font-bold rounded-md border transition-all cursor-pointer ${
+                      selectedDistrict === null && selectedWard === null
                         ? 'bg-[#048c73] text-white border-[#048c73] shadow-xs'
-                        : 'bg-white border-gray-200 text-gray-800 hover:border-[#048c73] hover:bg-[#edfbf7]'
+                        : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-[#edfbf7] hover:border-[#048c73]'
                     }`}
                   >
-                    <span>Tất cả xã/phường</span>
-                    {selectedWard === null && <Check className="w-3.5 h-3.5 text-white shrink-0" />}
+                    ✓ Toàn tỉnh {selectedProvince}
                   </button>
-                  {currentWards.map(w => {
-                    const isSelected = selectedWard === w.name;
-                    return (
+                </div>
+
+                <div className="flex gap-3 pt-1">
+                  {/* Sub-column 1: Quận / Huyện */}
+                  <div className="flex flex-col gap-2 w-1/2">
+                    <span className="text-xs font-semibold text-gray-500">Quận / Huyện:</span>
+                    <div className="relative">
+                      <Search className="w-3 h-3 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        placeholder="Tìm huyện..."
+                        value={districtSearch}
+                        onChange={(e) => setDistrictSearch(e.target.value)}
+                        className="w-full pl-7 pr-2 py-1 text-xs bg-gray-50 border border-gray-200 rounded-md outline-none focus:border-[#048c73] focus:bg-white"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1 max-h-[190px] overflow-y-auto pr-1">
                       <button
-                        key={w.name}
-                        onClick={() => { setSelectedWard(isSelected ? null : w.name); setActiveTab('attractions'); }}
-                        className={`p-2 rounded-md text-base border transition-all text-left flex items-center justify-between cursor-pointer ${
-                          isSelected
+                        onClick={() => { setSelectedDistrict(null); setSelectedWard(null); }}
+                        className={`p-1.5 rounded-md text-xs font-semibold border transition-all text-left flex items-center justify-between cursor-pointer ${
+                          selectedDistrict === null
                             ? 'bg-[#048c73] text-white border-[#048c73] font-bold shadow-xs'
                             : 'bg-white border-gray-200 text-gray-700 hover:border-[#048c73] hover:bg-[#edfbf7]'
                         }`}
                       >
-                        <span className="truncate">{w.name}</span>
-                        {isSelected && <Check className="w-3 h-3 text-white shrink-0" />}
+                        <span>Tất cả quận/huyện</span>
+                        {selectedDistrict === null && <Check className="w-3 h-3 text-white shrink-0" />}
                       </button>
-                    );
-                  })}
+                      {currentDistricts.map(d => {
+                        const isSelected = selectedDistrict === d.name;
+                        return (
+                          <button
+                            key={d.name}
+                            onClick={() => { setSelectedDistrict(d.name); setSelectedWard(null); }}
+                            className={`p-1.5 rounded-md text-xs border transition-all text-left flex items-center justify-between cursor-pointer ${
+                              isSelected
+                                ? 'bg-[#048c73] text-white border-[#048c73] font-bold shadow-xs'
+                                : 'bg-white border-gray-200 text-gray-700 hover:border-[#048c73] hover:bg-[#edfbf7]'
+                            }`}
+                          >
+                            <span className="truncate">{d.name}</span>
+                            {isSelected && <Check className="w-3 h-3 text-white shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Sub-column 2: Phường / Xã */}
+                  <div className="flex flex-col gap-2 w-1/2">
+                    <span className="text-xs font-semibold text-gray-500">
+                      Phường / Xã {selectedDistrict ? `(${selectedDistrict})` : ''}:
+                    </span>
+                    <div className="relative">
+                      <Search className="w-3 h-3 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        placeholder={selectedDistrict ? 'Tìm xã...' : 'Tìm xã toàn tỉnh...'}
+                        value={wardSearch}
+                        onChange={(e) => setWardSearch(e.target.value)}
+                        className="w-full pl-7 pr-2 py-1 text-xs bg-gray-50 border border-gray-200 rounded-md outline-none focus:border-[#048c73] focus:bg-white"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1 max-h-[190px] overflow-y-auto pr-1">
+                      <button
+                        onClick={() => handleSelectWard(null)}
+                        className={`p-1.5 rounded-md text-xs font-semibold border transition-all text-left flex items-center justify-between cursor-pointer ${
+                          selectedWard === null
+                            ? 'bg-[#048c73] text-white border-[#048c73] shadow-xs'
+                            : 'bg-white border-gray-200 text-gray-700 hover:border-[#048c73] hover:bg-[#edfbf7]'
+                        }`}
+                      >
+                        <span>Tất cả xã/phường</span>
+                        {selectedWard === null && <Check className="w-3 h-3 text-white shrink-0" />}
+                      </button>
+                      {currentWards.map(w => {
+                        const isSelected = selectedWard === w.name;
+                        return (
+                          <button
+                            key={w.name}
+                            onClick={() => handleSelectWard(w.name)}
+                            className={`p-1.5 rounded-md text-xs border transition-all text-left flex items-center justify-between cursor-pointer ${
+                              isSelected
+                                ? 'bg-[#048c73] text-white border-[#048c73] font-bold shadow-xs'
+                                : 'bg-white border-gray-200 text-gray-700 hover:border-[#048c73] hover:bg-[#edfbf7]'
+                            }`}
+                          >
+                            <span className="truncate">{w.name}</span>
+                            {isSelected && <Check className="w-3 h-3 text-white shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-gray-100 flex justify-end">
+                  <button
+                    onClick={() => setActiveTab('attractions')}
+                    className="text-xs font-bold text-[#048c73] hover:text-[#03725e] flex items-center gap-1 cursor-pointer"
+                  >
+                    Tiếp tục: Chọn điểm vui chơi &rarr;
+                  </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* TAB 4: ĐỊA ĐIỂM VUI CHƠI */}
+          {/* TAB 2: ĐỊA ĐIỂM VUI CHƠI */}
           {activeTab === 'attractions' && (
             <div className="flex flex-col gap-2.5">
               <div className="flex items-center gap-2">
@@ -1168,7 +1294,8 @@ export default function SearchHub() {
 
               {isLoadingAttractions ? (
                 <div className="flex items-center justify-center p-8 text-base text-[#048c73] font-bold gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" /> Đang tải danh sách địa điểm vui chơi...
+                  <div className="w-4 h-4 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin"></div>
+                  <span>Đang tải danh sách địa điểm vui chơi...</span>
                 </div>
               ) : filteredAttractions.length === 0 ? (
                 <div className="text-center py-6 text-base text-gray-500">
@@ -1248,7 +1375,7 @@ export default function SearchHub() {
             </div>
           )}
 
-          {/* TAB 5: NGÀY ĐI MONG MUỐN */}
+          {/* TAB 3: NGÀY ĐI MONG MUỐN */}
           {activeTab === 'dates' && (
             <div className="flex flex-col gap-2.5">
               {renderCalendar()}
@@ -1268,7 +1395,7 @@ export default function SearchHub() {
         </div>
       )}
 
-      {/* ---------------- MOBILE MODAL (5 PHẦN: TỈNH, HUYỆN, XÃ, ĐIỂM VUI CHƠI, NGÀY ĐI) ---------------- */}
+      {/* ---------------- MOBILE MODAL (THÀNH PHỐ & KHU VỰC, ĐIỂM VUI CHƠI, NGÀY ĐI) ---------------- */}
       {mountedTab && typeof window !== 'undefined' && createPortal(
         <div className="md:hidden fixed inset-0 z-[9999] flex justify-center items-end search-modal-portal">
           <div 
@@ -1290,23 +1417,15 @@ export default function SearchHub() {
               </button>
             </div>
 
-            {/* Mobile Tab Selector: 4 Tabs */}
-            <div className="grid grid-cols-4 gap-1 p-2 bg-gray-100 border-b border-gray-200">
+            {/* Mobile Tab Selector: 3 Tabs */}
+            <div className="grid grid-cols-3 gap-1 p-2 bg-gray-100 border-b border-gray-200">
               <button
-                onClick={() => setActiveTab('province')}
+                onClick={() => setActiveTab('location')}
                 className={`py-1.5 text-xs font-bold rounded text-center transition-all ${
-                  activeTab === 'province' ? 'bg-white text-[#048c73] shadow-xs' : 'text-gray-600'
+                  activeTab === 'location' ? 'bg-white text-[#048c73] shadow-xs' : 'text-gray-600'
                 }`}
               >
-                1. Tỉnh
-              </button>
-              <button
-                onClick={() => { setActiveTab('area'); setAreaStep('district'); }}
-                className={`py-1.5 text-xs font-bold rounded text-center transition-all ${
-                  activeTab === 'area' ? 'bg-white text-[#048c73] shadow-xs' : 'text-gray-600'
-                }`}
-              >
-                2. Khu vực
+                1. Điểm đến &amp; Khu vực
               </button>
               <button
                 onClick={() => setActiveTab('attractions')}
@@ -1314,7 +1433,7 @@ export default function SearchHub() {
                   activeTab === 'attractions' ? 'bg-white text-[#048c73] shadow-xs' : 'text-gray-600'
                 }`}
               >
-                3. Vui chơi
+                2. Vui chơi
               </button>
               <button
                 onClick={() => setActiveTab('dates')}
@@ -1322,90 +1441,104 @@ export default function SearchHub() {
                   activeTab === 'dates' ? 'bg-white text-[#048c73] shadow-xs' : 'text-gray-600'
                 }`}
               >
-                4. Ngày đi
+                3. Ngày đi
               </button>
             </div>
             
             <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3">
-              {/* Tab 1: Tỉnh/TP */}
-              {activeTab === 'province' && (
-                <div className="flex flex-col gap-2">
-                  <input
-                    type="text"
-                    placeholder="Tìm thành phố, tỉnh..."
-                    value={provinceSearch}
-                    onChange={(e) => setProvinceSearch(e.target.value)}
-                    className="p-2 text-base bg-gray-50 border border-gray-200 rounded-md outline-none"
-                  />
-                  <div className="grid grid-cols-2 gap-2">
-                    {filteredProvinces.map(p => (
-                      <button
-                        key={p.province}
-                        onClick={() => {
-                          setSelectedProvince(p.province);
-                          setSelectedDistrict(null);
-                          setSelectedWard(null);
-                          setActiveTab('area');
-                          setAreaStep('district');
-                        }}
-                        className={`p-2.5 rounded-md text-base font-bold border text-left cursor-pointer ${
-                          selectedProvince === p.province ? 'bg-[#edfbf7] border-[#048c73] text-[#048c73]' : 'bg-white border-gray-200'
-                        }`}
-                      >
-                        {p.province}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Tab 2: Khu vực (Huyện + Xã, 2 bước) */}
-              {activeTab === 'area' && (
+              {/* Tab 1: Thành phố & Khu vực gộp */}
+              {activeTab === 'location' && (
                 <div className="flex flex-col gap-3">
-                  {/* Sub-tab switcher */}
+                  {/* Sub-step switcher */}
                   <div className="flex gap-2">
                     <button
-                      onClick={() => setAreaStep('district')}
-                      className={`flex-1 py-1.5 text-base font-bold rounded border-2 transition-all ${
-                        areaStep === 'district' ? 'bg-[#048c73] text-white border-[#025a4a]' : 'bg-white text-gray-600 border-gray-200'
+                      onClick={() => setLocationMobileStep('province')}
+                      className={`flex-1 py-1.5 text-xs font-bold rounded border-2 transition-all ${
+                        locationMobileStep === 'province' ? 'bg-[#048c73] text-white border-[#025a4a]' : 'bg-white text-gray-600 border-gray-200'
                       }`}
                     >
-                      Quận / Huyện
+                      1. Tỉnh/TP: {selectedProvince}
                     </button>
                     <button
-                      onClick={() => setAreaStep('ward')}
-                      className={`flex-1 py-1.5 text-base font-bold rounded border-2 transition-all ${
-                        areaStep === 'ward' ? 'bg-[#048c73] text-white border-[#025a4a]' : 'bg-white text-gray-600 border-gray-200'
+                      onClick={() => setLocationMobileStep('area')}
+                      className={`flex-1 py-1.5 text-xs font-bold rounded border-2 transition-all ${
+                        locationMobileStep === 'area' ? 'bg-[#048c73] text-white border-[#025a4a]' : 'bg-white text-gray-600 border-gray-200'
                       }`}
                     >
-                      Phường / Xã
+                      2. Huyện/Xã
                     </button>
                   </div>
 
-                  {areaStep === 'district' && (
+                  {locationMobileStep === 'province' && (
                     <div className="flex flex-col gap-2">
+                      <input
+                        type="text"
+                        placeholder="Tìm thành phố, tỉnh..."
+                        value={provinceSearch}
+                        onChange={(e) => setProvinceSearch(e.target.value)}
+                        className="p-2 text-base bg-gray-50 border border-gray-200 rounded-md outline-none"
+                      />
+                      <div className="grid grid-cols-2 gap-2">
+                        {filteredProvinces.map(p => (
+                          <button
+                            key={p.province}
+                            onClick={() => {
+                              setSelectedProvince(p.province);
+                              setSelectedDistrict(null);
+                              setSelectedWard(null);
+                              setLocationMobileStep('area');
+                            }}
+                            className={`p-2.5 rounded-md text-base font-bold border text-left cursor-pointer ${
+                              selectedProvince === p.province ? 'bg-[#edfbf7] border-[#048c73] text-[#048c73]' : 'bg-white border-gray-200'
+                            }`}
+                          >
+                            {p.province}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {locationMobileStep === 'area' && (
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-gray-700">Khu vực tại {selectedProvince}:</span>
+                        <button
+                          onClick={() => { 
+                            setSelectedDistrict(null); 
+                            handleSelectWard(null);
+                          }}
+                          className={`px-2 py-1 text-xs font-bold rounded border ${
+                            selectedDistrict === null && selectedWard === null ? 'bg-[#048c73] text-white border-[#048c73]' : 'bg-white text-gray-700 border-gray-200'
+                          }`}
+                        >
+                          Toàn tỉnh
+                        </button>
+                      </div>
+
+                      {/* District Search & List */}
                       <input
                         type="text"
                         placeholder={`Tìm huyện tại ${selectedProvince}...`}
                         value={districtSearch}
                         onChange={(e) => setDistrictSearch(e.target.value)}
-                        className="p-2 text-base bg-gray-50 border border-gray-200 rounded-md outline-none"
+                        className="p-2 text-sm bg-gray-50 border border-gray-200 rounded-md outline-none"
                       />
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 gap-1.5 max-h-[140px] overflow-y-auto">
                         <button
-                          onClick={() => { setSelectedDistrict(null); setSelectedWard(null); setAreaStep('ward'); }}
-                          className={`p-2.5 rounded-md text-base font-bold border text-left flex justify-between items-center cursor-pointer ${
+                          onClick={() => { setSelectedDistrict(null); setSelectedWard(null); }}
+                          className={`p-2 rounded-md text-xs font-bold border text-left flex justify-between items-center cursor-pointer ${
                             selectedDistrict === null ? 'bg-[#048c73] text-white border-[#048c73]' : 'bg-white border-gray-200'
                           }`}
                         >
-                          <span>Toàn tỉnh</span>
+                          <span>Tất cả quận/huyện</span>
                           {selectedDistrict === null && <Check className="w-3.5 h-3.5 text-white" />}
                         </button>
                         {currentDistricts.map(d => (
                           <button
                             key={d.name}
-                            onClick={() => { setSelectedDistrict(d.name); setSelectedWard(null); setAreaStep('ward'); }}
-                            className={`p-2.5 rounded-md text-base font-bold border text-left flex justify-between items-center cursor-pointer ${
+                            onClick={() => { setSelectedDistrict(d.name); setSelectedWard(null); }}
+                            className={`p-2 rounded-md text-xs font-bold border text-left flex justify-between items-center cursor-pointer ${
                               selectedDistrict === d.name ? 'bg-[#048c73] text-white border-[#048c73]' : 'bg-white border-gray-200'
                             }`}
                           >
@@ -1414,40 +1547,42 @@ export default function SearchHub() {
                           </button>
                         ))}
                       </div>
-                    </div>
-                  )}
 
-                  {areaStep === 'ward' && (
-                    <div className="flex flex-col gap-2">
-                      <input
-                        type="text"
-                        placeholder={`Tìm phường, xã...`}
-                        value={wardSearch}
-                        onChange={(e) => setWardSearch(e.target.value)}
-                        className="p-2 text-base bg-gray-50 border border-gray-200 rounded-md outline-none"
-                      />
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          onClick={() => { setSelectedWard(null); setActiveTab('attractions'); }}
-                          className={`p-2.5 rounded-md text-base font-bold border text-left flex justify-between items-center cursor-pointer ${
-                            selectedWard === null ? 'bg-[#048c73] text-white border-[#048c73]' : 'bg-white border-gray-200'
-                          }`}
-                        >
-                          <span>Tất cả xã/phường</span>
-                          {selectedWard === null && <Check className="w-3.5 h-3.5 text-white" />}
-                        </button>
-                        {currentWards.map(w => (
+                      {/* Ward section */}
+                      <div className="flex flex-col gap-2 pt-2 border-t border-gray-100">
+                        <span className="text-xs font-bold text-gray-700">
+                          {selectedDistrict ? `Xã / Phường tại ${selectedDistrict}:` : `Xã / Phường toàn ${selectedProvince}:`}
+                        </span>
+                        <input
+                          type="text"
+                          placeholder={selectedDistrict ? `Tìm xã tại ${selectedDistrict}...` : `Tìm xã toàn ${selectedProvince}...`}
+                          value={wardSearch}
+                          onChange={(e) => setWardSearch(e.target.value)}
+                          className="p-2 text-xs bg-gray-50 border border-gray-200 rounded-md outline-none"
+                        />
+                        <div className="grid grid-cols-2 gap-1.5 max-h-[150px] overflow-y-auto">
                           <button
-                            key={w.name}
-                            onClick={() => { setSelectedWard(selectedWard === w.name ? null : w.name); setActiveTab('attractions'); }}
-                            className={`p-2.5 rounded-md text-base font-bold border text-left flex justify-between items-center cursor-pointer ${
-                              selectedWard === w.name ? 'bg-[#048c73] text-white border-[#048c73]' : 'bg-white border-gray-200'
+                            onClick={() => handleSelectWard(null)}
+                            className={`p-2 rounded-md text-xs font-bold border text-left flex justify-between items-center cursor-pointer ${
+                              selectedWard === null ? 'bg-[#048c73] text-white border-[#048c73]' : 'bg-white border-gray-200'
                             }`}
                           >
-                            <span className="truncate">{w.name}</span>
-                            {selectedWard === w.name && <Check className="w-3.5 h-3.5 text-white" />}
+                            <span>Tất cả</span>
+                            {selectedWard === null && <Check className="w-3.5 h-3.5 text-white" />}
                           </button>
-                        ))}
+                          {currentWards.map(w => (
+                            <button
+                              key={w.name}
+                              onClick={() => handleSelectWard(w.name)}
+                              className={`p-2 rounded-md text-xs font-bold border text-left flex justify-between items-center cursor-pointer ${
+                                selectedWard === w.name ? 'bg-[#048c73] text-white border-[#048c73]' : 'bg-white border-gray-200'
+                              }`}
+                            >
+                              <span className="truncate">{w.name}</span>
+                              {selectedWard === w.name && <Check className="w-3.5 h-3.5 text-white" />}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -1500,16 +1635,26 @@ export default function SearchHub() {
               )}
             </div>
 
-            <div className="p-3 border-t border-gray-100 flex items-center justify-between">
-              <span className="text-base text-gray-500">
-                {selectedAttractions.length > 0 ? `${selectedAttractions.length} điểm đã chọn` : (checkInDate ? `Ngày: ${checkInDate.day}/${checkInDate.month}/${checkInDate.year}` : 'Chưa chọn ngày')}
+            <div className="p-3 border-t border-gray-100 flex items-center justify-between gap-2 shrink-0 bg-white">
+              <span className="text-xs sm:text-sm text-gray-600 truncate flex-1">
+                {selectedAttractions.length > 0 ? `${selectedAttractions.length} điểm đã chọn` : (checkInDate ? `Ngày: ${checkInDate.day}/${checkInDate.month}/${checkInDate.year}` : 'Toàn bộ địa điểm')}
               </span>
-              <Button
-                className="bg-[#048c73] hover:bg-[#03725e] text-white text-base font-bold px-4 py-2 rounded-md border-2 border-[#025a4a] cursor-pointer"
-                onClick={closeModal}
-              >
-                Xác nhận
-              </Button>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  variant="outline"
+                  className="text-xs font-semibold px-3 py-1.5 h-9 rounded-md border-gray-300 text-gray-700 hover:bg-gray-100 cursor-pointer"
+                  onClick={closeModal}
+                >
+                  Đóng
+                </Button>
+                <Button
+                  className="bg-[#048c73] hover:bg-[#03725e] text-white text-xs font-bold px-4 py-1.5 h-9 rounded-md border-2 border-[#025a4a] shadow-xs active:scale-95 flex items-center gap-1.5 cursor-pointer"
+                  onClick={handleSearch}
+                >
+                  <Search className="w-3.5 h-3.5 text-[#7ef2dd]" />
+                  Tìm kiếm
+                </Button>
+              </div>
             </div>
           </div>
         </div>,

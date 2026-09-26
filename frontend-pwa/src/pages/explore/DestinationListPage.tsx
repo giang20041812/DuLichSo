@@ -3,17 +3,17 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { fetchDestinations, DestinationDto, DestinationFilterParams } from '@/services/destinationService';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { 
-  MapPin, 
-  Heart, 
-  SlidersHorizontal, 
-  Star, 
-  ChevronLeft, 
-  ChevronRight, 
-  X, 
-  ArrowUpDown, 
-  RotateCcw, 
-  Map, 
+import {
+  MapPin,
+  Heart,
+  SlidersHorizontal,
+  Star,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  ArrowUpDown,
+  RotateCcw,
+  Map,
   Sparkles,
   Compass,
   Mountain,
@@ -31,23 +31,23 @@ const SCENIC_TYPES = [
 
 export default function DestinationListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  
+
   const [destinations, setDestinations] = useState<DestinationDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<'recommended' | 'price_asc' | 'price_desc' | 'rating_desc'>('recommended');
-  
+
   const [filters, setFilters] = useState<DestinationFilterParams>(() => {
     const initial: DestinationFilterParams = {};
     const q = searchParams.get('q');
     const minRating = searchParams.get('minRating');
     const scenics = searchParams.get('scenics');
     const freeOnly = searchParams.get('freeOnly');
-    
+
     if (q) initial.keyword = q;
     if (minRating) initial.minRating = Number(minRating);
     if (scenics) initial.scenicTypes = scenics.split(',');
     if (freeOnly === 'true') initial.maxPrice = 0;
-    
+
     return initial;
   });
 
@@ -64,7 +64,7 @@ export default function DestinationListPage() {
       if (newFilters.minRating !== undefined) newParams.set('minRating', newFilters.minRating.toString()); else newParams.delete('minRating');
       if (newFilters.maxPrice !== undefined) newParams.set('maxPrice', newFilters.maxPrice.toString()); else newParams.delete('maxPrice');
       if (newFilters.scenicTypes && newFilters.scenicTypes.length > 0) newParams.set('scenics', newFilters.scenicTypes.join(',')); else newParams.delete('scenics');
-      
+
       setSearchParams(newParams, { replace: true });
       return newFilters;
     });
@@ -82,7 +82,7 @@ export default function DestinationListPage() {
     const minRating = searchParams.get('minRating');
     const scenics = searchParams.get('scenics');
     const maxPrice = searchParams.get('maxPrice');
-    
+
     setFilters({
       keyword: q || undefined,
       minRating: minRating ? Number(minRating) : undefined,
@@ -132,7 +132,7 @@ export default function DestinationListPage() {
           </button>
         )}
       </div>
-      
+
       {/* Loại hình danh thắng */}
       <div className="p-4 border-b border-gray-100">
         <h4 className="font-bold text-[var(--color-ink-deep)] mb-3 text-sm flex items-center justify-between">
@@ -148,16 +148,16 @@ export default function DestinationListPage() {
             const isChecked = filters.scenicTypes?.includes(scenic) || false;
             return (
               <label key={scenic} className="flex items-center gap-2.5 cursor-pointer group">
-                <input 
-                  type="checkbox" 
-                  className="w-4 h-4 rounded-xs border-gray-300 accent-[var(--color-primary)] cursor-pointer" 
+                <input
+                  type="checkbox"
+                  className="w-4 h-4 rounded-xs border-gray-300 accent-[var(--color-primary)] cursor-pointer"
                   checked={isChecked}
                   onChange={(e) => {
                     const current = filters.scenicTypes || [];
-                    handleFilterChange({ 
-                      scenicTypes: e.target.checked 
-                        ? [...current, scenic] 
-                        : current.filter(c => c !== scenic) 
+                    handleFilterChange({
+                      scenicTypes: e.target.checked
+                        ? [...current, scenic]
+                        : current.filter(c => c !== scenic)
                     });
                   }}
                 />
@@ -175,9 +175,9 @@ export default function DestinationListPage() {
         <h4 className="font-bold text-[var(--color-ink-deep)] mb-3 text-sm">Giá vé tham quan</h4>
         <div className="flex flex-col gap-2.5">
           <label className="flex items-center gap-2.5 cursor-pointer group">
-            <input 
-              type="checkbox" 
-              className="w-4 h-4 rounded-xs border-gray-300 accent-[var(--color-primary)] cursor-pointer" 
+            <input
+              type="checkbox"
+              className="w-4 h-4 rounded-xs border-gray-300 accent-[var(--color-primary)] cursor-pointer"
               checked={filters.maxPrice === 0}
               onChange={(e) => handleFilterChange({ maxPrice: e.target.checked ? 0 : undefined })}
             />
@@ -196,9 +196,9 @@ export default function DestinationListPage() {
             const isSelected = filters.minRating === score;
             return (
               <label key={score} className="flex items-center gap-2.5 cursor-pointer group">
-                <input 
-                  type="checkbox" 
-                  className="w-4 h-4 rounded-xs border-gray-300 accent-[var(--color-primary)] cursor-pointer" 
+                <input
+                  type="checkbox"
+                  className="w-4 h-4 rounded-xs border-gray-300 accent-[var(--color-primary)] cursor-pointer"
                   checked={isSelected}
                   onChange={(e) => handleFilterChange({ minRating: e.target.checked ? score : undefined })}
                 />
@@ -207,9 +207,9 @@ export default function DestinationListPage() {
                 </span>
                 <div className="flex items-center gap-0.5">
                   {[...Array(5)].map((_, i) => (
-                    <Star 
-                      key={i} 
-                      className={`w-3 h-3 ${i < Math.floor(score) ? 'text-[#f59e0b] fill-[#f59e0b]' : 'text-gray-300'}`} 
+                    <Star
+                      key={i}
+                      className={`w-3 h-3 ${i < Math.floor(score) ? 'text-[#f59e0b] fill-[#f59e0b]' : 'text-gray-300'}`}
                     />
                   ))}
                 </div>
@@ -225,7 +225,7 @@ export default function DestinationListPage() {
     <div className="w-full flex flex-col min-h-screen bg-[var(--color-canvas)]">
       {/* Hero Section */}
       <section className="relative w-full min-h-[420px] md:min-h-[380px] flex items-start md:items-center justify-center pt-[175px] md:pt-[160px] pb-10 md:pb-8">
-        <div 
+        <div
           className="absolute inset-0 z-0 bg-cover bg-center"
           style={{ backgroundImage: `url('https://images.unsplash.com/photo-1528127269322-539801943592?q=80&w=2000&auto=format&fit=crop')` }}
         >
@@ -234,10 +234,7 @@ export default function DestinationListPage() {
         </div>
 
         <div className="relative z-10 w-full max-w-4xl mx-auto px-4 text-center">
-          <div className="inline-flex items-center gap-2 bg-white/20 text-white backdrop-blur-md mb-3 px-3.5 py-1.5 rounded-md text-xs font-semibold shadow-sm border border-white/20">
-            <Mountain className="w-4 h-4 text-[#52d967]" />
-            <span>Kỳ quan Di tích Quốc gia & Danh thắng Tây Bắc</span>
-          </div>
+
 
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold font-display text-white tracking-tight mb-3 drop-shadow-md">
             Điểm Đến & Thắng Cảnh Mù Cang Chải
@@ -250,7 +247,7 @@ export default function DestinationListPage() {
 
       {/* Main Container */}
       <div className="max-w-[1280px] mx-auto w-full px-4 md:px-8 pt-3 pb-8">
-        
+
         {/* Breadcrumbs */}
         <div className="flex items-center gap-2 text-xs md:text-sm text-[var(--color-muted)] mb-3">
           <Link to="/" className="hover:text-[var(--color-primary)] transition-colors">Trang chủ</Link>
@@ -277,8 +274,8 @@ export default function DestinationListPage() {
               <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-md px-2.5 py-1.5 hover:border-gray-300 transition-colors">
                 <ArrowUpDown className="w-3.5 h-3.5 text-[var(--color-primary)]" />
                 <span className="text-xs text-gray-500 font-medium hidden md:inline">Sắp xếp:</span>
-                <select 
-                  value={sortBy} 
+                <select
+                  value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as any)}
                   className="bg-transparent text-xs md:text-sm font-semibold text-[var(--color-ink-deep)] focus:outline-none cursor-pointer"
                 >
@@ -288,8 +285,8 @@ export default function DestinationListPage() {
                 </select>
               </div>
 
-              <Link 
-                to="/map" 
+              <Link
+                to="/map"
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs md:text-sm font-semibold rounded-md border border-[var(--color-primary)] bg-[var(--color-primary-50)] text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-white transition-all shadow-2xs active:scale-98"
               >
                 <Map className="w-3.5 h-3.5" />
@@ -314,11 +311,10 @@ export default function DestinationListPage() {
                   scenicTypes: has ? current.filter(s => s !== target) : [...current, target]
                 });
               }}
-              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all hover:-translate-y-0.5 ${
-                filters.scenicTypes?.includes('Ruộng bậc thang di sản')
+              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all hover:-translate-y-0.5 ${filters.scenicTypes?.includes('Ruộng bậc thang di sản')
                   ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-xs'
                   : 'bg-gray-50 text-[var(--color-ink)] border-gray-200 hover:border-gray-300 hover:bg-white'
-              }`}
+                }`}
             >
               <Mountain className="w-3 h-3" /> Ruộng bậc thang
             </button>
@@ -333,11 +329,10 @@ export default function DestinationListPage() {
                   scenicTypes: has ? current.filter(s => s !== target) : [...current, target]
                 });
               }}
-              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all hover:-translate-y-0.5 ${
-                filters.scenicTypes?.includes('Thác nước & Suối nguồn')
+              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all hover:-translate-y-0.5 ${filters.scenicTypes?.includes('Thác nước & Suối nguồn')
                   ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-xs'
                   : 'bg-gray-50 text-[var(--color-ink)] border-gray-200 hover:border-gray-300 hover:bg-white'
-              }`}
+                }`}
             >
               Thác Pú Nhu & Thác Mơ
             </button>
@@ -345,11 +340,10 @@ export default function DestinationListPage() {
             {/* Quick Free Ticket */}
             <button
               onClick={() => handleFilterChange({ maxPrice: filters.maxPrice === 0 ? undefined : 0 })}
-              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all hover:-translate-y-0.5 ${
-                filters.maxPrice === 0
+              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all hover:-translate-y-0.5 ${filters.maxPrice === 0
                   ? 'bg-[var(--color-coral)] text-white border-[var(--color-coral)] shadow-xs'
                   : 'bg-gray-50 text-[var(--color-ink)] border-gray-200 hover:border-gray-300 hover:bg-white'
-              }`}
+                }`}
             >
               <Ticket className="w-3 h-3" /> Miễn phí vé vào
             </button>
@@ -357,11 +351,10 @@ export default function DestinationListPage() {
             {/* Quick 4.8+ Rating */}
             <button
               onClick={() => handleFilterChange({ minRating: filters.minRating === 4.8 ? undefined : 4.8 })}
-              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all hover:-translate-y-0.5 ${
-                filters.minRating === 4.8
+              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all hover:-translate-y-0.5 ${filters.minRating === 4.8
                   ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-xs'
                   : 'bg-gray-50 text-[var(--color-ink)] border-gray-200 hover:border-gray-300 hover:bg-white'
-              }`}
+                }`}
             >
               <Star className="w-3 h-3 text-[#f59e0b] fill-[#f59e0b]" /> Đánh giá 4.8+
             </button>
@@ -375,7 +368,7 @@ export default function DestinationListPage() {
               </span>
 
               {filters.keyword && (
-                <button 
+                <button
                   onClick={() => {
                     handleFilterChange({ keyword: undefined });
                   }}
@@ -386,7 +379,7 @@ export default function DestinationListPage() {
               )}
 
               {filters.scenicTypes?.map(s => (
-                <button 
+                <button
                   key={s}
                   onClick={() => handleFilterChange({ scenicTypes: filters.scenicTypes?.filter(item => item !== s) })}
                   className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-[var(--color-primary)] bg-[var(--color-primary-50)] text-[var(--color-primary-700)] text-xs font-semibold shadow-2xs transition-all hover:bg-[var(--color-primary-100)]"
@@ -396,7 +389,7 @@ export default function DestinationListPage() {
               ))}
 
               {filters.maxPrice === 0 && (
-                <button 
+                <button
                   onClick={() => handleFilterChange({ maxPrice: undefined })}
                   className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-[var(--color-primary)] bg-[var(--color-primary-50)] text-[var(--color-primary-700)] text-xs font-semibold shadow-2xs transition-all hover:bg-[var(--color-primary-100)]"
                 >
@@ -404,7 +397,7 @@ export default function DestinationListPage() {
                 </button>
               )}
 
-              <button 
+              <button
                 onClick={handleClearFilters}
                 className="shrink-0 flex items-center gap-1 px-3 py-1 rounded-md border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-300 text-xs font-bold transition-all shadow-2xs"
               >
@@ -416,7 +409,7 @@ export default function DestinationListPage() {
 
         <div className="w-full flex flex-col md:flex-row gap-6">
           <div className="flex md:hidden mb-2">
-            <button 
+            <button
               onClick={() => setMobileFilterOpen(true)}
               className="flex w-full items-center justify-center gap-2 bg-white p-3 rounded-lg shadow-sm border border-[var(--color-primary)] text-sm font-bold text-[var(--color-primary)]"
             >
@@ -449,168 +442,178 @@ export default function DestinationListPage() {
             {renderFilters()}
           </aside>
 
-          <div className="flex-1 flex flex-col gap-4">
-            {loading ? (
-              <div className="flex items-center justify-center p-12 text-[var(--color-primary)] font-bold">
-                Đang tải danh lam thắng cảnh...
+          <div className="flex-1 flex flex-col gap-4 relative min-h-[350px]">
+            {loading && (
+              <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-20 flex items-start justify-center pt-24 rounded-lg">
+                <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-md shadow-md border border-gray-200 text-[var(--color-primary)] font-bold text-sm">
+                  <div className="w-4 h-4 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin"></div>
+                  <span>Đang cập nhật danh lam thắng cảnh...</span>
+                </div>
               </div>
-            ) : (
-              <div>
-                {paginatedDestinations.length === 0 ? (
-                  <div className="bg-white p-8 text-center rounded-xl border border-gray-200">
-                    <p className="text-gray-500">Không tìm thấy địa điểm nào phù hợp.</p>
-                    <button 
-                      onClick={handleClearFilters}
-                      className="mt-3 text-sm font-bold text-[var(--color-primary)] hover:underline inline-flex items-center gap-1"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" /> Bỏ bộ lọc để xem tất cả
-                    </button>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    {paginatedDestinations.map((dest) => {
-                      const googleMapsQuery = encodeURIComponent(
-                        (dest.address || dest.district || '') + ' ' + dest.name
-                      );
-                      const googleMapsUrl = dest.latitude && dest.longitude 
-                        ? `https://www.google.com/maps/search/?api=1&query=${dest.latitude},${dest.longitude}`
-                        : `https://www.google.com/maps/search/?api=1&query=${googleMapsQuery}`;
+            )}
+            <div>
+              {paginatedDestinations.length === 0 ? (
+                <div className="bg-white p-8 text-center rounded-xl border border-gray-200">
+                  <p className="text-gray-500">Không tìm thấy địa điểm nào phù hợp.</p>
+                  <button
+                    onClick={handleClearFilters}
+                    className="mt-3 text-sm font-bold text-[var(--color-primary)] hover:underline inline-flex items-center gap-1"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" /> Bỏ bộ lọc để xem tất cả
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {paginatedDestinations.map((dest) => {
+                    const googleMapsQuery = encodeURIComponent(
+                      (dest.address || dest.district || '') + ' ' + dest.name
+                    );
+                    const googleMapsUrl = dest.latitude && dest.longitude
+                      ? `https://www.google.com/maps/search/?api=1&query=${dest.latitude},${dest.longitude}`
+                      : `https://www.google.com/maps/search/?api=1&query=${googleMapsQuery}`;
 
-                      return (
-                        <div 
-                          key={dest.id} 
-                          className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-xs hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 flex flex-col justify-between"
-                        >
-                          <div>
-                            <div className="relative w-full h-[220px] overflow-hidden bg-gray-100">
-                              <Link to={`/destinations/${dest.id}`} className="block w-full h-full">
-                                <img 
-                                  src={dest.coverImageUrl} 
-                                  alt={dest.name} 
-                                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" 
-                                />
-                              </Link>
-                              
-                              <button 
-                                className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-white/90 backdrop-blur-xs flex items-center justify-center shadow-xs text-gray-500 hover:text-red-500 transition-colors"
-                                aria-label="Lưu điểm đến"
-                              >
-                                <Heart className="w-4 h-4" />
-                              </button>
+                    return (
+                      <div
+                        key={dest.id}
+                        className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-xs hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 flex flex-col justify-between"
+                      >
+                        <div>
+                          <div className="relative w-full h-[220px] overflow-hidden bg-gray-100">
+                            <Link to={`/destinations/${dest.id}`} className="block w-full h-full">
+                              <img
+                                src={dest.coverImageUrl}
+                                alt={dest.name}
+                                className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                              />
+                            </Link>
 
-                              <div className="absolute top-2.5 left-2.5">
-                                <Badge className="bg-[var(--color-primary)] text-white text-[11px] font-bold rounded-sm px-2 py-0.5 shadow-xs">
-                                  {dest.tagBadge || dest.scenicType}
-                                </Badge>
-                              </div>
+                            <button
+                              className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-white/90 backdrop-blur-xs flex items-center justify-center shadow-xs text-gray-500 hover:text-red-500 transition-colors"
+                              aria-label="Lưu điểm đến"
+                            >
+                              <Heart className="w-4 h-4" />
+                            </button>
 
-                              <div className="absolute bottom-2.5 left-2.5 bg-black/65 backdrop-blur-xs text-white px-2.5 py-1 rounded-sm text-xs font-bold flex items-center gap-1.5">
-                                <Star className="w-3.5 h-3.5 text-[#f59e0b] fill-[#f59e0b]" />
-                                <span>{dest.ratingScore.toString().replace('.', ',')}</span>
-                                <span className="text-gray-300 text-[11px] font-normal">({dest.reviewCount} đánh giá)</span>
-                              </div>
+                            <div className="absolute top-2.5 left-2.5">
+                              <Badge className="bg-[var(--color-primary)] text-white text-xs sm:text-[13px] font-extrabold rounded-md px-2.5 py-1 shadow-xs tracking-wide">
+                                {dest.tagBadge || dest.scenicType}
+                              </Badge>
                             </div>
 
-                            <div className="p-4 flex flex-col gap-2.5">
-                              <div>
-                                <Link to={`/destinations/${dest.id}`}>
-                                  <h3 className="text-lg font-bold text-[var(--color-ink-deep)] hover:text-[var(--color-primary)] transition-colors leading-snug line-clamp-1">
-                                    {dest.name}
-                                  </h3>
-                                </Link>
-                                
-                                <p className="text-xs text-[var(--color-muted)] flex items-center gap-1 mt-1 line-clamp-1">
-                                  <MapPin className="w-3.5 h-3.5 shrink-0 text-[var(--color-primary)]" />
-                                  <span>{dest.address || dest.district || 'Mù Cang Chải, Yên Bái'}</span>
-                                </p>
-                              </div>
-
-                              {dest.description && (
-                                <p className="text-xs text-[var(--color-muted)] line-clamp-2 leading-relaxed">
-                                  {dest.description}
-                                </p>
-                              )}
-
-                              <div className="flex items-center gap-1 text-xs font-semibold text-[var(--color-primary)]">
-                                <Compass className="w-3.5 h-3.5" />
-                                <span>{dest.scenicType}</span>
-                              </div>
+                            <div className="absolute bottom-2.5 left-2.5 bg-black/75 backdrop-blur-xs text-white px-2.5 py-1 rounded-md text-xs sm:text-sm font-extrabold flex items-center gap-1.5 shadow-sm">
+                              <Star className="w-4 h-4 text-[#f59e0b] fill-[#f59e0b]" />
+                              <span>{dest.ratingScore.toString().replace('.', ',')}</span>
+                              <span className="text-gray-300 text-xs font-medium">({dest.reviewCount} đánh giá)</span>
                             </div>
                           </div>
 
-                          <div className="p-4 pt-2 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                          <div className="p-4 flex flex-col gap-2.5">
                             <div>
-                              <span className="text-[11px] text-[var(--color-muted)] block leading-tight">Vé tham quan</span>
-                              <div className="text-lg font-black text-[var(--color-coral)] leading-tight">
-                                {dest.ticketPrice === 0 ? 'Miễn phí' : `${dest.ticketPrice.toLocaleString('vi-VN')}đ`}
-                                {dest.ticketPrice > 0 && <span className="text-[11px] text-gray-500 font-normal"> /lượt</span>}
-                              </div>
+                              <Link to={`/destinations/${dest.id}`}>
+                                <h3 className="text-lg md:text-xl font-extrabold text-[var(--color-ink-deep)] hover:text-[var(--color-primary)] transition-colors leading-snug line-clamp-1">
+                                  {dest.name}
+                                </h3>
+                              </Link>
+
+                              <p className="text-sm font-semibold text-[var(--color-muted)] flex items-center gap-1.5 mt-1 line-clamp-1">
+                                <MapPin className="w-4 h-4 shrink-0 text-[var(--color-primary)]" />
+                                <span>{dest.address || dest.district || 'Mù Cang Chải, Yên Bái'}</span>
+                              </p>
                             </div>
 
-                            <div className="flex items-center gap-2">
-                              <a
-                                href={googleMapsUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold border border-blue-200 transition-colors"
-                              >
-                                <Map className="w-3.5 h-3.5 text-blue-600" />
-                                Chỉ đường
-                              </a>
+                            {dest.description && (
+                              <p className="text-sm font-medium text-slate-700 line-clamp-4 leading-relaxed">
+                                {dest.description}
+                              </p>
+                            )}
 
-                              <Link to={`/destinations/${dest.id}`}>
-                                <Button 
-                                  variant="primary" 
-                                  className="rounded-md font-bold h-9 px-3.5 text-xs bg-[var(--color-primary)] hover:bg-[var(--color-primary-600)]"
-                                >
-                                  Xem chi tiết
-                                </Button>
-                              </Link>
+                            <div className="flex items-center gap-1.5 text-sm font-bold text-[var(--color-primary)]">
+                              <Compass className="w-4 h-4" />
+                              <span>{dest.scenicType}</span>
                             </div>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
 
-                {totalPages > 1 && (
-                  <div className="flex justify-center items-center gap-2 mt-6 mb-4">
-                    <button 
-                      disabled={currentPage === 1}
-                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                      className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors bg-white"
-                    >
-                      <ChevronLeft className="w-5 h-5 text-[var(--color-ink-deep)]" />
-                    </button>
-                    
-                    <div className="flex items-center gap-1">
-                      {[...Array(totalPages)].map((_, i) => (
-                        <button 
-                          key={i}
-                          onClick={() => setCurrentPage(i + 1)}
-                          className={`w-10 h-10 rounded-full font-medium text-sm transition-colors ${
-                            currentPage === i + 1 
-                              ? 'bg-[var(--color-primary)] text-white shadow-sm' 
-                              : 'text-[var(--color-ink-deep)] hover:bg-gray-100 bg-white'
+                        <div className="p-4 pt-2 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                          <div>
+                            <span className="text-xs font-semibold text-[var(--color-muted)] block leading-tight">Vé tham quan</span>
+                            <div className="text-xl font-black text-[var(--color-coral)] leading-tight">
+                              {dest.ticketPrice === 0 ? 'Miễn phí' : `${dest.ticketPrice.toLocaleString('vi-VN')}đ`}
+                              {dest.ticketPrice > 0 && <span className="text-xs text-gray-500 font-semibold"> /lượt</span>}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <a
+                              href={googleMapsUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold border border-blue-200 transition-colors"
+                            >
+                              <Map className="w-3.5 h-3.5 text-blue-600" />
+                              Chỉ đường
+                            </a>
+
+                            <Link to={`/destinations/${dest.id}`}>
+                              <Button
+                                variant="primary"
+                                className="rounded-md font-bold h-9 px-3.5 text-xs bg-[var(--color-primary)] hover:bg-[var(--color-primary-600)]"
+                              >
+                                Xem chi tiết
+                              </Button>
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-2 mt-6 mb-4">
+                  <button
+                    disabled={currentPage === 1}
+                    onClick={() => {
+                      setCurrentPage(prev => Math.max(1, prev - 1));
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="w-10 h-10 flex items-center justify-center rounded-md border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors bg-white cursor-pointer"
+                  >
+                    <ChevronLeft className="w-5 h-5 text-[var(--color-ink-deep)]" />
+                  </button>
+
+                  <div className="flex items-center gap-1">
+                    {[...Array(totalPages)].map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => {
+                          setCurrentPage(i + 1);
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className={`w-10 h-10 rounded-md font-bold text-sm transition-colors cursor-pointer ${currentPage === i + 1
+                            ? 'bg-[var(--color-primary)] text-white shadow-sm'
+                            : 'text-[var(--color-ink-deep)] hover:bg-gray-100 bg-white border border-gray-200'
                           }`}
-                        >
-                          {i + 1}
-                        </button>
-                      ))}
-                    </div>
-
-                    <button 
-                      disabled={currentPage === totalPages}
-                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                      className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors bg-white"
-                    >
-                      <ChevronRight className="w-5 h-5 text-[var(--color-ink-deep)]" />
-                    </button>
+                      >
+                        {i + 1}
+                      </button>
+                    ))}
                   </div>
-                )}
-              </div>
-            )}
+
+                  <button
+                    disabled={currentPage === totalPages}
+                    onClick={() => {
+                      setCurrentPage(prev => Math.min(totalPages, prev + 1));
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="w-10 h-10 flex items-center justify-center rounded-md border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors bg-white cursor-pointer"
+                  >
+                    <ChevronRight className="w-5 h-5 text-[var(--color-ink-deep)]" />
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

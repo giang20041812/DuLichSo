@@ -3,13 +3,13 @@ import { Link } from 'react-router-dom';
 import { fetchFestivals, FestivalDto } from '@/services/festivalService';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { 
-  Sparkles, 
-  Calendar, 
-  MapPin, 
-  ShieldAlert, 
-  ChevronRight, 
-  Flame, 
+import {
+  Sparkles,
+  Calendar,
+  MapPin,
+  ShieldAlert,
+  ChevronRight,
+  Flame,
   CheckCircle2
 } from 'lucide-react';
 
@@ -49,7 +49,7 @@ export default function CultureFestivalPage() {
     <div className="w-full flex flex-col min-h-screen bg-[var(--color-canvas)]">
       {/* Hero Section */}
       <section className="relative w-full min-h-[420px] md:min-h-[380px] flex items-start md:items-center justify-center pt-[175px] md:pt-[160px] pb-10 md:pb-8">
-        <div 
+        <div
           className="absolute inset-0 z-0 bg-cover bg-center"
           style={{ backgroundImage: `url('https://images.unsplash.com/photo-1528127269322-539801943592?q=80&w=2000&auto=format&fit=crop')` }}
         >
@@ -58,10 +58,7 @@ export default function CultureFestivalPage() {
         </div>
 
         <div className="relative z-10 w-full max-w-4xl mx-auto px-4 text-center">
-          <div className="inline-flex items-center gap-2 bg-white/20 text-white backdrop-blur-md mb-3 px-3.5 py-1.5 rounded-md text-xs font-semibold shadow-sm border border-white/20">
-            <Sparkles className="w-4 h-4 text-[#f59e0b]" />
-            <span>Di Sản & Không Gian Lễ Hội Truyền Thống Mù Cang Chải</span>
-          </div>
+
 
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold font-display text-white tracking-tight mb-3 drop-shadow-md">
             Trải Nghiệm & Lễ Hội Văn Hóa
@@ -93,9 +90,7 @@ export default function CultureFestivalPage() {
                 <h2 className="text-xl md:text-2xl font-black text-[var(--color-ink-deep)]">
                   Lễ Hội Thích Hợp Theo Mùa
                 </h2>
-                <p className="text-xs md:text-sm text-[var(--color-muted)] mt-1">
-                  Các lễ hội và sinh hoạt văn hóa truyền thống đang diễn ra hoặc bước vào thời điểm đẹp nhất trong năm.
-                </p>
+
               </div>
 
               <div className="shrink-0 flex items-center gap-2">
@@ -108,7 +103,7 @@ export default function CultureFestivalPage() {
             {/* List Featured Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {currentSeasonFestivals.map(item => (
-                <div 
+                <div
                   key={item.id}
                   className="bg-white rounded-lg p-4 border border-[#048c73]/25 shadow-xs hover:shadow-md transition-all flex flex-col justify-between"
                 >
@@ -138,7 +133,7 @@ export default function CultureFestivalPage() {
                     <div className="mb-2 py-1 px-2.5 rounded-sm bg-[#edfbf7] border border-[#048c73]/20 flex items-center justify-between text-xs">
                       <span className="text-slate-600 font-medium">Thời gian phù hợp:</span>
                       <span className="font-bold text-[#048c73]">
-                        {item.suitableDateStart && item.suitableDateEnd 
+                        {item.suitableDateStart && item.suitableDateEnd
                           ? `${item.suitableDateStart.split('-').reverse().slice(0, 2).join('/')} – ${item.suitableDateEnd.split('-').reverse().slice(0, 2).join('/')}`
                           : (item.suitableDateEnd ? `Đến ${item.suitableDateEnd.split('-').reverse().slice(0, 2).join('/')}` : item.timeRange)}
                       </span>
@@ -166,42 +161,38 @@ export default function CultureFestivalPage() {
           <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide py-1">
             <button
               onClick={() => setActiveSeason('ALL')}
-              className={`px-3.5 py-1.5 rounded-md text-xs md:text-sm font-bold transition-all ${
-                activeSeason === 'ALL'
-                  ? 'bg-[var(--color-primary)] text-white shadow-xs'
-                  : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
-              }`}
+              className={`px-3.5 py-1.5 rounded-md text-xs md:text-sm font-bold transition-all ${activeSeason === 'ALL'
+                ? 'bg-[var(--color-primary)] text-white shadow-xs'
+                : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+                }`}
             >
               Tất cả lễ hội ({festivals.length})
             </button>
             <button
               onClick={() => setActiveSeason('CURRENT')}
-              className={`px-3.5 py-1.5 rounded-md text-xs md:text-sm font-bold flex items-center gap-1.5 transition-all ${
-                activeSeason === 'CURRENT'
-                  ? 'bg-[var(--color-coral)] text-white shadow-xs'
-                  : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
-              }`}
+              className={`px-3.5 py-1.5 rounded-md text-xs md:text-sm font-bold flex items-center gap-1.5 transition-all ${activeSeason === 'CURRENT'
+                ? 'bg-[var(--color-coral)] text-white shadow-xs'
+                : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+                }`}
             >
               <Flame className="w-3.5 h-3.5 text-amber-500" />
               Đang vào mùa ({currentSeasonFestivals.length})
             </button>
             <button
               onClick={() => setActiveSeason('AUTUMN')}
-              className={`px-3.5 py-1.5 rounded-md text-xs md:text-sm font-bold transition-all ${
-                activeSeason === 'AUTUMN'
-                  ? 'bg-[var(--color-primary)] text-white shadow-xs'
-                  : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
-              }`}
+              className={`px-3.5 py-1.5 rounded-md text-xs md:text-sm font-bold transition-all ${activeSeason === 'AUTUMN'
+                ? 'bg-[var(--color-primary)] text-white shadow-xs'
+                : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+                }`}
             >
               Lễ hội Mùa Thu & Lúa Chín
             </button>
             <button
               onClick={() => setActiveSeason('SPRING')}
-              className={`px-3.5 py-1.5 rounded-md text-xs md:text-sm font-bold transition-all ${
-                activeSeason === 'SPRING'
-                  ? 'bg-[var(--color-primary)] text-white shadow-xs'
-                  : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
-              }`}
+              className={`px-3.5 py-1.5 rounded-md text-xs md:text-sm font-bold transition-all ${activeSeason === 'SPRING'
+                ? 'bg-[var(--color-primary)] text-white shadow-xs'
+                : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+                }`}
             >
               Lễ hội Mùa Xuân & Đón Tết
             </button>
@@ -216,7 +207,7 @@ export default function CultureFestivalPage() {
         ) : (
           <div className="flex flex-col gap-6">
             {filteredFestivals.map((fest) => (
-              <div 
+              <div
                 key={fest.id}
                 id={`festival-${fest.slug}`}
                 className="bg-white border border-gray-200/90 rounded-lg overflow-hidden shadow-xs hover:shadow-md transition-all duration-300 flex flex-col lg:flex-row"
@@ -224,10 +215,10 @@ export default function CultureFestivalPage() {
                 {/* Image */}
                 <div className="relative w-full lg:w-[380px] h-[240px] lg:h-auto shrink-0 bg-gray-100 overflow-hidden">
                   <Link to={`/festivals/${fest.slug}`} className="block w-full h-full">
-                    <img 
-                      src={fest.coverImageUrl} 
+                    <img
+                      src={fest.coverImageUrl}
                       alt={fest.name}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" 
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                     />
                   </Link>
                   <div className="absolute top-3 left-3 flex flex-col gap-1 pointer-events-none">
@@ -298,8 +289,8 @@ export default function CultureFestivalPage() {
                     </div>
 
                     <Link to={`/festivals/${fest.slug}`}>
-                      <Button 
-                        variant="primary" 
+                      <Button
+                        variant="primary"
                         className="rounded-md font-bold h-9 px-4 text-xs bg-[var(--color-primary)] hover:bg-[var(--color-primary-600)] flex items-center gap-1 shadow-xs"
                       >
                         Xem chi tiết <ChevronRight className="w-3.5 h-3.5" />

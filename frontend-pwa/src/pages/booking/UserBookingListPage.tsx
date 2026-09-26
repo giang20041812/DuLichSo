@@ -45,6 +45,8 @@ const STATUS_FILTERS: { key: string; label: string }[] = [
   { key: 'CANCELLED', label: 'Đã hủy' },
 ];
 
+
+
 const ITEMS_PER_PAGE = 4;
 
 export default function UserBookingListPage() {
@@ -525,15 +527,19 @@ export default function UserBookingListPage() {
                 >
                   <div className="p-4 sm:p-5 flex flex-col md:flex-row gap-4">
                     {/* Ảnh đại diện chỗ nghỉ */}
-                    <div className="w-full md:w-48 h-40 md:h-auto rounded-md overflow-hidden bg-slate-100 shrink-0 relative">
-                      <img
-                        src={
-                          b.coverImageUrl ||
-                          'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=600&q=80'
-                        }
-                        alt={b.placeName}
-                        className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-                      />
+                    <div className="w-full md:w-48 h-40 md:h-auto rounded-md overflow-hidden bg-slate-100 shrink-0 relative flex items-center justify-center">
+                      {b.coverImageUrl ? (
+                        <img
+                          src={b.coverImageUrl}
+                          alt={b.placeName}
+                          className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-slate-400 p-4">
+                          <Home className="w-8 h-8 opacity-30 mb-1" />
+                          <span className="text-[11px]">Chưa có ảnh</span>
+                        </div>
+                      )}
                       <div className="absolute top-2 left-2">
                         <span className="font-mono text-[11px] font-bold text-[var(--color-primary)] bg-white/95 backdrop-blur-xs px-2 py-0.5 rounded-sm shadow-xs border border-gray-200/70">
                           #{b.bookingCode}

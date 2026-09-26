@@ -21,6 +21,7 @@ import {
 import { VietTrackLogoMark } from "../ui/logo";
 import { getCurrentCustomer, clearAllAuthSession, type CurrentCustomer } from "@/services/authService";
 import NotificationBell from "./NotificationBell";
+import { hasHeroOverlay } from "@/lib/routeUtils";
 
 interface HeaderProps {
   isSidebarOpen?: boolean;
@@ -28,13 +29,13 @@ interface HeaderProps {
 }
 
 const navLinks = [
-  { id: 'home', path: '/', label: 'Trang chủ', icon: <Home className="w-3.5 h-3.5 shrink-0" /> },
-  { id: 'homestays', path: '/homestays', label: 'Lưu trú', icon: <BedDouble className="w-3.5 h-3.5 shrink-0" /> },
-  { id: 'culture', path: '/culture', label: 'Văn hóa', icon: <Compass className="w-3.5 h-3.5 shrink-0" /> },
-  { id: 'destinations', path: '/destinations', label: 'Điểm đến', icon: <MapPin className="w-3.5 h-3.5 shrink-0" /> },
-  { id: 'restaurants', path: '/restaurants', label: 'Ẩm thực', icon: <Utensils className="w-3.5 h-3.5 shrink-0" /> },
-  { id: 'transport', path: '/transport', label: 'Di chuyển', icon: <Bus className="w-3.5 h-3.5 shrink-0" /> },
-  { id: 'services', path: '/services', label: 'Dịch vụ & Tiện ích', icon: <Layers className="w-3.5 h-3.5 shrink-0" /> },
+  { id: 'home', path: '/', label: 'Trang chủ', icon: <Home className="w-4.5 h-4.5 shrink-0" /> },
+  { id: 'homestays', path: '/homestays', label: 'Lưu trú', icon: <BedDouble className="w-4.5 h-4.5 shrink-0" /> },
+  { id: 'culture', path: '/culture', label: 'Văn hóa', icon: <Compass className="w-4.5 h-4.5 shrink-0" /> },
+  { id: 'destinations', path: '/destinations', label: 'Điểm đến', icon: <MapPin className="w-4.5 h-4.5 shrink-0" /> },
+  { id: 'restaurants', path: '/restaurants', label: 'Ẩm thực', icon: <Utensils className="w-4.5 h-4.5 shrink-0" /> },
+  { id: 'transport', path: '/transport', label: 'Di chuyển', icon: <Bus className="w-4.5 h-4.5 shrink-0" /> },
+  { id: 'services', path: '/services', label: 'Dịch vụ & Tiện ích', icon: <Layers className="w-4.5 h-4.5 shrink-0" /> },
 ];
 
 export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderProps) {
@@ -98,18 +99,7 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
   };
 
   // Các trang có hero image dùng header transparent khi ở đỉnh trang
-  const hasHeroImage = location.pathname === '/' || 
-    location.pathname.startsWith('/culture') || 
-    location.pathname.startsWith('/explore') || 
-    location.pathname.startsWith('/homestays') || 
-    location.pathname.startsWith('/restaurants') || 
-    location.pathname.startsWith('/food') || 
-    location.pathname.startsWith('/destinations') || 
-    location.pathname.startsWith('/transport') || 
-    location.pathname.startsWith('/services') || 
-    location.pathname.startsWith('/photo') || 
-    location.pathname.startsWith('/rental') || 
-    location.pathname.startsWith('/tours');
+  const hasHeroImage = hasHeroOverlay(location.pathname);
 
   const isSolid = !hasHeroImage || isScrolled;
 
@@ -130,6 +120,7 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
   return (
     <>
       <header
+        id="app-header"
         className={`fixed top-0 inset-x-0 z-50 flex flex-col w-full transition-all duration-300 ${
           isSolid
             ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-200/80'
@@ -138,12 +129,14 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
       >
         {/* Row 1: Menu bên trái, Logo căn giữa, Auth/User bên phải */}
         <div
-          className={`relative w-full px-4 md:px-6 flex items-center justify-between transition-all duration-300 ${
-            isScrolled ? 'py-1.5' : 'py-2.5'
+          className={`relative w-full px-3.5 sm:px-6 md:px-8 flex items-center justify-between transition-all duration-300 ${
+            isScrolled 
+              ? 'py-2 min-h-[58px] sm:min-h-[64px]' 
+              : 'py-2.5 sm:py-3.5 min-h-[68px] sm:min-h-[78px]'
           }`}
         >
           {/* Cụm bên trái: Nút Menu 3 sọc */}
-          <div className="flex items-center min-w-[40px]">
+          <div className="flex items-center min-w-[40px] sm:min-w-[80px] lg:min-w-[160px] shrink-0 z-20">
             {toggleSidebar && (
               <button
                 type="button"
@@ -160,42 +153,46 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
                     : 'text-white drop-shadow-md hover:bg-white/20 active:scale-95'
                 }`}
               >
-                <Menu className="w-5 h-5 md:w-6 md:h-6" strokeWidth={2.2} />
+                <Menu className="w-6 h-6 md:w-7 md:h-7" strokeWidth={2.4} />
               </button>
             )}
           </div>
 
-          {/* Logo & Tên nền tảng - Mobile: Căn giữa, logo trên chữ dưới; Desktop: Ngang, căn giữa header */}
-          <Link
-            to="/"
-            className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2.5 shrink-0 group py-0.5 absolute left-1/2 -translate-x-1/2 z-10 text-center sm:text-left"
-          >
-            <VietTrackLogoMark
-              size={isScrolled ? 30 : 36}
-              className="transition-all duration-300 group-hover:scale-105 drop-shadow-sm shrink-0"
-            />
-            <div className="flex flex-col items-center sm:items-start leading-tight">
-              <span
-                className={`font-normal tracking-normal transition-all duration-300 ${
-                  isScrolled ? 'text-[15px] sm:text-[18px] md:text-[21px]' : 'text-[16px] sm:text-[21px] md:text-[24px]'
-                } ${isSolid ? 'text-[var(--color-ink-deep)]' : 'text-white drop-shadow-md'} whitespace-nowrap`}
-                style={{ fontFamily: "'Outfit', sans-serif" }}
-              >
-                Đi Du Lịch
-              </span>
-              <span
-                className={`hidden xs:inline-block font-light tracking-[0.14em] uppercase transition-all duration-300 ${
-                  isScrolled ? 'text-[7px] sm:text-[8px] md:text-[9px]' : 'text-[7.5px] sm:text-[8.5px] md:text-[9.5px]'
-                } ${isSolid ? 'text-[#048c73]/70' : 'text-white/80 drop-shadow'} whitespace-nowrap`}
-                style={{ fontFamily: "'Nunito', 'Be Vietnam Pro', sans-serif" }}
-              >
-                Du Lịch Di Sản &amp; Sinh Thái
-              </span>
-            </div>
-          </Link>
+          {/* Logo & Tên nền tảng - Luôn nằm ngang (flex-row), không tràn dọc; Trên mobile co giãn linh hoạt không đè nút khác, Desktop căn giữa chuẩn xác */}
+          <div className="flex-1 flex items-center justify-center min-w-0 px-2 lg:absolute lg:left-1/2 lg:-translate-x-1/2 lg:w-auto lg:px-0 z-10">
+            <Link
+              to="/"
+              className="flex flex-row items-center justify-center gap-2 sm:gap-3 group py-0.5 shrink-0 max-w-full"
+            >
+              <VietTrackLogoMark
+                size={isScrolled ? 34 : 42}
+                className="transition-all duration-300 group-hover:scale-105 drop-shadow-sm shrink-0"
+              />
+              <div className="flex flex-col items-start leading-tight min-w-0">
+                <span
+                  className={`font-extrabold tracking-tight transition-all duration-300 ${
+                    isScrolled 
+                      ? 'text-[17px] xs:text-[19px] sm:text-[23px] md:text-[27px]' 
+                      : 'text-[19px] xs:text-[21px] sm:text-[26px] md:text-[30px]'
+                  } ${isSolid ? 'text-[var(--color-ink-deep)]' : 'text-white drop-shadow-md'} whitespace-nowrap`}
+                  style={{ fontFamily: "'Outfit', sans-serif" }}
+                >
+                  Đi Du Lịch
+                </span>
+                <span
+                  className={`hidden sm:inline-block font-bold tracking-[0.14em] uppercase transition-all duration-300 ${
+                    isScrolled ? 'text-[8.5px] sm:text-[9.5px] md:text-[10.5px]' : 'text-[9.5px] sm:text-[10.5px] md:text-[11.5px]'
+                  } ${isSolid ? 'text-[#048c73]' : 'text-white/95 drop-shadow'} whitespace-nowrap`}
+                  style={{ fontFamily: "'Nunito', 'Be Vietnam Pro', sans-serif" }}
+                >
+                  Du Lịch Di Sản &amp; Sinh Thái
+                </span>
+              </div>
+            </Link>
+          </div>
 
           {/* Cụm bên phải: Nút Đăng nhập/Đăng ký HOẶC Icon người dùng kèm Tên & Dropdown */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0" ref={dropdownRef}>
+          <div className="flex items-center justify-end gap-1.5 sm:gap-2 min-w-[40px] sm:min-w-[80px] lg:min-w-[160px] shrink-0 z-20" ref={dropdownRef}>
             {user ? (
               <div className="flex items-center gap-1.5 sm:gap-2">
                 {/* Icon hình thông báo ở bên cạnh icon ava */}
@@ -354,28 +351,30 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
 
         {/* Row 2: Thanh Navigation kéo ngang khi responsive */}
         <div 
-          className={`w-full overflow-x-auto scrollbar-hide scroll-smooth px-3 sm:px-6 py-1.5 border-t transition-colors duration-300 flex justify-start md:justify-center ${
+          className={`w-full overflow-x-auto scrollbar-hide scroll-smooth px-3 sm:px-6 py-2 border-t transition-colors duration-300 flex justify-start md:justify-center ${
             isSolid 
-              ? 'border-gray-200/60 bg-gray-50/40' 
-              : 'border-white/15 bg-black/10 backdrop-blur-xs'
+              ? 'border-gray-200/80 bg-gray-50/70' 
+              : 'border-white/20 bg-black/25 backdrop-blur-sm'
           }`}
         >
-          <nav className="flex items-center gap-1 sm:gap-1.5 shrink-0 min-w-max mx-auto justify-start md:justify-center">
+          <nav className="flex items-center gap-1 sm:gap-2 shrink-0 min-w-max mx-auto justify-start md:justify-center">
             {navLinks.map((item) => {
               const active = isPathActive(item.path);
               return (
                 <Link
                   key={item.id}
                   to={item.path}
-                  className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-md text-xs whitespace-nowrap transition-all duration-200 shrink-0 ${
+                  className={`flex items-center gap-2 px-3.5 sm:px-4.5 py-1.5 rounded-md text-sm sm:text-[15px] font-bold whitespace-nowrap transition-all duration-200 shrink-0 ${
                     active
-                      ? 'bg-[#048c73] text-white shadow-xs font-medium'
+                      ? 'bg-[#048c73] text-white shadow-xs'
                       : isSolid
-                        ? 'text-[var(--color-ink)] hover:bg-[#edfbf7] hover:text-[#048c73]'
-                        : 'text-white/95 hover:bg-white/20 hover:text-white drop-shadow-xs'
+                        ? 'text-slate-700 hover:bg-[#edfbf7] hover:text-[#048c73]'
+                        : 'text-white/95 hover:bg-white/25 hover:text-white drop-shadow-xs'
                   }`}
                 >
-                  {item.icon}
+                  <span className="shrink-0 flex items-center justify-center">
+                    {item.icon}
+                  </span>
                   <span>{item.label}</span>
                 </Link>
               );

@@ -239,8 +239,8 @@ export default function UserBookingDetailPage() {
 
   return (
     <div className="min-h-screen bg-[#F6FAF8] pb-20">
-      {/* Top Navigation Bar */}
-      <div className="bg-white border-b border-gray-200/80 sticky top-0 z-30 shadow-xs">
+      {/* Top Navigation Bar - ghim ngay dưới Header khi scroll */}
+      <div className="bg-white border-b border-gray-200/80 sticky top-[88px] md:top-[92px] z-30 shadow-xs">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <button
             type="button"
@@ -330,15 +330,19 @@ export default function UserBookingDetailPage() {
             {/* Card Homestay */}
             <div className="bg-white rounded-lg border border-gray-200/90 overflow-hidden shadow-xs">
               <div className="p-5 flex flex-col sm:flex-row gap-4">
-                <div className="w-full sm:w-44 h-36 rounded-md overflow-hidden bg-slate-100 shrink-0">
-                  <img
-                    src={
-                      booking.coverImageUrl ||
-                      'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=600&q=80'
-                    }
-                    alt={booking.placeName}
-                    className="w-full h-full object-cover"
-                  />
+                <div className="w-full sm:w-44 h-36 rounded-md overflow-hidden bg-slate-100 shrink-0 flex items-center justify-center">
+                  {booking.coverImageUrl ? (
+                    <img
+                      src={booking.coverImageUrl}
+                      alt={booking.placeName}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-slate-400 p-2">
+                      <Home className="w-8 h-8 opacity-30 mb-1" />
+                      <span className="text-[10px]">Chưa có ảnh</span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1 space-y-2">
                   <div className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-primary)]">

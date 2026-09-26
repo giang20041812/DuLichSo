@@ -165,6 +165,9 @@ export interface HomestayDetailDto {
   images: string[];
   amenities: string[];
   rooms: RoomTypeDto[];
+  regionName?: string;
+  homestayProfile?: HomestayProfileDetail | null;
+  services?: HomestayServiceOffer[];
   contacts?: PlaceContactItem[];
   highlights?: PlaceHighlightItem[];
 }

@@ -26,6 +26,8 @@ const getHomestayImage = (hs: PlaceSummaryDto): string => {
   return hs.coverImageUrl || '';
 };
 
+
+
 export default function HomePage() {
   const [homeData, setHomeData] = useState<HomeResponseDto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -137,8 +139,8 @@ export default function HomePage() {
   return (
     <div className="w-full flex flex-col">
       {/* 1. Hero Section */}
-      <section className="relative z-30 w-full min-h-[600px] md:min-h-[660px] flex items-start justify-center pt-[130px] md:pt-[150px] pb-16 md:pb-20">
-        <div 
+      <section className="relative z-30 w-full min-h-[600px] md:min-h-[660px] flex items-start justify-center pt-[140px] sm:pt-[148px] md:pt-[156px] pb-16 md:pb-20">
+        <div
           className="absolute inset-0 z-0 bg-cover bg-center bg-[#07362c]"
           style={{
             backgroundImage: `url('${allDestinations[0]?.coverImageUrl || 'https://images.unsplash.com/photo-1528127269322-539801943592?q=85&w=2560&auto=format&fit=crop'}')`
@@ -155,7 +157,7 @@ export default function HomePage() {
               Từ Những Đỉnh Núi Đến Bờ Biển Xanh
             </span>
           </h1>
-          
+
           {/* Banner Tải App đồng bộ logo web ngay trên SearchHub */}
           <HeroPwaDownloadBanner />
 
@@ -178,9 +180,9 @@ export default function HomePage() {
                 Điểm Đến Thích Hợp Theo Mùa
               </h2>
             </div>
-            
-            <Link 
-              to="/destinations" 
+
+            <Link
+              to="/destinations"
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white border-2 border-teal-600/30 text-[#048c73] hover:text-white hover:bg-[#048c73] hover:border-[#025a4a] text-xs font-bold transition-all duration-200 shadow-2xs hover:shadow-xs active:scale-95 shrink-0"
             >
               Khám phá thêm điểm đến <span>&rarr;</span>
@@ -193,11 +195,10 @@ export default function HomePage() {
               <button
                 key={prov}
                 onClick={() => setSelectedProvince(prov)}
-                className={`shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-lg font-normal text-xs transition-all duration-200 border-2 cursor-pointer active:scale-95 ${
-                  selectedProvince === prov
-                    ? 'bg-[#048c73] text-white shadow-xs border-[#025a4a]'
-                    : 'bg-white border-slate-200 text-slate-600 hover:border-[#048c73] hover:text-[#048c73]'
-                }`}
+                className={`shrink-0 whitespace-nowrap px-4 py-2 rounded-lg font-bold text-xs sm:text-sm transition-all duration-200 border-2 cursor-pointer active:scale-95 ${selectedProvince === prov
+                  ? 'bg-[#048c73] text-white shadow-xs border-[#025a4a]'
+                  : 'bg-white border-slate-200 text-slate-700 hover:border-[#048c73] hover:text-[#048c73]'
+                  }`}
               >
                 {prov}
               </button>
@@ -220,88 +221,73 @@ export default function HomePage() {
                 const endFormatted = formatDate(dest.suitableDateEnd);
 
                 return (
-                  <div 
-                    key={dest.id} 
-                    className={`bg-white rounded-xl overflow-hidden border-2 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group flex flex-col w-full h-full ${
-                      isSuitable ? 'border-teal-500/40 ring-1 ring-teal-500/20' : 'border-slate-100 hover:border-teal-500/30'
-                    }`}
+                  <div
+                    key={dest.id}
+                    className={`bg-white rounded-xl overflow-hidden border-2 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group flex flex-col w-full h-full ${isSuitable ? 'border-teal-500/40 ring-1 ring-teal-500/20' : 'border-slate-100 hover:border-teal-500/30'
+                      }`}
                   >
                     <Link to={`/destinations/${dest.id}`} className="relative aspect-[4/3] overflow-hidden bg-slate-100 block">
-                      <img 
-                        src={getDestinationImage(dest)} 
-                        alt={dest.name} 
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out" 
+                      <img
+                        src={getDestinationImage(dest)}
+                        alt={dest.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                       />
                       {/* Huy hiệu thời gian mùa vụ thích hợp từ dữ liệu */}
                       <div className="absolute top-2.5 left-2.5 z-10 flex flex-col gap-1.5 items-start">
-                        <div 
-                          className={`px-2.5 py-1.5 rounded-lg shadow-sm font-bold text-xs flex items-center gap-1.5 backdrop-blur-md border-2 transition-transform group-hover:scale-105 ${
-                            isSuitable 
-                              ? 'bg-gradient-to-r from-[#ea580c] to-[#f97316] text-white border-amber-300/50 shadow-orange-950/20' 
-                              : 'bg-[#0f2d3c]/95 text-white border-white/20'
-                          }`}
+                        <div
+                          className={`px-2.5 py-1.5 rounded-lg shadow-sm font-bold text-xs flex items-center gap-1.5 backdrop-blur-md border-2 transition-transform group-hover:scale-105 ${isSuitable
+                            ? 'bg-gradient-to-r from-[#ea580c] to-[#f97316] text-white border-amber-300/50 shadow-orange-950/20'
+                            : 'bg-[#0f2d3c]/95 text-white border-white/20'
+                            }`}
                         >
-                          <Calendar className={`w-3 h-3 shrink-0 ${isSuitable ? 'text-amber-200' : 'text-emerald-400'}`} />
-                          <span className="font-normal text-white text-[11px] sm:text-xs tracking-tight">
+                          <Calendar className={`w-3.5 h-3.5 shrink-0 ${isSuitable ? 'text-amber-200' : 'text-emerald-400'}`} />
+                          <span className="font-bold text-white text-xs sm:text-[13px] tracking-tight">
                             {startFormatted && endFormatted
                               ? `Mùa đẹp: ${startFormatted} – ${endFormatted}`
-                              : (endFormatted 
-                                  ? `Mùa đẹp đến: ${endFormatted}` 
-                                  : (isSuitable ? 'Mùa đẹp trong năm' : 'Quanh năm'))}
+                              : (endFormatted
+                                ? `Mùa đẹp đến: ${endFormatted}`
+                                : (isSuitable ? 'Mùa đẹp trong năm' : 'Quanh năm'))}
                           </span>
                         </div>
                         {dest.tagBadge && (
-                          <span className="bg-[#048c73]/95 text-white text-[10px] font-bold px-2 py-0.5 rounded-md tracking-tight shadow-xs border border-white/20">
+                          <span className="bg-[#048c73] text-white text-xs sm:text-[13px] font-extrabold px-2.5 py-1 rounded-md tracking-tight shadow-xs border border-white/20">
                             {dest.tagBadge}
                           </span>
                         )}
                       </div>
 
                       {dest.statsText && (
-                        <div className="absolute bottom-2.5 right-2.5 bg-slate-900/85 text-white text-[10px] font-medium px-2 py-0.5 rounded-md">
+                        <div className="absolute bottom-2.5 right-2.5 bg-slate-900/85 text-white text-xs font-bold px-2 py-0.5 rounded-md">
                           {dest.statsText}
                         </div>
                       )}
                     </Link>
-                    
+
                     <div className="p-4 flex flex-col flex-1">
                       {/* Đánh giá và Địa điểm cho Điểm đến */}
                       <div className="flex justify-between items-center mb-1 text-xs">
-                        <div className="flex items-center gap-1 text-slate-400 truncate">
-                          <MapPin className="w-3 h-3 text-[#048c73] shrink-0" /> 
-                          <span className="truncate text-[11px]">{dest.regionName || "Việt Nam"}</span>
+                        <div className="flex items-center gap-1.5 text-slate-500 font-semibold truncate">
+                          <MapPin className="w-3.5 h-3.5 text-[#048c73] shrink-0" />
+                          <span className="truncate text-xs sm:text-[13px]">{dest.regionName || "Việt Nam"}</span>
                         </div>
-                        <div className="flex items-center gap-1 text-xs shrink-0">
-                          <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-                          <span className="font-medium text-slate-600">{dest.ratingAvg ? dest.ratingAvg : "—"}</span>
+                        <div className="flex items-center gap-1 text-xs sm:text-[13px] font-bold shrink-0">
+                          <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                          <span className="text-slate-700">{dest.ratingAvg ? dest.ratingAvg : "—"}</span>
                           {dest.ratingCount != null && dest.ratingCount > 0 && (
-                            <span className="text-slate-400 text-[10px]">({dest.ratingCount})</span>
+                            <span className="text-slate-400 text-xs font-normal">({dest.ratingCount})</span>
                           )}
                         </div>
                       </div>
 
                       <Link to={`/destinations/${dest.id}`}>
-                        <h3 className="text-sm font-medium text-slate-800 mb-1.5 group-hover:text-[#048c73] transition-colors line-clamp-1">{dest.name}</h3>
+                        <h3 className="text-base sm:text-lg font-extrabold text-slate-800 mb-1.5 group-hover:text-[#048c73] transition-colors line-clamp-1">{dest.name}</h3>
                       </Link>
-                      
-                      <p className="text-slate-400 text-[11px] line-clamp-2 mb-3 flex-1 leading-relaxed">
+
+                      <p className="text-slate-600 text-xs sm:text-[13px] font-medium line-clamp-4 mb-3 flex-1 leading-relaxed">
                         {dest.description}
                       </p>
 
-                      {/* Thẻ trạng thái mùa vụ */}
-                      <div className="mb-3 py-1.5 px-2.5 rounded-md bg-[#f4f7f6] border border-[#e1e9e6] flex items-center justify-between text-[11px]">
-                        <span className="text-slate-500 flex items-center gap-1.5">
-                          <Sparkles className="w-3 h-3 text-[#048c73]" />
-                          {isSuitable ? 'Mùa đẹp' : 'Mùa trải nghiệm'}
-                        </span>
-                        <span className="font-medium text-[#048c73] text-[11px]">
-                          {startFormatted && endFormatted
-                            ? `${startFormatted} – ${endFormatted}`
-                            : (endFormatted 
-                                ? `Đến ${endFormatted}` 
-                                : (isSuitable ? 'Mùa đẹp trong năm' : 'Quanh năm'))}
-                        </span>
-                      </div>
+
 
                       <div className="flex items-center justify-between pt-2.5 border-t border-slate-100 mt-auto">
                         <div>
@@ -325,7 +311,7 @@ export default function HomePage() {
             <div className="col-span-full py-12 flex flex-col items-center justify-center text-[#66716c] bg-white rounded-md border-2 border-dashed border-slate-200">
               <Mountain className="w-10 h-10 text-slate-300 mb-3" />
               <p className="font-medium text-sm text-slate-600">Chưa có dữ liệu điểm đến cho tỉnh {selectedProvince}</p>
-              <button 
+              <button
                 onClick={() => setSelectedProvince('Tất cả')}
                 className="mt-3 text-xs font-semibold text-[#048c73] hover:underline cursor-pointer"
               >
@@ -344,8 +330,8 @@ export default function HomePage() {
               Homestay Bản Địa & Chốn Nghỉ Bình Yên
             </h2>
           </div>
-          <Link 
-            to="/homestays" 
+          <Link
+            to="/homestays"
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white border-2 border-teal-600/30 text-[#048c73] hover:text-white hover:bg-[#048c73] hover:border-[#025a4a] text-xs transition-all duration-200 shadow-2xs hover:shadow-xs active:scale-95 shrink-0"
           >
             Xem tất cả Homestay bản địa <span>&rarr;</span>
@@ -356,16 +342,16 @@ export default function HomePage() {
         {displayedHomestays.length > 0 ? (
           <FramerSwipeCardStack gridClassName="md:grid md:grid-cols-2 lg:grid-cols-4 md:gap-6">
             {displayedHomestays.map((hs) => (
-              <div 
-                key={hs.id} 
+              <div
+                key={hs.id}
                 className="bg-white rounded-xl overflow-hidden shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-2 border-slate-100 hover:border-teal-500/40 flex flex-col group w-full h-full"
               >
                 <Link to={`/homestays/${hs.id}`} className="relative aspect-[4/3] bg-slate-100 overflow-hidden block">
                   {getHomestayImage(hs) ? (
-                    <img 
-                      src={getHomestayImage(hs)} 
-                      alt={hs.name} 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out" 
+                    <img
+                      src={getHomestayImage(hs)}
+                      alt={hs.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                     />
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 text-slate-400">
@@ -396,9 +382,9 @@ export default function HomePage() {
                   </div>
 
                   <Link to={`/homestays/${hs.id}`}>
-                    <h3 className="font-medium text-slate-800 text-sm leading-snug mb-1 group-hover:text-[#048c73] transition-colors line-clamp-1">{hs.name}</h3>
+                    <h3 className="font-bold text-slate-800 text-base leading-snug mb-1 group-hover:text-[#048c73] transition-colors line-clamp-1">{hs.name}</h3>
                   </Link>
-                  <p className="text-slate-400 text-[11px] line-clamp-2 mb-4 flex-1 leading-relaxed">
+                  <p className="text-slate-600 text-xs sm:text-[13px] font-medium line-clamp-4 mb-4 flex-1 leading-relaxed">
                     {hs.description}
                   </p>
 
@@ -440,9 +426,9 @@ export default function HomePage() {
                 Đặc Sản Nổi Tiếng
               </h2>
             </div>
-            
-            <Link 
-              to="/food" 
+
+            <Link
+              to="/food"
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white border-2 border-teal-600/30 text-[#048c73] hover:text-white hover:bg-[#048c73] hover:border-[#025a4a] text-xs transition-all duration-200 shadow-2xs hover:shadow-xs active:scale-95 shrink-0"
             >
               Khám phá thêm thức quà <span>&rarr;</span>
@@ -451,16 +437,16 @@ export default function HomePage() {
 
           <FramerSwipeCardStack gridClassName="md:grid md:grid-cols-2 lg:grid-cols-4 md:gap-6">
             {displayedSpecialties.map(item => (
-              <div 
-                key={item.id} 
+              <div
+                key={item.id}
                 className="bg-white rounded-xl overflow-hidden border-2 border-slate-100 hover:border-teal-500/40 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group flex flex-col w-full h-full"
               >
                 <Link to={`/food/${item.id}`} className="relative aspect-[4/3] overflow-hidden bg-slate-100 block">
                   {item.coverImageUrl ? (
-                    <img 
-                      src={item.coverImageUrl} 
-                      alt={item.name} 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out" 
+                    <img
+                      src={item.coverImageUrl}
+                      alt={item.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                     />
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 text-slate-400">
@@ -489,11 +475,11 @@ export default function HomePage() {
                   </div>
 
                   <Link to={`/food/${item.id}`}>
-                    <h3 className="text-sm font-medium text-slate-800 mb-1 group-hover:text-[#048c73] transition-colors line-clamp-1">
+                    <h3 className="text-base font-bold text-slate-800 mb-1 group-hover:text-[#048c73] transition-colors line-clamp-1">
                       {item.name}
                     </h3>
                   </Link>
-                  <p className="text-slate-400 text-[11px] line-clamp-2 mb-3 flex-1 leading-relaxed">
+                  <p className="text-slate-600 text-xs sm:text-[13px] font-medium line-clamp-4 mb-3 flex-1 leading-relaxed">
                     {item.description}
                   </p>
 
@@ -501,9 +487,9 @@ export default function HomePage() {
                     <div>
                       <div className="text-[10px] text-slate-400 leading-none mb-1">Tham khảo</div>
                       <div className="text-[#048c73] font-medium text-sm leading-none">
-                        {item.priceRefMin != null && item.priceRefMin > 0 
+                        {item.priceRefMin != null && item.priceRefMin > 0
                           ? `${item.priceRefMin.toLocaleString()}đ${item.priceUnitNote ? ` ${item.priceUnitNote}` : ''}`
-                            : 'Tham khảo'}
+                          : 'Tham khảo'}
                       </div>
                     </div>
                     <Link to={`/food/${item.id}`}>
@@ -527,7 +513,7 @@ export default function HomePage() {
               Cam Kết Giá Trị Từ Đi Du Lịch
             </h2>
           </div>
-          
+
           {/* LƯỚI CỐ ĐỊNH: 2 DÒNG MỖI DÒNG 2 Ô */}
           <div className="grid grid-cols-2 gap-4 md:gap-6 max-w-3xl mx-auto">
             {/* Value 1: Trải Nghiệm Bản Địa */}
@@ -537,7 +523,7 @@ export default function HomePage() {
               </div>
               <h3 className="font-bold text-slate-900 text-sm md:text-base">Trải Nghiệm Bản Địa</h3>
             </div>
-            
+
             {/* Value 2: Giá Niêm Yết Minh Bạch */}
             <div className="flex flex-col items-center justify-center text-center p-6 bg-[#f8faf9] rounded-xl border-2 border-slate-200/80 shadow-2xs hover:border-amber-400 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
               <div className="w-12 h-12 rounded-lg bg-amber-500 border-2 border-amber-600 flex items-center justify-center mb-3 text-white shadow-xs">

@@ -88,40 +88,6 @@ export async function fetchBookedDatesByPlace(placeId: number, startDate?: strin
     }
   }
 
-  // Nếu cả backend lẫn local chưa có booking nào cho place này, tự động sinh các ngày kín mẫu (cuối tuần & ngày cao điểm)
-  // để khách hàng và ban quản lý có thể trực quan nhìn thấy lịch đã kín và kiểm tra bộ lọc
-  if (combined.length === 0) {
-    const today = new Date();
-    const pad = (n: number) => String(n).padStart(2, '0');
-    const toYmd = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-
-    // Mẫu 1: Cuối tuần tới (Thứ 6 -> Chủ Nhật)
-    const d1 = new Date(today);
-    const dayOfWeek = d1.getDay();
-    const diffToFri = (5 - dayOfWeek + 7) % 7 || 7;
-    d1.setDate(d1.getDate() + diffToFri);
-    const d2 = new Date(d1);
-    d2.setDate(d2.getDate() + 2);
-
-    // Mẫu 2: Cuối tuần tuần kế tiếp
-    const d3 = new Date(d1);
-    d3.setDate(d3.getDate() + 7);
-    const d4 = new Date(d3);
-    d4.setDate(d4.getDate() + 2);
-
-    // Mẫu 3: Đợt lễ hội giữa tháng
-    const d5 = new Date(d1);
-    d5.setDate(d5.getDate() + 13);
-    const d6 = new Date(d5);
-    d6.setDate(d6.getDate() + 2);
-
-    return [
-      { roomTypeId: 0, checkIn: toYmd(d1), checkOut: toYmd(d2), roomCount: 3 },
-      { roomTypeId: 0, checkIn: toYmd(d3), checkOut: toYmd(d4), roomCount: 2 },
-      { roomTypeId: 0, checkIn: toYmd(d5), checkOut: toYmd(d6), roomCount: 5 },
-    ];
-  }
-
   return combined;
 }
 

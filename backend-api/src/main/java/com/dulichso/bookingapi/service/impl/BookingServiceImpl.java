@@ -40,6 +40,7 @@ public class BookingServiceImpl implements BookingService {
     private final com.dulichso.bookingapi.service.RoomCalendarService roomCalendarService;
     private final ReviewRepository reviewRepository;
     private final PlaceMediaRepository placeMediaRepository;
+    private final RoomTypeMediaRepository roomTypeMediaRepository;
     private final BookingChangeRequestRepository bookingChangeRequestRepository;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
     private final com.dulichso.bookingapi.service.NotificationService notificationService;
@@ -411,6 +412,15 @@ public class BookingServiceImpl implements BookingService {
             List<String> mediaUrls = placeMediaRepository.findPublicUrlsByPlaceId(place.getId());
             if (mediaUrls != null && !mediaUrls.isEmpty()) {
                 coverUrl = mediaUrls.get(0);
+            }
+            if (coverUrl == null && place.getAttributes() != null && place.getAttributes().containsKey("coverImageUrl")) {
+                coverUrl = String.valueOf(place.getAttributes().get("coverImageUrl"));
+            }
+            if (coverUrl == null && roomType != null) {
+                List<String> roomMedia = roomTypeMediaRepository.findPublicUrlsByRoomTypeId(roomType.getId());
+                if (roomMedia != null && !roomMedia.isEmpty()) {
+                    coverUrl = roomMedia.get(0);
+                }
             }
         } catch (Exception e) {
             log.warn("Không thể tải ảnh cho placeId: {}", place.getId());

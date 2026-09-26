@@ -4,17 +4,17 @@ import { fetchRestaurants, RestaurantDto, RestaurantFilterParams } from '@/servi
 import { PriceSlider } from '@/components/ui/price-slider';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { 
-  MapPin, 
-  Heart, 
-  SlidersHorizontal, 
-  Star, 
-  ChevronLeft, 
-  ChevronRight, 
-  X, 
-  ArrowUpDown, 
-  RotateCcw, 
-  Map, 
+import {
+  MapPin,
+  Heart,
+  SlidersHorizontal,
+  Star,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  ArrowUpDown,
+  RotateCcw,
+  Map,
   Sparkles,
   UtensilsCrossed,
   Wifi,
@@ -42,13 +42,15 @@ const RESTAURANT_AMENITIES = [
   { code: 'PRIVATE_ROOM', name: 'Phòng tiệc riêng', icon: UtensilsCrossed },
 ];
 
+
+
 export default function RestaurantListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  
+
   const [restaurants, setRestaurants] = useState<RestaurantDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<'recommended' | 'price_asc' | 'price_desc' | 'rating_desc'>('recommended');
-  
+
   // Khởi tạo filters từ URL params
   const [filters, setFilters] = useState<RestaurantFilterParams>(() => {
     const initialFilters: RestaurantFilterParams = {};
@@ -58,14 +60,14 @@ export default function RestaurantListPage() {
     const minRating = searchParams.get('minRating');
     const cuisinesStr = searchParams.get('cuisines');
     const amenitiesStr = searchParams.get('amenities');
-    
+
     if (q) initialFilters.keyword = q;
     if (minPrice) initialFilters.minPrice = Number(minPrice);
     if (maxPrice) initialFilters.maxPrice = Number(maxPrice);
     if (minRating) initialFilters.minRating = Number(minRating);
     if (cuisinesStr) initialFilters.cuisineTypes = cuisinesStr.split(',');
     if (amenitiesStr) initialFilters.amenities = amenitiesStr.split(',');
-    
+
     return initialFilters;
   });
 
@@ -85,7 +87,7 @@ export default function RestaurantListPage() {
       if (newFilters.minRating !== undefined) newParams.set('minRating', newFilters.minRating.toString()); else newParams.delete('minRating');
       if (newFilters.cuisineTypes && newFilters.cuisineTypes.length > 0) newParams.set('cuisines', newFilters.cuisineTypes.join(',')); else newParams.delete('cuisines');
       if (newFilters.amenities && newFilters.amenities.length > 0) newParams.set('amenities', newFilters.amenities.join(',')); else newParams.delete('amenities');
-      
+
       setSearchParams(newParams, { replace: true });
       return newFilters;
     });
@@ -106,7 +108,7 @@ export default function RestaurantListPage() {
     const minRating = searchParams.get('minRating');
     const cuisinesStr = searchParams.get('cuisines');
     const amenitiesStr = searchParams.get('amenities');
-    
+
     setFilters({
       keyword: q || undefined,
       minPrice: minPrice ? Number(minPrice) : undefined,
@@ -159,7 +161,7 @@ export default function RestaurantListPage() {
           </button>
         )}
       </div>
-      
+
       {/* Loại hình món ăn / Đặc sản */}
       <div className="p-4 border-b border-gray-100">
         <h4 className="font-bold text-[var(--color-ink-deep)] mb-3 text-sm flex items-center justify-between">
@@ -175,16 +177,16 @@ export default function RestaurantListPage() {
             const isChecked = filters.cuisineTypes?.includes(category) || false;
             return (
               <label key={category} className="flex items-center gap-2.5 cursor-pointer group">
-                <input 
-                  type="checkbox" 
-                  className="w-4 h-4 rounded-xs border-gray-300 accent-[var(--color-primary)] cursor-pointer" 
+                <input
+                  type="checkbox"
+                  className="w-4 h-4 rounded-xs border-gray-300 accent-[var(--color-primary)] cursor-pointer"
                   checked={isChecked}
                   onChange={(e) => {
                     const current = filters.cuisineTypes || [];
-                    handleFilterChange({ 
-                      cuisineTypes: e.target.checked 
-                        ? [...current, category] 
-                        : current.filter(c => c !== category) 
+                    handleFilterChange({
+                      cuisineTypes: e.target.checked
+                        ? [...current, category]
+                        : current.filter(c => c !== category)
                     });
                   }}
                 />
@@ -205,9 +207,9 @@ export default function RestaurantListPage() {
             const isSelected = filters.minRating === score;
             return (
               <label key={score} className="flex items-center gap-2.5 cursor-pointer group">
-                <input 
-                  type="checkbox" 
-                  className="w-4 h-4 rounded-xs border-gray-300 accent-[var(--color-primary)] cursor-pointer" 
+                <input
+                  type="checkbox"
+                  className="w-4 h-4 rounded-xs border-gray-300 accent-[var(--color-primary)] cursor-pointer"
                   checked={isSelected}
                   onChange={(e) => handleFilterChange({ minRating: e.target.checked ? score : undefined })}
                 />
@@ -216,9 +218,9 @@ export default function RestaurantListPage() {
                 </span>
                 <div className="flex items-center gap-0.5">
                   {[...Array(5)].map((_, i) => (
-                    <Star 
-                      key={i} 
-                      className={`w-3 h-3 ${i < Math.floor(score) ? 'text-[#f59e0b] fill-[#f59e0b]' : 'text-gray-300'}`} 
+                    <Star
+                      key={i}
+                      className={`w-3 h-3 ${i < Math.floor(score) ? 'text-[#f59e0b] fill-[#f59e0b]' : 'text-gray-300'}`}
                     />
                   ))}
                 </div>
@@ -236,16 +238,16 @@ export default function RestaurantListPage() {
             const isChecked = filters.amenities?.includes(amenity.code) || false;
             return (
               <label key={amenity.code} className="flex items-center gap-2.5 cursor-pointer group">
-                <input 
-                  type="checkbox" 
-                  className="w-4 h-4 rounded-xs border-gray-300 accent-[var(--color-primary)] cursor-pointer" 
+                <input
+                  type="checkbox"
+                  className="w-4 h-4 rounded-xs border-gray-300 accent-[var(--color-primary)] cursor-pointer"
                   checked={isChecked}
                   onChange={(e) => {
                     const current = filters.amenities || [];
-                    handleFilterChange({ 
-                      amenities: e.target.checked 
-                        ? [...current, amenity.code] 
-                        : current.filter(a => a !== amenity.code) 
+                    handleFilterChange({
+                      amenities: e.target.checked
+                        ? [...current, amenity.code]
+                        : current.filter(a => a !== amenity.code)
                     });
                   }}
                 />
@@ -257,7 +259,7 @@ export default function RestaurantListPage() {
           })}
         </div>
       </div>
-      
+
       {/* Ngân sách tham khảo */}
       <div className="p-4 bg-gradient-to-b from-white to-gray-50/40">
         <div className="flex items-center justify-between mb-2">
@@ -271,16 +273,16 @@ export default function RestaurantListPage() {
             </button>
           )}
         </div>
-        
-        <PriceSlider 
-          min={30000} 
-          max={500000} 
+
+        <PriceSlider
+          min={30000}
+          max={500000}
           step={20000}
           value={[filters.minPrice ?? 30000, filters.maxPrice ?? 500000]}
-          onChange={() => {}}
-          onChangeEnd={([min, max]) => handleFilterChange({ 
-            minPrice: min > 30000 ? min : undefined, 
-            maxPrice: max < 500000 ? max : undefined 
+          onChange={() => { }}
+          onChangeEnd={([min, max]) => handleFilterChange({
+            minPrice: min > 30000 ? min : undefined,
+            maxPrice: max < 500000 ? max : undefined
           })}
         />
       </div>
@@ -291,7 +293,7 @@ export default function RestaurantListPage() {
     <div className="w-full flex flex-col min-h-screen bg-[var(--color-canvas)]">
       {/* Hero Section */}
       <section className="relative w-full min-h-[420px] md:min-h-[380px] flex items-start md:items-center justify-center pt-[175px] md:pt-[160px] pb-10 md:pb-8">
-        <div 
+        <div
           className="absolute inset-0 z-0 bg-cover bg-center"
           style={{ backgroundImage: `url('https://images.unsplash.com/photo-1544025162-d76694265947?q=80&w=2000&auto=format&fit=crop')` }}
         >
@@ -302,10 +304,7 @@ export default function RestaurantListPage() {
         </div>
 
         <div className="relative z-10 w-full max-w-4xl mx-auto px-4 text-center">
-          <div className="inline-flex items-center gap-2 bg-white/20 text-white backdrop-blur-md mb-3 px-3.5 py-1.5 rounded-md text-xs font-semibold shadow-sm border border-white/20">
-            <UtensilsCrossed className="w-4 h-4 text-[#f59e0b]" />
-            <span>Món ngon vùng cao & Ẩm thực Mù Cang Chải</span>
-          </div>
+
 
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold font-display text-white tracking-tight mb-3 drop-shadow-md">
             Hương Vị Tây Bắc Nguyên Bản
@@ -318,7 +317,7 @@ export default function RestaurantListPage() {
 
       {/* Main Container */}
       <div className="max-w-[1280px] mx-auto w-full px-4 md:px-8 pt-3 pb-8">
-        
+
         {/* Breadcrumbs */}
         <div className="flex items-center gap-2 text-xs md:text-sm text-[var(--color-muted)] mb-3">
           <Link to="/" className="hover:text-[var(--color-primary)] transition-colors">Trang chủ</Link>
@@ -328,7 +327,7 @@ export default function RestaurantListPage() {
 
         {/* BỘ LỌC BÊN TRÊN HIỆN ĐẠI (Top Filter Toolbar & Quick Filter Bar) */}
         <div className="bg-white border border-gray-200/80 rounded-lg p-3.5 md:p-4 shadow-sm mb-5 transition-all">
-          
+
           {/* Row 1: Header + Count + Sort & Map View */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100">
             <div>
@@ -338,9 +337,7 @@ export default function RestaurantListPage() {
                   {restaurants.length} địa điểm
                 </span>
               </h2>
-              <p className="text-xs text-[var(--color-muted)] mt-0.5">
-                Các điểm ẩm thực bản địa uy tín, địa chỉ thực tế kèm số điện thoại liên hệ trực tiếp
-              </p>
+
             </div>
 
             <div className="flex items-center gap-2.5 shrink-0">
@@ -348,8 +345,8 @@ export default function RestaurantListPage() {
               <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-md px-2.5 py-1.5 hover:border-gray-300 transition-colors">
                 <ArrowUpDown className="w-3.5 h-3.5 text-[var(--color-primary)]" />
                 <span className="text-xs text-gray-500 font-medium hidden md:inline">Sắp xếp:</span>
-                <select 
-                  value={sortBy} 
+                <select
+                  value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as any)}
                   className="bg-transparent text-xs md:text-sm font-semibold text-[var(--color-ink-deep)] focus:outline-none cursor-pointer"
                 >
@@ -361,8 +358,8 @@ export default function RestaurantListPage() {
               </div>
 
               {/* Map Button */}
-              <Link 
-                to="/map" 
+              <Link
+                to="/map"
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs md:text-sm font-semibold rounded-md border border-[var(--color-primary)] bg-[var(--color-primary-50)] text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-white transition-all shadow-2xs active:scale-98"
               >
                 <Map className="w-3.5 h-3.5" />
@@ -380,11 +377,10 @@ export default function RestaurantListPage() {
             {/* Quick 4.5+ Rating */}
             <button
               onClick={() => handleFilterChange({ minRating: filters.minRating === 4.5 ? undefined : 4.5 })}
-              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all hover:-translate-y-0.5 ${
-                filters.minRating === 4.5
-                  ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-xs'
-                  : 'bg-gray-50 text-[var(--color-ink)] border-gray-200 hover:border-gray-300 hover:bg-white'
-              }`}
+              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all hover:-translate-y-0.5 ${filters.minRating === 4.5
+                ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-xs'
+                : 'bg-gray-50 text-[var(--color-ink)] border-gray-200 hover:border-gray-300 hover:bg-white'
+                }`}
             >
               <Star className={`w-3 h-3 ${filters.minRating === 4.5 ? 'text-white fill-white' : 'text-[#f59e0b] fill-[#f59e0b]'}`} />
               Đánh giá 4.5+
@@ -400,11 +396,10 @@ export default function RestaurantListPage() {
                   cuisineTypes: hasType ? current.filter(c => c !== target) : [...current, target]
                 });
               }}
-              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all hover:-translate-y-0.5 ${
-                filters.cuisineTypes?.includes('Thắng cố & Thịt ngựa')
-                  ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-xs'
-                  : 'bg-gray-50 text-[var(--color-ink)] border-gray-200 hover:border-gray-300 hover:bg-white'
-              }`}
+              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all hover:-translate-y-0.5 ${filters.cuisineTypes?.includes('Thắng cố & Thịt ngựa')
+                ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-xs'
+                : 'bg-gray-50 text-[var(--color-ink)] border-gray-200 hover:border-gray-300 hover:bg-white'
+                }`}
             >
               <UtensilsCrossed className="w-3 h-3" /> Thắng cố & Ngựa
             </button>
@@ -418,11 +413,10 @@ export default function RestaurantListPage() {
                   amenities: hasStilt ? current.filter(a => a !== 'STILT_HOUSE') : [...current, 'STILT_HOUSE']
                 });
               }}
-              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all hover:-translate-y-0.5 ${
-                filters.amenities?.includes('STILT_HOUSE')
-                  ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-xs'
-                  : 'bg-gray-50 text-[var(--color-ink)] border-gray-200 hover:border-gray-300 hover:bg-white'
-              }`}
+              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all hover:-translate-y-0.5 ${filters.amenities?.includes('STILT_HOUSE')
+                ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-xs'
+                : 'bg-gray-50 text-[var(--color-ink)] border-gray-200 hover:border-gray-300 hover:bg-white'
+                }`}
             >
               <Home className="w-3 h-3" /> Quán nhà sàn
             </button>
@@ -436,11 +430,10 @@ export default function RestaurantListPage() {
                   amenities: hasParking ? current.filter(a => a !== 'PARKING') : [...current, 'PARKING']
                 });
               }}
-              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all hover:-translate-y-0.5 ${
-                filters.amenities?.includes('PARKING')
-                  ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-xs'
-                  : 'bg-gray-50 text-[var(--color-ink)] border-gray-200 hover:border-gray-300 hover:bg-white'
-              }`}
+              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all hover:-translate-y-0.5 ${filters.amenities?.includes('PARKING')
+                ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-xs'
+                : 'bg-gray-50 text-[var(--color-ink)] border-gray-200 hover:border-gray-300 hover:bg-white'
+                }`}
             >
               <Car className="w-3 h-3" /> Chỗ đỗ ô tô
             </button>
@@ -454,11 +447,10 @@ export default function RestaurantListPage() {
                   maxPrice: isUnder100 ? undefined : 100000
                 });
               }}
-              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all hover:-translate-y-0.5 ${
-                filters.maxPrice === 100000
-                  ? 'bg-[var(--color-coral)] text-white border-[var(--color-coral)] shadow-xs'
-                  : 'bg-gray-50 text-[var(--color-ink)] border-gray-200 hover:border-gray-300 hover:bg-white'
-              }`}
+              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all hover:-translate-y-0.5 ${filters.maxPrice === 100000
+                ? 'bg-[var(--color-coral)] text-white border-[var(--color-coral)] shadow-xs'
+                : 'bg-gray-50 text-[var(--color-ink)] border-gray-200 hover:border-gray-300 hover:bg-white'
+                }`}
             >
               Dưới 100k / người
             </button>
@@ -472,11 +464,10 @@ export default function RestaurantListPage() {
                   maxPrice: is100to200 ? undefined : 200000
                 });
               }}
-              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all hover:-translate-y-0.5 ${
-                filters.minPrice === 100000 && filters.maxPrice === 200000
-                  ? 'bg-[var(--color-coral)] text-white border-[var(--color-coral)] shadow-xs'
-                  : 'bg-gray-50 text-[var(--color-ink)] border-gray-200 hover:border-gray-300 hover:bg-white'
-              }`}
+              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all hover:-translate-y-0.5 ${filters.minPrice === 100000 && filters.maxPrice === 200000
+                ? 'bg-[var(--color-coral)] text-white border-[var(--color-coral)] shadow-xs'
+                : 'bg-gray-50 text-[var(--color-ink)] border-gray-200 hover:border-gray-300 hover:bg-white'
+                }`}
             >
               100k - 200k / người
             </button>
@@ -490,7 +481,7 @@ export default function RestaurantListPage() {
               </span>
 
               {filters.keyword && (
-                <button 
+                <button
                   onClick={() => {
                     handleFilterChange({ keyword: undefined });
                   }}
@@ -501,7 +492,7 @@ export default function RestaurantListPage() {
               )}
 
               {filters.cuisineTypes?.map(category => (
-                <button 
+                <button
                   key={category}
                   onClick={() => handleFilterChange({ cuisineTypes: filters.cuisineTypes?.filter(c => c !== category) })}
                   className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-[var(--color-primary)] bg-[var(--color-primary-50)] text-[var(--color-primary-700)] text-xs font-semibold shadow-2xs transition-all hover:bg-[var(--color-primary-100)]"
@@ -513,7 +504,7 @@ export default function RestaurantListPage() {
               {filters.amenities?.map(amenityCode => {
                 const name = RESTAURANT_AMENITIES.find(a => a.code === amenityCode)?.name || amenityCode;
                 return (
-                  <button 
+                  <button
                     key={amenityCode}
                     onClick={() => handleFilterChange({ amenities: filters.amenities?.filter(a => a !== amenityCode) })}
                     className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-[var(--color-primary)] bg-[var(--color-primary-50)] text-[var(--color-primary-700)] text-xs font-semibold shadow-2xs transition-all hover:bg-[var(--color-primary-100)]"
@@ -524,18 +515,18 @@ export default function RestaurantListPage() {
               })}
 
               {filters.minRating && (
-                <button 
+                <button
                   onClick={() => handleFilterChange({ minRating: undefined })}
                   className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-[var(--color-primary)] bg-[var(--color-primary-50)] text-[var(--color-primary-700)] text-xs font-semibold shadow-2xs transition-all hover:bg-[var(--color-primary-100)]"
                 >
-                  {filters.minRating === 4.5 ? 'Tuyệt hảo: 4.5+' : filters.minRating === 4 ? 'Rất ngon: 4.0+' : 'Được khen: 3.5+'} 
+                  {filters.minRating === 4.5 ? 'Tuyệt hảo: 4.5+' : filters.minRating === 4 ? 'Rất ngon: 4.0+' : 'Được khen: 3.5+'}
                   <Star className="w-3 h-3 inline text-[#f59e0b] fill-[#f59e0b]" />
                   <X className="w-3 h-3 text-[var(--color-primary)] ml-0.5" />
                 </button>
               )}
 
               {(filters.minPrice || filters.maxPrice) && (
-                <button 
+                <button
                   onClick={() => handleFilterChange({ minPrice: undefined, maxPrice: undefined })}
                   className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-[var(--color-primary)] bg-[var(--color-primary-50)] text-[var(--color-primary-700)] text-xs font-semibold shadow-2xs transition-all hover:bg-[var(--color-primary-100)]"
                 >
@@ -546,7 +537,7 @@ export default function RestaurantListPage() {
                 </button>
               )}
 
-              <button 
+              <button
                 onClick={handleClearFilters}
                 className="shrink-0 flex items-center gap-1 px-3 py-1 rounded-md border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-300 text-xs font-bold transition-all shadow-2xs"
               >
@@ -557,10 +548,10 @@ export default function RestaurantListPage() {
         </div>
 
         <div className="w-full flex flex-col md:flex-row gap-6">
-        
+
           {/* Mobile Filter Button */}
           <div className="flex md:hidden mb-2">
-            <button 
+            <button
               onClick={() => setMobileFilterOpen(true)}
               className="flex w-full items-center justify-center gap-2 bg-white p-3 rounded-lg shadow-sm border border-[var(--color-primary)] text-sm font-bold text-[var(--color-primary)]"
             >
@@ -597,7 +588,7 @@ export default function RestaurantListPage() {
 
           {/* Main Content */}
           <div className="flex-1 flex flex-col gap-4">
-            
+
             {/* List */}
             {loading ? (
               <div className="flex items-center justify-center p-12 text-[var(--color-primary)] font-bold">
@@ -608,7 +599,7 @@ export default function RestaurantListPage() {
                 {paginatedRestaurants.length === 0 ? (
                   <div className="bg-white p-8 text-center rounded-xl border border-gray-200">
                     <p className="text-gray-500">Không tìm thấy quán ăn nào phù hợp với bộ lọc.</p>
-                    <button 
+                    <button
                       onClick={handleClearFilters}
                       className="mt-3 text-sm font-bold text-[var(--color-primary)] hover:underline inline-flex items-center gap-1"
                     >
@@ -621,27 +612,34 @@ export default function RestaurantListPage() {
                       const googleMapsQuery = encodeURIComponent(
                         (res.address || res.district || '') + ' ' + res.name
                       );
-                      const googleMapsUrl = res.latitude && res.longitude 
+                      const googleMapsUrl = res.latitude && res.longitude
                         ? `https://www.google.com/maps/search/?api=1&query=${res.latitude},${res.longitude}`
                         : `https://www.google.com/maps/search/?api=1&query=${googleMapsQuery}`;
 
                       return (
-                        <div 
-                          key={res.id} 
+                        <div
+                          key={res.id}
                           className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-xs hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 flex flex-col justify-between"
                         >
                           {/* Top: Image & Essential info */}
                           <div>
-                            <div className="relative w-full h-[210px] overflow-hidden bg-gray-100">
-                              <Link to={`/restaurants/${res.id}`} className="block w-full h-full">
-                                <img 
-                                  src={res.coverImageUrl} 
-                                  alt={res.name} 
-                                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" 
-                                />
-                              </Link>
-                              
-                              <button 
+                            <div className="relative w-full h-[210px] overflow-hidden bg-gray-100 flex items-center justify-center">
+                              {res.coverImageUrl ? (
+                                <Link to={`/restaurants/${res.id}`} className="block w-full h-full">
+                                  <img
+                                    src={res.coverImageUrl}
+                                    alt={res.name}
+                                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                                  />
+                                </Link>
+                              ) : (
+                                <div className="flex flex-col items-center justify-center text-slate-400">
+                                  <UtensilsCrossed className="w-10 h-10 opacity-30 mb-1" />
+                                  <span className="text-xs">Chưa có ảnh</span>
+                                </div>
+                              )}
+
+                              <button
                                 className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-white/90 backdrop-blur-xs flex items-center justify-center shadow-xs text-gray-500 hover:text-red-500 transition-colors"
                                 aria-label="Lưu quán ăn"
                               >
@@ -665,13 +663,15 @@ export default function RestaurantListPage() {
                               )}
 
                               {/* Rating badge góc dưới ảnh */}
-                              <div className="absolute bottom-2.5 left-2.5 bg-black/65 backdrop-blur-xs text-white px-2.5 py-1 rounded-sm text-xs font-bold flex items-center gap-1.5">
-                                <Star className="w-3.5 h-3.5 text-[#f59e0b] fill-[#f59e0b]" />
-                                <span>{res.ratingScore > 0 ? res.ratingScore.toString().replace('.', ',') : '4,8'}</span>
-                                {res.reviewCount > 0 && (
-                                  <span className="text-gray-300 text-[11px] font-normal">({res.reviewCount} đánh giá)</span>
-                                )}
-                              </div>
+                              {res.ratingScore > 0 && (
+                                <div className="absolute bottom-2.5 left-2.5 bg-black/65 backdrop-blur-xs text-white px-2.5 py-1 rounded-sm text-xs font-bold flex items-center gap-1.5">
+                                  <Star className="w-3.5 h-3.5 text-[#f59e0b] fill-[#f59e0b]" />
+                                  <span>{res.ratingScore.toString().replace('.', ',')}</span>
+                                  {res.reviewCount > 0 && (
+                                    <span className="text-gray-300 text-[11px] font-normal">({res.reviewCount} đánh giá)</span>
+                                  )}
+                                </div>
+                              )}
                             </div>
 
                             {/* Body content */}
@@ -682,11 +682,13 @@ export default function RestaurantListPage() {
                                     {res.name}
                                   </h3>
                                 </Link>
-                                
-                                <p className="text-xs text-[var(--color-muted)] flex items-center gap-1 mt-1 line-clamp-1">
-                                  <MapPin className="w-3.5 h-3.5 shrink-0 text-[var(--color-primary)]" />
-                                  <span>{res.address || res.district || 'Mù Cang Chải'}</span>
-                                </p>
+
+                                {(res.address || res.district) && (
+                                  <p className="text-xs text-[var(--color-muted)] flex items-center gap-1 mt-1 line-clamp-1">
+                                    <MapPin className="w-3.5 h-3.5 shrink-0 text-[var(--color-primary)]" />
+                                    <span>{res.address || res.district}</span>
+                                  </p>
+                                )}
                               </div>
 
                               {res.description && (
@@ -778,8 +780,8 @@ export default function RestaurantListPage() {
                             </div>
 
                             <Link to={`/restaurants/${res.id}`}>
-                              <Button 
-                                variant="primary" 
+                              <Button
+                                variant="primary"
                                 className="rounded-md font-bold h-9 px-4 text-xs bg-[var(--color-primary)] hover:bg-[var(--color-primary-600)]"
                               >
                                 Xem chi tiết
@@ -795,31 +797,30 @@ export default function RestaurantListPage() {
                 {/* Pagination */}
                 {totalPages > 1 && (
                   <div className="flex justify-center items-center gap-2 mt-6 mb-4">
-                    <button 
+                    <button
                       disabled={currentPage === 1}
                       onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                       className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors bg-white"
                     >
                       <ChevronLeft className="w-5 h-5 text-[var(--color-ink-deep)]" />
                     </button>
-                    
+
                     <div className="flex items-center gap-1">
                       {[...Array(totalPages)].map((_, i) => (
-                        <button 
+                        <button
                           key={i}
                           onClick={() => setCurrentPage(i + 1)}
-                          className={`w-10 h-10 rounded-full font-medium text-sm transition-colors ${
-                            currentPage === i + 1 
-                              ? 'bg-[var(--color-primary)] text-white shadow-sm' 
-                              : 'text-[var(--color-ink-deep)] hover:bg-gray-100 bg-white'
-                          }`}
+                          className={`w-10 h-10 rounded-full font-medium text-sm transition-colors ${currentPage === i + 1
+                            ? 'bg-[var(--color-primary)] text-white shadow-sm'
+                            : 'text-[var(--color-ink-deep)] hover:bg-gray-100 bg-white'
+                            }`}
                         >
                           {i + 1}
                         </button>
                       ))}
                     </div>
 
-                    <button 
+                    <button
                       disabled={currentPage === totalPages}
                       onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                       className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors bg-white"

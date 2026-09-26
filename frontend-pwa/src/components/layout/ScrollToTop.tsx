@@ -16,7 +16,7 @@ export default function ScrollToTop() {
       window.history.scrollRestoration = 'manual';
     }
 
-    // Instantly reset scroll to top before browser paint
+    // Instantly reset scroll to top before browser paint only when pathname changes
     window.scrollTo({
       top: 0,
       left: 0,
@@ -25,15 +25,6 @@ export default function ScrollToTop() {
 
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
-  }, [pathname, search]);
-
-  useEffect(() => {
-    // Secondary guarantee right after render in case of dynamic layout calculation
-    window.scrollTo({
-      top: 0,
-      left: 0,
-      behavior: 'instant' as ScrollBehavior,
-    });
   }, [pathname]);
 
   return null;
