@@ -1,12 +1,12 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, LocateFixed, Save } from 'lucide-react';
 import type { HomestayOptionsDto, PartnerHomestayDetailDto } from '@/types/partner';
-import { createPartnerHomestay, fetchHomestayOptions, fetchPartnerHomestayDetail, homestayError, savePartnerHomestayDetail } from '@/services/partnerHomestayService';
+import { createPartnerHomestay, fetchHomestayOptions, fetchPartnerHomestayDetail, geocodeAddress, homestayError, savePartnerHomestayDetail } from '@/services/partnerHomestayService';
 
 const EMPTY: PartnerHomestayDetailDto = {
   id: 0, code: '', slug: '', name: '', description: '', address: '', regionName: '', regionId: null,
-  latitude: null, longitude: null, contactPhone: '', contactEmail: '', accessNote: '',
+  latitude: null, longitude: null, contactPhone: '', contactEmail: '', reviewVideoUrl: '', accessNote: '',
   coverImageUrl: '', galleryUrls: [], amenities: [], checkInFrom: '', checkOutUntil: '',
   houseRules: '', cancellationPolicy: '', policyName: '', freeCancelCutoffHours: null, refundOnLateCancel: null,
   surchargeNote: '', visibility: 'DRAFT', operationStatus: 'OPERATING', isReadyToPublish: false,
@@ -24,6 +24,7 @@ export default function PartnerHomestayEditPage() {
   const [saveError, setSaveError] = useState('');
   const [saving, setSaving] = useState(false);
   const [retry, setRetry] = useState(0);
+  const [geo, setGeo] = useState<{ busy: boolean; text: string; ok: boolean }>({ busy: false, text: '', ok: true });
 
   useEffect(() => {
     let active = true;
@@ -44,6 +45,20 @@ export default function PartnerHomestayEditPage() {
 
   function set<K extends keyof PartnerHomestayDetailDto>(key: K, value: PartnerHomestayDetailDto[K]) {
     setForm(prev => ({ ...prev, [key]: value }));
+  }
+  /** Gợi ý tọa độ từ địa chỉ. auto = khi rời ô địa chỉ: chỉ chạy nếu chưa có tọa độ để không ghi đè tọa độ NCC đã chỉnh tay. */
+  async function locate(auto: boolean) {
+    const address = form.address.trim();
+    if (address.length < 5 || geo.busy || (auto && form.latitude != null && form.longitude != null)) return;
+    const region = options.regions.find(r => r.id === form.regionId)?.name;
+    setGeo({ busy: true, text: 'Đang tìm tọa độ...', ok: true });
+    try {
+      const found = await geocodeAddress(region && !address.toLowerCase().includes(region.toLowerCase()) ? `${address}, ${region}` : address);
+      setForm(prev => ({ ...prev, latitude: Number(found.latitude.toFixed(6)), longitude: Number(found.longitude.toFixed(6)) }));
+      setGeo({ busy: false, text: `Đã lấy tọa độ theo: ${found.displayName ?? address}. Hãy kiểm tra lại trên bản đồ.`, ok: true });
+    } catch (error: unknown) {
+      setGeo({ busy: false, text: homestayError(error), ok: false });
+    }
   }
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -76,9 +91,14 @@ export default function PartnerHomestayEditPage() {
                 <Field label="Số điện thoại liên hệ *"><input className={input} type="tel" required maxLength={32} value={form.contactPhone} onChange={e => set('contactPhone', e.target.value)} /></Field>
                 <Field label="Email liên hệ"><input className={input} type="email" maxLength={254} value={form.contactEmail ?? ''} onChange={e => set('contactEmail', e.target.value)} /></Field>
               </div>
+              <Field label="Link video review TikTok">
+                <input className={input} type="url" maxLength={500} placeholder="https://www.tiktok.com/@tenkenh/video/7123456789012345678"
+                  value={form.reviewVideoUrl ?? ''} onChange={e => set('reviewVideoUrl', e.target.value)} />
+              </Field>
+              <p className="-mt-2 text-xs text-muted">Mở video trên TikTok, bấm Chia sẻ → Sao chép liên kết rồi dán link đầy đủ có dạng /video/số. Video sẽ hiện ở trang Homestay cho khách xem.</p>
             </Section>
             <Section title="Địa chỉ và tiếp cận">
-              <Field label="Địa chỉ *"><input className={input} required maxLength={500} value={form.address} onChange={e => set('address', e.target.value)} /></Field>
+              <Field label="Địa chỉ *"><input className={input} required maxLength={500} value={form.address} onChange={e => set('address', e.target.value)} onBlur={() => void locate(true)} placeholder="Số nhà / thôn, xã, huyện, tỉnh" /></Field>
               <Field label="Khu vực"><select className={input} value={form.regionId ?? ''} onChange={e => set('regionId', e.target.value ? Number(e.target.value) : null)}>
                 <option value="">Chưa chọn khu vực</option>
                 {options.regions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
@@ -87,6 +107,17 @@ export default function PartnerHomestayEditPage() {
                 <Field label="Vĩ độ"><input className={input} type="number" min={-90} max={90} step="any" value={form.latitude ?? ''} onChange={e => set('latitude', e.target.value === '' ? null : Number(e.target.value))} /></Field>
                 <Field label="Kinh độ"><input className={input} type="number" min={-180} max={180} step="any" value={form.longitude ?? ''} onChange={e => set('longitude', e.target.value === '' ? null : Number(e.target.value))} /></Field>
               </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <button type="button" disabled={geo.busy || form.address.trim().length < 5} onClick={() => void locate(false)}
+                  className="flex items-center gap-2 rounded-md border border-primary px-3 py-2 text-sm font-semibold text-primary transition-colors duration-200 hover:bg-primary-50 disabled:opacity-50">
+                  <LocateFixed size={16} /> {geo.busy ? 'Đang tìm...' : 'Lấy tọa độ từ địa chỉ'}
+                </button>
+                {form.latitude != null && form.longitude != null && (
+                  <a className="text-sm text-primary underline" target="_blank" rel="noreferrer"
+                    href={`https://www.openstreetmap.org/?mlat=${form.latitude}&mlon=${form.longitude}#map=17/${form.latitude}/${form.longitude}`}>Xem vị trí trên bản đồ</a>
+                )}
+              </div>
+              {geo.text && <p role="status" className={`text-xs ${geo.ok ? 'text-muted' : 'text-danger'}`}>{geo.text}</p>}
               <Field label="Hướng dẫn đường đi và tiếp cận"><textarea className={input} rows={3} maxLength={10000} value={form.accessNote ?? ''} onChange={e => set('accessNote', e.target.value)} /></Field>
             </Section>
             <Section title="Tiện nghi và khu vực chung">

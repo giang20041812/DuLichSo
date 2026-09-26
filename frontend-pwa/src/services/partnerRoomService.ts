@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { PartnerRoom, PartnerRoomInput, RoomPrice, RoomPriceInput, RoomInventoryInput, RoomInventoryDay, RoomQuote } from '@/types/room';
+import type { PartnerRoom, PartnerRoomInput, RoomPrice, RoomPriceInput, RoomInventoryInput, RoomInventoryDay, RoomQuote, HomestayBlockInput, HomestayChangeLog } from '@/types/room';
 import type { HomestayOptionsDto } from '@/types/partner';
 const config = () => ({ headers: { Authorization: `Bearer ${localStorage.getItem('portal_token') ?? ''}` } });
 const base = (placeId: number) => `/api/v1/partner/homestays/${placeId}/rooms`;
@@ -13,4 +13,7 @@ export const partnerRoomService = {
   async calendar(placeId: number,id: number,startDate: string,endDate: string) { return (await axios.get<RoomInventoryDay[]>(`${base(placeId)}/${id}/calendar`,{...config(),params:{startDate,endDate}})).data; },
   async inventory(placeId: number,id: number,input: RoomInventoryInput) { await axios.put(`${base(placeId)}/${id}/calendar`,input,config()); },
   async quote(placeId: number,id: number,startDate: string,endDate: string,roomCount: number,guestCount: number) { return (await axios.get<RoomQuote>(`${base(placeId)}/${id}/quote`,{...config(),params:{startDate,endDate,roomCount,guestCount}})).data; },
+  /** Ngừng / mở phục vụ cả Homestay theo ngày; trả về số ngày-loại phòng đã có đơn (đơn cũ vẫn giữ nguyên). */
+  async blockHomestay(placeId: number,input: HomestayBlockInput) { return (await axios.put<{ bookedDays: number }>(`/api/v1/partner/homestays/${placeId}/calendar-block`,input,config())).data; },
+  async changeLog(placeId: number) { return (await axios.get<HomestayChangeLog[]>(`/api/v1/partner/homestays/${placeId}/change-log`,config())).data; },
 };

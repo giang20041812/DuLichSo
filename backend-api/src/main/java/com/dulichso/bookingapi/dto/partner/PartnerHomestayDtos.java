@@ -90,6 +90,8 @@ public class PartnerHomestayDtos {
         private String description;
         private String contactPhone;
         private String contactEmail;
+        /** Link video review TikTok (dạng https://www.tiktok.com/@kenh/video/123...), lưu thành liên hệ kênh TIKTOK để trang Homestay nhúng video. */
+        private String reviewVideoUrl;
         private String regionName;
         private Long regionId;
         private String address;

@@ -89,8 +89,16 @@ export interface PartnerRoomInput {
 export interface PartnerRoom extends PartnerRoomInput { id: number; placeId: number }
 export interface RoomPriceInput { name: string; periodStart: string; periodEnd: string; price: number }
 export interface RoomPrice extends RoomPriceInput { id: number }
-export interface RoomInventoryInput { startDate: string; endDate: string; totalRooms: number; stopSell: boolean }
+export interface RoomInventoryInput { startDate: string; endDate: string; totalRooms: number; stopSell: boolean; reason?: string }
 export interface RoomInventoryDay {
   stayDate: string; totalRooms: number; heldRooms: number; confirmedRooms: number; availableRooms: number; stopSell: boolean; price: number;
+  blockReason: string | null;
 }
 export interface RoomQuote { roomTypeId: number; availableRooms: number; suitable: boolean; totalAmount: number; nights: RoomInventoryDay[] }
+/** Ngừng / mở phục vụ cả Homestay trong khoảng [startDate, endDate) — khớp PartnerRoomDtos.HomestayBlockInput */
+export interface HomestayBlockInput { startDate: string; endDate: string; stopSell: boolean; reason?: string }
+/** NFR-AUD-02 — khớp PartnerRoomDtos.ChangeLogDto */
+export interface HomestayChangeLog {
+  id: number; action: string; entityType: 'RoomType' | 'Homestay'; entityId: number; reason: string | null;
+  before: Record<string, unknown> | null; after: Record<string, unknown> | null; createdAt: string;
+}

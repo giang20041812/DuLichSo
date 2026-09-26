@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+  <!-- NCC quản lý lịch phòng: lý do ngừng phục vụ / số phòng hỏng theo ngày (FR-NCC-09). -->
+  <changeSet id="010-room-inventory-block-reason" author="claude">
+    <addColumn tableName="room_inventory_day">
+      <column name="block_reason" type="VARCHAR(255)"/>
+    </addColumn>
+    <rollback>
+      <dropColumn tableName="room_inventory_day" columnName="block_reason"/>
+    </rollback>
+  </changeSet>
+</databaseChangeLog>

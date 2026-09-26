@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import type { PartnerRoom, PartnerRoomInput, RoomPrice, RoomPriceInput, RoomInventoryDay, RoomQuote } from '@/types/room';
+import type { PartnerRoom, PartnerRoomInput, RoomPrice, RoomPriceInput, RoomQuote } from '@/types/room';
 import type { HomestayOptionsDto } from '@/types/partner';
 import { partnerRoomService as api } from '@/services/partnerRoomService';
 import { homestayError } from '@/services/partnerHomestayService';
 import MediaManager from '@/components/partner/MediaManager';
+import RoomInventoryCalendar from '@/components/partner/RoomInventoryCalendar';
 
 const blank: PartnerRoomInput = {name:'',description:'',maxOccupancy:2,totalRoomCount:1,privateBathroom:'UNVERIFIED',areaSqm:null,basePrice:0,weekendPrice:undefined,status:'ACTIVE',viewDescription:'',beds:[],amenityIds:[]};
 const field='w-full rounded-md border border-border bg-surface p-2 text-sm';
@@ -48,33 +49,31 @@ export default function PartnerRoomsPage() {
   </div>;
 }
 function RoomCalendar({placeId,room}:{placeId:number;room:PartnerRoom}) {
-  const [start,setStart]=useState(localDate(0));const [end,setEnd]=useState(localDate(14));const [days,setDays]=useState<RoomInventoryDay[]>([]);const [prices,setPrices]=useState<RoomPrice[]>([]);
+  const [start,setStart]=useState(localDate(0));const [end,setEnd]=useState(localDate(14));const [prices,setPrices]=useState<RoomPrice[]>([]);
   const [price,setPrice]=useState<RoomPriceInput>({name:'',periodStart:localDate(0),periodEnd:localDate(1),price:room.basePrice});const [priceId,setPriceId]=useState<number|null>(null);
-  const [total,setTotal]=useState(room.totalRoomCount);const [stop,setStop]=useState(false);const [error,setError]=useState('');const [message,setMessage]=useState('');const [busy,setBusy]=useState(false);
+  const [error,setError]=useState('');const [message,setMessage]=useState('');const [busy,setBusy]=useState(false);
   const [count,setCount]=useState(1);const [guests,setGuests]=useState(2);const [quote,setQuote]=useState<RoomQuote|null>(null);
   const generation = useRef(0);
   const load=useCallback(async()=>{
     const request = ++generation.current;
     try {
-      const [d,p]=await Promise.all([api.calendar(placeId,room.id,start,end),api.prices(placeId,room.id)]);
+      const p=await api.prices(placeId,room.id);
       if (request !== generation.current) return;
-      setDays(d);setPrices(p);setError('');
+      setPrices(p);setError('');
     } catch (e: unknown) {
       if (request === generation.current) setError(homestayError(e));
     }
-  },[placeId,room.id,start,end]);
-  useEffect(()=>{setQuote(null);setDays([]);setError('');void load();return()=>{generation.current += 1;};},[load]);
+  },[placeId,room.id]);
+  useEffect(()=>{setQuote(null);setError('');void load();return()=>{generation.current += 1;};},[load]);
   async function act(action:()=>Promise<unknown>,text:string){setBusy(true);setError('');setMessage('');try{await action();await load();setQuote(null);setMessage(text);}catch(e:unknown){setError(homestayError(e));}finally{setBusy(false);}}
   return <section className="space-y-5 rounded-lg border border-border bg-surface p-5">
     <h2 className="text-lg font-bold">{room.name} — Giá & lịch phòng</h2>
     {error&&<p role="alert" className="text-danger">{error}</p>}{message&&<p role="status" className="text-primary">{message}</p>}
+    <div className="space-y-2"><h3 className="font-semibold">Lịch phòng theo ngày</h3><RoomInventoryCalendar placeId={placeId} room={room} onChanged={()=>void load()}/></div>
+    <h3 className="font-semibold">Kiểm tra khả năng đáp ứng</h3>
     <fieldset disabled={busy} className="space-y-4"><div className="grid gap-3 sm:grid-cols-2"><Label title="Từ ngày"><input className={field} type="date" value={start} onChange={e=>setStart(e.target.value)}/></Label><Label title="Đến ngày (không bao gồm)"><input className={field} type="date" min={start} value={end} onChange={e=>setEnd(e.target.value)}/></Label></div>
-      <form onSubmit={e=>{e.preventDefault();void act(()=>api.inventory(placeId,room.id,{startDate:start,endDate:end,totalRooms:total,stopSell:stop}),'Đã cập nhật lịch phòng.');}} className="flex flex-wrap items-end gap-4">
-        <Label title="Số phòng cung cấp mỗi ngày"><input required className={field} type="number" min={0} max={room.totalRoomCount} value={total} onChange={e=>setTotal(Number(e.target.value))}/></Label><label className="flex gap-2 text-sm"><input type="checkbox" checked={stop} onChange={e=>setStop(e.target.checked)}/>Đóng bán khoảng ngày này</label><button className={button}>Cập nhật tồn phòng</button>
-      </form>
       <form onSubmit={e=>{e.preventDefault();setBusy(true);setError('');void api.quote(placeId,room.id,start,end,count,guests).then(setQuote).catch((err:unknown)=>setError(homestayError(err))).finally(()=>setBusy(false));}} className="flex flex-wrap items-end gap-3"><Label title="Số phòng cần"><input required type="number" min={1} className={field} value={count} onChange={e=>setCount(Number(e.target.value))}/></Label><Label title="Số khách"><input required type="number" min={1} className={field} value={guests} onChange={e=>setGuests(Number(e.target.value))}/></Label><button className={button}>Kiểm tra khả năng phục vụ</button></form>
       {quote&&<p role="status">{quote.suitable?'Có thể đáp ứng':'Không đủ phòng hoặc sức chứa'} · còn tối thiểu {quote.availableRooms} phòng · Tổng tiền: {money(quote.totalAmount)}</p>}
-      <div className="max-h-80 overflow-auto"><table className="w-full text-left text-sm"><thead><tr><th>Ngày</th><th>Tổng</th><th>Giữ chỗ</th><th>Đã xác nhận</th><th>Còn</th><th>Giá/đêm</th><th>Bán</th></tr></thead><tbody>{days.map(d=><tr key={d.stayDate} className="border-t border-border"><td className="py-2">{d.stayDate}</td><td>{d.totalRooms}</td><td>{d.heldRooms}</td><td>{d.confirmedRooms}</td><td>{d.availableRooms}</td><td>{money(d.price)}</td><td>{d.stopSell?'Đóng':'Mở'}</td></tr>)}</tbody></table></div>
       <h3 className="font-semibold">Giá theo thời điểm</h3>
       <p className="text-xs text-muted">Giá đặc biệt tính cả ngày bắt đầu và ngày kết thúc. Các khoảng giá không được trùng nhau.</p>
       {prices.map(p=><div key={p.id} className="flex flex-wrap justify-between gap-3 border-b border-border py-2 text-sm"><span>{p.name}: {p.periodStart} → {p.periodEnd} · {money(p.price)}</span><div className="flex gap-3"><button type="button" className="text-primary" onClick={()=>{setPrice(p);setPriceId(p.id);}}>Sửa</button><button type="button" className="text-danger" onClick={()=>void act(()=>api.deletePrice(placeId,room.id,p.id),'Đã xóa khoảng giá.')}>Xóa</button></div></div>)}

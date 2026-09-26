@@ -53,6 +53,8 @@ export interface PartnerHomestayDetailDto {
   description: string;
   contactPhone: string;
   contactEmail?: string;
+  /** Link video TikTok đầy đủ (https://www.tiktok.com/@kenh/video/123...) — hiển thị ở trang Homestay của khách */
+  reviewVideoUrl?: string;
   regionName: string;
   regionId?: number | null;
   address: string;
@@ -147,4 +149,11 @@ export interface PartnerReviewDto {
   createdAt: string;
   providerReply: string | null;
   providerReplyAt: string | null;
+}
+
+/** Kết quả tra tọa độ từ địa chỉ — khớp GeocodingService.GeocodeResult */
+export interface GeocodeResult {
+  latitude: number;
+  longitude: number;
+  displayName: string | null;
 }

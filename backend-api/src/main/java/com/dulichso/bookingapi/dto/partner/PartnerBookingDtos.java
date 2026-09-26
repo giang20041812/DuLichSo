@@ -44,7 +44,8 @@ public final class PartnerBookingDtos {
                                    List<NightDto> nightPrices, List<ServiceItemDto> serviceItems, List<HistoryDto> history,
                                    List<InfoRequestDto> infoRequests,
                                    List<CheckDto> checks, List<RoomOptionDto> roomOptions,
-                                   boolean canAccept, boolean canReject, boolean canRequestInfo) {}
+                                   boolean canAccept, boolean canReject, boolean canRequestInfo,
+                                   List<StayAction> stayActions) {}
 
     /** roomTypeId null = giữ nguyên loại phòng khách đã chọn. note: phản hồi yêu cầu đặc biệt / điều kiện gửi khách. */
     public record AcceptInput(Long roomTypeId, @Size(max = 500) String note) {}
@@ -52,4 +53,9 @@ public final class PartnerBookingDtos {
     public record RejectInput(@NotBlank @Size(max = 500) String reason) {}
 
     public record InfoRequestInput(@NotBlank @Size(max = 500) String message) {}
+
+    /** Vận hành lưu trú sau khi đơn đã xác nhận: nhận phòng, trả phòng, hoàn thành, khách không đến. */
+    public enum StayAction { CHECK_IN, CHECK_OUT, COMPLETE, NO_SHOW }
+
+    public record StayActionInput(@jakarta.validation.constraints.NotNull StayAction action, @Size(max = 500) String note) {}
 }

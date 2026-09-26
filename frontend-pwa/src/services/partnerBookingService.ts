@@ -1,6 +1,6 @@
 import axios from 'axios';
 import type { AdminBookingDto, BookingSearchParams, BookingStatusSummary, PageResponse } from '../types/admin';
-import type { AcceptBookingInput, BookingStatus, InfoRequestInput, PartnerBookingDetailDto, RejectBookingInput } from '../types/booking';
+import type { AcceptBookingInput, BookingStatus, InfoRequestInput, PartnerBookingDetailDto, RejectBookingInput, StayActionInput } from '../types/booking';
 
 const API_BASE = '/api/v1/partner/bookings';
 
@@ -38,6 +38,12 @@ export const partnerBookingService = {
 
   async requestInfo(id: number, input: InfoRequestInput): Promise<PartnerBookingDetailDto> {
     const res = await axios.post<PartnerBookingDetailDto>(`${API_BASE}/${id}/info-requests`, input, authHeaders());
+    return res.data;
+  },
+
+  /** Nhận phòng / trả phòng / hoàn thành / khách không đến. */
+  async stayAction(id: number, input: StayActionInput): Promise<PartnerBookingDetailDto> {
+    const res = await axios.post<PartnerBookingDetailDto>(`${API_BASE}/${id}/stay`, input, authHeaders());
     return res.data;
   },
 

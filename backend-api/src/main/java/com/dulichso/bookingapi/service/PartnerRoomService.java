@@ -23,6 +23,7 @@ public class PartnerRoomService {
     private final RoomTypeRepository rooms;
     private final RoomCalendarService calendar;
     private final EntityManager em;
+    private final PartnerAuditRecorder audit;
 
     public RoomType owned(UserPrincipal principal, Long placeId, Long roomId, boolean writing) {
         var actor=homestays.actor(principal,writing);
@@ -62,10 +63,19 @@ public class PartnerRoomService {
         List<Amenity> selected=input.amenityIds().isEmpty()?List.of():em.createQuery("select a from Amenity a where a.id in :ids and a.scope=:scope and a.isActive=true",Amenity.class)
                 .setParameter("ids",input.amenityIds()).setParameter("scope",AmenityScope.ROOM).getResultList();
         if(selected.size()!=new HashSet<>(input.amenityIds()).size()) throw bad("Tiện nghi phòng không hợp lệ.");
-        if(roomId!=null && input.totalRoomCount()<room.getTotalRoomCount()) {
-            Long oversized=em.createQuery("select count(d) from RoomInventoryDay d where d.roomType.id=:id and d.id.stayDate>=:today and d.heldRooms+d.confirmedRooms>:count",Long.class)
-                    .setParameter("id",roomId).setParameter("today",LocalDate.now()).setParameter("count",input.totalRoomCount()).getSingleResult();
-            if(oversized>0) throw bad("Không thể giảm số phòng xuống dưới số phòng đã giữ hoặc xác nhận.");
+        Map<String,Object> before=roomId==null?null:roomSnapshot(room);
+        if(roomId!=null && !input.totalRoomCount().equals(room.getTotalRoomCount())) {
+            // Đồng bộ các ngày đã có trên lịch: giữ nguyên số phòng NCC đã tạm khóa (phòng hỏng) bằng cách dịch theo chênh lệch,
+            // nhưng không vượt tổng mới và không thấp hơn số phòng đang giữ/xác nhận (tránh overbooking — NFR-REL-02).
+            int delta=input.totalRoomCount()-room.getTotalRoomCount();
+            List<RoomInventoryDay> future=em.createQuery("select d from RoomInventoryDay d where d.roomType.id=:id and d.id.stayDate>=:today",RoomInventoryDay.class)
+                    .setParameter("id",roomId).setParameter("today",LocalDate.now()).getResultList();
+            for(RoomInventoryDay day:future) {
+                int next=Math.max(0,Math.min(input.totalRoomCount(),day.getTotalRooms()+delta));
+                if(next<day.getHeldRooms()+day.getConfirmedRooms())
+                    throw bad("Ngày "+day.getId().getStayDate()+" đã có "+(day.getHeldRooms()+day.getConfirmedRooms())+" phòng được giữ/xác nhận, không thể giảm tổng số phòng như vậy.");
+                day.setTotalRooms(next); day.setUpdatedAt(java.time.LocalDateTime.now());
+            }
         }
         room.setName(input.name().trim()); room.setDescription(input.description()); room.setMaxOccupancy(input.maxOccupancy());
         room.setTotalRoomCount(input.totalRoomCount()); room.setAreaSqm(input.areaSqm()); room.setPrivateBathroom(input.privateBathroom());
@@ -79,6 +89,8 @@ public class PartnerRoomService {
         // Refresh reference prices used by the public homestay cards.
         Object[] range=em.createQuery("select min(r.basePrice),max(r.basePrice) from RoomType r where r.place.id=:id and r.status='ACTIVE'",Object[].class).setParameter("id",placeId).getSingleResult();
         place.setPriceRefMin((java.math.BigDecimal)range[0]); place.setPriceRefMax((java.math.BigDecimal)range[1]); place.setPriceUnitNote("đêm");
+        Map<String,Object> after=roomSnapshot(room);
+        if(!after.equals(before)) audit.record(actor,roomId==null?"ROOM_CREATE":"ROOM_UPDATE",PartnerAuditRecorder.ROOM_TYPE,room.getId(),null,before,after);
         return new RoomDto(room.getId(),placeId,room.getName(),room.getDescription(),room.getMaxOccupancy(),room.getTotalRoomCount(),room.getPrivateBathroom(),room.getAreaSqm(),room.getBasePrice(),room.getWeekendPrice(),room.getStatus(),room.getViewDescription(),input.beds(),input.amenityIds());
     }
     public List<PriceDto> prices(UserPrincipal p,Long placeId,Long id) {
@@ -89,14 +101,17 @@ public class PartnerRoomService {
     @Transactional
     public PriceDto savePrice(UserPrincipal p,Long placeId,Long id,Long priceId,PriceInput input) {
         RoomType room=owned(p,placeId,id,true);
+        var actor=homestays.actor(p,true);
         if(input.periodEnd().isBefore(input.periodStart())) throw bad("Ngày kết thúc giá phải bằng hoặc sau ngày bắt đầu.");
         Long overlap=em.createQuery("select count(p) from RoomSpecialPrice p where p.roomType.id=:room and p.periodStart<=:end and p.periodEnd>=:start and (:id is null or p.id<>:id)",Long.class)
                 .setParameter("room",id).setParameter("start",input.periodStart()).setParameter("end",input.periodEnd()).setParameter("id",priceId).getSingleResult();
         if(overlap>0) throw bad("Khoảng giá bị trùng với một bảng giá đã có.");
-        RoomSpecialPrice price=priceId==null?RoomSpecialPrice.builder().roomType(room).createdBy(homestays.actor(p,true)).build():em.find(RoomSpecialPrice.class,priceId);
+        RoomSpecialPrice price=priceId==null?RoomSpecialPrice.builder().roomType(room).createdBy(actor).build():em.find(RoomSpecialPrice.class,priceId);
         if(price==null || !price.getRoomType().getId().equals(id)) throw bad("Không tìm thấy bảng giá.");
+        Map<String,Object> before=priceId==null?null:priceSnapshot(price);
         price.setName(input.name().trim()); price.setPeriodStart(input.periodStart()); price.setPeriodEnd(input.periodEnd()); price.setPrice(input.price());
         if(priceId==null) em.persist(price);
+        audit.record(actor,priceId==null?"SPECIAL_PRICE_CREATE":"SPECIAL_PRICE_UPDATE",PartnerAuditRecorder.ROOM_TYPE,id,null,before,priceSnapshot(price));
         return new PriceDto(price.getId(),price.getName(),price.getPeriodStart(),price.getPeriodEnd(),price.getPrice());
     }
     @Transactional
@@ -104,20 +119,76 @@ public class PartnerRoomService {
         owned(p,placeId,id,true);
         RoomSpecialPrice price=em.find(RoomSpecialPrice.class,priceId);
         if(price==null || !price.getRoomType().getId().equals(id)) throw bad("Không tìm thấy bảng giá.");
+        audit.record(homestays.actor(p,true),"SPECIAL_PRICE_DELETE",PartnerAuditRecorder.ROOM_TYPE,id,null,priceSnapshot(price),null);
         em.remove(price);
     }
     public List<InventoryDto> calendar(UserPrincipal p,Long placeId,Long id,LocalDate start,LocalDate end) {return calendar.calendar(owned(p,placeId,id,false),start,end);}
     public QuoteDto quote(UserPrincipal p,Long placeId,Long id,LocalDate start,LocalDate end,int rooms,int guests) {return calendar.quote(owned(p,placeId,id,false),start,end,rooms,guests);}
+    /** Cập nhật số phòng mở bán / ngừng bán theo ngày cho một loại phòng, kèm lý do (phòng hỏng, bảo trì, nghỉ phục vụ...). */
     @Transactional
     public void inventory(UserPrincipal p,Long placeId,Long id,InventoryInput input) {
         RoomType room=owned(p,placeId,id,true); RoomCalendarService.validateDates(input.startDate(),input.endDate());
         if(input.startDate().isBefore(LocalDate.now())) throw bad("Không sửa tồn phòng trong quá khứ.");
         if(input.totalRooms()>room.getTotalRoomCount()) throw bad("Tồn phòng không được vượt tổng số phòng của loại phòng.");
+        String reason=blockReason(input.stopSell() || input.totalRooms()<room.getTotalRoomCount(),input.reason());
         for(LocalDate date=input.startDate();date.isBefore(input.endDate());date=date.plusDays(1)) {
             var day=calendar.lockedDay(room,date);
             if(input.totalRooms()<day.getHeldRooms()+day.getConfirmedRooms()) throw bad("Ngày "+date+" đã có nhiều phòng được giữ/xác nhận hơn số nhập vào.");
-            day.setTotalRooms(input.totalRooms()); day.setStopSell(input.stopSell());
+            day.setTotalRooms(input.totalRooms()); day.setStopSell(input.stopSell()); day.setBlockReason(reason); day.setUpdatedAt(java.time.LocalDateTime.now());
         }
+        audit.record(homestays.actor(p,true),"INVENTORY_UPDATE",PartnerAuditRecorder.ROOM_TYPE,id,reason,null,
+                Map.of("startDate",input.startDate().toString(),"endDate",input.endDate().toString(),"totalRooms",input.totalRooms(),"stopSell",input.stopSell()));
+    }
+    /**
+     * Ngừng / mở phục vụ cả Homestay trong khoảng ngày: áp dụng cho mọi loại phòng (khóa theo thứ tự id để tránh deadlock).
+     * Ngày ngừng phục vụ vẫn giữ nguyên các đơn đã giữ/xác nhận; chỉ chặn khách đặt mới.
+     */
+    @Transactional
+    public int blockHomestay(UserPrincipal p,Long placeId,HomestayBlockInput input) {
+        var actor=homestays.actor(p,true);
+        homestays.owned(placeId,actor,true);
+        RoomCalendarService.validateDates(input.startDate(),input.endDate());
+        if(input.startDate().isBefore(LocalDate.now())) throw bad("Không sửa lịch trong quá khứ.");
+        String reason=blockReason(input.stopSell(),input.reason());
+        List<RoomType> list=rooms.findByPlaceId(placeId).stream().sorted(Comparator.comparing(RoomType::getId)).toList();
+        if(list.isEmpty()) throw bad("Homestay chưa có loại phòng nào.");
+        int bookedDays=0;
+        for(RoomType r:list) {
+            RoomType room=rooms.findLockedById(r.getId()).orElseThrow();
+            for(LocalDate date=input.startDate();date.isBefore(input.endDate());date=date.plusDays(1)) {
+                var day=calendar.lockedDay(room,date);
+                if(input.stopSell() && day.getHeldRooms()+day.getConfirmedRooms()>0) bookedDays++;
+                day.setStopSell(input.stopSell());
+                day.setBlockReason(input.stopSell()?reason:(day.getTotalRooms()<room.getTotalRoomCount()?day.getBlockReason():null));
+                day.setUpdatedAt(java.time.LocalDateTime.now());
+            }
+        }
+        audit.record(actor,input.stopSell()?"HOMESTAY_CLOSE_DAYS":"HOMESTAY_OPEN_DAYS",PartnerAuditRecorder.HOMESTAY,placeId,reason,null,
+                Map.of("startDate",input.startDate().toString(),"endDate",input.endDate().toString(),"roomTypes",list.size()));
+        return bookedDays;
+    }
+    public List<ChangeLogDto> changeLog(UserPrincipal p,Long placeId) {
+        homestays.owned(placeId,homestays.actor(p,false),false);
+        return audit.forHomestay(placeId,rooms.findByPlaceId(placeId).stream().map(RoomType::getId).toList());
+    }
+    /** Ngừng bán hoặc giảm số phòng bắt buộc có lý do; mở bán lại thì xóa lý do. */
+    private static String blockReason(boolean blocking,String reason) {
+        String clean=reason==null||reason.isBlank()?null:reason.trim();
+        if(blocking && clean==null) throw bad("Vui lòng nhập lý do ngừng bán hoặc giảm số phòng (bảo trì, phòng hỏng, nghỉ phục vụ...).");
+        return blocking?clean:null;
+    }
+    private static Map<String,Object> roomSnapshot(RoomType r) {
+        Map<String,Object> m=new LinkedHashMap<>();
+        m.put("name",r.getName()); m.put("status",r.getStatus()); m.put("totalRoomCount",r.getTotalRoomCount()); m.put("maxOccupancy",r.getMaxOccupancy());
+        m.put("basePrice",r.getBasePrice()==null?null:r.getBasePrice().toPlainString());
+        m.put("weekendPrice",r.getWeekendPrice()==null?null:r.getWeekendPrice().toPlainString());
+        return m;
+    }
+    private static Map<String,Object> priceSnapshot(RoomSpecialPrice p) {
+        Map<String,Object> m=new LinkedHashMap<>();
+        m.put("name",p.getName()); m.put("periodStart",String.valueOf(p.getPeriodStart())); m.put("periodEnd",String.valueOf(p.getPeriodEnd()));
+        m.put("price",p.getPrice()==null?null:p.getPrice().toPlainString());
+        return m;
     }
     private static ResponseStatusException bad(String text) {return new ResponseStatusException(HttpStatus.BAD_REQUEST,text);}
 }

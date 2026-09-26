@@ -5,6 +5,8 @@ import type { PartnerHomestayDetailDto, UpdateStatusRequest } from '@/types/part
 import { fetchPartnerHomestayDetail, homestayError, updateHomestayStatus } from '@/services/partnerHomestayService';
 import PartnerServicesPanel from '@/components/partner/PartnerServicesPanel';
 import MediaManager from '@/components/partner/MediaManager';
+import HomestayClosurePanel from '@/components/partner/HomestayClosurePanel';
+import HomestayChangeLogPanel from '@/components/partner/HomestayChangeLogPanel';
 
 export default function PartnerHomestayDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -14,6 +16,7 @@ export default function PartnerHomestayDetailPage() {
   const [actionMessage, setActionMessage] = useState('');
   const [saving, setSaving] = useState(false);
   const [retry, setRetry] = useState(0);
+  const [logKey, setLogKey] = useState(0);
   useEffect(() => {
     let active = true;
     setLoading(true);
@@ -69,6 +72,8 @@ export default function PartnerHomestayDetailPage() {
         <MediaManager target={{ placeId: homestay.id }} title="Ảnh Homestay" onChange={(media) => setHomestay(prev => prev ? { ...prev, coverImageUrl: media.find(m => m.role === 'COVER')?.url ?? '', galleryUrls: media.map(m => m.url) } : prev)} />
       </Section>
       <PartnerServicesPanel placeId={homestay.id}/>
+      <Section title="Lịch phục vụ Homestay"><HomestayClosurePanel placeId={homestay.id} onChanged={() => setLogKey(n => n + 1)} /></Section>
+      <Section title="Lịch sử thay đổi giá và lịch phòng"><HomestayChangeLogPanel placeId={homestay.id} refreshKey={logKey} /></Section>
     </div>
   );
 }

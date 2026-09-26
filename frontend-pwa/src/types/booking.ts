@@ -225,6 +225,7 @@ export interface PartnerBookingDetailDto {
   canAccept: boolean;
   canReject: boolean;
   canRequestInfo: boolean;
+  stayActions: StayAction[];
 }
 
 /** roomTypeId null = giữ loại phòng khách đã chọn. */
@@ -248,4 +249,12 @@ export interface BookingInfoRequestDto {
 
 export interface InfoRequestInput {
   message: string;
+}
+
+/** Vận hành lưu trú của NCC — khớp PartnerBookingDtos.StayAction */
+export type StayAction = 'CHECK_IN' | 'CHECK_OUT' | 'COMPLETE' | 'NO_SHOW';
+
+export interface StayActionInput {
+  action: StayAction;
+  note?: string;
 }
