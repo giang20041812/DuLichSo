@@ -41,6 +41,9 @@ public class RoomCalendarService {
             int held=d==null?0:d.getHeldRooms(), confirmed=d==null?0:d.getConfirmedRooms();
             boolean stopped=!"ACTIVE".equals(room.getStatus()) || (d!=null && Boolean.TRUE.equals(d.getStopSell()));
             BigDecimal price=room.getBasePrice();
+            if (room.getWeekendPrice() != null && (date.getDayOfWeek() == java.time.DayOfWeek.SATURDAY || date.getDayOfWeek() == java.time.DayOfWeek.SUNDAY)) {
+                price = room.getWeekendPrice();
+            }
             for (RoomSpecialPrice p:prices) if (!date.isBefore(p.getPeriodStart()) && !date.isAfter(p.getPeriodEnd())) price=p.getPrice();
             if (price==null) throw new ResponseStatusException(HttpStatus.CONFLICT,"Loại phòng chưa có giá.");
             result.add(new InventoryDto(date,total,held,confirmed,stopped?0:Math.max(0,total-held-confirmed),stopped,price));

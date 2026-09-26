@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeftRight } from 'lucide-react';
 
 interface PriceSliderProps {
   min: number;
@@ -22,7 +21,7 @@ export function PriceSlider({ min, max, step, value, onChange, onChangeEnd }: Pr
   
   // Drag state
   const dragRef = useRef<{
-    type: 'min' | 'max' | 'mid' | null;
+    type: 'min' | 'max' | null;
     startX: number;
     startMin: number;
     startMax: number;
@@ -35,7 +34,7 @@ export function PriceSlider({ min, max, step, value, onChange, onChangeEnd }: Pr
     trackWidth: 1,
   });
 
-  const [activeThumb, setActiveThumb] = useState<'min' | 'max' | 'mid' | null>(null);
+  const [activeThumb, setActiveThumb] = useState<'min' | 'max' | null>(null);
 
   useEffect(() => {
     setMinVal(value[0]);
@@ -46,9 +45,8 @@ export function PriceSlider({ min, max, step, value, onChange, onChangeEnd }: Pr
 
   const minPercent = Math.max(0, Math.min(100, ((minVal - min) / (max - min)) * 100));
   const maxPercent = Math.max(0, Math.min(100, ((maxVal - min) / (max - min)) * 100));
-  const midPercent = (minPercent + maxPercent) / 2;
 
-  const handlePointerDown = (type: 'min' | 'max' | 'mid', e: React.PointerEvent) => {
+  const handlePointerDown = (type: 'min' | 'max', e: React.PointerEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -86,25 +84,6 @@ export function PriceSlider({ min, max, step, value, onChange, onChangeEnd }: Pr
       setMaxVal(newMax);
       setMaxInputStr(newMax.toLocaleString('vi-VN'));
       onChange([minVal, newMax]);
-    } else if (type === 'mid') {
-      // Move entire range together
-      const span = startMax - startMin;
-      let newMin = startMin + stepDeltaPrice;
-      let newMax = startMax + stepDeltaPrice;
-
-      if (newMin < min) {
-        newMin = min;
-        newMax = min + span;
-      } else if (newMax > max) {
-        newMax = max;
-        newMin = max - span;
-      }
-
-      setMinVal(newMin);
-      setMaxVal(newMax);
-      setMinInputStr(newMin.toLocaleString('vi-VN'));
-      setMaxInputStr(newMax.toLocaleString('vi-VN'));
-      onChange([newMin, newMax]);
     }
   };
 
@@ -218,24 +197,7 @@ export function PriceSlider({ min, max, step, value, onChange, onChangeEnd }: Pr
           <div className="w-2 h-2 rounded-full bg-[var(--color-primary,#048c73)]" />
         </div>
 
-        {/* 2. Middle Circle (Move / Drag Range Indicator) */}
-        <div
-          role="slider"
-          aria-label="Di chuyển khoảng giá"
-          title="Kéo để di chuyển cả khoảng ngân sách"
-          tabIndex={0}
-          onPointerDown={(e) => handlePointerDown('mid', e)}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-7 h-7 rounded-full bg-gradient-to-r from-[var(--color-primary,#048c73)] to-[var(--color-secondary,#06b6d4)] border-2 border-white shadow-md flex items-center justify-center cursor-grab active:cursor-grabbing hover:scale-115 active:scale-95 transition-transform z-30 ${
-            activeThumb === 'mid' ? 'ring-4 ring-[var(--color-secondary-200,#bbf0f6)] scale-115 cursor-grabbing' : ''
-          }`}
-          style={{ left: `${midPercent}%` }}
-        >
-          <ArrowLeftRight className="w-3.5 h-3.5 text-white stroke-[2.5]" />
-        </div>
-
-        {/* 3. Right Circle (Max Handle) */}
+        {/* 2. Right Circle (Max Handle) */}
         <div
           role="slider"
           aria-label="Giá tối đa"
@@ -255,9 +217,9 @@ export function PriceSlider({ min, max, step, value, onChange, onChangeEnd }: Pr
 
       {/* Range Caption / Helper Text */}
       <div className="flex justify-between items-center text-[11px] text-[var(--color-muted,#59766e)] mt-1 px-1">
-        <span>Kéo 2 đầu để chỉnh giá</span>
-        <span className="flex items-center gap-1 text-[var(--color-primary,#048c73)] font-medium">
-          <ArrowLeftRight className="w-3 h-3 inline" /> Kéo nút giữa để dịch chuyển dải
+        <span>Kéo 2 nút ở 2 đầu để chỉnh khoảng giá</span>
+        <span className="font-semibold text-[var(--color-primary,#048c73)]">
+          {minVal.toLocaleString('vi-VN')}đ – {maxVal.toLocaleString('vi-VN')}đ
         </span>
       </div>
 

@@ -12,7 +12,6 @@ import {
   Users,
   Bed,
   Mountain,
-  Bath,
   Loader2,
   MapPin,
   RefreshCw
@@ -36,20 +35,20 @@ export default function RoomAvailabilityPage() {
   const navigate = useNavigate();
 
   // Khởi tạo ngày mặc định: check-in ngày mai, check-out ngày kia
-  const defaultCheckIn = useMemo(() => {
+  const defaultCheckIn = useMemo<string>(() => {
     const paramIn = searchParams.get('checkIn');
     if (paramIn && /^\d{4}-\d{2}-\d{2}$/.test(paramIn)) return paramIn;
     const d = new Date();
     d.setDate(d.getDate() + 1);
-    return d.toISOString().split('T')[0];
+    return d.toISOString().split('T')[0] ?? '';
   }, [searchParams]);
 
-  const defaultCheckOut = useMemo(() => {
+  const defaultCheckOut = useMemo<string>(() => {
     const paramOut = searchParams.get('checkOut');
     if (paramOut && /^\d{4}-\d{2}-\d{2}$/.test(paramOut)) return paramOut;
     const d = new Date();
     d.setDate(d.getDate() + 3);
-    return d.toISOString().split('T')[0];
+    return d.toISOString().split('T')[0] ?? '';
   }, [searchParams]);
 
   const [homestay, setHomestay] = useState<HomestayDetailDto | null>(null);
@@ -86,7 +85,7 @@ export default function RoomAvailabilityPage() {
     setLoadingHomestay(true);
     setErrorMessage(null);
 
-    getHomestayById(slug)
+    getHomestayById(slug || '')
       .then((data) => {
         if (!isMounted) return;
         if (data) {
@@ -146,6 +145,7 @@ export default function RoomAvailabilityPage() {
     const updated: Record<number, RoomCheckState> = {};
     results.forEach((res, index) => {
       const room = rooms[index];
+      if (!room) return;
       if (res.status === 'fulfilled') {
         updated[room.id] = {
           checking: false,
@@ -344,7 +344,7 @@ export default function RoomAvailabilityPage() {
                   if (val >= checkOutDate) {
                     const next = new Date(val);
                     next.setDate(next.getDate() + 1);
-                    setCheckOutDate(next.toISOString().split('T')[0]);
+                    setCheckOutDate(next.toISOString().split('T')[0] ?? '');
                   }
                 }}
                 className="w-full text-xs sm:text-sm font-bold text-slate-900 bg-transparent border-none p-0 focus:outline-hidden cursor-pointer"

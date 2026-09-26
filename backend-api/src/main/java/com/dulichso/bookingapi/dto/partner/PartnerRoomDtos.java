@@ -13,10 +13,11 @@ public final class PartnerRoomDtos {
             @NotNull @Min(1) @Max(1000) Integer maxOccupancy, @NotNull @Min(1) @Max(10000) Integer totalRoomCount,
             @NotNull AmenityValue privateBathroom, @DecimalMin("0.01") @DecimalMax("9999.99") BigDecimal areaSqm,
             @NotNull @DecimalMin("0") @DecimalMax("999999999999") @Digits(integer=12,fraction=0) BigDecimal basePrice,
+            @DecimalMin("0") @DecimalMax("999999999999") @Digits(integer=12,fraction=0) BigDecimal weekendPrice,
             @NotNull @Pattern(regexp="ACTIVE|INACTIVE") String status, @Size(max=500) String viewDescription,
             @NotNull @Size(max=30) List<@Valid BedDto> beds, @NotNull @Size(max=100) List<Long> amenityIds) {}
     public record RoomDto(Long id, Long placeId, String name, String description, Integer maxOccupancy, Integer totalRoomCount,
-            AmenityValue privateBathroom, BigDecimal areaSqm, BigDecimal basePrice, String status, String viewDescription,
+            AmenityValue privateBathroom, BigDecimal areaSqm, BigDecimal basePrice, BigDecimal weekendPrice, String status, String viewDescription,
             List<BedDto> beds, List<Long> amenityIds) {}
     public record PriceInput(@NotBlank @Size(max=255) String name, @NotNull LocalDate periodStart, @NotNull LocalDate periodEnd,
             @NotNull @DecimalMin("0") @DecimalMax("999999999999") @Digits(integer=12,fraction=0) BigDecimal price) {}

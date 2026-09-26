@@ -16,6 +16,7 @@ export interface RoomTypeItem {
   privateBathroom: AmenityValue;
   areaSqm?: number;
   basePrice: number;
+  weekendPrice?: number;
   status: 'ACTIVE' | 'INACTIVE';
   
   // Dynamic fields
@@ -37,6 +38,7 @@ export interface RoomTypeDto {
   totalRoomCount: number;
   areaSqm: number;
   basePrice: number;
+  weekendPrice?: number;
   images: string[];
   bedType?: string;
   hasBreakfast?: boolean;
@@ -78,6 +80,7 @@ export interface PartnerRoomInput {
   privateBathroom: AmenityValue;
   areaSqm: number | null;
   basePrice: number;
+  weekendPrice?: number;
   status: 'ACTIVE' | 'INACTIVE';
   viewDescription: string;
   beds: RoomBedInfo[];

@@ -20,5 +20,6 @@ public class RoomTypeDto {
     private Integer totalRoomCount;
     private BigDecimal areaSqm;
     private BigDecimal basePrice;
+    private BigDecimal weekendPrice;
     private List<String> images;
 }

@@ -35,6 +35,23 @@ function getRoomImage(room: RoomTypeDto, homestay: HomestayDetailDto): string {
   return '';
 }
 
+// Helper: chuyển string YYYY-MM-DD sang YYYY-MM-DD an toàn theo giờ địa phương
+function formatDateKey(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function parseLocalDate(dateStr: string) {
+  const parts = dateStr.split('-');
+  const y = Number(parts[0]) || 2026;
+  const m = Number(parts[1]) || 1;
+  const d = Number(parts[2]) || 1;
+  return new Date(y, m - 1, d);
+}
+
+
 export default function RoomBookingCard({
   room,
   homestay,
@@ -134,10 +151,21 @@ export default function RoomBookingCard({
     return diff > 0 ? diff : 1;
   }, [checkIn, checkOut]);
 
-  // Tổng tiền phòng = đơn giá * số đêm * số phòng
+  // Tổng tiền phòng = đơn giá * số đêm * số phòng (có tính ngày cuối tuần)
   const totalPrice = useMemo(() => {
-    return room.basePrice * nights * roomCount;
-  }, [room.basePrice, nights, roomCount]);
+    let totalPerRoom = 0;
+    if (!checkIn || !checkOut) return room.basePrice * 1 * roomCount;
+    const cur = parseLocalDate(checkIn);
+    const end = parseLocalDate(checkOut);
+    while (cur < end) {
+      const dayOfWeek = cur.getDay(); // 0 is Sunday, 6 is Saturday
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+      const price = (isWeekend && room.weekendPrice) ? room.weekendPrice : room.basePrice;
+      totalPerRoom += price;
+      cur.setDate(cur.getDate() + 1);
+    }
+    return totalPerRoom * roomCount;
+  }, [room.basePrice, room.weekendPrice, checkIn, checkOut, roomCount]);
 
   // Lọc danh sách booking riêng của loại phòng này (hoặc booking chung không chỉ định roomTypeId)
   const roomBookedDates = useMemo(() => {
@@ -146,21 +174,6 @@ export default function RoomBookingCard({
     );
   }, [bookedDates, room.id]);
 
-  // Helper: chuyển string YYYY-MM-DD sang YYYY-MM-DD an toàn theo giờ địa phương
-  const formatDateKey = (d: Date) => {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  };
-
-  const parseLocalDate = (dateStr: string) => {
-    const parts = dateStr.split('-');
-    const y = Number(parts[0]) || 2026;
-    const m = Number(parts[1]) || 1;
-    const d = Number(parts[2]) || 1;
-    return new Date(y, m - 1, d);
-  };
 
   // Bản đồ phòng đã đặt từng ngày
   const occupiedMap = useMemo(() => {
@@ -230,6 +243,7 @@ export default function RoomBookingCard({
         roomTypeId: Number(room.id),
         roomTypeName: room.name,
         basePrice: room.basePrice,
+        weekendPrice: room.weekendPrice,
         originalPrice: Math.round(room.basePrice * 1.25),
         totalRoomCount: maxRooms,
         maxOccupancy: room.maxOccupancy,
@@ -313,6 +327,11 @@ export default function RoomBookingCard({
                   {new Intl.NumberFormat('vi-VN').format(room.basePrice)}đ
                 </span>
                 <span className="text-sm text-[var(--color-muted)] font-medium"> /đêm</span>
+                {room.weekendPrice ? (
+                  <div className="text-xs text-[var(--color-muted)] mt-1">
+                    Cuối tuần: {new Intl.NumberFormat('vi-VN').format(room.weekendPrice)}đ
+                  </div>
+                ) : null}
               </div>
             </div>
 

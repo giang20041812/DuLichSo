@@ -17,7 +17,6 @@ import {
   Bike,
   Clock,
   MapPin,
-  AlertTriangle,
   ThumbsUp,
   ThumbsDown,
   Navigation2

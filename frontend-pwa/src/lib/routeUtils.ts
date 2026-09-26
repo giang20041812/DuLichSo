@@ -42,7 +42,7 @@ const HERO_LIST_ROUTES = [
  * Kiểm tra xem pathname hiện tại có phải là trang chi tiết (địa điểm, di chuyển, dịch vụ, v.v.) hay không
  */
 export function isDetailPage(pathname: string): boolean {
-  const cleanPath = pathname.split('?')[0].replace(/\/+$/, '');
+  const cleanPath = (pathname.split('?')[0] ?? '').replace(/\/+$/, '');
   const segments = cleanPath.split('/').filter(Boolean);
 
   // Trang chi tiết có dạng /[category]/[identifier]
@@ -62,7 +62,7 @@ export function isDetailPage(pathname: string): boolean {
  * để nội dung luôn nằm dưới hẳn Header và Header luôn hiển thị rõ ràng (solid).
  */
 export function hasHeroOverlay(pathname: string): boolean {
-  const cleanPath = pathname.split('?')[0].replace(/\/+$/, '');
+  const cleanPath = (pathname.split('?')[0] ?? '').replace(/\/+$/, '');
 
   // 1. Các trang chi tiết địa điểm, di chuyển, dịch vụ... KHÔNG dùng hero tràn header
   if (isDetailPage(cleanPath)) {

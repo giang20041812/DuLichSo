@@ -125,6 +125,7 @@ export interface BookingNavigationState {
   roomTypeId: number;
   roomTypeName: string;
   basePrice: number;
+  weekendPrice?: number;
   originalPrice?: number;
   totalRoomCount: number;
   maxOccupancy: number;

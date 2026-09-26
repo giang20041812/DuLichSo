@@ -47,7 +47,7 @@ const STATUS_FILTERS: { key: string; label: string }[] = [
 
 
 
-const ITEMS_PER_PAGE = 4;
+const ITEMS_PER_PAGE = 6;
 
 export default function UserBookingListPage() {
   const navigate = useNavigate();
@@ -362,18 +362,18 @@ export default function UserBookingListPage() {
             </button>
           </form>
 
-          {/* Hàng 2: Bộ lọc ngày tháng (Date Filter) */}
-          <div className="p-3 bg-[#F6FAF8] border border-gray-100 rounded-md flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 text-xs">
+          {/* Hàng 2: Bộ lọc ngày tháng (Date Filter chuẩn style Homestay Detail) */}
+          <div className="p-3 bg-[#F6FAF8] border border-gray-200/90 rounded-md flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 text-xs">
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-1 text-slate-700 font-bold shrink-0">
-                <Calendar className="w-3.5 h-3.5 text-[var(--color-primary)]" />
-                <span>Lọc theo ngày:</span>
+              <div className="flex items-center gap-1.5 text-slate-700 font-bold shrink-0">
+                <Calendar className="w-4 h-4 text-[var(--color-primary)]" />
+                <span>Lọc theo:</span>
               </div>
-              <div className="inline-flex rounded-md border border-gray-300 bg-white p-0.5">
+              <div className="inline-flex rounded-md border border-gray-300 bg-white p-0.5 shadow-2xs">
                 <button
                   type="button"
                   onClick={() => setDateFilterType('checkIn')}
-                  className={`px-2.5 py-1 text-[11px] font-bold rounded-sm transition-all cursor-pointer ${
+                  className={`px-3 py-1.5 text-xs font-bold rounded-sm transition-all cursor-pointer ${
                     dateFilterType === 'checkIn'
                       ? 'bg-[var(--color-primary)] text-white shadow-xs'
                       : 'text-gray-600 hover:text-slate-800'
@@ -384,7 +384,7 @@ export default function UserBookingListPage() {
                 <button
                   type="button"
                   onClick={() => setDateFilterType('createdAt')}
-                  className={`px-2.5 py-1 text-[11px] font-bold rounded-sm transition-all cursor-pointer ${
+                  className={`px-3 py-1.5 text-xs font-bold rounded-sm transition-all cursor-pointer ${
                     dateFilterType === 'createdAt'
                       ? 'bg-[var(--color-primary)] text-white shadow-xs'
                       : 'text-gray-600 hover:text-slate-800'
@@ -395,33 +395,40 @@ export default function UserBookingListPage() {
               </div>
             </div>
 
+            {/* Khung chọn khoảng ngày trực tiếp giống RoomBookingCard & Homestay Detail */}
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-1.5">
-                <span className="text-gray-500 font-medium">Từ:</span>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="px-2.5 py-1.5 rounded-md border border-gray-300 bg-white text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
-                />
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-gray-500 font-medium">Đến:</span>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="px-2.5 py-1.5 rounded-md border border-gray-300 bg-white text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
-                />
+              <div className="flex items-center gap-2 bg-white border border-slate-300 hover:border-[var(--color-primary)] focus-within:border-[var(--color-primary)] focus-within:ring-1 focus-within:ring-[var(--color-primary)] px-3 py-1.5 rounded-md shadow-2xs transition-all">
+                <Calendar className="w-4 h-4 text-[var(--color-primary)] shrink-0" />
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase">Từ</span>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="border-0 p-0 text-xs sm:text-sm font-semibold text-slate-800 focus:outline-none cursor-pointer bg-transparent w-[122px]"
+                  />
+                </div>
+                <span className="text-slate-400 font-bold px-0.5">→</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase">Đến</span>
+                  <input
+                    type="date"
+                    min={startDate || undefined}
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="border-0 p-0 text-xs sm:text-sm font-semibold text-slate-800 focus:outline-none cursor-pointer bg-transparent w-[122px]"
+                  />
+                </div>
               </div>
 
               {(startDate || endDate) && (
                 <button
                   type="button"
                   onClick={handleClearDateFilter}
-                  className="px-2.5 py-1.5 rounded-md text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors cursor-pointer flex items-center gap-1"
+                  className="px-2.5 py-1.5 rounded-md text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
+                  title="Xóa bộ lọc ngày"
                 >
-                  <XCircle className="w-3 h-3" />
+                  <XCircle className="w-3.5 h-3.5" />
                   <span>Xóa lọc ngày</span>
                 </button>
               )}
@@ -514,7 +521,7 @@ export default function UserBookingListPage() {
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {paginatedBookings.map((b) => {
               const isCompleted = b.status === 'COMPLETED';
               const canCancel = ['PENDING', 'CONFIRMED', 'AWAITING_PAYMENT'].includes(b.status);
@@ -523,142 +530,146 @@ export default function UserBookingListPage() {
               return (
                 <div
                   key={b.bookingCode}
-                  className="bg-white rounded-lg border border-gray-200/90 hover:border-[var(--color-primary)] hover:shadow-md transition-all duration-300 overflow-hidden"
+                  className="bg-white rounded-lg border border-gray-200/90 hover:border-[var(--color-primary)] hover:shadow-md transition-all duration-300 overflow-hidden flex flex-col justify-between"
                 >
-                  <div className="p-4 sm:p-5 flex flex-col md:flex-row gap-4">
-                    {/* Ảnh đại diện chỗ nghỉ */}
-                    <div className="w-full md:w-48 h-40 md:h-auto rounded-md overflow-hidden bg-slate-100 shrink-0 relative flex items-center justify-center">
-                      {b.coverImageUrl ? (
-                        <img
-                          src={b.coverImageUrl}
-                          alt={b.placeName}
-                          className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-                        />
-                      ) : (
-                        <div className="flex flex-col items-center justify-center text-slate-400 p-4">
-                          <Home className="w-8 h-8 opacity-30 mb-1" />
-                          <span className="text-[11px]">Chưa có ảnh</span>
-                        </div>
-                      )}
-                      <div className="absolute top-2 left-2">
-                        <span className="font-mono text-[11px] font-bold text-[var(--color-primary)] bg-white/95 backdrop-blur-xs px-2 py-0.5 rounded-sm shadow-xs border border-gray-200/70">
+                  <div className="p-4 flex flex-col gap-3">
+                    {/* Hàng Header Card: Mã đơn + Trạng thái & Tổng tiền */}
+                    <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-gray-100">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-bold text-[var(--color-primary)] bg-[var(--color-canvas)] px-2 py-0.5 rounded-sm border border-gray-200">
                           #{b.bookingCode}
+                        </span>
+                        {getStatusBadge(b.status)}
+                      </div>
+                      <div className="text-right">
+                        <span className="text-sm sm:text-base font-bold text-[var(--color-coral)]">
+                          {Number(b.totalAmount || 0).toLocaleString('vi-VN')} đ
                         </span>
                       </div>
                     </div>
 
-                    {/* Thông tin chính của booking */}
-                    <div className="flex-1 flex flex-col justify-between space-y-3">
-                      <div>
-                        <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
-                          <div className="flex items-center gap-2">
-                            {getStatusBadge(b.status)}
-                            <span className="text-[11px] text-gray-400">
-                              Đặt ngày: {new Date(b.createdAt).toLocaleDateString('vi-VN')}
-                            </span>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-xs text-gray-500 mr-1.5">Tổng tiền:</span>
-                            <span className="text-base sm:text-lg font-bold text-[var(--color-coral)]">
-                              {Number(b.totalAmount || 0).toLocaleString('vi-VN')} đ
-                            </span>
-                          </div>
-                        </div>
-
-                        <h3 className="text-base sm:text-lg font-bold text-slate-800 hover:text-[var(--color-primary)] transition-colors">
-                          {b.placeName}
-                        </h3>
-
-                        <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-1">
-                          <MapPin className="w-3.5 h-3.5 text-[var(--color-secondary)] shrink-0" />
-                          <span className="line-clamp-1">{b.placeAddress}</span>
-                        </div>
-
-                        <div className="mt-2.5 p-2.5 rounded-md bg-[#F6FAF8] border border-gray-100 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                          <div>
-                            <span className="text-gray-400 block text-[10px] uppercase font-bold">Hạng phòng</span>
-                            <span className="font-semibold text-slate-800 truncate block">
-                              {b.roomTypeName}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-gray-400 block text-[10px] uppercase font-bold">Nhận phòng</span>
-                            <span className="font-semibold text-slate-800 block">{b.checkIn} (14h)</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-400 block text-[10px] uppercase font-bold">Trả phòng</span>
-                            <span className="font-semibold text-slate-800 block">{b.checkOut} (12h)</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-400 block text-[10px] uppercase font-bold">Quy mô</span>
-                            <span className="font-semibold text-slate-800 block">
-                              {b.nights} đêm • {b.roomCount} phòng
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Ghi chú hoàn tiền / hủy nếu có */}
-                        {Boolean(b.policySnapshot?.cancelReason) && (
-                          <div className="mt-2 p-2 bg-amber-50/70 border border-amber-200/70 rounded-md text-[11px] text-amber-800">
-                            <strong>Lý do hủy:</strong> {String(b.policySnapshot.cancelReason)}
-                            {Boolean(b.policySnapshot.refundAmount) && (
-                              <span className="ml-2 font-bold text-emerald-700">
-                                (Đã hoàn {Number(b.policySnapshot.refundAmount).toLocaleString('vi-VN')} đ)
-                              </span>
-                            )}
+                    {/* Khối giữa: Ảnh nhỏ + Thông tin Homestay */}
+                    <div className="flex gap-3">
+                      <div className="w-24 h-24 sm:w-28 sm:h-24 rounded-md overflow-hidden bg-slate-100 shrink-0 relative">
+                        {b.coverImageUrl ? (
+                          <img
+                            src={b.coverImageUrl}
+                            alt={b.placeName}
+                            className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 p-2">
+                            <Home className="w-6 h-6 opacity-30 mb-0.5" />
+                            <span className="text-[10px]">Chưa có ảnh</span>
                           </div>
                         )}
                       </div>
 
-                      {/* Nút hành động */}
-                      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-gray-100">
-                        <div className="text-xs text-gray-600">
-                          Khách đặt: <span className="font-semibold text-slate-800">{b.guestName}</span> ({b.guestPhone})
+                      <div className="flex-1 min-w-0 flex flex-col justify-between">
+                        <div>
+                          <h3 
+                            onClick={() => navigate(`/bookings/${b.bookingCode}`)}
+                            className="text-sm sm:text-base font-bold text-slate-800 hover:text-[var(--color-primary)] transition-colors line-clamp-1 cursor-pointer"
+                            title={b.placeName}
+                          >
+                            {b.placeName}
+                          </h3>
+                          <div className="flex items-center gap-1 text-[11px] text-gray-500 mt-0.5">
+                            <MapPin className="w-3 h-3 text-[var(--color-secondary)] shrink-0" />
+                            <span className="line-clamp-1">{b.placeAddress}</span>
+                          </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          {/* Nút Hủy đơn theo chính sách (cho đơn PENDING, CONFIRMED, AWAITING_PAYMENT) */}
-                          {canCancel && (
-                            <button
-                              type="button"
-                              onClick={() => setCancelModalBooking(b)}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-rose-200 bg-white hover:bg-rose-50 text-rose-600 hover:text-rose-700 text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer"
-                              title="Hủy đặt phòng theo chính sách của homestay"
-                            >
-                              <Ban className="w-3.5 h-3.5" />
-                              <span>Hủy đơn</span>
-                            </button>
-                          )}
-
-                          {/* Nút Đánh giá nếu booking đã hoàn thành (COMPLETED) */}
-                          {isCompleted && (
-                            <button
-                              type="button"
-                              onClick={() => setReviewBooking(b)}
-                              disabled={hasReviewed}
-                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all shadow-xs cursor-pointer ${
-                                hasReviewed
-                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-default'
-                                  : 'bg-[var(--color-sun)] hover:bg-[#d97706] text-white active:scale-95'
-                              }`}
-                            >
-                              <Star className="w-3.5 h-3.5 fill-current" />
-                              <span>{hasReviewed ? 'Đã đánh giá' : 'Đánh giá ngay'}</span>
-                            </button>
-                          )}
-
-                          {/* Nút Xem chi tiết đơn */}
-                          <button
-                            type="button"
-                            onClick={() => navigate(`/bookings/${b.bookingCode}`)}
-                            className="flex items-center gap-1 px-3.5 py-1.5 rounded-md bg-[var(--color-primary)] hover:bg-[#03705C] text-white text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                            <span>Chi tiết đơn</span>
-                            <ArrowRight className="w-3.5 h-3.5 ml-0.5" />
-                          </button>
+                        <div className="text-[11px] text-gray-500">
+                          <span className="text-gray-400">Đặt lúc:</span> {new Date(b.createdAt).toLocaleDateString('vi-VN')}
                         </div>
                       </div>
+                    </div>
+
+                    {/* Chi tiết lịch trình lưu trú (Grid 2 cột) */}
+                    <div className="p-2.5 rounded-md bg-[#F6FAF8] border border-gray-100 grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-gray-400 block text-[10px] uppercase font-bold">Hạng phòng</span>
+                        <span className="font-semibold text-slate-800 truncate block text-[11px]" title={b.roomTypeName}>
+                          {b.roomTypeName}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-400 block text-[10px] uppercase font-bold">Quy mô</span>
+                        <span className="font-semibold text-slate-800 block text-[11px]">
+                          {b.nights} đêm • {b.roomCount} phòng
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-400 block text-[10px] uppercase font-bold">Nhận phòng</span>
+                        <span className="font-semibold text-slate-800 block text-[11px]">{b.checkIn} (14h)</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-400 block text-[10px] uppercase font-bold">Trả phòng</span>
+                        <span className="font-semibold text-slate-800 block text-[11px]">{b.checkOut} (12h)</span>
+                      </div>
+                    </div>
+
+                    {/* Ghi chú hoàn tiền / hủy nếu có */}
+                    {Boolean(b.policySnapshot?.cancelReason) && (
+                      <div className="p-2 bg-amber-50/70 border border-amber-200/70 rounded-md text-[11px] text-amber-800">
+                        <strong>Lý do hủy:</strong> {String(b.policySnapshot.cancelReason)}
+                        {Boolean(b.policySnapshot.refundAmount) && (
+                          <span className="ml-1.5 font-bold text-emerald-700">
+                            (Đã hoàn {Number(b.policySnapshot.refundAmount).toLocaleString('vi-VN')} đ)
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Nút hành động ở đáy card */}
+                  <div className="px-4 py-2.5 bg-gray-50/60 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div className="text-[11px] text-gray-600 truncate max-w-[160px]">
+                      Khách: <span className="font-semibold text-slate-800">{b.guestName}</span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 ml-auto">
+                      {/* Nút Hủy đơn */}
+                      {canCancel && (
+                        <button
+                          type="button"
+                          onClick={() => setCancelModalBooking(b)}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-rose-200 bg-white hover:bg-rose-50 text-rose-600 hover:text-rose-700 text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer"
+                          title="Hủy đặt phòng theo chính sách"
+                        >
+                          <Ban className="w-3 h-3" />
+                          <span>Hủy</span>
+                        </button>
+                      )}
+
+                      {/* Nút Đánh giá */}
+                      {isCompleted && (
+                        <button
+                          type="button"
+                          onClick={() => setReviewBooking(b)}
+                          disabled={hasReviewed}
+                          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-bold transition-all shadow-2xs cursor-pointer ${
+                            hasReviewed
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-default'
+                              : 'bg-[var(--color-sun)] hover:bg-[#d97706] text-white active:scale-95'
+                          }`}
+                        >
+                          <Star className="w-3 h-3 fill-current" />
+                          <span>{hasReviewed ? 'Đã đánh giá' : 'Đánh giá'}</span>
+                        </button>
+                      )}
+
+                      {/* Nút Chi tiết */}
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/bookings/${b.bookingCode}`)}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-[var(--color-primary)] hover:bg-[#03705C] text-white text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer"
+                      >
+                        <Eye className="w-3 h-3" />
+                        <span>Chi tiết</span>
+                        <ArrowRight className="w-3 h-3 ml-0.5" />
+                      </button>
                     </div>
                   </div>
                 </div>

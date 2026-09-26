@@ -4,7 +4,6 @@ import { fetchFestivals, FestivalDto } from '@/services/festivalService';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  Sparkles,
   Calendar,
   MapPin,
   ShieldAlert,

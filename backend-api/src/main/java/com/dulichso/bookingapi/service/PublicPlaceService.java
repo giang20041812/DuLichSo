@@ -207,6 +207,7 @@ public class PublicPlaceService {
                     .totalRoomCount(rt.getTotalRoomCount())
                     .areaSqm(rt.getAreaSqm())
                     .basePrice(rt.getBasePrice())
+                    .weekendPrice(rt.getWeekendPrice())
                     .images(roomImages != null ? roomImages : new ArrayList<>())
                     .build();
         }).collect(Collectors.toList());

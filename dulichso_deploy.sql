@@ -3423,3 +3423,59 @@ FROM booking b
 JOIN place p ON b.place_id = p.id
 JOIN room_type rt ON b.room_type_id = rt.id
 ORDER BY b.created_at DESC;
+
+
+-- BỔ SUNG TỪ BẢN V2 ĐỂ HIỂN THỊ ĐẦY ĐỦ DỮ LIỆU
+-- 1. Cập nhật Đánh giá cho toàn bộ các Place (Homestay, Attraction, etc.)
+UPDATE place
+SET rating_avg = ROUND(4.0 + (RAND() * 1.0), 1), -- Từ 4.0 đến 5.0
+    rating_count = FLOOR(10 + (RAND() * 100))
+WHERE rating_avg IS NULL OR rating_avg = 0;
+
+-- 2. Đánh dấu các Điểm đến (Attraction) có suitable_date để hiển thị
+UPDATE place
+SET is_suitable_by_time = 1,
+    suitable_date_start = '2026-09-01',
+    suitable_date_end = '2026-10-31'
+WHERE kind = 'ATTRACTION' 
+  AND name LIKE '%Mâm Xôi%';
+
+UPDATE place
+SET is_suitable_by_time = 1,
+    suitable_date_start = '2026-06-01',
+    suitable_date_end = '2026-08-31'
+WHERE kind = 'ATTRACTION' 
+  AND name LIKE '%Rừng Trúc%';
+
+-- Nếu chưa có Mâm Xôi hay Rừng Trúc thì đánh dấu tạm vài attraction đầu tiên
+UPDATE place
+SET is_suitable_by_time = 1,
+    suitable_date_start = '2026-09-01',
+    suitable_date_end = '2026-11-30'
+WHERE kind = 'ATTRACTION' AND is_suitable_by_time = 0
+LIMIT 5;
+
+-- 3. Bổ sung Festival từ v2
+INSERT INTO festival (slug, name, name_norm, visibility, is_suitable_by_time, suitable_date_start, suitable_date_end, region_id) 
+SELECT 'le-hoi-kham-pha-ruong-bac-thang-2026', 'Lễ hội Khám phá Di tích Quốc gia đặc biệt Ruộng bậc thang Mù Cang Chải 2026', 'le hoi kham pha di tich quoc gia dac biet ruong bac thang mu cang chai 2026', 'PUBLISHED', 1, '2026-09-01', '2026-09-30', id FROM region WHERE code='mu-cang-chai' AND NOT EXISTS (SELECT 1 FROM festival WHERE slug='le-hoi-kham-pha-ruong-bac-thang-2026') LIMIT 1;
+
+INSERT INTO festival_occurrence (festival_id, period_start, period_end, note)
+SELECT id, '2026-09-01', '2026-09-30', 'Sự kiện chính vào giữa tháng' FROM festival WHERE slug='le-hoi-kham-pha-ruong-bac-thang-2026' LIMIT 1;
+
+-- 4. Bổ sung 1 Review mẫu cho booking có sẵn
+INSERT IGNORE INTO review (place_id, booking_id, rating, content, status, editable_until)
+SELECT place_id, id, 5, 'Chỗ ở rất tuyệt vời, nhân viên thân thiện. View lúa siêu đẹp!', 'VISIBLE', '2026-12-31 12:00:00'
+FROM booking
+WHERE status = 'COMPLETED'
+LIMIT 1;
+
+-- Thêm review thứ hai cho booking khác
+INSERT IGNORE INTO review (place_id, booking_id, rating, content, status, editable_until)
+SELECT place_id, id, 4, 'Trải nghiệm khá tốt, không khí trong lành.', 'VISIBLE', '2026-12-31 12:00:00'
+FROM booking
+WHERE status = 'REFUNDED'
+LIMIT 1;
+
+
+-- 5. Bổ sung giá cuối tuần (weekend_price) cho tất cả các phòng
+UPDATE room_type SET weekend_price = base_price * 1.2 WHERE weekend_price IS NULL;

@@ -46,7 +46,7 @@ public class PartnerRoomService {
         var amenities=em.createQuery("select a from RoomAmenity a where a.roomType.id in :ids and a.value=:yes",RoomAmenity.class)
                 .setParameter("ids",ids).setParameter("yes",AmenityValue.YES).getResultStream().collect(Collectors.groupingBy(a->a.getRoomType().getId()));
         return list.stream().map(r->new RoomDto(r.getId(),placeId,r.getName(),r.getDescription(),r.getMaxOccupancy(),r.getTotalRoomCount(),
-                r.getPrivateBathroom(),r.getAreaSqm(),r.getBasePrice(),r.getStatus(),r.getViewDescription(),
+                r.getPrivateBathroom(),r.getAreaSqm(),r.getBasePrice(),r.getWeekendPrice(),r.getStatus(),r.getViewDescription(),
                 beds.getOrDefault(r.getId(),List.of()).stream().map(b->new BedDto(b.getBedType(),b.getQuantity())).toList(),
                 amenities.getOrDefault(r.getId(),List.of()).stream().map(a->a.getId().getAmenityId()).toList())).toList();
     }
@@ -69,7 +69,7 @@ public class PartnerRoomService {
         }
         room.setName(input.name().trim()); room.setDescription(input.description()); room.setMaxOccupancy(input.maxOccupancy());
         room.setTotalRoomCount(input.totalRoomCount()); room.setAreaSqm(input.areaSqm()); room.setPrivateBathroom(input.privateBathroom());
-        room.setBasePrice(input.basePrice()); room.setStatus(input.status()); room.setViewDescription(input.viewDescription());
+        room.setBasePrice(input.basePrice()); room.setWeekendPrice(input.weekendPrice()); room.setStatus(input.status()); room.setViewDescription(input.viewDescription());
         if(roomId==null) em.persist(room);
         em.createQuery("delete from RoomBed b where b.roomType.id=:id").setParameter("id",room.getId()).executeUpdate();
         em.createQuery("delete from RoomAmenity a where a.roomType.id=:id").setParameter("id",room.getId()).executeUpdate();
@@ -79,7 +79,7 @@ public class PartnerRoomService {
         // Refresh reference prices used by the public homestay cards.
         Object[] range=em.createQuery("select min(r.basePrice),max(r.basePrice) from RoomType r where r.place.id=:id and r.status='ACTIVE'",Object[].class).setParameter("id",placeId).getSingleResult();
         place.setPriceRefMin((java.math.BigDecimal)range[0]); place.setPriceRefMax((java.math.BigDecimal)range[1]); place.setPriceUnitNote("đêm");
-        return new RoomDto(room.getId(),placeId,room.getName(),room.getDescription(),room.getMaxOccupancy(),room.getTotalRoomCount(),room.getPrivateBathroom(),room.getAreaSqm(),room.getBasePrice(),room.getStatus(),room.getViewDescription(),input.beds(),input.amenityIds());
+        return new RoomDto(room.getId(),placeId,room.getName(),room.getDescription(),room.getMaxOccupancy(),room.getTotalRoomCount(),room.getPrivateBathroom(),room.getAreaSqm(),room.getBasePrice(),room.getWeekendPrice(),room.getStatus(),room.getViewDescription(),input.beds(),input.amenityIds());
     }
     public List<PriceDto> prices(UserPrincipal p,Long placeId,Long id) {
         owned(p,placeId,id,false);

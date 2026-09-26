@@ -125,6 +125,7 @@ public class PlaceDetailServiceImpl implements PlaceDetailService {
                     .privateBathroom(rt.getPrivateBathroom() != null ? rt.getPrivateBathroom() : AmenityValue.UNVERIFIED)
                     .areaSqm(rt.getAreaSqm())
                     .basePrice(rt.getBasePrice())
+                    .weekendPrice(rt.getWeekendPrice())
                     .status(rt.getStatus() != null ? rt.getStatus() : "ACTIVE")
                     .availableRooms(availableRooms)
                     .badgeText(badgeText)
@@ -293,6 +294,7 @@ public class PlaceDetailServiceImpl implements PlaceDetailService {
                     .totalRoomCount(rt.getTotalRoomCount())
                     .areaSqm(rt.getAreaSqm())
                     .basePrice(rt.getBasePrice())
+                    .weekendPrice(rt.getWeekendPrice())
                     .images(roomImages != null ? roomImages : Collections.emptyList())
                     .build());
         }

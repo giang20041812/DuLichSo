@@ -96,8 +96,20 @@ export default function BookingPage() {
   );
 
   // 4. Logic tính toán tiền phòng & tổng chi phí chuẩn xác
-  // Tiền phòng thực tế = đơn giá * số đêm * số phòng
-  const subtotalRoomPrice = useMemo(() => unitPrice * nights * roomCount, [unitPrice, nights, roomCount]);
+  const subtotalRoomPrice = useMemo(() => {
+    if (!checkIn || !checkOut) return unitPrice * nights * roomCount;
+    let totalPerRoom = 0;
+    const cur = new Date(checkIn + 'T12:00:00');
+    const end = new Date(checkOut + 'T12:00:00');
+    while (cur < end) {
+      const dayOfWeek = cur.getDay(); // 0 is Sunday, 6 is Saturday
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+      const price = (isWeekend && navState?.weekendPrice) ? navState.weekendPrice : unitPrice;
+      totalPerRoom += price;
+      cur.setDate(cur.getDate() + 1);
+    }
+    return totalPerRoom * roomCount;
+  }, [unitPrice, navState?.weekendPrice, checkIn, checkOut, nights, roomCount]);
   // Tổng giá niêm yết ban đầu
   const totalOriginalPrice = useMemo(
     () => originalUnitPrice * nights * roomCount,
