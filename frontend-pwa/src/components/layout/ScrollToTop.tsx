@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect } from 'react';
+import { useLayoutEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
 /**
@@ -8,7 +8,7 @@ import { useLocation } from 'react-router-dom';
  * 3. Browser native scroll restoration is disabled to prevent unwanted jumps.
  */
 export default function ScrollToTop() {
-  const { pathname, search } = useLocation();
+  const { pathname } = useLocation();
 
   useLayoutEffect(() => {
     // Disable browser's native automatic scroll restoration

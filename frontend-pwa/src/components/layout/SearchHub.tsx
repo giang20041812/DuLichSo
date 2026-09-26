@@ -304,11 +304,14 @@ export default function SearchHub() {
     if (checkIn) {
       const parts = checkIn.split('-');
       if (parts.length === 3) {
-        const y = parseInt(parts[0], 10);
-        const m = parseInt(parts[1], 10);
-        const d = parseInt(parts[2], 10);
-        if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
-          setCheckInDate({ year: y, month: m, day: d });
+        const [p0, p1, p2] = parts;
+        if (p0 !== undefined && p1 !== undefined && p2 !== undefined) {
+          const y = parseInt(p0, 10);
+          const m = parseInt(p1, 10);
+          const d = parseInt(p2, 10);
+          if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+            setCheckInDate({ year: y, month: m, day: d });
+          }
         }
       }
     }

@@ -48,7 +48,9 @@ export function isDetailPage(pathname: string): boolean {
   // Trang chi tiết có dạng /[category]/[identifier]
   if (segments.length >= 2) {
     const parent = segments[0];
-    return DETAIL_ROUTE_PREFIXES.includes(parent);
+    if (parent !== undefined) {
+      return DETAIL_ROUTE_PREFIXES.includes(parent);
+    }
   }
 
   return false;
