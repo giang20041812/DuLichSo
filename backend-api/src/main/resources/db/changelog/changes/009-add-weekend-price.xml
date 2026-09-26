@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+    <changeSet id="009-add-weekend-price-to-room-type" author="codex">
+        <addColumn tableName="room_type">
+            <column name="weekend_price" type="DECIMAL(38,2)"/>
+        </addColumn>
+        <rollback>
+            <dropColumn tableName="room_type" columnName="weekend_price"/>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

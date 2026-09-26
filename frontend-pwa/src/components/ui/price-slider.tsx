@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeftRight } from 'lucide-react';
 
 interface PriceSliderProps {
   min: number;
@@ -22,7 +21,7 @@ export function PriceSlider({ min, max, step, value, onChange, onChangeEnd }: Pr
   
   // Drag state
   const dragRef = useRef<{
-    type: 'min' | 'max' | 'mid' | null;
+    type: 'min' | 'max' | null;
     startX: number;
     startMin: number;
     startMax: number;
@@ -35,7 +34,7 @@ export function PriceSlider({ min, max, step, value, onChange, onChangeEnd }: Pr
     trackWidth: 1,
   });
 
-  const [activeThumb, setActiveThumb] = useState<'min' | 'max' | 'mid' | null>(null);
+  const [activeThumb, setActiveThumb] = useState<'min' | 'max' | null>(null);
 
   useEffect(() => {
     setMinVal(value[0]);
@@ -46,9 +45,8 @@ export function PriceSlider({ min, max, step, value, onChange, onChangeEnd }: Pr
 
   const minPercent = Math.max(0, Math.min(100, ((minVal - min) / (max - min)) * 100));
   const maxPercent = Math.max(0, Math.min(100, ((maxVal - min) / (max - min)) * 100));
-  const midPercent = (minPercent + maxPercent) / 2;
 
-  const handlePointerDown = (type: 'min' | 'max' | 'mid', e: React.PointerEvent) => {
+  const handlePointerDown = (type: 'min' | 'max', e: React.PointerEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -86,25 +84,6 @@ export function PriceSlider({ min, max, step, value, onChange, onChangeEnd }: Pr
       setMaxVal(newMax);
       setMaxInputStr(newMax.toLocaleString('vi-VN'));
       onChange([minVal, newMax]);
-    } else if (type === 'mid') {
-      // Move entire range together
-      const span = startMax - startMin;
-      let newMin = startMin + stepDeltaPrice;
-      let newMax = startMax + stepDeltaPrice;
-
-      if (newMin < min) {
-        newMin = min;
-        newMax = min + span;
-      } else if (newMax > max) {
-        newMax = max;
-        newMin = max - span;
-      }
-
-      setMinVal(newMin);
-      setMaxVal(newMax);
-      setMinInputStr(newMin.toLocaleString('vi-VN'));
-      setMaxInputStr(newMax.toLocaleString('vi-VN'));
-      onChange([newMin, newMax]);
     }
   };
 
@@ -193,7 +172,7 @@ export function PriceSlider({ min, max, step, value, onChange, onChangeEnd }: Pr
         <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
           {/* Active Range Highlight */}
           <div
-            className="h-full bg-gradient-to-r from-[var(--color-primary,#048c73)] to-[var(--color-secondary,#06b6d4)] transition-none"
+            className="h-full bg-gradient-to-r from-[var(--color-primary,#10b981)] to-[var(--color-secondary,#06b6d4)] transition-none"
             style={{
               marginLeft: `${minPercent}%`,
               width: `${Math.max(0, maxPercent - minPercent)}%`,
@@ -210,32 +189,15 @@ export function PriceSlider({ min, max, step, value, onChange, onChangeEnd }: Pr
           onPointerDown={(e) => handlePointerDown('min', e)}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
-          className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-white border-2 border-[var(--color-primary,#048c73)] shadow-md flex items-center justify-center cursor-ew-resize hover:scale-115 active:scale-95 transition-transform z-20 ${
+          className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-white border-2 border-[var(--color-primary,#10b981)] shadow-md flex items-center justify-center cursor-ew-resize hover:scale-115 active:scale-95 transition-transform z-20 ${
             activeThumb === 'min' ? 'ring-4 ring-[var(--color-primary-100,#d1f6ec)] scale-115' : ''
           }`}
           style={{ left: `${minPercent}%` }}
         >
-          <div className="w-2 h-2 rounded-full bg-[var(--color-primary,#048c73)]" />
+          <div className="w-2 h-2 rounded-full bg-[var(--color-primary,#10b981)]" />
         </div>
 
-        {/* 2. Middle Circle (Move / Drag Range Indicator) */}
-        <div
-          role="slider"
-          aria-label="Di chuyển khoảng giá"
-          title="Kéo để di chuyển cả khoảng ngân sách"
-          tabIndex={0}
-          onPointerDown={(e) => handlePointerDown('mid', e)}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-7 h-7 rounded-full bg-gradient-to-r from-[var(--color-primary,#048c73)] to-[var(--color-secondary,#06b6d4)] border-2 border-white shadow-md flex items-center justify-center cursor-grab active:cursor-grabbing hover:scale-115 active:scale-95 transition-transform z-30 ${
-            activeThumb === 'mid' ? 'ring-4 ring-[var(--color-secondary-200,#bbf0f6)] scale-115 cursor-grabbing' : ''
-          }`}
-          style={{ left: `${midPercent}%` }}
-        >
-          <ArrowLeftRight className="w-3.5 h-3.5 text-white stroke-[2.5]" />
-        </div>
-
-        {/* 3. Right Circle (Max Handle) */}
+        {/* 2. Right Circle (Max Handle) */}
         <div
           role="slider"
           aria-label="Giá tối đa"
@@ -244,27 +206,27 @@ export function PriceSlider({ min, max, step, value, onChange, onChangeEnd }: Pr
           onPointerDown={(e) => handlePointerDown('max', e)}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
-          className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-white border-2 border-[var(--color-primary,#048c73)] shadow-md flex items-center justify-center cursor-ew-resize hover:scale-115 active:scale-95 transition-transform z-20 ${
+          className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-white border-2 border-[var(--color-primary,#10b981)] shadow-md flex items-center justify-center cursor-ew-resize hover:scale-115 active:scale-95 transition-transform z-20 ${
             activeThumb === 'max' ? 'ring-4 ring-[var(--color-primary-100,#d1f6ec)] scale-115' : ''
           }`}
           style={{ left: `${maxPercent}%` }}
         >
-          <div className="w-2 h-2 rounded-full bg-[var(--color-primary,#048c73)]" />
+          <div className="w-2 h-2 rounded-full bg-[var(--color-primary,#10b981)]" />
         </div>
       </div>
 
       {/* Range Caption / Helper Text */}
       <div className="flex justify-between items-center text-[11px] text-[var(--color-muted,#59766e)] mt-1 px-1">
-        <span>Kéo 2 đầu để chỉnh giá</span>
-        <span className="flex items-center gap-1 text-[var(--color-primary,#048c73)] font-medium">
-          <ArrowLeftRight className="w-3 h-3 inline" /> Kéo nút giữa để dịch chuyển dải
+        <span>Kéo 2 nút ở 2 đầu để chỉnh khoảng giá</span>
+        <span className="font-semibold text-[var(--color-primary,#10b981)]">
+          {minVal.toLocaleString('vi-VN')}đ – {maxVal.toLocaleString('vi-VN')}đ
         </span>
       </div>
 
       {/* 2 Editable Input Boxes: Tối thiểu & Tối đa */}
       <div className="grid grid-cols-2 gap-2.5 mt-3.5">
         {/* Min Input Box */}
-        <div className="bg-gray-50/90 border border-gray-200 rounded-md p-2 transition-all focus-within:border-[var(--color-primary,#048c73)] focus-within:bg-white focus-within:ring-1 focus-within:ring-[var(--color-primary,#048c73)]">
+        <div className="bg-gray-50/90 border border-gray-200 rounded-md p-2 transition-all focus-within:border-[var(--color-primary,#10b981)] focus-within:bg-white focus-within:ring-1 focus-within:ring-[var(--color-primary,#10b981)]">
           <label 
             htmlFor="price-filter-min-input"
             className="block text-[11px] font-semibold text-[var(--color-muted,#59766e)] uppercase tracking-wider mb-0.5"
@@ -293,7 +255,7 @@ export function PriceSlider({ min, max, step, value, onChange, onChangeEnd }: Pr
         </div>
 
         {/* Max Input Box */}
-        <div className="bg-gray-50/90 border border-gray-200 rounded-md p-2 transition-all focus-within:border-[var(--color-primary,#048c73)] focus-within:bg-white focus-within:ring-1 focus-within:ring-[var(--color-primary,#048c73)]">
+        <div className="bg-gray-50/90 border border-gray-200 rounded-md p-2 transition-all focus-within:border-[var(--color-primary,#10b981)] focus-within:bg-white focus-within:ring-1 focus-within:ring-[var(--color-primary,#10b981)]">
           <label 
             htmlFor="price-filter-max-input"
             className="block text-[11px] font-semibold text-[var(--color-muted,#59766e)] uppercase tracking-wider mb-0.5"
@@ -338,7 +300,7 @@ export function PriceSlider({ min, max, step, value, onChange, onChangeEnd }: Pr
               onClick={() => applyPreset(preset.minP, preset.maxP)}
               className={`text-xs px-2.5 py-1 rounded-md border font-medium transition-all ${
                 isSelected
-                  ? 'bg-[var(--color-primary-50,#edfbf7)] text-[var(--color-primary,#048c73)] border-[var(--color-primary,#048c73)] font-semibold shadow-2xs'
+                  ? 'bg-[var(--color-primary-50,#edfbf7)] text-[var(--color-primary,#10b981)] border-[var(--color-primary,#10b981)] font-semibold shadow-2xs'
                   : 'bg-white text-[var(--color-ink,#1f2937)] border-gray-200 hover:border-gray-300 hover:bg-gray-50'
               }`}
             >

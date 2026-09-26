@@ -7,7 +7,6 @@ import {
   BedDouble, 
   MapPin, 
   Utensils, 
-  Sparkles, 
   Bus, 
   Layers,
   LogIn,
@@ -22,6 +21,7 @@ import {
 import { VietTrackLogoMark } from "../ui/logo";
 import { getCurrentCustomer, clearAllAuthSession, type CurrentCustomer } from "@/services/authService";
 import NotificationBell from "./NotificationBell";
+import { hasHeroOverlay } from "@/lib/routeUtils";
 
 interface HeaderProps {
   isSidebarOpen?: boolean;
@@ -29,14 +29,13 @@ interface HeaderProps {
 }
 
 const navLinks = [
-  { id: 'home', path: '/', label: 'Trang chủ', icon: <Home className="w-3.5 h-3.5 shrink-0" /> },
-  { id: 'homestays', path: '/homestays', label: 'Lưu trú', icon: <BedDouble className="w-3.5 h-3.5 shrink-0" /> },
-  { id: 'culture', path: '/culture', label: 'Văn hóa', icon: <Compass className="w-3.5 h-3.5 shrink-0" /> },
-  { id: 'destinations', path: '/destinations', label: 'Điểm đến', icon: <MapPin className="w-3.5 h-3.5 shrink-0" /> },
-  { id: 'restaurants', path: '/restaurants', label: 'Ẩm thực', icon: <Utensils className="w-3.5 h-3.5 shrink-0" /> },
-  { id: 'tours', path: '/tours', label: 'Trải nghiệm', icon: <Sparkles className="w-3.5 h-3.5 shrink-0" /> },
-  { id: 'transport', path: '/transport', label: 'Di chuyển', icon: <Bus className="w-3.5 h-3.5 shrink-0" /> },
-  { id: 'services', path: '/services', label: 'Dịch vụ & Tiện ích', icon: <Layers className="w-3.5 h-3.5 shrink-0" /> },
+  { id: 'home', path: '/', label: 'Trang chủ', icon: <Home className="w-4.5 h-4.5 shrink-0" /> },
+  { id: 'homestays', path: '/homestays', label: 'Lưu trú', icon: <BedDouble className="w-4.5 h-4.5 shrink-0" /> },
+  { id: 'culture', path: '/culture', label: 'Văn hóa', icon: <Compass className="w-4.5 h-4.5 shrink-0" /> },
+  { id: 'destinations', path: '/destinations', label: 'Điểm đến', icon: <MapPin className="w-4.5 h-4.5 shrink-0" /> },
+  { id: 'restaurants', path: '/restaurants', label: 'Ẩm thực', icon: <Utensils className="w-4.5 h-4.5 shrink-0" /> },
+  { id: 'transport', path: '/transport', label: 'Di chuyển', icon: <Bus className="w-4.5 h-4.5 shrink-0" /> },
+  { id: 'services', path: '/services', label: 'Dịch vụ & Tiện ích', icon: <Layers className="w-4.5 h-4.5 shrink-0" /> },
 ];
 
 export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderProps) {
@@ -100,18 +99,7 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
   };
 
   // Các trang có hero image dùng header transparent khi ở đỉnh trang
-  const hasHeroImage = location.pathname === '/' || 
-    location.pathname.startsWith('/culture') || 
-    location.pathname.startsWith('/explore') || 
-    location.pathname.startsWith('/homestays') || 
-    location.pathname.startsWith('/restaurants') || 
-    location.pathname.startsWith('/food') || 
-    location.pathname.startsWith('/destinations') || 
-    location.pathname.startsWith('/transport') || 
-    location.pathname.startsWith('/services') || 
-    location.pathname.startsWith('/photo') || 
-    location.pathname.startsWith('/rental') || 
-    location.pathname.startsWith('/tours');
+  const hasHeroImage = hasHeroOverlay(location.pathname);
 
   const isSolid = !hasHeroImage || isScrolled;
 
@@ -132,67 +120,68 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
   return (
     <>
       <header
+        id="app-header"
         className={`fixed top-0 inset-x-0 z-50 flex flex-col w-full transition-all duration-300 ${
           isSolid
             ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-200/80'
-            : 'bg-gradient-to-b from-black/75 via-black/40 to-transparent'
+            : 'bg-transparent'
         }`}
       >
-        {/* Row 1: Menu bên trái, Logo căn giữa, Auth/User bên phải */}
         <div
-          className={`relative w-full px-4 md:px-6 flex items-center justify-between transition-all duration-300 ${
-            isScrolled ? 'py-1.5' : 'py-2.5'
-          }`}
+          className={`relative w-full px-3.5 sm:px-6 md:px-8 flex flex-wrap md:flex-nowrap items-center justify-between transition-all duration-300 ${
+            isScrolled 
+              ? 'py-2 min-h-[58px]' 
+              : 'py-2.5 sm:py-3.5 min-h-[68px]'
+          } gap-y-2`}
         >
-          {/* Cụm bên trái: Nút Menu 3 sọc */}
-          <div className="flex items-center min-w-[40px]">
-            {toggleSidebar && (
-              <button
-                type="button"
-                onClick={handleOpen}
-                aria-label="Mở menu điều hướng"
-                title="Mở menu điều hướng"
-                className={`p-2 rounded-md transition-all cursor-pointer flex items-center justify-center ${
-                  isSidebarOpen 
-                    ? 'opacity-0 pointer-events-none invisible' 
-                    : 'opacity-100'
-                } ${
-                  isSolid
-                    ? 'text-[var(--color-ink-deep)] hover:bg-[#edfbf7] hover:text-[#048c73] active:scale-95'
-                    : 'text-white drop-shadow-md hover:bg-white/20 active:scale-95'
-                }`}
-              >
-                <Menu className="w-5 h-5 md:w-6 md:h-6" strokeWidth={2.2} />
-              </button>
-            )}
-          </div>
-
-          {/* Logo & Tên nền tảng - Căn giữa tuyệt đối trên màn lớn */}
-          <Link to="/" className="flex items-center gap-2 md:gap-2.5 shrink-0 group py-0.5 sm:absolute sm:left-1/2 sm:-translate-x-1/2">
-            <VietTrackLogoMark
-              size={isScrolled ? 32 : 38}
-              className="transition-all duration-300 group-hover:scale-105 drop-shadow-sm"
-            />
-            <div className="flex flex-col items-start leading-none">
+          {/* Logo */}
+          <div className="flex items-center shrink-0 w-auto lg:w-1/4">
+            <Link
+              to="/"
+              className="flex items-center gap-2 group shrink-0"
+            >
+              <VietTrackLogoMark
+                size={isScrolled ? 34 : 42}
+                className="transition-all duration-300 group-hover:scale-105 drop-shadow-sm shrink-0"
+              />
               <span
-                className={`font-black font-display tracking-tight transition-all duration-300 ${
-                  isScrolled ? 'text-[17px] md:text-[20px]' : 'text-[20px] md:text-[23px]'
-                } ${isSolid ? 'text-[var(--color-ink-deep)]' : 'text-white drop-shadow-md'}`}
+                className={`tracking-tight italic font-bold transition-all duration-300 ${
+                  isScrolled ? 'text-[22px] sm:text-[24px]' : 'text-[26px] sm:text-[28px]'
+                } text-[var(--color-sun)] drop-shadow-sm whitespace-nowrap`}
+                style={{ fontFamily: 'var(--font-brush)', lineHeight: 1 }}
               >
                 Đi Du Lịch
               </span>
-              <span
-                className={`font-semibold tracking-wider uppercase mt-0.5 transition-all duration-300 ${
-                  isScrolled ? 'text-[8.5px] md:text-[9.5px]' : 'text-[9.5px] md:text-[10.5px]'
-                } ${isSolid ? 'text-[#66716c]' : 'text-white/90 drop-shadow'}`}
-              >
-                Du Lịch Di Sản & Sinh Thái
-              </span>
-            </div>
-          </Link>
+            </Link>
+          </div>
+
+          {/* Navigation Desktop */}
+          <nav className="hidden md:flex items-center justify-center gap-1 lg:gap-2 flex-1 min-w-0">
+            {navLinks.map((item) => {
+              const active = isPathActive(item.path);
+              return (
+                <Link
+                  key={item.id}
+                  to={item.path}
+                  className={`flex items-center gap-1.5 lg:gap-2 px-3 lg:px-4 py-2 text-sm lg:text-[15px] font-extrabold whitespace-nowrap transition-all duration-200 shrink-0 border-b-2 rounded-none ${
+                    active
+                      ? 'border-[var(--color-sun)] text-[var(--color-sun)] bg-transparent drop-shadow-md'
+                      : isSolid
+                        ? 'border-transparent text-slate-800 hover:text-[var(--color-sun)] bg-transparent'
+                        : 'border-transparent text-white hover:text-[var(--color-sun)] drop-shadow-sm bg-transparent'
+                  }`}
+                >
+                  <span className="shrink-0 flex items-center justify-center">
+                    {item.icon}
+                  </span>
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
 
           {/* Cụm bên phải: Nút Đăng nhập/Đăng ký HOẶC Icon người dùng kèm Tên & Dropdown */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0" ref={dropdownRef}>
+          <div className="flex items-center justify-end gap-1.5 sm:gap-2 min-w-[40px] sm:min-w-[80px] shrink-0 z-20 w-auto lg:w-1/4" ref={dropdownRef}>
             {user ? (
               <div className="flex items-center gap-1.5 sm:gap-2">
                 {/* Icon hình thông báo ở bên cạnh icon ava */}
@@ -222,8 +211,8 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
                     </div>
                   )}
                   <span
-                    className={`hidden sm:inline text-xs font-bold max-w-[110px] md:max-w-[140px] truncate ${
-                      isSolid ? 'text-gray-900' : 'text-white drop-shadow-sm'
+                    className={`hidden sm:inline text-xs max-w-[110px] md:max-w-[140px] truncate ${
+                      isSolid ? 'text-gray-800' : 'text-white drop-shadow-sm'
                     }`}
                     title={user.fullName || user.email}
                   >
@@ -253,7 +242,7 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
                         </div>
                       )}
                       <div className="min-w-0 flex-1">
-                        <div className="text-xs font-bold text-gray-900 truncate">
+                        <div className="text-xs font-medium text-gray-900 truncate">
                           {user.fullName || 'Khách hàng'}
                         </div>
                         <div className="text-[11px] text-gray-500 truncate">{user.email}</div>
@@ -323,10 +312,10 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
                 <Link
                   to="/login"
                   title="Đăng nhập"
-                  className={`inline-flex items-center justify-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-md text-xs font-bold transition-all shadow-xs ${
+                  className={`inline-flex items-center justify-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-md text-xs transition-all shadow-xs border-2 active:scale-95 cursor-pointer ${
                     isSolid
-                      ? 'bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark,#03705C)]'
-                      : 'bg-white/20 backdrop-blur-md text-white border border-white/40 hover:bg-white/30'
+                      ? 'bg-[var(--color-primary)] text-white border-[#059669] hover:bg-[#059669]'
+                      : 'bg-white/20 backdrop-blur-md text-white border-white/60 hover:bg-white/30'
                   }`}
                 >
                   <LogIn className="w-3.5 h-3.5 shrink-0" />
@@ -335,10 +324,10 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
                 <Link
                   to="/register"
                   title="Đăng ký tài khoản"
-                  className={`inline-flex items-center justify-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-md text-xs font-bold transition-all shadow-xs ${
+                  className={`inline-flex items-center justify-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-md text-xs transition-all shadow-xs border-2 active:scale-95 cursor-pointer ${
                     isSolid
-                      ? 'border border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[#edfbf7]'
-                      : 'border border-white/70 text-white hover:bg-white/20'
+                      ? 'border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[#edfbf7]'
+                      : 'border-white/80 text-white hover:bg-white/20'
                   }`}
                 >
                   <UserPlus className="w-3.5 h-3.5 shrink-0" />
@@ -349,30 +338,30 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
           </div>
         </div>
 
-        {/* Row 2: Thanh Navigation kéo ngang khi responsive */}
+        {/* Mobile Navigation - Only visible on small screens */}
         <div 
-          className={`w-full overflow-x-auto scrollbar-hide scroll-smooth px-3 sm:px-6 py-1.5 border-t transition-colors duration-300 flex justify-start md:justify-center ${
-            isSolid 
-              ? 'border-gray-200/60 bg-gray-50/40' 
-              : 'border-white/15 bg-black/10 backdrop-blur-xs'
+          className={`md:hidden w-full overflow-x-auto scrollbar-hide px-3 py-1.5 flex justify-start transition-colors duration-300 ${
+            isSolid ? 'border-t border-gray-200/80 bg-gray-50/70' : 'bg-transparent'
           }`}
         >
-          <nav className="flex items-center gap-1 sm:gap-1.5 shrink-0 min-w-max mx-auto justify-start md:justify-center">
+          <nav className="flex items-center gap-1 shrink-0 min-w-max mx-auto">
             {navLinks.map((item) => {
               const active = isPathActive(item.path);
               return (
                 <Link
                   key={item.id}
                   to={item.path}
-                  className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-md text-xs font-semibold whitespace-nowrap transition-all duration-200 shrink-0 ${
+                  className={`flex items-center gap-1.5 px-3.5 py-2 text-[13px] sm:text-sm font-extrabold whitespace-nowrap transition-all duration-200 shrink-0 border-b-2 rounded-none ${
                     active
-                      ? 'bg-[#048c73] text-white shadow-xs font-bold'
+                      ? 'border-[var(--color-sun)] text-[var(--color-sun)] bg-transparent drop-shadow-md'
                       : isSolid
-                        ? 'text-[var(--color-ink)] hover:bg-[#edfbf7] hover:text-[#048c73]'
-                        : 'text-white/95 hover:bg-white/20 hover:text-white drop-shadow-xs'
+                        ? 'border-transparent text-slate-800 hover:text-[var(--color-sun)] bg-transparent'
+                        : 'border-transparent text-white hover:text-[var(--color-sun)] drop-shadow-sm bg-transparent'
                   }`}
                 >
-                  {item.icon}
+                  <span className="shrink-0 flex items-center justify-center">
+                    {item.icon}
+                  </span>
                   <span>{item.label}</span>
                 </Link>
               );
@@ -445,7 +434,7 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
               <button
                 type="button"
                 onClick={() => setIsProfileModalOpen(false)}
-                className="px-4 py-1.5 rounded-md bg-[var(--color-primary)] text-white text-xs font-semibold hover:bg-[#03705C] transition-colors"
+                className="px-4 py-1.5 rounded-md bg-[var(--color-primary)] text-white text-xs font-semibold hover:bg-[#059669] transition-colors"
               >
                 Hoàn tất
               </button>

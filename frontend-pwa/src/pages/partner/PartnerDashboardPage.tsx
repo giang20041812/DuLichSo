@@ -17,10 +17,13 @@ import {
   ShieldCheck,
   Tag,
   Wrench,
+  ArrowRight,
+  SlidersHorizontal,
+  type LucideIcon,
 } from 'lucide-react';
 import { ChipGroup, FilterSearch, type ChipOption } from '@/components/admin/AdminFilters';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
-import { fetchPartnerHomestays, updateHomestayStatus } from '@/services/partnerHomestayService';
+import { fetchPartnerHomestays, updateHomestayStatus, homestayError } from '@/services/partnerHomestayService';
 import type {
   PartnerHomestaySummaryDto,
   PartnerHomestayStatsDto,
@@ -37,7 +40,7 @@ const EMPTY_STATS: PartnerHomestayStatsDto = {
   tempClosedCount: 0,
 };
 
-const formatPrice = (price: number) => `${price.toLocaleString('vi-VN')}đ`;
+const formatPrice = (price: number | null) => price == null ? 'Chưa có giá' : `${price.toLocaleString('vi-VN')}đ`;
 
 export default function PartnerDashboardPage() {
   const navigate = useNavigate();
@@ -64,7 +67,6 @@ export default function PartnerDashboardPage() {
     setLoadError(false);
     try {
       const res = await fetchPartnerHomestays(
-        'DEFAULT',
         debouncedKeyword,
         visibility || undefined,
         operation || undefined,
@@ -87,13 +89,14 @@ export default function PartnerDashboardPage() {
     try {
       const updated = await updateHomestayStatus(homestay.id, { visibility: next });
       setHomestays((prev) => prev.map((h) => (h.id === homestay.id ? updated : h)));
+      await load();
       showToast(
         next === 'PUBLISHED'
           ? `Đã xuất bản "${homestay.name}" lên trang chủ.`
           : `Đã ngừng hiển thị "${homestay.name}" khỏi web.`,
       );
-    } catch {
-      showToast('Cập nhật trạng thái thất bại.');
+    } catch (error) {
+      showToast(homestayError(error));
     }
   };
 
@@ -114,13 +117,12 @@ export default function PartnerDashboardPage() {
   return (
     <div className="flex flex-col gap-6">
       {/* Tiêu đề */}
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-5">
         <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-coral-hover">Cổng nhà cung cấp</p>
-          <h1 className="font-display text-2xl font-extrabold text-ink-deep">Homestay của tôi</h1>
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Tổng quan cơ sở lưu trú</p>
+          <h1 className="font-display text-2xl font-extrabold tracking-tight text-ink-deep sm:text-3xl">Homestay của tôi</h1>
           <p className="mt-1 max-w-xl text-sm leading-relaxed text-muted">
-            Homestay mới tạo ở trạng thái <strong className="text-ink">Nháp</strong> và tự hiển thị ra ngoài khi đã
-            hoàn thiện đủ thông tin bắt buộc — không cần phê duyệt.
+            Quản lý không gian nghỉ dưỡng, cập nhật phòng và sẵn sàng đón những vị khách mới.
           </p>
         </div>
         <button
@@ -141,24 +143,36 @@ export default function PartnerDashboardPage() {
 
       {/* Thống kê */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Tổng số" value={stats.totalCount} tone="text-ink-deep" />
-        <StatCard label="Đang hiển thị" value={stats.publishedCount} tone="text-primary" />
-        <StatCard label="Bản nháp" value={stats.draftCount} tone="text-sun" />
-        <StatCard label="Tạm đóng" value={stats.tempClosedCount} tone="text-coral" />
+        <StatCard label="Tổng homestay" value={stats.totalCount} tone="bg-primary-50 text-primary" icon={Home} hint="Cơ sở lưu trú của bạn" loading={isLoading} error={loadError} />
+        <StatCard label="Đang hiển thị" value={stats.publishedCount} tone="bg-secondary-50 text-secondary-700" icon={Eye} hint="Hiển thị trên trang du lịch" loading={isLoading} error={loadError} />
+        <StatCard label="Bản nháp" value={stats.draftCount} tone="bg-sun-light text-ink-deep" icon={FileText} hint="Chưa xuất bản lên trang" loading={isLoading} error={loadError} />
+        <StatCard label="Tạm đóng" value={stats.tempClosedCount} tone="bg-coral-light text-coral-hover" icon={Clock} hint="Tạm ngưng đón khách" loading={isLoading} error={loadError} />
+      </div>
+
+      <div className="flex flex-col gap-4 rounded-lg border border-primary/15 bg-gradient-to-r from-primary-50 to-surface p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <span className="rounded-md bg-surface p-2.5 text-primary shadow-[var(--shadow-card)]"><ShieldCheck className="h-5 w-5" /></span>
+          <div><h2 className="text-sm font-bold">Một hồ sơ đầy đủ, một khởi đầu tốt</h2><p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted">Homestay mới được lưu dưới dạng nháp và tự hiển thị khi đủ thông tin bắt buộc. Hãy kiểm tra hình ảnh, tiện nghi và loại phòng trước khi đón khách.</p></div>
+        </div>
+        <button type="button" onClick={() => setVisibility('DRAFT')} className="flex shrink-0 items-center gap-2 self-start rounded-md border border-primary/20 bg-surface px-3 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary-100 sm:self-center">Xem bản nháp <ArrowRight className="h-3.5 w-3.5" /></button>
       </div>
 
       {/* Bộ lọc */}
-      <div className="flex flex-col gap-3 rounded-lg border border-border bg-white p-4 shadow-xs">
-        <FilterSearch value={keyword} onChange={setKeyword} placeholder="Tìm theo tên homestay..." />
+      <div className="flex flex-col gap-4 rounded-lg border border-primary/10 bg-surface p-5 shadow-[var(--shadow-card)]">
+        <div className="flex flex-col justify-between gap-4 border-b border-primary/10 pb-4 sm:flex-row sm:items-center">
+          <div className="flex items-center gap-2"><SlidersHorizontal className="h-4 w-4 text-primary" /><h2 className="text-sm font-bold">Danh sách homestay</h2></div>
+          <div className="w-full sm:max-w-sm"><FilterSearch value={keyword} onChange={setKeyword} placeholder="Tìm theo tên homestay..." /></div>
+        </div>
         <ChipGroup label="Hiển thị" options={visibilityOptions} value={visibility} onChange={setVisibility} />
         <ChipGroup label="Vận hành" options={operationOptions} value={operation} onChange={setOperation} />
+        {filtersActive && <button type="button" onClick={() => { setKeyword(''); setVisibility(''); setOperation(''); }} className="self-start rounded-md text-xs font-semibold text-primary underline underline-offset-4 hover:text-primary-700">Xóa tất cả bộ lọc</button>}
       </div>
 
       {/* Danh sách */}
       {isLoading ? (
-        <div className="flex flex-col items-center gap-2 py-16 text-muted">
-          <div className="h-7 w-7 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <span className="text-xs">Đang tải danh sách homestay...</span>
+        <div role="status" className="grid grid-cols-1 gap-5 md:grid-cols-2">
+          <span className="sr-only">Đang tải danh sách homestay...</span>
+          {[0, 1].map((item) => <div key={item} aria-hidden="true" className="overflow-hidden rounded-lg border border-primary/10 bg-surface"><div className="h-52 animate-pulse bg-primary/10" /><div className="space-y-4 p-5"><div className="h-5 w-2/3 animate-pulse rounded-sm bg-primary/10" /><div className="h-3 w-full animate-pulse rounded-sm bg-primary/5" /><div className="h-10 animate-pulse rounded-md bg-primary/5" /></div></div>)}
         </div>
       ) : loadError ? (
         <div role="alert" className="flex flex-col items-center gap-3 rounded-lg border border-danger/30 bg-danger/5 p-8 text-center">
@@ -207,11 +221,12 @@ export default function PartnerDashboardPage() {
   );
 }
 
-function StatCard({ label, value, tone }: { label: string; value: number; tone: string }) {
+function StatCard({ label, value, tone, icon: Icon, hint, loading, error }: { label: string; value: number; tone: string; icon: LucideIcon; hint: string; loading: boolean; error: boolean }) {
   return (
-    <div className="rounded-lg border border-border bg-white p-4 shadow-[var(--shadow-card)]">
-      <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">{label}</span>
-      <p className={`mt-1 font-display text-3xl font-extrabold ${tone}`}>{value}</p>
+    <div className="rounded-lg border border-primary/10 bg-surface p-4 shadow-[var(--shadow-card)] transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 sm:p-5">
+      <div className="flex items-start justify-between gap-2"><span className="text-xs font-medium text-muted">{label}</span><span className={`rounded-md p-2 ${tone}`}><Icon className="h-4 w-4" /></span></div>
+      <p className="mt-1 font-display text-3xl font-extrabold tabular-nums text-ink-deep" aria-label={loading ? 'Đang tải' : error ? 'Không có dữ liệu' : undefined}>{loading || error ? '—' : value}</p>
+      <p className="mt-2 text-[11px] text-muted">{hint}</p>
     </div>
   );
 }
@@ -231,8 +246,9 @@ function HomestayCard({
 
   return (
     <article className="flex flex-col overflow-hidden rounded-lg border border-border bg-white shadow-[var(--shadow-card)] transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[var(--shadow-card-hover)]">
-      <div className="relative h-44 w-full overflow-hidden bg-canvas">
-        <img src={homestay.coverImageUrl} alt={homestay.name} className="h-full w-full object-cover" />
+      <div className="relative h-52 w-full overflow-hidden bg-primary-50">
+        <div className="absolute inset-0 flex items-center justify-center text-primary/30"><Home className="h-12 w-12" /></div>
+        {homestay.coverImageUrl && <img src={homestay.coverImageUrl} alt={homestay.name} loading="lazy" onError={(event) => { event.currentTarget.style.display = 'none'; }} className="relative h-full w-full object-cover" />}
         <div className="absolute inset-x-2.5 bottom-2.5 flex items-center justify-between">
           <span
             className={`flex items-center gap-1.5 rounded-sm px-2 py-1 text-[10px] font-bold text-white ${
@@ -253,9 +269,9 @@ function HomestayCard({
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col gap-2.5 p-4">
+      <div className="flex flex-1 flex-col gap-3 p-5">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="font-display text-base font-extrabold leading-snug text-ink-deep">{homestay.name}</h3>
+          <h3 className="font-display text-lg font-bold leading-snug text-ink-deep">{homestay.name}</h3>
           <span className="shrink-0 text-xs font-bold text-muted">{homestay.code}</span>
         </div>
 
@@ -282,7 +298,7 @@ function HomestayCard({
           <span className="flex items-center gap-1 font-bold text-coral-hover">
             <Tag className="h-3.5 w-3.5" />
             {formatPrice(homestay.priceRefMin)}
-            {homestay.priceRefMax > homestay.priceRefMin && ` – ${formatPrice(homestay.priceRefMax)}`}
+            {homestay.priceRefMax != null && homestay.priceRefMin != null && homestay.priceRefMax > homestay.priceRefMin && ` – ${formatPrice(homestay.priceRefMax)}`}
           </span>
         </div>
 

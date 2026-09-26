@@ -36,8 +36,11 @@ public class BookingServiceImpl implements BookingService {
     private final RoomInventoryDayRepository roomInventoryDayRepository;
     private final PlaceRepository placeRepository;
     private final RoomTypeRepository roomTypeRepository;
+    private final HomestayProfileRepository homestayProfileRepository;
+    private final com.dulichso.bookingapi.service.RoomCalendarService roomCalendarService;
     private final ReviewRepository reviewRepository;
     private final PlaceMediaRepository placeMediaRepository;
+    private final RoomTypeMediaRepository roomTypeMediaRepository;
     private final BookingChangeRequestRepository bookingChangeRequestRepository;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
     private final com.dulichso.bookingapi.service.NotificationService notificationService;
@@ -66,7 +69,7 @@ public class BookingServiceImpl implements BookingService {
         Place place = placeRepository.findById(request.getPlaceId())
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy chỗ nghỉ với ID: " + request.getPlaceId()));
 
-        RoomType roomType = roomTypeRepository.findById(request.getRoomTypeId())
+        RoomType roomType = roomTypeRepository.findLockedById(request.getRoomTypeId())
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy loại phòng với ID: " + request.getRoomTypeId()));
 
         if (!roomType.getPlace().getId().equals(place.getId())) {
@@ -78,6 +81,13 @@ public class BookingServiceImpl implements BookingService {
         }
 
         int requestedRooms = request.getRoomCount();
+        if (place.getVisibility() != com.dulichso.bookingapi.entity.enums.PlaceVisibility.PUBLISHED
+                || place.getOperationStatus() != com.dulichso.bookingapi.entity.enums.PlaceOperationStatus.OPERATING
+                || Boolean.TRUE.equals(place.getIsDeleted()) || !"ACTIVE".equals(roomType.getStatus()))
+            throw new IllegalStateException("Chỗ nghỉ hoặc loại phòng đang ngừng nhận đặt phòng.");
+        if (request.getCheckIn().isBefore(LocalDate.now())) throw new IllegalArgumentException("Không thể đặt phòng trong quá khứ.");
+        var quote = roomCalendarService.quote(roomType,request.getCheckIn(),request.getCheckOut(),requestedRooms,request.getGuestCount());
+        if (!quote.suitable()) throw new IllegalStateException("Không đủ phòng hoặc sức chứa cho yêu cầu.");
         int totalCapacity = roomType.getTotalRoomCount() != null ? roomType.getTotalRoomCount() : 5;
 
         // 3. Chống race-condition: Kiểm tra và giữ chỗ tồn kho phòng (RoomInventoryDay) với Pessimistic Lock
@@ -116,18 +126,24 @@ public class BookingServiceImpl implements BookingService {
         }
 
         // 4. Tính toán giá tiền
-        BigDecimal unitPrice = roomType.getBasePrice() != null ? roomType.getBasePrice() : BigDecimal.valueOf(500000);
-        BigDecimal totalAmount = unitPrice.multiply(BigDecimal.valueOf(nightsCount)).multiply(BigDecimal.valueOf(requestedRooms));
+        BigDecimal unitPrice = quote.nights().get(0).price();
+        BigDecimal totalAmount = quote.totalAmount();
 
         // 5. Sinh mã đặt phòng duy nhất
         String bookingCode = generateUniqueBookingCode();
 
         // 6. Snapshot chính sách hủy phòng
         Map<String, Object> policySnapshot = new HashMap<>();
-        policySnapshot.put("policyName", "Miễn phí hủy phòng");
-        policySnapshot.put("freeCancelCutoffHours", 24);
-        policySnapshot.put("refundType", "FULL_REFUND");
-        policySnapshot.put("description", "Miễn phí hủy phòng trước 24 giờ nhận phòng.");
+        CancellationPolicy policy = homestayProfileRepository.findById(place.getId())
+                .map(HomestayProfile::getCurrentPolicy).orElse(null);
+        if (policy != null) {
+                policySnapshot.put("policyId", policy.getId());
+                policySnapshot.put("policyVersion", policy.getVersion());
+                policySnapshot.put("policyName", policy.getName());
+                policySnapshot.put("freeCancelCutoffHours", policy.getFreeCancelCutoffHours());
+                policySnapshot.put("refundType", policy.getRefundOnLateCancel().name());
+                policySnapshot.put("description", policy.getContentText());
+        }
 
         // 7. Tạo bản ghi Booking
         LocalDateTime now = LocalDateTime.now();
@@ -151,6 +167,7 @@ public class BookingServiceImpl implements BookingService {
                 .currency("VND")
                 .totalAmount(totalAmount)
                 .policySnapshot(policySnapshot)
+                .policy(policy)
                 .createdAt(now)
                 .build();
 
@@ -161,7 +178,7 @@ public class BookingServiceImpl implements BookingService {
             BookingNight night = BookingNight.builder()
                     .id(new BookingNightId(savedBooking.getId(), date))
                     .booking(savedBooking)
-                    .unitPrice(unitPrice)
+                    .unitPrice(quote.nights().get((int) ChronoUnit.DAYS.between(request.getCheckIn(), date)).price())
                     .roomCount(requestedRooms)
                     .build();
             bookingNightRepository.save(night);
@@ -196,9 +213,18 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional(readOnly = true)
-    public BookingResponseDto getBookingByCode(String bookingCode) {
+    public BookingResponseDto getBookingByCode(String bookingCode, String phone) {
         Booking booking = bookingRepository.findByBookingCode(bookingCode)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn đặt phòng với mã: " + bookingCode));
+        
+        if (phone == null || phone.trim().isEmpty()) {
+            throw new IllegalArgumentException("Yêu cầu cung cấp số điện thoại để tra cứu chi tiết đơn đặt phòng");
+        }
+        
+        if (booking.getGuestPhone() == null || !booking.getGuestPhone().equals(phone.trim())) {
+             // Return not found to not confirm existence if phone is wrong
+             throw new IllegalArgumentException("Không tìm thấy đơn đặt phòng với mã: " + bookingCode);
+        }
 
         int nights = (int) ChronoUnit.DAYS.between(booking.getCheckIn(), booking.getCheckOut());
         BigDecimal unitPrice = booking.getRoomType().getBasePrice() != null
@@ -235,9 +261,9 @@ public class BookingServiceImpl implements BookingService {
             }
         }
 
-        // Nếu không có kết quả theo filter cá nhân, lấy danh sách bookings trong DB
+        // Nếu không có thông tin filter hợp lệ hoặc không tìm thấy booking nào của khách, trả về danh sách rỗng (ACC-BR-11)
         if (bookings.isEmpty()) {
-            bookings.addAll(bookingRepository.findAllWithDetails());
+            return Collections.emptyList();
         }
 
         // Sắp xếp theo ngày tạo mới nhất
@@ -264,6 +290,12 @@ public class BookingServiceImpl implements BookingService {
             throw new IllegalStateException("Đơn đặt phòng này đã được gửi đánh giá trước đó.");
         }
 
+        // REV-BR-06: Trong vòng 14 ngày kể từ ngày trả phòng (checkout)
+        LocalDate checkoutDate = booking.getCheckOut();
+        if (checkoutDate != null && LocalDate.now().isAfter(checkoutDate.plusDays(14))) {
+            throw new IllegalStateException("Đã quá thời hạn 14 ngày kể từ khi trả phòng để gửi đánh giá.");
+        }
+
         Place place = booking.getPlace();
 
         Review review = Review.builder()
@@ -271,8 +303,9 @@ public class BookingServiceImpl implements BookingService {
                 .booking(booking)
                 .rating(request.getRating())
                 .content(request.getContent() != null ? request.getContent().trim() : "")
+                .images(request.getImages() != null ? request.getImages() : Collections.emptyList())
                 .status(com.dulichso.bookingapi.entity.enums.ReviewStatus.VISIBLE)
-                .editableUntil(LocalDateTime.now().plusDays(7))
+                .editableUntil(checkoutDate != null ? checkoutDate.plusDays(14).atTime(23, 59, 59) : LocalDateTime.now().plusDays(14))
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
@@ -296,9 +329,90 @@ public class BookingServiceImpl implements BookingService {
                 .placeId(place.getId())
                 .rating(savedReview.getRating())
                 .content(savedReview.getContent())
+                .images(savedReview.getImages())
                 .guestName(booking.getGuestName())
                 .createdAt(savedReview.getCreatedAt())
+                .editableUntil(savedReview.getEditableUntil())
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public com.dulichso.bookingapi.dto.ReviewDto updateBookingReview(String bookingCode, com.dulichso.bookingapi.dto.CreateReviewRequest request) {
+        Booking booking = bookingRepository.findByBookingCode(bookingCode)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn đặt phòng với mã: " + bookingCode));
+
+        Review review = reviewRepository.findByBookingIdWithDetails(booking.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Chưa có đánh giá cho đơn đặt phòng này."));
+
+        if (LocalDateTime.now().isAfter(review.getEditableUntil())) {
+            throw new IllegalStateException("Đã quá thời hạn 14 ngày để chỉnh sửa đánh giá này.");
+        }
+
+        Place place = review.getPlace();
+        byte oldRating = review.getRating();
+        byte newRating = request.getRating();
+
+        review.setRating(newRating);
+        review.setContent(request.getContent() != null ? request.getContent().trim() : "");
+        if (request.getImages() != null) {
+            review.setImages(request.getImages());
+        }
+        review.setUpdatedAt(LocalDateTime.now());
+        Review saved = reviewRepository.save(review);
+
+        // Cập nhật lại rating nếu thay đổi số sao
+        if (oldRating != newRating && place != null) {
+            int count = place.getRatingCount() != null ? place.getRatingCount() : 1;
+            BigDecimal currentAvg = place.getRatingAvg() != null ? place.getRatingAvg() : BigDecimal.valueOf(oldRating);
+            BigDecimal totalPoints = currentAvg.multiply(BigDecimal.valueOf(count)).subtract(BigDecimal.valueOf(oldRating)).add(BigDecimal.valueOf(newRating));
+            BigDecimal newAvg = totalPoints.divide(BigDecimal.valueOf(count), 2, java.math.RoundingMode.HALF_UP);
+            place.setRatingAvg(newAvg);
+            placeRepository.save(place);
+        }
+
+        return com.dulichso.bookingapi.dto.ReviewDto.builder()
+                .id(saved.getId())
+                .placeId(place != null ? place.getId() : null)
+                .rating(saved.getRating())
+                .content(saved.getContent())
+                .images(saved.getImages())
+                .guestName(booking.getGuestName())
+                .createdAt(saved.getCreatedAt())
+                .editableUntil(saved.getEditableUntil())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public void deleteBookingReview(String bookingCode) {
+        Booking booking = bookingRepository.findByBookingCode(bookingCode)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn đặt phòng với mã: " + bookingCode));
+
+        Review review = reviewRepository.findByBookingIdWithDetails(booking.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Chưa có đánh giá cho đơn đặt phòng này."));
+
+        Place place = review.getPlace();
+        byte oldRating = review.getRating();
+
+        reviewRepository.delete(review);
+
+        // Recalculate place rating
+        if (place != null) {
+            int currentCount = place.getRatingCount() != null ? place.getRatingCount() : 1;
+            if (currentCount <= 1) {
+                place.setRatingCount(0);
+                place.setRatingAvg(BigDecimal.ZERO);
+            } else {
+                BigDecimal currentAvg = place.getRatingAvg() != null ? place.getRatingAvg() : BigDecimal.ZERO;
+                BigDecimal totalPoints = currentAvg.multiply(BigDecimal.valueOf(currentCount)).subtract(BigDecimal.valueOf(oldRating));
+                int newCount = currentCount - 1;
+                BigDecimal newAvg = totalPoints.divide(BigDecimal.valueOf(newCount), 2, java.math.RoundingMode.HALF_UP);
+                place.setRatingCount(newCount);
+                place.setRatingAvg(newAvg);
+            }
+            placeRepository.save(place);
+        }
     }
 
     @Override
@@ -313,8 +427,10 @@ public class BookingServiceImpl implements BookingService {
                         .placeId(r.getPlace().getId())
                         .rating(r.getRating())
                         .content(r.getContent())
+                        .images(r.getImages())
                         .guestName(r.getBooking() != null ? r.getBooking().getGuestName() : booking.getGuestName())
                         .createdAt(r.getCreatedAt())
+                        .editableUntil(r.getEditableUntil())
                         .build())
                 .orElse(null);
     }
@@ -395,6 +511,15 @@ public class BookingServiceImpl implements BookingService {
             List<String> mediaUrls = placeMediaRepository.findPublicUrlsByPlaceId(place.getId());
             if (mediaUrls != null && !mediaUrls.isEmpty()) {
                 coverUrl = mediaUrls.get(0);
+            }
+            if (coverUrl == null && place.getAttributes() != null && place.getAttributes().containsKey("coverImageUrl")) {
+                coverUrl = String.valueOf(place.getAttributes().get("coverImageUrl"));
+            }
+            if (coverUrl == null && roomType != null) {
+                List<String> roomMedia = roomTypeMediaRepository.findPublicUrlsByRoomTypeId(roomType.getId());
+                if (roomMedia != null && !roomMedia.isEmpty()) {
+                    coverUrl = roomMedia.get(0);
+                }
             }
         } catch (Exception e) {
             log.warn("Không thể tải ảnh cho placeId: {}", place.getId());
@@ -540,6 +665,9 @@ public class BookingServiceImpl implements BookingService {
                 || newRoomCount != booking.getRoomCount();
 
         if (datesOrRoomsChanged) {
+            if (newCheckIn.isBefore(LocalDate.now())) {
+                throw new IllegalArgumentException("Không thể chọn ngày nhận phòng trước ngày hiện tại.");
+            }
             if (!newCheckOut.isAfter(newCheckIn)) {
                 throw new IllegalArgumentException("Ngày trả phòng phải sau ngày nhận phòng.");
             }

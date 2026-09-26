@@ -23,6 +23,10 @@ public class Review {
     private Byte rating;
     @Column(columnDefinition = "TEXT")
     private String content;
+
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    @Column(columnDefinition = "json")
+    private java.util.List<String> images;
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -38,7 +42,15 @@ public class Review {
     @Column(name = "updated_at", nullable = false)
     @Builder.Default
     private LocalDateTime updatedAt = LocalDateTime.now();
-    
+
+    /** UC-NCC-09: phản hồi của nhà cung cấp, hiển thị công khai dưới đánh giá. */
+    @Column(name = "provider_reply", columnDefinition = "TEXT")
+    private String providerReply;
+    @Column(name = "provider_reply_at")
+    private LocalDateTime providerReplyAt;
+    @Column(name = "provider_reply_by")
+    private Long providerReplyBy;
+
     @PreUpdate
     protected void onUpdate() { updatedAt = LocalDateTime.now(); }
 }

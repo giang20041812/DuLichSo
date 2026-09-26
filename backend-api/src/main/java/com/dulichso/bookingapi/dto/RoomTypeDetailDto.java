@@ -23,6 +23,7 @@ public class RoomTypeDetailDto {
     private AmenityValue privateBathroom;
     private BigDecimal areaSqm;
     private BigDecimal basePrice;
+    private BigDecimal weekendPrice;
     private String status;
 
     private Integer availableRooms;

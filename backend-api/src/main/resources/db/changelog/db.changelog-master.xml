@@ -29,4 +29,12 @@
     <!-- Quên mật khẩu: OTP qua email -->
     <include file="db/changelog/changes/007-add-password-reset-token.xml"/>
 
+
+    <!-- Module NCC: phòng/giá/lịch, dịch vụ & chính sách, xử lý đơn, ảnh, phản hồi đánh giá, đăng ký NCC -->
+    <include file="db/changelog/changes/006-partner-room-view.xml"/>
+    <include file="db/changelog/changes/007-homestay-services-policies.xml"/>
+    <include file="db/changelog/changes/008-booking-feedback-reviews-provider-applications.xml"/>
+    <include file="db/changelog/changes/009-add-weekend-price.xml"/>
+    <include file="db/changelog/changes/010-add-images-to-review.xml"/>
+    <include file="db/changelog/changes/010-room-inventory-block-reason.xml"/>
 </databaseChangeLog>

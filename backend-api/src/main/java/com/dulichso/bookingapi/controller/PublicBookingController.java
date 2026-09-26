@@ -32,8 +32,10 @@ public class PublicBookingController {
     }
 
     @GetMapping("/{bookingCode}")
-    public ResponseEntity<BookingResponseDto> getBookingByCode(@PathVariable("bookingCode") String bookingCode) {
-        BookingResponseDto response = bookingService.getBookingByCode(bookingCode);
+    public ResponseEntity<BookingResponseDto> getBookingByCode(
+            @PathVariable("bookingCode") String bookingCode,
+            @RequestParam(value = "phone", required = true) String phone) {
+        BookingResponseDto response = bookingService.getBookingByCode(bookingCode, phone);
         return ResponseEntity.ok(response);
     }
 
@@ -43,6 +45,20 @@ public class PublicBookingController {
             @Valid @RequestBody com.dulichso.bookingapi.dto.CreateReviewRequest request) {
         com.dulichso.bookingapi.dto.ReviewDto review = bookingService.createBookingReview(bookingCode, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(review);
+    }
+
+    @PutMapping("/{bookingCode}/review")
+    public ResponseEntity<com.dulichso.bookingapi.dto.ReviewDto> updateBookingReview(
+            @PathVariable("bookingCode") String bookingCode,
+            @Valid @RequestBody com.dulichso.bookingapi.dto.CreateReviewRequest request) {
+        com.dulichso.bookingapi.dto.ReviewDto review = bookingService.updateBookingReview(bookingCode, request);
+        return ResponseEntity.ok(review);
+    }
+
+    @DeleteMapping("/{bookingCode}/review")
+    public ResponseEntity<Void> deleteBookingReview(@PathVariable("bookingCode") String bookingCode) {
+        bookingService.deleteBookingReview(bookingCode);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{bookingCode}/review")

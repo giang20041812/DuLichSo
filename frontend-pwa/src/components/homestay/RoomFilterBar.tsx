@@ -89,7 +89,7 @@ export default function RoomFilterBar({
       {/* Hàng 1: Tiêu đề bộ lọc & Nút reset */}
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3 pb-2.5 border-b border-slate-100">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-xs bg-emerald-50 text-[#048c73] flex items-center justify-center">
+          <div className="w-6 h-6 rounded-xs bg-emerald-50 text-[#10b981] flex items-center justify-center">
             <Filter className="w-3.5 h-3.5" />
           </div>
           <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
@@ -102,7 +102,7 @@ export default function RoomFilterBar({
           <button
             type="button"
             onClick={handleReset}
-            className="text-[11px] text-slate-500 hover:text-[#048c73] font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+            className="text-[11px] text-slate-500 hover:text-[#10b981] font-semibold flex items-center gap-1 cursor-pointer transition-colors"
           >
             <RotateCcw className="w-3 h-3" />
             <span>Đặt lại bộ lọc</span>
@@ -115,7 +115,7 @@ export default function RoomFilterBar({
         {/* Check-in date */}
         <div className="flex flex-col gap-1">
           <label className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
-            <Calendar className="w-3 h-3 text-[#048c73]" />
+            <Calendar className="w-3 h-3 text-[#10b981]" />
             <span>Ngày nhận phòng:</span>
           </label>
           <input
@@ -132,14 +132,14 @@ export default function RoomFilterBar({
               }
               onChange({ ...filters, checkIn: val, checkOut: nextOut });
             }}
-            className="w-full px-2.5 py-1.5 rounded-md border border-slate-300 text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#048c73] focus:border-[#048c73] bg-white shadow-2xs"
+            className="w-full px-2.5 py-1.5 rounded-md border border-slate-300 text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#10b981] focus:border-[#10b981] bg-white shadow-2xs"
           />
         </div>
 
         {/* Check-out date */}
         <div className="flex flex-col gap-1">
           <label className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
-            <Calendar className="w-3 h-3 text-[#048c73]" />
+            <Calendar className="w-3 h-3 text-[#10b981]" />
             <span>Ngày trả phòng:</span>
           </label>
           <input
@@ -147,20 +147,20 @@ export default function RoomFilterBar({
             min={filters.checkIn || todayStr}
             value={filters.checkOut}
             onChange={(e) => onChange({ ...filters, checkOut: e.target.value })}
-            className="w-full px-2.5 py-1.5 rounded-md border border-slate-300 text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#048c73] focus:border-[#048c73] bg-white shadow-2xs"
+            className="w-full px-2.5 py-1.5 rounded-md border border-slate-300 text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#10b981] focus:border-[#10b981] bg-white shadow-2xs"
           />
         </div>
 
         {/* Guest count */}
         <div className="flex flex-col gap-1">
           <label className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
-            <Users className="w-3 h-3 text-[#048c73]" />
+            <Users className="w-3 h-3 text-[#10b981]" />
             <span>Số lượng khách:</span>
           </label>
           <select
             value={filters.guestCount}
             onChange={(e) => onChange({ ...filters, guestCount: Number(e.target.value) })}
-            className="w-full px-2.5 py-1.5 rounded-md border border-slate-300 text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#048c73] focus:border-[#048c73] bg-white shadow-2xs"
+            className="w-full px-2.5 py-1.5 rounded-md border border-slate-300 text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#10b981] focus:border-[#10b981] bg-white shadow-2xs"
           >
             <option value={1}>1 khách</option>
             <option value={2}>2 khách</option>
@@ -174,7 +174,7 @@ export default function RoomFilterBar({
         {/* Room count requested */}
         <div className="flex flex-col gap-1">
           <label className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
-            <ArrowUpDown className="w-3 h-3 text-[#048c73]" />
+            <ArrowUpDown className="w-3 h-3 text-[#10b981]" />
             <span>Sắp xếp theo giá:</span>
           </label>
           <select
@@ -182,7 +182,7 @@ export default function RoomFilterBar({
             onChange={(e) =>
               onChange({ ...filters, priceSort: e.target.value as 'NONE' | 'ASC' | 'DESC' })
             }
-            className="w-full px-2.5 py-1.5 rounded-md border border-slate-300 text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#048c73] focus:border-[#048c73] bg-white shadow-2xs"
+            className="w-full px-2.5 py-1.5 rounded-md border border-slate-300 text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#10b981] focus:border-[#10b981] bg-white shadow-2xs"
           >
             <option value="NONE">Mặc định (Tiêu chuẩn)</option>
             <option value="ASC">Giá: Thấp đến cao</option>
@@ -273,7 +273,7 @@ export default function RoomFilterBar({
               type="checkbox"
               checked={filters.hasBreakfastOnly}
               onChange={(e) => onChange({ ...filters, hasBreakfastOnly: e.target.checked })}
-              className="rounded-xs text-[#048c73] focus:ring-[#048c73] accent-[#048c73]"
+              className="rounded-xs text-[#10b981] focus:ring-[#10b981] accent-[#10b981]"
             />
             <Coffee className="w-3 h-3 text-amber-600" />
             <span>Bao gồm bữa sáng</span>
@@ -284,7 +284,7 @@ export default function RoomFilterBar({
               type="checkbox"
               checked={filters.freeCancelOnly}
               onChange={(e) => onChange({ ...filters, freeCancelOnly: e.target.checked })}
-              className="rounded-xs text-[#048c73] focus:ring-[#048c73] accent-[#048c73]"
+              className="rounded-xs text-[#10b981] focus:ring-[#10b981] accent-[#10b981]"
             />
             <ShieldCheck className="w-3 h-3 text-emerald-600" />
             <span>Miễn phí hủy</span>

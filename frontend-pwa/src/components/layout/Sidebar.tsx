@@ -6,7 +6,6 @@ import {
   MapPin, 
   Utensils, 
   BedDouble, 
-  Sparkles, 
   Bus, 
   Layers, 
   Calendar,
@@ -38,7 +37,6 @@ const navItems = [
   { id: 'culture', path: '/culture', label: 'Văn hóa & Lễ hội', icon: <Compass className="w-5 h-5" /> },
   { id: 'destinations', path: '/destinations', label: 'Địa điểm du lịch', icon: <MapPin className="w-5 h-5" /> },
   { id: 'restaurants', path: '/restaurants', label: 'Ẩm thực địa phương', icon: <Utensils className="w-5 h-5" /> },
-  { id: 'tours', path: '/tours', label: 'Trải nghiệm du lịch', icon: <Sparkles className="w-5 h-5" /> },
   { id: 'transport', path: '/transport', label: 'Vận chuyển', icon: <Bus className="w-5 h-5" /> },
   { id: 'services', path: '/services', label: 'Dịch vụ & Tiện ích', icon: <Layers className="w-5 h-5" /> },
   { id: 'download', path: '/download', label: 'Cài đặt ứng dụng', icon: <Download className="w-5 h-5" /> },
@@ -125,7 +123,7 @@ export default function Sidebar({
           >
             <VietTrackLogoMark size={34} className="transition-transform group-hover:scale-105" />
             <div className="flex flex-col leading-none">
-              <span className="text-lg font-black font-display text-[var(--color-ink-deep)]">Đi Du Lịch</span>
+              <span className="text-[26px] font-bold text-[var(--color-sun)] tracking-tight leading-none" style={{ fontFamily: 'var(--font-brush)' }}>Đi Du Lịch</span>
               <span className="text-[9px] font-bold text-[var(--color-primary)] uppercase tracking-wider mt-1">Du Lịch Di Sản</span>
             </div>
           </div>
@@ -156,11 +154,11 @@ export default function Sidebar({
                 onClick={handleClose}
                 className={`flex items-center gap-3.5 px-3.5 py-2.5 rounded-md text-sm font-semibold transition-all duration-200 ${
                   active 
-                    ? 'bg-[#048c73] text-white shadow-xs font-bold' 
-                    : 'text-[var(--color-ink)] hover:bg-white/70 hover:text-[#048c73]'
+                    ? 'bg-[#10b981] text-white shadow-xs font-bold' 
+                    : 'text-[var(--color-ink)] hover:bg-white/70 hover:text-[#10b981]'
                 }`}
               >
-                <div className={`${active ? 'text-white' : 'text-[#048c73]'}`}>
+                <div className={`${active ? 'text-white' : 'text-[#10b981]'}`}>
                   {item.icon}
                 </div>
                 <span>{item.label}</span>
@@ -195,7 +193,7 @@ export default function Sidebar({
                 <div className="p-2.5 rounded-md bg-white/90 border border-gray-200/80 shadow-xs flex flex-col gap-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-7 h-7 rounded-md bg-[var(--color-primary-subtle,#E6F4F1)] text-[var(--color-primary,#048C73)] flex items-center justify-center text-xs font-bold shrink-0">
+                      <div className="w-7 h-7 rounded-md bg-[var(--color-primary-subtle,#E6F4F1)] text-[var(--color-primary,#10b981)] flex items-center justify-center text-xs font-bold shrink-0">
                         {currentUser.role === 'ADMIN' ? 'AD' : currentUser.role === 'TRAVELER' ? (currentUser.fullName || 'K').charAt(0).toUpperCase() : 'NCC'}
                       </div>
                       <div className="flex flex-col min-w-0">
@@ -223,7 +221,7 @@ export default function Sidebar({
                         navigate(currentUser.role === 'ADMIN' ? '/admin' : '/partner');
                         handleClose();
                       }}
-                      className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 bg-[var(--color-primary,#048C73)] text-white text-xs font-semibold rounded-md hover:bg-[#03705C] transition-colors shadow-xs cursor-pointer"
+                      className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 bg-[var(--color-primary,#10b981)] text-white text-xs font-semibold rounded-md hover:bg-[#059669] transition-colors shadow-xs cursor-pointer"
                     >
                       <span>Vào Cổng {currentUser.role === 'ADMIN' ? 'Quản trị' : 'Đối tác'}</span>
                     </button>
@@ -237,7 +235,7 @@ export default function Sidebar({
                       navigate('/login'); 
                       handleClose(); 
                     }}
-                    className="flex items-center justify-center gap-1.5 px-2.5 py-2 bg-[var(--color-primary,#048C73)] text-white text-xs font-bold rounded-md hover:bg-[#03705C] transition-colors shadow-xs cursor-pointer"
+                    className="flex items-center justify-center gap-1.5 px-2.5 py-2 bg-[var(--color-primary,#10b981)] text-white text-xs font-bold rounded-md hover:bg-[#059669] transition-colors shadow-xs cursor-pointer"
                   >
                     <LogIn className="w-3.5 h-3.5" />
                     <span>Đăng nhập</span>
@@ -248,7 +246,7 @@ export default function Sidebar({
                       navigate('/register');
                       handleClose();
                     }}
-                    className="flex items-center justify-center gap-1.5 px-2.5 py-2 bg-white/90 border border-gray-300 text-[var(--color-ink-deep,#0f2d3c)] text-xs font-bold rounded-md hover:border-[var(--color-primary,#048C73)] hover:text-[var(--color-primary,#048C73)] transition-colors shadow-xs cursor-pointer"
+                    className="flex items-center justify-center gap-1.5 px-2.5 py-2 bg-white/90 border border-gray-300 text-[var(--color-ink-deep,#0f2d3c)] text-xs font-bold rounded-md hover:border-[var(--color-primary,#10b981)] hover:text-[var(--color-primary,#10b981)] transition-colors shadow-xs cursor-pointer"
                   >
                     <UserPlus className="w-3.5 h-3.5" />
                     <span>Đăng ký</span>

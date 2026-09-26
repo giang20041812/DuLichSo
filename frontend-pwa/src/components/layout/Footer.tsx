@@ -11,7 +11,7 @@ export default function Footer() {
         {/* Column 1: Brand & Info (Luôn hiển thị cả trên mobile & desktop) */}
         <div className="md:col-span-3">
           <div className="flex flex-col mb-3 md:mb-4">
-            <VietTrackLogo size={48} textColor="text-[#048c73]" />
+            <VietTrackLogo size={48} textColor="text-[#10b981]" />
           </div>
           <p className="text-[#66716c] text-sm leading-relaxed mb-0 md:mb-6">
             Sứ mệnh đồng hành cùng du khách khám phá vẻ đẹp thuần khiết, bảo tồn di sản văn hóa bản địa và thúc đẩy du lịch sinh thái bền vững trên dải đất hình chữ S.
@@ -20,15 +20,15 @@ export default function Footer() {
           {/* Chứng chỉ - Chỉ hiển thị trên desktop (ẩn khi responsive) */}
           <div className="hidden md:flex gap-4">
             <div className="flex items-center gap-2">
-              <ShieldCheck className="w-8 h-8 text-[#048c73]" />
+              <ShieldCheck className="w-8 h-8 text-[#10b981]" />
               <div className="flex flex-col">
                 <span className="text-[9px] font-bold uppercase text-[#66716c]">ISO</span>
                 <span className="text-[10px] font-bold">9001:2015</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Leaf className="w-8 h-8 text-[#048c73]" />
-              <div className="flex flex-col text-[#048c73]">
+              <Leaf className="w-8 h-8 text-[#10b981]" />
+              <div className="flex flex-col text-[#10b981]">
                 <span className="text-[9px] font-bold uppercase">Green Travel</span>
                 <span className="text-[10px] font-bold">Certified</span>
               </div>
@@ -40,11 +40,11 @@ export default function Footer() {
         <div className="hidden md:block md:col-span-2">
           <h4 className="font-bold font-display text-base mb-4">Điểm Đến Hấp Dẫn</h4>
           <ul className="flex flex-col gap-2.5 text-sm text-[#66716c]">
-            <li><a href="/destinations" className="hover:text-[#048c73] flex items-center gap-2"><span className="text-[#048c73] text-xs">›</span> Vịnh Hạ Long</a></li>
-            <li><a href="/destinations" className="hover:text-[#048c73] flex items-center gap-2"><span className="text-[#048c73] text-xs">›</span> Sapa mây ngàn</a></li>
-            <li><a href="/destinations" className="hover:text-[#048c73] flex items-center gap-2"><span className="text-[#048c73] text-xs">›</span> Phố cổ Hội An</a></li>
-            <li><a href="/destinations" className="hover:text-[#048c73] flex items-center gap-2"><span className="text-[#048c73] text-xs">›</span> Đảo ngọc Phú Quốc</a></li>
-            <li><a href="/destinations" className="hover:text-[#048c73] flex items-center gap-2"><span className="text-[#048c73] text-xs">›</span> Ninh Bình non nước</a></li>
+            <li><a href="/destinations" className="hover:text-[#10b981] flex items-center gap-2"><span className="text-[#10b981] text-xs">›</span> Vịnh Hạ Long</a></li>
+            <li><a href="/destinations" className="hover:text-[#10b981] flex items-center gap-2"><span className="text-[#10b981] text-xs">›</span> Sapa mây ngàn</a></li>
+            <li><a href="/destinations" className="hover:text-[#10b981] flex items-center gap-2"><span className="text-[#10b981] text-xs">›</span> Phố cổ Hội An</a></li>
+            <li><a href="/destinations" className="hover:text-[#10b981] flex items-center gap-2"><span className="text-[#10b981] text-xs">›</span> Đảo ngọc Phú Quốc</a></li>
+            <li><a href="/destinations" className="hover:text-[#10b981] flex items-center gap-2"><span className="text-[#10b981] text-xs">›</span> Ninh Bình non nước</a></li>
           </ul>
         </div>
 
@@ -52,11 +52,11 @@ export default function Footer() {
         <div className="hidden md:block md:col-span-2">
           <h4 className="font-bold font-display text-base mb-4">Dịch Vụ Nổi Bật</h4>
           <ul className="flex flex-col gap-2.5 text-sm text-[#66716c]">
-            <li><a href="/tours" className="hover:text-[#048c73] flex items-center gap-2"><span className="text-[#048c73] text-xs">›</span> Tour trọn gói cao cấp</a></li>
-            <li><a href="/homestays" className="hover:text-[#048c73] flex items-center gap-2"><span className="text-[#048c73] text-xs">›</span> Homestay sinh thái</a></li>
-            <li><a href="/explore" className="hover:text-[#048c73] flex items-center gap-2"><span className="text-[#048c73] text-xs">›</span> Trải nghiệm bản địa</a></li>
-            <li><a href="/transport" className="hover:text-[#048c73] flex items-center gap-2"><span className="text-[#048c73] text-xs">›</span> Xe đưa đón tiện nghi</a></li>
-            <li><a href="/services" className="hover:text-[#048c73] flex items-center gap-2"><span className="text-[#048c73] text-xs">›</span> Tiện ích du lịch</a></li>
+            <li><a href="/tours" className="hover:text-[#10b981] flex items-center gap-2"><span className="text-[#10b981] text-xs">›</span> Tour trọn gói cao cấp</a></li>
+            <li><a href="/homestays" className="hover:text-[#10b981] flex items-center gap-2"><span className="text-[#10b981] text-xs">›</span> Homestay sinh thái</a></li>
+            <li><a href="/explore" className="hover:text-[#10b981] flex items-center gap-2"><span className="text-[#10b981] text-xs">›</span> Trải nghiệm bản địa</a></li>
+            <li><a href="/transport" className="hover:text-[#10b981] flex items-center gap-2"><span className="text-[#10b981] text-xs">›</span> Xe đưa đón tiện nghi</a></li>
+            <li><a href="/services" className="hover:text-[#10b981] flex items-center gap-2"><span className="text-[#10b981] text-xs">›</span> Tiện ích du lịch</a></li>
           </ul>
         </div>
 
@@ -64,11 +64,11 @@ export default function Footer() {
         <div className="hidden md:block md:col-span-2">
           <h4 className="font-bold font-display text-base mb-4">Trợ Giúp & Pháp Lý</h4>
           <ul className="flex flex-col gap-2.5 text-sm text-[#66716c]">
-            <li><a href="#" className="hover:text-[#048c73] flex items-center gap-2"><span className="text-[#048c73] text-xs">›</span> Trung tâm trợ giúp</a></li>
-            <li><a href="#" className="hover:text-[#048c73] flex items-center gap-2"><span className="text-[#048c73] text-xs">›</span> Chính sách hoàn hủy</a></li>
-            <li><a href="#" className="hover:text-[#048c73] flex items-center gap-2"><span className="text-[#048c73] text-xs">›</span> Bảo hiểm du lịch</a></li>
-            <li><a href="#" className="hover:text-[#048c73] flex items-center gap-2"><span className="text-[#048c73] text-xs">›</span> Điều khoản sử dụng</a></li>
-            <li><a href="#" className="hover:text-[#048c73] flex items-center gap-2"><span className="text-[#048c73] text-xs">›</span> Bảo mật thông tin</a></li>
+            <li><a href="#" className="hover:text-[#10b981] flex items-center gap-2"><span className="text-[#10b981] text-xs">›</span> Trung tâm trợ giúp</a></li>
+            <li><a href="#" className="hover:text-[#10b981] flex items-center gap-2"><span className="text-[#10b981] text-xs">›</span> Chính sách hoàn hủy</a></li>
+            <li><a href="#" className="hover:text-[#10b981] flex items-center gap-2"><span className="text-[#10b981] text-xs">›</span> Bảo hiểm du lịch</a></li>
+            <li><a href="#" className="hover:text-[#10b981] flex items-center gap-2"><span className="text-[#10b981] text-xs">›</span> Điều khoản sử dụng</a></li>
+            <li><a href="#" className="hover:text-[#10b981] flex items-center gap-2"><span className="text-[#10b981] text-xs">›</span> Bảo mật thông tin</a></li>
           </ul>
         </div>
 

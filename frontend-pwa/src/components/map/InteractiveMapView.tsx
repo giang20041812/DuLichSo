@@ -1,5 +1,6 @@
 import { MapPoiItem } from '../../types/integrations/google-maps';
-import OpenStreetMapView, { OsmMarkerItem } from './OpenStreetMapView';
+import VietmapView from './VietmapView';
+import type { VietmapMarkerItem } from '@/types/integrations/vietmap';
 
 interface InteractiveMapViewProps {
   centerLat: number;
@@ -18,8 +19,8 @@ export default function InteractiveMapView({
   zoomLevel = 14,
   onMarkerSelect
 }: InteractiveMapViewProps) {
-  // Convert pois to OsmMarkerItem format
-  const osmMarkers: OsmMarkerItem[] = [
+  // Convert pois to VietmapMarkerItem format
+  const vietmapMarkers: VietmapMarkerItem[] = [
     {
       id: 'main-place',
       name: placeName,
@@ -29,7 +30,7 @@ export default function InteractiveMapView({
       kind: 'HOMESTAY',
       displayMode: 'name' as const,
     },
-    ...pois.map((poi, idx): OsmMarkerItem => ({
+    ...pois.map((poi, idx): VietmapMarkerItem => ({
       id: `poi-${idx}`,
       name: poi.name,
       latitude: poi.latitude,
@@ -43,11 +44,11 @@ export default function InteractiveMapView({
 
   return (
     <div className="relative w-full h-full">
-      <OpenStreetMapView
+      <VietmapView
         centerLat={centerLat}
         centerLng={centerLng}
         zoomLevel={zoomLevel}
-        markers={osmMarkers}
+        markers={vietmapMarkers}
         className="w-full h-full min-h-screen"
         onMarkerClick={(m) => {
           if (m.id === 'main-place') {
@@ -61,3 +62,4 @@ export default function InteractiveMapView({
     </div>
   );
 }
+

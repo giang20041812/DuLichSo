@@ -4,6 +4,8 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import Footer from './Footer';
 
+import { hasHeroOverlay } from '@/lib/routeUtils';
+
 export default function SidebarLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
@@ -32,24 +34,13 @@ export default function SidebarLayout() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const hasHeroImage = location.pathname === '/' || 
-    location.pathname.startsWith('/culture') || 
-    location.pathname.startsWith('/explore') || 
-    location.pathname.startsWith('/homestays') || 
-    location.pathname.startsWith('/restaurants') || 
-    location.pathname.startsWith('/food') || 
-    location.pathname.startsWith('/destinations') || 
-    location.pathname.startsWith('/transport') || 
-    location.pathname.startsWith('/services') || 
-    location.pathname.startsWith('/photo') || 
-    location.pathname.startsWith('/rental') || 
-    location.pathname.startsWith('/tours');
+  const hasHeroImage = hasHeroOverlay(location.pathname);
 
   return (
     <div className="flex flex-col min-h-screen bg-[var(--color-canvas)] text-[var(--color-ink)] relative overflow-x-hidden">
       {/* Header cố định ở đỉnh trang: nút 3 sọc chỉ hiện khi sidebar ẩn */}
       <Header 
-        isSidebarOpen={isSidebarOpen}
+        isSidebarOpen={isSidebarOpen} 
         toggleSidebar={toggleSidebar} 
       />
       
@@ -59,11 +50,11 @@ export default function SidebarLayout() {
         onClose={closeSidebar} 
       />
 
-      {/* Khu vực thân trang bên dưới Header */}
-      <div className="flex flex-1 w-full pt-[60px] relative">
+      {/* Khu vực thân trang bên dưới Header: nếu là trang hero overlay thì pt-0, nếu là trang chi tiết/trang thường thì pt-[118px] sm:pt-[124px] md:pt-[130px] để nằm dưới hẳn Header */}
+      <div className={`flex flex-1 w-full relative transition-all duration-200 ${hasHeroImage ? 'pt-0' : 'pt-[118px] sm:pt-[124px] md:pt-[130px]'}`}>
         {/* Nội dung chính của trang: Rộng rãi, toàn màn hình */}
         <div className="flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out">
-          <main className={`flex-1 w-full relative z-10 ${hasHeroImage ? '-mt-[60px]' : ''}`}>
+          <main className="flex-1 w-full relative z-10">
             <Outlet />
           </main>
           <Footer />

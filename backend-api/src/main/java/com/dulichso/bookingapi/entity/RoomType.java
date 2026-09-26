@@ -20,6 +20,8 @@ public class RoomType {
     private String name;
     @Column(columnDefinition = "TEXT")
     private String description;
+    @Column(name = "view_description", length = 500)
+    private String viewDescription;
     
     @Column(name = "max_occupancy", nullable = false)
     private Integer maxOccupancy;
@@ -36,6 +38,9 @@ public class RoomType {
     
     @Column(name = "base_price")
     private BigDecimal basePrice;
+    
+    @Column(name = "weekend_price")
+    private BigDecimal weekendPrice;
     
     @Column(columnDefinition = "enum('ACTIVE','INACTIVE')", nullable = false)
     private String status = "ACTIVE"; // Kept string for simplicity since it's just 'ACTIVE'/'INACTIVE'

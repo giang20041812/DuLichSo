@@ -24,6 +24,9 @@ public class HomestayProfile {
     private String houseRules;
     @Column(name = "surcharge_note", columnDefinition = "TEXT")
     private String surchargeNote;
+    @Column(name="children_policy",columnDefinition="TEXT") private String childrenPolicy;
+    @Column(name="pets_policy",columnDefinition="TEXT") private String petsPolicy;
+    @Column(name="guest_policy",columnDefinition="TEXT") private String guestPolicy;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "current_policy_id")

@@ -8,7 +8,7 @@ export default function BottomNav() {
         <NavLink 
           to="/" 
           className={({ isActive }) => 
-            `flex flex-col items-center justify-center flex-1 gap-1 ${isActive ? 'text-[#048c73]' : 'text-[#59766e]'}`
+            `flex flex-col items-center justify-center flex-1 gap-1 ${isActive ? 'text-[#10b981]' : 'text-[#59766e]'}`
           }
         >
           <Search className="w-6 h-6" strokeWidth={1.5} />
@@ -18,7 +18,7 @@ export default function BottomNav() {
         <NavLink 
           to="/saved" 
           className={({ isActive }) => 
-            `flex flex-col items-center justify-center flex-1 gap-1 ${isActive ? 'text-[#048c73]' : 'text-[#59766e]'}`
+            `flex flex-col items-center justify-center flex-1 gap-1 ${isActive ? 'text-[#10b981]' : 'text-[#59766e]'}`
           }
         >
           <Heart className="w-6 h-6" strokeWidth={1.5} />
@@ -28,7 +28,7 @@ export default function BottomNav() {
         <NavLink 
           to="/bookings" 
           className={({ isActive }) => 
-            `flex flex-col items-center justify-center flex-1 gap-1 ${isActive ? 'text-[#048c73]' : 'text-[#59766e]'}`
+            `flex flex-col items-center justify-center flex-1 gap-1 ${isActive ? 'text-[#10b981]' : 'text-[#59766e]'}`
           }
         >
           <Briefcase className="w-6 h-6" strokeWidth={1.5} />
@@ -38,7 +38,7 @@ export default function BottomNav() {
         <NavLink 
           to="/account" 
           className={({ isActive }) => 
-            `flex flex-col items-center justify-center flex-1 gap-1 ${isActive ? 'text-[#048c73]' : 'text-[#59766e]'}`
+            `flex flex-col items-center justify-center flex-1 gap-1 ${isActive ? 'text-[#10b981]' : 'text-[#59766e]'}`
           }
         >
           <UserCircle className="w-6 h-6" strokeWidth={1.5} />

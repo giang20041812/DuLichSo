@@ -82,13 +82,20 @@ export default function HomestayRoomSection({ rooms, onSelectRoom }: HomestayRoo
                 <div className="pt-2 flex items-center justify-between border-t border-slate-100">
                   <div>
                     <span className="text-[11px] text-slate-400 block font-normal">Giá tham khảo</span>
-                    <div className="flex items-baseline">
-                      <span className="text-base sm:text-lg font-extrabold text-amber-900">
-                        {formattedPrice}đ
-                      </span>
-                      <span className="text-xs text-slate-500 ml-1">
-                        {room.unitNote || '/ đêm'}
-                      </span>
+                    <div className="flex flex-col">
+                      <div className="flex items-baseline">
+                        <span className="text-base sm:text-lg font-extrabold text-amber-900">
+                          {formattedPrice}đ
+                        </span>
+                        <span className="text-xs text-slate-500 ml-1">
+                          {room.unitNote || '/ đêm'}
+                        </span>
+                      </div>
+                      {room.weekendPrice ? (
+                        <div className="text-[11px] text-slate-500">
+                          Cuối tuần: {new Intl.NumberFormat('vi-VN').format(room.weekendPrice)}đ
+                        </div>
+                      ) : null}
                     </div>
                   </div>
 

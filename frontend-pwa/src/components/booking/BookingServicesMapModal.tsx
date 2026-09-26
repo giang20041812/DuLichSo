@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { X, MapPin, Navigation, Utensils, Car, Compass, Package, Phone } from 'lucide-react';
-import OpenStreetMapView, { OsmMarkerItem } from '@/components/map/OpenStreetMapView';
+import VietmapView from '@/components/map/VietmapView';
+import type { VietmapMarkerItem } from '@/types/integrations/vietmap';
 import { BookingServiceItemDto } from '@/types/booking';
 import { NearbyPlaceDto } from '@/types/homestay';
 
@@ -63,8 +64,8 @@ export default function BookingServicesMapModal({
   }, [serviceItems, nearbyPlaces]);
 
   // Tạo danh sách markers cho bản đồ
-  const markers: OsmMarkerItem[] = useMemo(() => {
-    const list: OsmMarkerItem[] = [];
+  const markers: VietmapMarkerItem[] = useMemo(() => {
+    const list: VietmapMarkerItem[] = [];
 
     // 1. Marker của Homestay (Trung tâm, isMain = true)
     list.push({
@@ -145,9 +146,9 @@ export default function BookingServicesMapModal({
 
         {/* Content: Map + Services List Sidebar */}
         <div className="flex-1 min-h-[380px] sm:min-h-[460px] grid grid-cols-1 md:grid-cols-3 overflow-hidden">
-          {/* Cột bản đồ OpenStreetMap */}
+          {/* Cột bản đồ VietMap */}
           <div className="md:col-span-2 relative h-[300px] md:h-full bg-slate-100 border-b md:border-b-0 md:border-r border-gray-200">
-            <OpenStreetMapView
+            <VietmapView
               centerLat={centerLat}
               centerLng={centerLng}
               zoomLevel={15}
@@ -157,7 +158,7 @@ export default function BookingServicesMapModal({
             {/* Chú thích map overlay góc trái dưới */}
             <div className="absolute bottom-3 left-3 z-[400] bg-white/95 backdrop-blur-xs px-2.5 py-1.5 rounded-md border border-gray-200/80 shadow-xs flex items-center gap-3 text-[11px] font-medium text-slate-700">
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#048C73] inline-block border border-white shadow-2xs"></span>
+                <span className="w-2.5 h-2.5 rounded-full bg-[#10b981] inline-block border border-white shadow-2xs"></span>
                 <span>Homestay</span>
               </div>
               <div className="flex items-center gap-1.5">
@@ -180,9 +181,9 @@ export default function BookingServicesMapModal({
 
             <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
               {/* Homestay marker item */}
-              <div className="p-2.5 bg-white rounded-md border border-[#048C73]/30 shadow-2xs">
+              <div className="p-2.5 bg-white rounded-md border border-[#10b981]/30 shadow-2xs">
                 <div className="flex items-center gap-2">
-                  <span className="p-1 rounded-sm bg-[#048C73]/10 text-[#048C73]">
+                  <span className="p-1 rounded-sm bg-[#10b981]/10 text-[#10b981]">
                     <MapPin className="w-3.5 h-3.5" />
                   </span>
                   <span className="text-xs font-bold text-slate-800 truncate">
