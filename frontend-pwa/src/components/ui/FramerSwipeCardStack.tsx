@@ -103,7 +103,7 @@ export const FramerSwipeCardStack: React.FC<FramerSwipeCardStackProps> = ({
               onClick={handlePrev}
               disabled={currentIndex === 0}
               aria-label="Xem thẻ trước"
-              className="w-8 h-8 rounded-lg border-2 border-slate-200 bg-white text-slate-700 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center shadow-2xs hover:border-[#048C73] hover:text-[#048C73] active:scale-90 transition-all cursor-pointer"
+              className="w-8 h-8 rounded-lg border-2 border-slate-200 bg-white text-slate-700 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center shadow-2xs hover:border-[#10b981] hover:text-[#10b981] active:scale-90 transition-all cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
             </button>
@@ -118,7 +118,7 @@ export const FramerSwipeCardStack: React.FC<FramerSwipeCardStackProps> = ({
                   aria-label={`Chuyển tới thẻ ${dotIdx + 1}`}
                   className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
                     dotIdx === currentIndex
-                      ? 'w-6 bg-[#048C73] shadow-xs'
+                      ? 'w-6 bg-[#10b981] shadow-xs'
                       : 'w-2 bg-slate-300 hover:bg-slate-400'
                   }`}
                 />
@@ -131,7 +131,7 @@ export const FramerSwipeCardStack: React.FC<FramerSwipeCardStackProps> = ({
               onClick={handleNext}
               disabled={currentIndex === total - 1}
               aria-label="Xem thẻ tiếp theo"
-              className="w-8 h-8 rounded-lg border-2 border-slate-200 bg-white text-slate-700 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center shadow-2xs hover:border-[#048C73] hover:text-[#048C73] active:scale-90 transition-all cursor-pointer"
+              className="w-8 h-8 rounded-lg border-2 border-slate-200 bg-white text-slate-700 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center shadow-2xs hover:border-[#10b981] hover:text-[#10b981] active:scale-90 transition-all cursor-pointer"
             >
               <ChevronRight className="w-4 h-4 stroke-[2.5]" />
             </button>

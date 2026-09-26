@@ -327,7 +327,7 @@ export default function AdminDashboardPage() {
             </button>
             <div>
               <h1 className="text-base sm:text-lg font-bold text-[var(--color-ink-deep,#0f2d3c)] flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-[var(--color-primary,#048C73)]" />
+                <ShieldCheck className="w-5 h-5 text-[var(--color-primary,#10b981)]" />
                 Cổng Quản Trị Hệ Thống Du Lịch Số
               </h1>
               <p className="text-xs text-slate-500">
@@ -344,7 +344,7 @@ export default function AdminDashboardPage() {
                             else if (activeTab === 'providers') loadProviders();
                             else if (activeTab === 'finance') loadFinance();
               }}
-              className="p-2 text-slate-600 hover:text-[var(--color-primary,#048C73)] hover:bg-slate-50 rounded-md border border-slate-200 transition-colors"
+              className="p-2 text-slate-600 hover:text-[var(--color-primary,#10b981)] hover:bg-slate-50 rounded-md border border-slate-200 transition-colors"
               title="Làm mới dữ liệu"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -385,7 +385,7 @@ export default function AdminDashboardPage() {
             onClick={() => setActiveTab('dashboard')}
             className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-md transition-all border-b-2 whitespace-nowrap cursor-pointer ${
               activeTab === 'dashboard'
-                ? 'border-[var(--color-primary,#048C73)] text-[var(--color-primary,#048C73)] bg-white shadow-xs'
+                ? 'border-[var(--color-primary,#10b981)] text-[var(--color-primary,#10b981)] bg-white shadow-xs'
                 : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/60'
             }`}
           >
@@ -398,7 +398,7 @@ export default function AdminDashboardPage() {
             onClick={() => setActiveTab('accounts')}
             className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-md transition-all border-b-2 whitespace-nowrap cursor-pointer ${
               activeTab === 'accounts'
-                ? 'border-[var(--color-primary,#048C73)] text-[var(--color-primary,#048C73)] bg-white shadow-xs'
+                ? 'border-[var(--color-primary,#10b981)] text-[var(--color-primary,#10b981)] bg-white shadow-xs'
                 : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/60'
             }`}
           >
@@ -411,7 +411,7 @@ export default function AdminDashboardPage() {
             onClick={() => setActiveTab('providers')}
             className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-md transition-all border-b-2 whitespace-nowrap cursor-pointer ${
               activeTab === 'providers'
-                ? 'border-[var(--color-primary,#048C73)] text-[var(--color-primary,#048C73)] bg-white shadow-xs'
+                ? 'border-[var(--color-primary,#10b981)] text-[var(--color-primary,#10b981)] bg-white shadow-xs'
                 : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/60'
             }`}
           >
@@ -424,7 +424,7 @@ export default function AdminDashboardPage() {
             onClick={() => setActiveTab('places')}
             className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-md transition-all border-b-2 whitespace-nowrap cursor-pointer ${
               activeTab === 'places'
-                ? 'border-[var(--color-primary,#048C73)] text-[var(--color-primary,#048C73)] bg-white shadow-xs'
+                ? 'border-[var(--color-primary,#10b981)] text-[var(--color-primary,#10b981)] bg-white shadow-xs'
                 : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/60'
             }`}
           >
@@ -437,7 +437,7 @@ export default function AdminDashboardPage() {
             onClick={() => setActiveTab('bookings')}
             className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-md transition-all border-b-2 whitespace-nowrap cursor-pointer ${
               activeTab === 'bookings'
-                ? 'border-[var(--color-primary,#048C73)] text-[var(--color-primary,#048C73)] bg-white shadow-xs'
+                ? 'border-[var(--color-primary,#10b981)] text-[var(--color-primary,#10b981)] bg-white shadow-xs'
                 : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/60'
             }`}
           >
@@ -450,7 +450,7 @@ export default function AdminDashboardPage() {
             onClick={() => setActiveTab('finance')}
             className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-md transition-all border-b-2 whitespace-nowrap cursor-pointer ${
               activeTab === 'finance'
-                ? 'border-[var(--color-primary,#048C73)] text-[var(--color-primary,#048C73)] bg-white shadow-xs'
+                ? 'border-[var(--color-primary,#10b981)] text-[var(--color-primary,#10b981)] bg-white shadow-xs'
                 : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/60'
             }`}
           >
@@ -508,7 +508,7 @@ export default function AdminDashboardPage() {
               <button
                 type="button"
                 onClick={() => setShowCreateProviderModal(true)}
-                className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[var(--color-primary,#048C73)] text-white text-xs font-semibold rounded-md hover:bg-[#03705C] transition-colors shadow-xs"
+                className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[var(--color-primary,#10b981)] text-white text-xs font-semibold rounded-md hover:bg-[#059669] transition-colors shadow-xs"
               >
                 <Plus className="w-4 h-4" />
                 <span>Tạo Đối tác NCC mới (1 bước)</span>
@@ -543,7 +543,7 @@ export default function AdminDashboardPage() {
                       <td className="py-2.5 px-3 text-slate-600 max-w-[200px] truncate" title={p.address}>
                         {p.address || '—'}
                       </td>
-                      <td className="py-2.5 px-3 text-center font-bold text-[var(--color-primary,#048C73)]">
+                      <td className="py-2.5 px-3 text-center font-bold text-[var(--color-primary,#10b981)]">
                         {p.placeCount}
                       </td>
                       <td className="py-2.5 px-3 text-center font-semibold text-slate-700">
@@ -652,7 +652,7 @@ export default function AdminDashboardPage() {
             {/* Bảng yêu cầu hoàn tiền */}
             <div className="bg-white rounded-lg border border-slate-200 shadow-xs p-4 flex flex-col gap-3">
               <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-[var(--color-primary,#048C73)]" />
+                <DollarSign className="w-4 h-4 text-[var(--color-primary,#10b981)]" />
                 <span>Danh sách yêu cầu hoàn tiền (Refunds)</span>
               </h3>
 
@@ -672,7 +672,7 @@ export default function AdminDashboardPage() {
                   <tbody className="divide-y divide-slate-100">
                     {refunds.map((ref) => (
                       <tr key={ref.id} className="hover:bg-slate-50/70 transition-colors">
-                        <td className="py-2.5 px-3 font-mono font-bold text-[var(--color-primary,#048C73)]">
+                        <td className="py-2.5 px-3 font-mono font-bold text-[var(--color-primary,#10b981)]">
                           {ref.bookingCode}
                         </td>
                         <td className="py-2.5 px-3 font-semibold text-slate-800">
@@ -759,7 +759,7 @@ export default function AdminDashboardPage() {
                   required
                   value={newAdminForm.fullName}
                   onChange={(e) => setNewAdminForm({ ...newAdminForm, fullName: e.target.value })}
-                  className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-md focus:outline-hidden focus:border-[var(--color-primary,#048C73)]"
+                  className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-md focus:outline-hidden focus:border-[var(--color-primary,#10b981)]"
                   placeholder="Lê Quản Trị"
                 />
               </div>
@@ -770,7 +770,7 @@ export default function AdminDashboardPage() {
                   required
                   value={newAdminForm.email}
                   onChange={(e) => setNewAdminForm({ ...newAdminForm, email: e.target.value })}
-                  className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-md focus:outline-hidden focus:border-[var(--color-primary,#048C73)]"
+                  className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-md focus:outline-hidden focus:border-[var(--color-primary,#10b981)]"
                   placeholder="admin.le@taybactrails.vn"
                 />
               </div>
@@ -781,7 +781,7 @@ export default function AdminDashboardPage() {
                   required
                   value={newAdminForm.phone}
                   onChange={(e) => setNewAdminForm({ ...newAdminForm, phone: e.target.value })}
-                  className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-md focus:outline-hidden focus:border-[var(--color-primary,#048C73)]"
+                  className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-md focus:outline-hidden focus:border-[var(--color-primary,#10b981)]"
                   placeholder="0981122334"
                 />
               </div>
@@ -792,7 +792,7 @@ export default function AdminDashboardPage() {
                   required
                   value={newAdminForm.password}
                   onChange={(e) => setNewAdminForm({ ...newAdminForm, password: e.target.value })}
-                  className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-md focus:outline-hidden focus:border-[var(--color-primary,#048C73)]"
+                  className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-md focus:outline-hidden focus:border-[var(--color-primary,#10b981)]"
                   placeholder="Tối thiểu 6 ký tự"
                 />
               </div>
@@ -806,7 +806,7 @@ export default function AdminDashboardPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 text-xs font-semibold text-white bg-[var(--color-primary,#048C73)] hover:bg-[#03705C] rounded-md transition-colors shadow-xs"
+                  className="px-4 py-1.5 text-xs font-semibold text-white bg-[var(--color-primary,#10b981)] hover:bg-[#059669] rounded-md transition-colors shadow-xs"
                 >
                   Xác nhận tạo Admin
                 </button>
@@ -841,7 +841,7 @@ export default function AdminDashboardPage() {
               rows={3}
               value={providerStatusReason}
               onChange={(e) => setProviderStatusReason(e.target.value)}
-              className="w-full px-3 py-2 text-xs border border-slate-200 rounded-md focus:outline-hidden focus:border-[var(--color-primary,#048C73)]"
+              className="w-full px-3 py-2 text-xs border border-slate-200 rounded-md focus:outline-hidden focus:border-[var(--color-primary,#10b981)]"
             />
             {providerStatusError && <p className="text-xs text-rose-600">{providerStatusError}</p>}
             <div className="flex justify-end gap-2 pt-1">
@@ -857,7 +857,7 @@ export default function AdminDashboardPage() {
                 onClick={handleUpdateProviderStatus}
                 className={`px-4 py-2 text-xs font-semibold text-white rounded-md ${
                   providerStatusTarget.status === 'ACTIVE'
-                    ? 'bg-[var(--color-primary,#048C73)] hover:bg-[#03705C]'
+                    ? 'bg-[var(--color-primary,#10b981)] hover:bg-[#059669]'
                     : providerStatusTarget.status === 'SUSPENDED'
                     ? 'bg-amber-600 hover:bg-amber-700'
                     : 'bg-rose-600 hover:bg-rose-700'
@@ -887,7 +887,7 @@ export default function AdminDashboardPage() {
               </button>
             </div>
             <form onSubmit={handleCreateProvider} className="p-5 space-y-3.5 max-h-[80vh] overflow-y-auto">
-              <div className="text-xs font-bold text-[var(--color-primary,#048C73)] border-b pb-1">
+              <div className="text-xs font-bold text-[var(--color-primary,#10b981)] border-b pb-1">
                 1. Hồ sơ Đối tác / Cơ sở
               </div>
               <div>
@@ -897,7 +897,7 @@ export default function AdminDashboardPage() {
                   required
                   value={newProviderForm.name}
                   onChange={(e) => setNewProviderForm({ ...newProviderForm, name: e.target.value })}
-                  className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-md focus:outline-hidden focus:border-[var(--color-primary,#048C73)]"
+                  className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-md focus:outline-hidden focus:border-[var(--color-primary,#10b981)]"
                   placeholder="La Pán Tẩn Eco Homestay"
                 />
               </div>
@@ -934,7 +934,7 @@ export default function AdminDashboardPage() {
                 />
               </div>
 
-              <div className="text-xs font-bold text-[var(--color-primary,#048C73)] border-b pb-1 pt-2">
+              <div className="text-xs font-bold text-[var(--color-primary,#10b981)] border-b pb-1 pt-2">
                 2. Tài khoản đăng nhập đầu tiên cho NCC
               </div>
               <div>
@@ -983,7 +983,7 @@ export default function AdminDashboardPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 text-xs font-semibold text-white bg-[var(--color-primary,#048C73)] hover:bg-[#03705C] rounded-md transition-colors shadow-xs"
+                  className="px-4 py-1.5 text-xs font-semibold text-white bg-[var(--color-primary,#10b981)] hover:bg-[#059669] rounded-md transition-colors shadow-xs"
                 >
                   Hoàn tất tạo NCC & Tài khoản
                 </button>
@@ -1018,7 +1018,7 @@ export default function AdminDashboardPage() {
                   required
                   value={newPasswordVal}
                   onChange={(e) => setNewPasswordVal(e.target.value)}
-                  className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-md focus:outline-hidden focus:border-[var(--color-primary,#048C73)]"
+                  className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-md focus:outline-hidden focus:border-[var(--color-primary,#10b981)]"
                   placeholder="Tối thiểu 6 ký tự"
                 />
               </div>
@@ -1032,7 +1032,7 @@ export default function AdminDashboardPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 text-xs font-semibold text-white bg-[var(--color-primary,#048C73)] hover:bg-[#03705C] rounded-md transition-colors shadow-xs"
+                  className="px-4 py-1.5 text-xs font-semibold text-white bg-[var(--color-primary,#10b981)] hover:bg-[#059669] rounded-md transition-colors shadow-xs"
                 >
                   Lưu mật khẩu mới
                 </button>

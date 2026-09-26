@@ -340,7 +340,7 @@ export default function HomestayDetailPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-4 pb-3 border-b border-slate-200">
           <div>
             <div className="flex items-center gap-2 mb-1.5">
-              <span className="bg-[#048c73] text-white text-xs font-semibold px-2.5 py-0.5 rounded-xs">
+              <span className="bg-[#10b981] text-white text-xs font-semibold px-2.5 py-0.5 rounded-xs">
                 {homestay.kind === 'HOMESTAY' ? 'Homestay Bản Địa' : 'Chỗ nghỉ trải nghiệm'}
               </span>
               {homestay.ratingAvg != null && homestay.ratingAvg > 0 ? (
@@ -361,12 +361,12 @@ export default function HomestayDetailPage() {
             </h1>
 
             <div className="flex items-center gap-2 text-sm md:text-base text-slate-600 mt-2">
-              <MapPin className="w-4 h-4 text-[#048c73] shrink-0" />
+              <MapPin className="w-4 h-4 text-[#10b981] shrink-0" />
               <span>{homestay.address || homestay.district}</span>
               <span className="text-slate-300">·</span>
               <button
                 onClick={() => setShowMapModal(true)}
-                className="text-[#048c73] font-semibold hover:underline cursor-pointer flex items-center gap-1"
+                className="text-[#10b981] font-semibold hover:underline cursor-pointer flex items-center gap-1"
               >
                 <MapIcon className="w-4 h-4" /> Xem bản đồ
               </button>
@@ -452,7 +452,7 @@ export default function HomestayDetailPage() {
         {homestay.description && (
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-2">
-              <Info className="w-5 h-5 text-[#048c73]" />
+              <Info className="w-5 h-5 text-[#10b981]" />
               <h2 className="text-xl md:text-2xl font-bold text-slate-900">Giới thiệu chỗ nghỉ</h2>
             </div>
 
@@ -723,7 +723,7 @@ export default function HomestayDetailPage() {
                         setSelectedMapTarget({ lat: item.latitude, lng: item.longitude, zoom: 16 });
                         setShowMapModal(true);
                       }}
-                      className="text-xs md:text-sm font-semibold text-[#048c73] hover:underline flex items-center gap-0.5 ml-auto cursor-pointer"
+                      className="text-xs md:text-sm font-semibold text-[#10b981] hover:underline flex items-center gap-0.5 ml-auto cursor-pointer"
                     >
                       Chỉ đường <ArrowRight className="w-3.5 h-3.5" />
                     </button>
@@ -771,7 +771,7 @@ export default function HomestayDetailPage() {
           {homestay.highlights && homestay.highlights.length > 0 && (
             <div className="mb-6 p-4 rounded-md bg-slate-50 border border-slate-200">
               <h3 className="text-xs md:text-sm font-bold text-slate-900 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-[#048c73]" />
+                <Sparkles className="w-4 h-4 text-[#10b981]" />
                 Đúc kết trải nghiệm thực tế từ du khách
               </h3>
 
@@ -895,7 +895,7 @@ export default function HomestayDetailPage() {
                 <div
                   key={dest.id}
                   onClick={() => navigate(`/destination/${dest.id}`)}
-                  className={`bg-white rounded-md overflow-hidden border shadow-2xs hover:shadow-xs transition-all cursor-pointer group flex flex-col justify-between ${isSuitable ? 'border-[#048c73]/40 ring-1 ring-[#048c73]/20 hover:border-[#048c73]' : 'border-slate-200 hover:border-[#048c73]/40'
+                  className={`bg-white rounded-md overflow-hidden border shadow-2xs hover:shadow-xs transition-all cursor-pointer group flex flex-col justify-between ${isSuitable ? 'border-[#10b981]/40 ring-1 ring-[#10b981]/20 hover:border-[#10b981]' : 'border-slate-200 hover:border-[#10b981]/40'
                     }`}
                 >
                   <div>
@@ -914,7 +914,7 @@ export default function HomestayDetailPage() {
                       )}
                       <div className="absolute top-2 left-2 flex flex-col gap-1 items-start">
                         {isSuitable && (
-                          <span className="bg-[#048c73] text-white text-[10px] font-bold px-2 py-0.5 rounded-xs tracking-tight shadow-sm flex items-center gap-1">
+                          <span className="bg-[#10b981] text-white text-[10px] font-bold px-2 py-0.5 rounded-xs tracking-tight shadow-sm flex items-center gap-1">
                             <Sparkles className="w-3 h-3 text-amber-300" /> Thích hợp theo mùa
                           </span>
                         )}
@@ -925,11 +925,11 @@ export default function HomestayDetailPage() {
                     </div>
 
                     <div className="p-3">
-                      <h3 className="font-bold text-sm md:text-base text-slate-900 group-hover:text-[#048c73] transition-colors truncate">
+                      <h3 className="font-bold text-sm md:text-base text-slate-900 group-hover:text-[#10b981] transition-colors truncate">
                         {dest.name}
                       </h3>
                       <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
-                        <MapPin className="w-3.5 h-3.5 text-[#048c73] shrink-0" />
+                        <MapPin className="w-3.5 h-3.5 text-[#10b981] shrink-0" />
                         <span className="truncate">{dest.district || dest.address}</span>
                       </div>
                     </div>
@@ -940,7 +940,7 @@ export default function HomestayDetailPage() {
                       <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
                       <span className="font-bold text-slate-800 text-xs">{dest.ratingScore}</span>
                     </div>
-                    <span className="text-[#048c73] font-semibold text-xs md:text-sm group-hover:translate-x-0.5 transition-transform">
+                    <span className="text-[#10b981] font-semibold text-xs md:text-sm group-hover:translate-x-0.5 transition-transform">
                       Khám phá →
                     </span>
                   </div>
@@ -974,8 +974,8 @@ export default function HomestayDetailPage() {
 
             {/* Legend bar */}
             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-gray-700 mb-2.5 px-0.5">
-              <div className="flex items-center gap-1.5 bg-[#edfbf7] text-[#048c73] px-2.5 py-1 rounded-sm border border-[#048c73]/30">
-                <span className="w-2.5 h-2.5 rounded-xs bg-[#048C73]"></span> Chỗ nghỉ ({homestay.name})
+              <div className="flex items-center gap-1.5 bg-[#edfbf7] text-[#10b981] px-2.5 py-1 rounded-sm border border-[#10b981]/30">
+                <span className="w-2.5 h-2.5 rounded-xs bg-[#10b981]"></span> Chỗ nghỉ ({homestay.name})
               </div>
               <div className="flex items-center gap-1.5 bg-[#fef2f2] text-[#dc2626] px-2.5 py-1 rounded-sm border border-[#dc2626]/30">
                 <span className="w-2.5 h-2.5 rounded-xs bg-[#DC2626]"></span> Ẩm thực

@@ -158,7 +158,7 @@ export default function BookingServicesMapModal({
             {/* Chú thích map overlay góc trái dưới */}
             <div className="absolute bottom-3 left-3 z-[400] bg-white/95 backdrop-blur-xs px-2.5 py-1.5 rounded-md border border-gray-200/80 shadow-xs flex items-center gap-3 text-[11px] font-medium text-slate-700">
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#048C73] inline-block border border-white shadow-2xs"></span>
+                <span className="w-2.5 h-2.5 rounded-full bg-[#10b981] inline-block border border-white shadow-2xs"></span>
                 <span>Homestay</span>
               </div>
               <div className="flex items-center gap-1.5">
@@ -181,9 +181,9 @@ export default function BookingServicesMapModal({
 
             <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
               {/* Homestay marker item */}
-              <div className="p-2.5 bg-white rounded-md border border-[#048C73]/30 shadow-2xs">
+              <div className="p-2.5 bg-white rounded-md border border-[#10b981]/30 shadow-2xs">
                 <div className="flex items-center gap-2">
-                  <span className="p-1 rounded-sm bg-[#048C73]/10 text-[#048C73]">
+                  <span className="p-1 rounded-sm bg-[#10b981]/10 text-[#10b981]">
                     <MapPin className="w-3.5 h-3.5" />
                   </span>
                   <span className="text-xs font-bold text-slate-800 truncate">

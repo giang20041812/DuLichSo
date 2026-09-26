@@ -112,7 +112,7 @@ export default function BookingReviewModal({
         {/* Header modal */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-[#F6FAF8]">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-md bg-[#048C73]/10 text-[var(--color-primary)] flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-md bg-[#10b981]/10 text-[var(--color-primary)] flex items-center justify-center shrink-0">
               <MessageSquare className="w-4 h-4" />
             </div>
             <div>

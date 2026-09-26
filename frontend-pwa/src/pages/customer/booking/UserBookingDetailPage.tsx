@@ -145,7 +145,7 @@ export default function UserBookingDetailPage() {
         );
       case 'COMPLETED':
         return (
-          <div className="flex items-center gap-2 p-3 bg-[#E6F4F1] border border-[#048C73]/20 rounded-md text-[var(--color-primary)] text-xs sm:text-sm font-semibold">
+          <div className="flex items-center gap-2 p-3 bg-[#E6F4F1] border border-[#10b981]/20 rounded-md text-[var(--color-primary)] text-xs sm:text-sm font-semibold">
             <Sparkles className="w-5 h-5 text-[var(--color-sun)] shrink-0" />
             <div>
               <span className="font-bold">Kỳ nghỉ đã hoàn thành!</span>
@@ -266,7 +266,7 @@ export default function UserBookingDetailPage() {
             <button
               type="button"
               onClick={() => navigate('/bookings')}
-              className="px-4 py-2 text-xs font-bold text-white bg-[var(--color-primary)] hover:bg-[#03705C] rounded-md transition-colors shadow-xs cursor-pointer inline-flex items-center gap-1.5"
+              className="px-4 py-2 text-xs font-bold text-white bg-[var(--color-primary)] hover:bg-[#059669] rounded-md transition-colors shadow-xs cursor-pointer inline-flex items-center gap-1.5"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Quay lại danh sách đơn</span>
@@ -555,7 +555,7 @@ export default function UserBookingDetailPage() {
                     {booking.serviceItems.map((s, idx) => (
                       <div
                         key={idx}
-                        className="flex items-start gap-2.5 p-2.5 rounded-md bg-[#F6FAF8] border border-[#048C73]/20 hover:border-[var(--color-primary)] transition-colors"
+                        className="flex items-start gap-2.5 p-2.5 rounded-md bg-[#F6FAF8] border border-[#10b981]/20 hover:border-[var(--color-primary)] transition-colors"
                       >
                         <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                         <div className="flex-1 min-w-0">
@@ -638,7 +638,7 @@ export default function UserBookingDetailPage() {
                   <button
                     type="button"
                     onClick={() => setIsEditModalOpen(true)}
-                    className="px-4 py-2 text-xs font-bold text-white bg-[var(--color-primary)] hover:bg-[#03705C] rounded-md transition-all shadow-xs shrink-0 flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="px-4 py-2 text-xs font-bold text-white bg-[var(--color-primary)] hover:bg-[#059669] rounded-md transition-all shadow-xs shrink-0 flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <Edit3 className="w-3.5 h-3.5" />
                     <span>{booking.status === 'PENDING' ? 'Thay đổi thông tin' : 'Gửi yêu cầu thay đổi'}</span>

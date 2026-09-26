@@ -60,7 +60,7 @@ npx cap open android`;
   return (
     <div className="min-h-screen bg-[#F6FAF8] pb-16">
       {/* 1. Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-[#048C73] via-[#03705C] to-[#024E40] text-white pt-24 md:pt-28 pb-16 px-4 sm:px-6">
+      <section className="relative overflow-hidden bg-gradient-to-b from-[#10b981] via-[#059669] to-[#024E40] text-white pt-24 md:pt-28 pb-16 px-4 sm:px-6">
         {/* Pattern chìm trang trí */}
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none" />
 
@@ -145,7 +145,7 @@ npx cap open android`;
               {/* Màn hình điện thoại hiển thị App Đi Du Lịch */}
               <div className="bg-[#F6FAF8] rounded-md overflow-hidden text-gray-800 shadow-inner flex flex-col h-[400px]">
                 {/* Header mô phỏng */}
-                <div className="bg-[#048C73] text-white p-3 flex items-center justify-between">
+                <div className="bg-[#10b981] text-white p-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <VietTrackLogoMark size={24} />
                     <span className="font-bold text-xs tracking-tight">Đi Du Lịch</span>
@@ -162,7 +162,7 @@ npx cap open android`;
                     <div className="text-[10px] text-gray-500">Bản Thái, Yên Bái &bull; 4.9 ★</div>
                     <div className="mt-1.5 flex justify-between items-center text-[10px]">
                       <span className="font-bold text-[#EA580C]">850.000đ/đêm</span>
-                      <span className="bg-[#10B981]/15 text-[#048C73] px-1.5 py-0.5 rounded-sm font-semibold">
+                      <span className="bg-[#10B981]/15 text-[#10b981] px-1.5 py-0.5 rounded-sm font-semibold">
                         Đã xác nhận
                       </span>
                     </div>
@@ -174,8 +174,8 @@ npx cap open android`;
                   </div>
 
                   {/* Thẻ QR Code thu nhỏ trong màn hình */}
-                  <div className="bg-[#edfbf7] border border-[#048C73]/20 rounded-md p-2 text-center">
-                    <div className="text-[10px] font-bold text-[#048C73]">Quét để cài trên máy thật</div>
+                  <div className="bg-[#edfbf7] border border-[#10b981]/20 rounded-md p-2 text-center">
+                    <div className="text-[10px] font-bold text-[#10b981]">Quét để cài trên máy thật</div>
                     <div className="w-20 h-20 mx-auto my-1 bg-white p-1 rounded-sm border border-gray-200">
                       <img 
                         src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(currentUrl)}`}
@@ -205,8 +205,8 @@ npx cap open android`;
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="p-4 rounded-md bg-[#F6FAF8] border border-[#048C73]/20 space-y-2">
-              <div className="w-8 h-8 rounded-md bg-[#048C73]/10 text-[#048C73] flex items-center justify-center">
+            <div className="p-4 rounded-md bg-[#F6FAF8] border border-[#10b981]/20 space-y-2">
+              <div className="w-8 h-8 rounded-md bg-[#10b981]/10 text-[#10b981] flex items-center justify-center">
                 <Zap className="w-4 h-4 text-[#F59E0B]" />
               </div>
               <h3 className="text-sm font-bold text-gray-900">Khởi động siêu tốc</h3>
@@ -215,9 +215,9 @@ npx cap open android`;
               </p>
             </div>
 
-            <div className="p-4 rounded-md bg-[#F6FAF8] border border-[#048C73]/20 space-y-2">
-              <div className="w-8 h-8 rounded-md bg-[#048C73]/10 text-[#048C73] flex items-center justify-center">
-                <Smartphone className="w-4 h-4 text-[#048C73]" />
+            <div className="p-4 rounded-md bg-[#F6FAF8] border border-[#10b981]/20 space-y-2">
+              <div className="w-8 h-8 rounded-md bg-[#10b981]/10 text-[#10b981] flex items-center justify-center">
+                <Smartphone className="w-4 h-4 text-[#10b981]" />
               </div>
               <h3 className="text-sm font-bold text-gray-900">Giao diện toàn màn hình</h3>
               <p className="text-xs text-gray-600 leading-relaxed">
@@ -225,8 +225,8 @@ npx cap open android`;
               </p>
             </div>
 
-            <div className="p-4 rounded-md bg-[#F6FAF8] border border-[#048C73]/20 space-y-2">
-              <div className="w-8 h-8 rounded-md bg-[#048C73]/10 text-[#048C73] flex items-center justify-center">
+            <div className="p-4 rounded-md bg-[#F6FAF8] border border-[#10b981]/20 space-y-2">
+              <div className="w-8 h-8 rounded-md bg-[#10b981]/10 text-[#10b981] flex items-center justify-center">
                 <BellRing className="w-4 h-4 text-[#EA580C]" />
               </div>
               <h3 className="text-sm font-bold text-gray-900">Thông báo đặt phòng tức thì</h3>
@@ -235,8 +235,8 @@ npx cap open android`;
               </p>
             </div>
 
-            <div className="p-4 rounded-md bg-[#F6FAF8] border border-[#048C73]/20 space-y-2">
-              <div className="w-8 h-8 rounded-md bg-[#048C73]/10 text-[#048C73] flex items-center justify-center">
+            <div className="p-4 rounded-md bg-[#F6FAF8] border border-[#10b981]/20 space-y-2">
+              <div className="w-8 h-8 rounded-md bg-[#10b981]/10 text-[#10b981] flex items-center justify-center">
                 <WifiOff className="w-4 h-4 text-[#10B981]" />
               </div>
               <h3 className="text-sm font-bold text-gray-900">Truy cập khi mất sóng</h3>
@@ -262,7 +262,7 @@ npx cap open android`;
               onClick={() => setActiveOsTab('ios')}
               className={`pb-2.5 px-4 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
                 activeOsTab === 'ios'
-                  ? 'border-[#048C73] text-[#048C73]'
+                  ? 'border-[#10b981] text-[#10b981]'
                   : 'border-transparent text-gray-500 hover:text-gray-800'
               }`}
             >
@@ -275,7 +275,7 @@ npx cap open android`;
               onClick={() => setActiveOsTab('android')}
               className={`pb-2.5 px-4 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
                 activeOsTab === 'android'
-                  ? 'border-[#048C73] text-[#048C73]'
+                  ? 'border-[#10b981] text-[#10b981]'
                   : 'border-transparent text-gray-500 hover:text-gray-800'
               }`}
             >
@@ -288,7 +288,7 @@ npx cap open android`;
               onClick={() => setActiveOsTab('desktop')}
               className={`pb-2.5 px-4 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
                 activeOsTab === 'desktop'
-                  ? 'border-[#048C73] text-[#048C73]'
+                  ? 'border-[#10b981] text-[#10b981]'
                   : 'border-transparent text-gray-500 hover:text-gray-800'
               }`}
             >
@@ -306,7 +306,7 @@ npx cap open android`;
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="p-4 rounded-md bg-[#F6FAF8] border border-gray-200 space-y-2">
-                  <div className="w-7 h-7 rounded-md bg-[#048C73] text-white flex items-center justify-center font-bold text-xs">
+                  <div className="w-7 h-7 rounded-md bg-[#10b981] text-white flex items-center justify-center font-bold text-xs">
                     1
                   </div>
                   <h4 className="text-xs font-bold text-gray-900">Bấm nút Chia Sẻ</h4>
@@ -316,7 +316,7 @@ npx cap open android`;
                 </div>
 
                 <div className="p-4 rounded-md bg-[#F6FAF8] border border-gray-200 space-y-2">
-                  <div className="w-7 h-7 rounded-md bg-[#048C73] text-white flex items-center justify-center font-bold text-xs">
+                  <div className="w-7 h-7 rounded-md bg-[#10b981] text-white flex items-center justify-center font-bold text-xs">
                     2
                   </div>
                   <h4 className="text-xs font-bold text-gray-900">Chọn Màn hình chính</h4>
@@ -326,7 +326,7 @@ npx cap open android`;
                 </div>
 
                 <div className="p-4 rounded-md bg-[#F6FAF8] border border-gray-200 space-y-2">
-                  <div className="w-7 h-7 rounded-md bg-[#048C73] text-white flex items-center justify-center font-bold text-xs">
+                  <div className="w-7 h-7 rounded-md bg-[#10b981] text-white flex items-center justify-center font-bold text-xs">
                     3
                   </div>
                   <h4 className="text-xs font-bold text-gray-900">Xác nhận Thêm</h4>
@@ -342,7 +342,7 @@ npx cap open android`;
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="p-4 rounded-md bg-[#F6FAF8] border border-gray-200 space-y-2">
-                  <div className="w-7 h-7 rounded-md bg-[#048C73] text-white flex items-center justify-center font-bold text-xs">
+                  <div className="w-7 h-7 rounded-md bg-[#10b981] text-white flex items-center justify-center font-bold text-xs">
                     1
                   </div>
                   <h4 className="text-xs font-bold text-gray-900">Mở Menu Trình Duyệt</h4>
@@ -352,7 +352,7 @@ npx cap open android`;
                 </div>
 
                 <div className="p-4 rounded-md bg-[#F6FAF8] border border-gray-200 space-y-2">
-                  <div className="w-7 h-7 rounded-md bg-[#048C73] text-white flex items-center justify-center font-bold text-xs">
+                  <div className="w-7 h-7 rounded-md bg-[#10b981] text-white flex items-center justify-center font-bold text-xs">
                     2
                   </div>
                   <h4 className="text-xs font-bold text-gray-900">Chọn Cài đặt ứng dụng</h4>
@@ -362,7 +362,7 @@ npx cap open android`;
                 </div>
 
                 <div className="p-4 rounded-md bg-[#F6FAF8] border border-gray-200 space-y-2">
-                  <div className="w-7 h-7 rounded-md bg-[#048C73] text-white flex items-center justify-center font-bold text-xs">
+                  <div className="w-7 h-7 rounded-md bg-[#10b981] text-white flex items-center justify-center font-bold text-xs">
                     3
                   </div>
                   <h4 className="text-xs font-bold text-gray-900">Hoàn tất</h4>
@@ -378,7 +378,7 @@ npx cap open android`;
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="p-4 rounded-md bg-[#F6FAF8] border border-gray-200 space-y-2">
-                  <div className="w-7 h-7 rounded-md bg-[#048C73] text-white flex items-center justify-center font-bold text-xs">
+                  <div className="w-7 h-7 rounded-md bg-[#10b981] text-white flex items-center justify-center font-bold text-xs">
                     1
                   </div>
                   <h4 className="text-xs font-bold text-gray-900">Nhìn vào thanh URL</h4>
@@ -388,7 +388,7 @@ npx cap open android`;
                 </div>
 
                 <div className="p-4 rounded-md bg-[#F6FAF8] border border-gray-200 space-y-2">
-                  <div className="w-7 h-7 rounded-md bg-[#048C73] text-white flex items-center justify-center font-bold text-xs">
+                  <div className="w-7 h-7 rounded-md bg-[#10b981] text-white flex items-center justify-center font-bold text-xs">
                     2
                   </div>
                   <h4 className="text-xs font-bold text-gray-900">Bấm Cài Đặt</h4>
@@ -398,7 +398,7 @@ npx cap open android`;
                 </div>
 
                 <div className="p-4 rounded-md bg-[#F6FAF8] border border-gray-200 space-y-2">
-                  <div className="w-7 h-7 rounded-md bg-[#048C73] text-white flex items-center justify-center font-bold text-xs">
+                  <div className="w-7 h-7 rounded-md bg-[#10b981] text-white flex items-center justify-center font-bold text-xs">
                     3
                   </div>
                   <h4 className="text-xs font-bold text-gray-900">Mở từ Desktop</h4>
@@ -413,7 +413,7 @@ npx cap open android`;
           {/* Chia sẻ liên kết */}
           <div className="mt-8 pt-6 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2 text-xs text-gray-600">
-              <Share2 className="w-4 h-4 text-[#048C73]" />
+              <Share2 className="w-4 h-4 text-[#10b981]" />
               <span>Gửi đường dẫn tải app cho bạn bè hoặc du khách:</span>
             </div>
             <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -426,7 +426,7 @@ npx cap open android`;
               <button
                 type="button"
                 onClick={handleCopyLink}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#048C73] text-white text-xs font-bold hover:bg-[#03705C] transition-colors shrink-0 cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#10b981] text-white text-xs font-bold hover:bg-[#059669] transition-colors shrink-0 cursor-pointer"
               >
                 {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                 <span>{copiedLink ? 'Đã sao chép' : 'Sao chép'}</span>

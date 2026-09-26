@@ -622,7 +622,7 @@ export default function BookingEditModal({
                 onClick={() => setNearbyCategory('ALL')}
                 className={`px-2.5 py-1 rounded-xs text-[11px] font-semibold transition-all cursor-pointer ${
                   nearbyCategory === 'ALL'
-                    ? 'bg-[#048c73] text-white'
+                    ? 'bg-[#10b981] text-white'
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
@@ -864,7 +864,7 @@ export default function BookingEditModal({
             <button
               type="submit"
               disabled={isSubmitting || (availabilityResult !== null && !availabilityResult.available)}
-              className="px-5 py-2 text-xs font-bold text-white bg-[var(--color-primary)] hover:bg-[#03705C] rounded-md transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="px-5 py-2 text-xs font-bold text-white bg-[var(--color-primary)] hover:bg-[#059669] rounded-md transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               {isSubmitting ? (
                 <>

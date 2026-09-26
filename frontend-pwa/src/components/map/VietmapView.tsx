@@ -24,13 +24,13 @@ function getMarkerCategoryStyle(item: VietmapMarkerItem): CategoryStyle {
   if (item.isMain || rawKind === 'HOMESTAY' || rawKind.includes('LODGE') || rawKind.includes('RESORT') || rawKind.includes('HOTEL')) {
     return {
       label: 'Chỗ nghỉ',
-      bgColor: '#048C73',
+      bgColor: '#10b981',
       textColor: '#FFFFFF',
       borderColor: item.isMain ? '#F59E0B' : '#036855',
       shadowColor: 'rgba(4, 140, 115, 0.4)',
       svgIcon: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
       badgeBg: '#EDFBF7',
-      badgeText: '#048C73',
+      badgeText: '#10b981',
     };
   }
 
@@ -354,7 +354,7 @@ export default function VietmapView({
           ` : ''}
 
           ${item.distance !== undefined ? `
-            <div style="font-size: 11px; font-weight: 600; color: #048c73; margin-bottom: 6px; display: flex; align-items: center; gap: 4px;">
+            <div style="font-size: 11px; font-weight: 600; color: #10b981; margin-bottom: 6px; display: flex; align-items: center; gap: 4px;">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.4 2.4 0 0 1 0-3.4l2.6-2.6a2.4 2.4 0 0 1 3.4 0Z"/><path d="m14.5 12.5 2-2"/><path d="m11.5 9.5 2-2"/><path d="m8.5 6.5 2-2"/><path d="m17.5 15.5 2-2"/></svg>
               <span>Khoảng cách: ${item.distance < 1 ? Math.round(item.distance * 1000) + ' m' : item.distance.toFixed(1) + ' km'}</span>
             </div>
@@ -371,7 +371,7 @@ export default function VietmapView({
                 href="${item.url}" 
                 style="
                   display: inline-block;
-                  background: #048c73;
+                  background: #10b981;
                   color: white;
                   font-size: 10px;
                   font-weight: 700;

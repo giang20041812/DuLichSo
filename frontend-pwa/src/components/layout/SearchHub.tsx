@@ -829,11 +829,11 @@ export default function SearchHub() {
                     isPast
                       ? 'border-transparent text-slate-300 opacity-40 cursor-not-allowed pointer-events-none line-through'
                       : isCheckIn || isCheckOut
-                        ? 'bg-[#048C73] text-white border-[#025a4a] shadow-xs scale-105 cursor-pointer'
+                        ? 'bg-[#10b981] text-white border-[#059669] shadow-xs scale-105 cursor-pointer'
                         : inBetween
-                          ? 'bg-[#edfbf7] text-[#048C73] border-transparent font-semibold cursor-pointer'
+                          ? 'bg-[#edfbf7] text-[#10b981] border-transparent font-semibold cursor-pointer'
                           : isToday
-                            ? 'border-2 border-[#048c73] text-[#048c73] hover:bg-[#edfbf7] cursor-pointer'
+                            ? 'border-2 border-[#10b981] text-[#10b981] hover:bg-[#edfbf7] cursor-pointer'
                             : 'border-transparent text-slate-700 hover:bg-[#edfbf7] hover:border-slate-200 cursor-pointer'
                   }`}
                 >
@@ -855,7 +855,7 @@ export default function SearchHub() {
             onClick={(e) => { e.stopPropagation(); setCalendarTarget('checkIn'); }}
             className={`flex-1 py-1.5 px-3 rounded-md text-xs sm:text-sm font-bold transition-all flex flex-col items-center justify-center cursor-pointer ${
               calendarTarget === 'checkIn'
-                ? 'bg-white text-[#048C73] shadow-xs border border-slate-200'
+                ? 'bg-white text-[#10b981] shadow-xs border border-slate-200'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -867,7 +867,7 @@ export default function SearchHub() {
             onClick={(e) => { e.stopPropagation(); setCalendarTarget('checkOut'); }}
             className={`flex-1 py-1.5 px-3 rounded-md text-xs sm:text-sm font-bold transition-all flex flex-col items-center justify-center cursor-pointer ${
               calendarTarget === 'checkOut'
-                ? 'bg-white text-[#048C73] shadow-xs border border-slate-200'
+                ? 'bg-white text-[#10b981] shadow-xs border border-slate-200'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -879,11 +879,11 @@ export default function SearchHub() {
         {/* Quick select */}
         <div className="flex items-center gap-2 pb-2 border-b border-slate-100 overflow-x-auto">
           <button type="button" onClick={(e) => setQuickDate(0, 1, e)}
-            className="px-2.5 py-1 text-xs font-bold rounded-md border-2 border-slate-200 hover:border-[#048C73] text-slate-700 hover:text-[#048C73] bg-slate-50 transition-colors cursor-pointer shrink-0">
+            className="px-2.5 py-1 text-xs font-bold rounded-md border-2 border-slate-200 hover:border-[#10b981] text-slate-700 hover:text-[#10b981] bg-slate-50 transition-colors cursor-pointer shrink-0">
             Hôm nay (1 đêm)
           </button>
           <button type="button" onClick={(e) => setQuickDate(1, 1, e)}
-            className="px-2.5 py-1 text-xs font-bold rounded-md border-2 border-slate-200 hover:border-[#048C73] text-slate-700 hover:text-[#048C73] bg-slate-50 transition-colors cursor-pointer shrink-0">
+            className="px-2.5 py-1 text-xs font-bold rounded-md border-2 border-slate-200 hover:border-[#10b981] text-slate-700 hover:text-[#10b981] bg-slate-50 transition-colors cursor-pointer shrink-0">
             Ngày mai (1 đêm)
           </button>
           <button type="button" onClick={(e) => {
@@ -901,7 +901,7 @@ export default function SearchHub() {
             className={`w-7 h-7 rounded-md border flex items-center justify-center transition-colors ${
               isPrevMonthDisabled
                 ? 'border-slate-100 text-slate-300 cursor-not-allowed'
-                : 'border-slate-200 hover:border-[#048C73] text-slate-600 hover:text-[#048C73] cursor-pointer'
+                : 'border-slate-200 hover:border-[#10b981] text-slate-600 hover:text-[#10b981] cursor-pointer'
             }`}>
             <ChevronLeft className="w-4 h-4" />
           </button>
@@ -910,7 +910,7 @@ export default function SearchHub() {
             <span className="hidden md:inline">Tháng {calendarMonth}/{calendarYear} – Tháng {month2}/{year2}</span>
           </span>
           <button type="button" onClick={handleNextMonth}
-            className="w-7 h-7 rounded-md border border-slate-200 hover:border-[#048C73] flex items-center justify-center text-slate-600 hover:text-[#048C73] cursor-pointer">
+            className="w-7 h-7 rounded-md border border-slate-200 hover:border-[#10b981] flex items-center justify-center text-slate-600 hover:text-[#10b981] cursor-pointer">
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
@@ -938,12 +938,12 @@ export default function SearchHub() {
           <div 
             className={`bg-white rounded-lg shadow-xs border-2 px-3 sm:px-3.5 h-[52px] sm:h-[58px] flex items-center gap-2.5 cursor-pointer transition-all relative ${
               activeTab === 'location' 
-                ? 'border-[#048c73] ring-2 ring-[#048c73]/20 bg-[#edfbf7]/20 z-40' 
-                : 'border-slate-200 hover:border-[#048c73] z-20'
+                ? 'border-[#10b981] ring-2 ring-[#10b981]/20 bg-[#edfbf7]/20 z-40' 
+                : 'border-slate-200 hover:border-[#10b981] z-20'
             }`}
             onClick={() => setActiveTab(activeTab === 'location' ? null : 'location')}
           >
-            <MapPin className="text-[#048c73] w-5 h-5 shrink-0" />
+            <MapPin className="text-[#10b981] w-5 h-5 shrink-0" />
             <div className="flex flex-col justify-center min-w-0 flex-1">
               <span className="text-xs font-bold text-[#66716c] uppercase tracking-wider mb-0.5 truncate">
                 Thành phố &amp; Khu vực
@@ -962,8 +962,8 @@ export default function SearchHub() {
           <div 
             className={`bg-white rounded-lg shadow-xs border-2 px-3 sm:px-3.5 h-[52px] sm:h-[58px] flex items-center gap-2.5 cursor-pointer transition-all relative ${
               activeTab === 'attractions' 
-                ? 'border-[#048c73] ring-2 ring-[#048c73]/20 bg-[#edfbf7]/20 z-40' 
-                : 'border-slate-200 hover:border-[#048c73] z-20'
+                ? 'border-[#10b981] ring-2 ring-[#10b981]/20 bg-[#edfbf7]/20 z-40' 
+                : 'border-slate-200 hover:border-[#10b981] z-20'
             }`}
             onClick={() => setActiveTab(activeTab === 'attractions' ? null : 'attractions')}
           >
@@ -991,12 +991,12 @@ export default function SearchHub() {
           <div 
             className={`bg-white rounded-lg shadow-xs border-2 px-3 sm:px-3.5 h-[52px] sm:h-[58px] flex items-center gap-2.5 cursor-pointer transition-all relative ${
               activeTab === 'dates' 
-                ? 'border-[#048c73] ring-2 ring-[#048c73]/20 bg-[#edfbf7]/20 z-40' 
-                : 'border-slate-200 hover:border-[#048c73] z-20'
+                ? 'border-[#10b981] ring-2 ring-[#10b981]/20 bg-[#edfbf7]/20 z-40' 
+                : 'border-slate-200 hover:border-[#10b981] z-20'
             }`}
             onClick={() => setActiveTab(activeTab === 'dates' ? null : 'dates')}
           >
-            <Calendar className="text-[#048c73] w-5 h-5 shrink-0" />
+            <Calendar className="text-[#10b981] w-5 h-5 shrink-0" />
             <div className="flex flex-col justify-center min-w-0 flex-1">
               <span className="text-xs font-bold text-[#66716c] uppercase tracking-wider mb-0.5 truncate">
                 Nhận - Trả phòng
@@ -1013,7 +1013,7 @@ export default function SearchHub() {
         <div className="flex items-center shrink-0">
           <Button 
             onClick={handleSearch}
-            className="h-[52px] sm:h-[58px] px-6 sm:px-8 bg-[#048c73] hover:bg-[#03725e] text-white font-bold rounded-lg border-2 border-[#025a4a] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all active:scale-95 flex items-center justify-center gap-2 text-[15px] sm:text-[16px] cursor-pointer w-full md:w-auto"
+            className="h-[52px] sm:h-[58px] px-6 sm:px-8 bg-[#10b981] hover:bg-[#03725e] text-white font-bold rounded-lg border-2 border-[#059669] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all active:scale-95 flex items-center justify-center gap-2 text-[15px] sm:text-[16px] cursor-pointer w-full md:w-auto"
           >
             <Search className="w-5 h-5 text-[#7ef2dd]" strokeWidth={2.5} />
             Tìm kiếm
@@ -1031,10 +1031,10 @@ export default function SearchHub() {
             {/* 1. KHI RESPONSIVE (MOBILE < md): THU GỌN THÔNG TIN LẠI THÀNH 1 Ô */}
             <div 
               onClick={() => setActiveTab('location')}
-              className="md:hidden w-full bg-[#f6faf8] hover:bg-white rounded-lg border border-[#048c73]/35 shadow-xs px-3 py-1.5 flex items-center justify-between gap-2.5 transition-all cursor-pointer"
+              className="md:hidden w-full bg-[#f6faf8] hover:bg-white rounded-lg border border-[#10b981]/35 shadow-xs px-3 py-1.5 flex items-center justify-between gap-2.5 transition-all cursor-pointer"
             >
               <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                <div className="w-7 h-7 rounded-md bg-[#048c73] text-white flex items-center justify-center shrink-0 shadow-2xs">
+                <div className="w-7 h-7 rounded-md bg-[#10b981] text-white flex items-center justify-center shrink-0 shadow-2xs">
                   <Search className="w-3.5 h-3.5 text-[#7ef2dd]" strokeWidth={2.5} />
                 </div>
                 <div className="flex flex-col min-w-0 text-left">
@@ -1047,7 +1047,7 @@ export default function SearchHub() {
                         e.stopPropagation();
                         setActiveTab('dates');
                       }}
-                      className="hover:text-[#048c73]"
+                      className="hover:text-[#10b981]"
                     >
                       {displayDate}
                     </span>
@@ -1072,7 +1072,7 @@ export default function SearchHub() {
                   e.stopPropagation();
                   handleSearch();
                 }}
-                className="h-8 px-3 bg-[#048c73] hover:bg-[#03725e] text-white font-bold rounded-md border border-[#025a4a] shadow-xs active:scale-95 flex items-center gap-1.5 text-xs cursor-pointer shrink-0"
+                className="h-8 px-3 bg-[#10b981] hover:bg-[#03725e] text-white font-bold rounded-md border border-[#059669] shadow-xs active:scale-95 flex items-center gap-1.5 text-xs cursor-pointer shrink-0"
               >
                 <Search className="w-3.5 h-3.5 text-[#7ef2dd]" strokeWidth={2.5} />
                 <span>Tìm</span>
@@ -1087,11 +1087,11 @@ export default function SearchHub() {
                   onClick={() => setActiveTab(activeTab === 'location' ? null : 'location')}
                   className={`bg-white rounded-lg shadow-2xs border-2 px-3 h-[48px] flex items-center gap-2.5 cursor-pointer transition-all ${
                     activeTab === 'location' 
-                      ? 'border-[#048c73] ring-2 ring-[#048c73]/20 bg-[#edfbf7]/30' 
-                      : 'border-slate-200 hover:border-[#048c73]'
+                      ? 'border-[#10b981] ring-2 ring-[#10b981]/20 bg-[#edfbf7]/30' 
+                      : 'border-slate-200 hover:border-[#10b981]'
                   }`}
                 >
-                  <MapPin className="text-[#048c73] w-4.5 h-4.5 shrink-0" />
+                  <MapPin className="text-[#10b981] w-4.5 h-4.5 shrink-0" />
                   <div className="flex flex-col justify-center min-w-0 flex-1 text-left">
                     <span className="text-[10px] font-bold text-[#66716c] uppercase tracking-wider leading-none mb-0.5 truncate">
                       Thành phố &amp; Khu vực
@@ -1111,8 +1111,8 @@ export default function SearchHub() {
                   onClick={() => setActiveTab(activeTab === 'attractions' ? null : 'attractions')}
                   className={`bg-white rounded-lg shadow-2xs border-2 px-3 h-[48px] flex items-center gap-2.5 cursor-pointer transition-all ${
                     activeTab === 'attractions' 
-                      ? 'border-[#048c73] ring-2 ring-[#048c73]/20 bg-[#edfbf7]/30' 
-                      : 'border-slate-200 hover:border-[#048c73]'
+                      ? 'border-[#10b981] ring-2 ring-[#10b981]/20 bg-[#edfbf7]/30' 
+                      : 'border-slate-200 hover:border-[#10b981]'
                   }`}
                 >
                   <Sparkles className="text-[#f59e0b] w-4.5 h-4.5 shrink-0" />
@@ -1140,11 +1140,11 @@ export default function SearchHub() {
                   onClick={() => setActiveTab(activeTab === 'dates' ? null : 'dates')}
                   className={`bg-white rounded-lg shadow-2xs border-2 px-3 h-[48px] flex items-center gap-2.5 cursor-pointer transition-all ${
                     activeTab === 'dates' 
-                      ? 'border-[#048c73] ring-2 ring-[#048c73]/20 bg-[#edfbf7]/30' 
-                      : 'border-slate-200 hover:border-[#048c73]'
+                      ? 'border-[#10b981] ring-2 ring-[#10b981]/20 bg-[#edfbf7]/30' 
+                      : 'border-slate-200 hover:border-[#10b981]'
                   }`}
                 >
-                  <Calendar className="text-[#048c73] w-4.5 h-4.5 shrink-0" />
+                  <Calendar className="text-[#10b981] w-4.5 h-4.5 shrink-0" />
                   <div className="flex flex-col justify-center min-w-0 flex-1 text-left">
                     <span className="text-[10px] font-bold text-[#66716c] uppercase tracking-wider leading-none mb-0.5 truncate">
                       Nhận - Trả phòng
@@ -1160,7 +1160,7 @@ export default function SearchHub() {
               {/* Nút Tìm kiếm */}
               <Button 
                 onClick={handleSearch}
-                className="h-[48px] px-7 bg-[#048c73] hover:bg-[#03725e] text-white font-bold rounded-lg border-2 border-[#025a4a] shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all active:scale-95 flex items-center gap-2 text-sm cursor-pointer shrink-0"
+                className="h-[48px] px-7 bg-[#10b981] hover:bg-[#03725e] text-white font-bold rounded-lg border-2 border-[#059669] shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all active:scale-95 flex items-center gap-2 text-sm cursor-pointer shrink-0"
               >
                 <Search className="w-4.5 h-4.5 text-[#7ef2dd]" strokeWidth={2.5} />
                 <span>Tìm kiếm</span>
@@ -1190,11 +1190,11 @@ export default function SearchHub() {
                 onClick={() => setActiveTab('location')}
                 className={`py-2 px-2 text-xs sm:text-sm font-bold rounded transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center truncate ${
                   activeTab === 'location' 
-                    ? 'bg-white text-[#048c73] shadow-xs' 
+                    ? 'bg-white text-[#10b981] shadow-xs' 
                     : 'text-gray-600 hover:text-gray-900 hover:bg-white/60'
                 }`}
               >
-                <MapPin className="w-4 h-4 text-[#048c73] shrink-0" />
+                <MapPin className="w-4 h-4 text-[#10b981] shrink-0" />
                 <span className="truncate">1. Điểm đến</span>
               </button>
 
@@ -1203,7 +1203,7 @@ export default function SearchHub() {
                 onClick={() => setActiveTab('attractions')}
                 className={`py-2 px-2 text-xs sm:text-sm font-bold rounded transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center truncate ${
                   activeTab === 'attractions' 
-                    ? 'bg-white text-[#048c73] shadow-xs' 
+                    ? 'bg-white text-[#10b981] shadow-xs' 
                     : 'text-gray-600 hover:text-gray-900 hover:bg-white/60'
                 }`}
               >
@@ -1221,11 +1221,11 @@ export default function SearchHub() {
                 onClick={() => setActiveTab('dates')}
                 className={`py-2 px-2 text-xs sm:text-sm font-bold rounded transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center truncate ${
                   activeTab === 'dates' 
-                    ? 'bg-white text-[#048c73] shadow-xs' 
+                    ? 'bg-white text-[#10b981] shadow-xs' 
                     : 'text-gray-600 hover:text-gray-900 hover:bg-white/60'
                 }`}
               >
-                <Calendar className="w-4 h-4 text-[#048c73] shrink-0" />
+                <Calendar className="w-4 h-4 text-[#10b981] shrink-0" />
                 <span className="truncate">3. Ngày đi</span>
               </button>
             </div>
@@ -1251,7 +1251,7 @@ export default function SearchHub() {
                 onClick={goPrev}
                 disabled={activeTab === 'location'}
                 title="Quay lại"
-                className="w-7 h-7 rounded-md border border-gray-200 flex items-center justify-center text-gray-500 hover:border-[#048c73] hover:text-[#048c73] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                className="w-7 h-7 rounded-md border border-gray-200 flex items-center justify-center text-gray-500 hover:border-[#10b981] hover:text-[#10b981] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
@@ -1260,7 +1260,7 @@ export default function SearchHub() {
                 type="button"
                 onClick={goNext}
                 title={activeTab === 'dates' ? 'Hoàn tất' : 'Tiếp theo'}
-                className="w-7 h-7 rounded-md border border-[#048c73] bg-[#048c73] flex items-center justify-center text-white hover:bg-[#03725e] transition-colors cursor-pointer shadow-xs"
+                className="w-7 h-7 rounded-md border border-[#10b981] bg-[#10b981] flex items-center justify-center text-white hover:bg-[#03725e] transition-colors cursor-pointer shadow-xs"
               >
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
@@ -1282,7 +1282,7 @@ export default function SearchHub() {
                     placeholder="Tìm tỉnh, TP..."
                     value={provinceSearch}
                     onChange={(e) => setProvinceSearch(e.target.value)}
-                    className="w-full pl-8 pr-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-md outline-none focus:border-[#048c73] focus:bg-white text-gray-800"
+                    className="w-full pl-8 pr-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-md outline-none focus:border-[#10b981] focus:bg-white text-gray-800"
                     autoFocus
                   />
                 </div>
@@ -1301,8 +1301,8 @@ export default function SearchHub() {
                         }}
                         className={`p-2 rounded-md text-sm font-bold border transition-all text-left flex items-center justify-between cursor-pointer ${
                           isSelected
-                            ? 'bg-[#edfbf7] border-[#048c73] text-[#048c73] shadow-xs'
-                            : 'bg-white border-gray-200 text-gray-800 hover:border-[#048c73] hover:bg-gray-50'
+                            ? 'bg-[#edfbf7] border-[#10b981] text-[#10b981] shadow-xs'
+                            : 'bg-white border-gray-200 text-gray-800 hover:border-[#10b981] hover:bg-gray-50'
                         }`}
                       >
                         <div className="flex flex-col truncate">
@@ -1311,7 +1311,7 @@ export default function SearchHub() {
                             {districtCount > 0 ? `${districtCount} quận/huyện` : 'Toàn tỉnh'}
                           </span>
                         </div>
-                        {isSelected && <Check className="w-3.5 h-3.5 text-[#048c73] shrink-0" />}
+                        {isSelected && <Check className="w-3.5 h-3.5 text-[#10b981] shrink-0" />}
                       </button>
                     );
                   })}
@@ -1322,14 +1322,14 @@ export default function SearchHub() {
               <div className="flex flex-col gap-2 flex-1">
                 <div className="flex items-center justify-between pb-1 border-b border-gray-100">
                   <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">
-                    2. Khu vực tại <span className="text-[#048c73]">{selectedProvince}</span>
+                    2. Khu vực tại <span className="text-[#10b981]">{selectedProvince}</span>
                   </span>
                   <button
                     onClick={() => { setSelectedDistrict(null); handleSelectWard(null); }}
                     className={`px-2.5 py-1 text-xs font-bold rounded-md border transition-all cursor-pointer ${
                       selectedDistrict === null && selectedWard === null
-                        ? 'bg-[#048c73] text-white border-[#048c73] shadow-xs'
-                        : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-[#edfbf7] hover:border-[#048c73]'
+                        ? 'bg-[#10b981] text-white border-[#10b981] shadow-xs'
+                        : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-[#edfbf7] hover:border-[#10b981]'
                     }`}
                   >
                     ✓ Toàn tỉnh {selectedProvince}
@@ -1347,7 +1347,7 @@ export default function SearchHub() {
                         placeholder="Tìm huyện..."
                         value={districtSearch}
                         onChange={(e) => setDistrictSearch(e.target.value)}
-                        className="w-full pl-7 pr-2 py-1 text-xs bg-gray-50 border border-gray-200 rounded-md outline-none focus:border-[#048c73] focus:bg-white"
+                        className="w-full pl-7 pr-2 py-1 text-xs bg-gray-50 border border-gray-200 rounded-md outline-none focus:border-[#10b981] focus:bg-white"
                       />
                     </div>
                     <div className="flex flex-col gap-1 max-h-[190px] overflow-y-auto pr-1">
@@ -1355,8 +1355,8 @@ export default function SearchHub() {
                         onClick={() => { setSelectedDistrict(null); setSelectedWard(null); }}
                         className={`p-1.5 rounded-md text-xs font-semibold border transition-all text-left flex items-center justify-between cursor-pointer ${
                           selectedDistrict === null
-                            ? 'bg-[#048c73] text-white border-[#048c73] font-bold shadow-xs'
-                            : 'bg-white border-gray-200 text-gray-700 hover:border-[#048c73] hover:bg-[#edfbf7]'
+                            ? 'bg-[#10b981] text-white border-[#10b981] font-bold shadow-xs'
+                            : 'bg-white border-gray-200 text-gray-700 hover:border-[#10b981] hover:bg-[#edfbf7]'
                         }`}
                       >
                         <span>Tất cả quận/huyện</span>
@@ -1370,8 +1370,8 @@ export default function SearchHub() {
                             onClick={() => { setSelectedDistrict(d.name); setSelectedWard(null); }}
                             className={`p-1.5 rounded-md text-xs border transition-all text-left flex items-center justify-between cursor-pointer ${
                               isSelected
-                                ? 'bg-[#048c73] text-white border-[#048c73] font-bold shadow-xs'
-                                : 'bg-white border-gray-200 text-gray-700 hover:border-[#048c73] hover:bg-[#edfbf7]'
+                                ? 'bg-[#10b981] text-white border-[#10b981] font-bold shadow-xs'
+                                : 'bg-white border-gray-200 text-gray-700 hover:border-[#10b981] hover:bg-[#edfbf7]'
                             }`}
                           >
                             <span className="truncate">{d.name}</span>
@@ -1394,7 +1394,7 @@ export default function SearchHub() {
                         placeholder={selectedDistrict ? 'Tìm xã...' : 'Tìm xã toàn tỉnh...'}
                         value={wardSearch}
                         onChange={(e) => setWardSearch(e.target.value)}
-                        className="w-full pl-7 pr-2 py-1 text-xs bg-gray-50 border border-gray-200 rounded-md outline-none focus:border-[#048c73] focus:bg-white"
+                        className="w-full pl-7 pr-2 py-1 text-xs bg-gray-50 border border-gray-200 rounded-md outline-none focus:border-[#10b981] focus:bg-white"
                       />
                     </div>
                     <div className="flex flex-col gap-1 max-h-[190px] overflow-y-auto pr-1">
@@ -1402,8 +1402,8 @@ export default function SearchHub() {
                         onClick={() => handleSelectWard(null)}
                         className={`p-1.5 rounded-md text-xs font-semibold border transition-all text-left flex items-center justify-between cursor-pointer ${
                           selectedWard === null
-                            ? 'bg-[#048c73] text-white border-[#048c73] shadow-xs'
-                            : 'bg-white border-gray-200 text-gray-700 hover:border-[#048c73] hover:bg-[#edfbf7]'
+                            ? 'bg-[#10b981] text-white border-[#10b981] shadow-xs'
+                            : 'bg-white border-gray-200 text-gray-700 hover:border-[#10b981] hover:bg-[#edfbf7]'
                         }`}
                       >
                         <span>Tất cả xã/phường</span>
@@ -1417,8 +1417,8 @@ export default function SearchHub() {
                             onClick={() => handleSelectWard(w.name)}
                             className={`p-1.5 rounded-md text-xs border transition-all text-left flex items-center justify-between cursor-pointer ${
                               isSelected
-                                ? 'bg-[#048c73] text-white border-[#048c73] font-bold shadow-xs'
-                                : 'bg-white border-gray-200 text-gray-700 hover:border-[#048c73] hover:bg-[#edfbf7]'
+                                ? 'bg-[#10b981] text-white border-[#10b981] font-bold shadow-xs'
+                                : 'bg-white border-gray-200 text-gray-700 hover:border-[#10b981] hover:bg-[#edfbf7]'
                             }`}
                           >
                             <span className="truncate">{w.name}</span>
@@ -1434,7 +1434,7 @@ export default function SearchHub() {
                   <button
                     type="button"
                     onClick={goNext}
-                    className="flex items-center gap-1 text-xs font-bold text-[#048c73] hover:text-[#03725e] cursor-pointer transition-colors"
+                    className="flex items-center gap-1 text-xs font-bold text-[#10b981] hover:text-[#03725e] cursor-pointer transition-colors"
                   >
                     Tiếp: Vui chơi
                     <ChevronRight className="w-3.5 h-3.5" />
@@ -1455,17 +1455,17 @@ export default function SearchHub() {
                     placeholder="Tìm địa điểm vui chơi, tham quan..."
                     value={attractionSearch}
                     onChange={(e) => setAttractionSearch(e.target.value)}
-                    className="w-full pl-8 pr-3 py-1.5 text-base bg-gray-50 border border-gray-200 rounded-md outline-none focus:border-[#048c73] focus:bg-white text-gray-800"
+                    className="w-full pl-8 pr-3 py-1.5 text-base bg-gray-50 border border-gray-200 rounded-md outline-none focus:border-[#10b981] focus:bg-white text-gray-800"
                     autoFocus
                   />
                 </div>
                 <span className="text-xs text-gray-500 shrink-0">
-                  Đã chọn: <strong className="text-[#048c73]">{selectedAttractions.length}</strong> điểm
+                  Đã chọn: <strong className="text-[#10b981]">{selectedAttractions.length}</strong> điểm
                 </span>
               </div>
 
               {isLoadingAttractions ? (
-                <div className="flex items-center justify-center p-8 text-base text-[#048c73] font-bold gap-2">
+                <div className="flex items-center justify-center p-8 text-base text-[#10b981] font-bold gap-2">
                   <div className="w-4 h-4 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin"></div>
                   <span>Đang tải danh sách địa điểm vui chơi...</span>
                 </div>
@@ -1493,14 +1493,14 @@ export default function SearchHub() {
                         onClick={() => toggleAttraction(att)}
                         className={`p-2 rounded-md border text-base font-semibold cursor-pointer transition-all flex items-center justify-between gap-2 ${
                           isChecked
-                            ? 'border-[#048c73] bg-[#edfbf7] text-[#048c73]'
+                            ? 'border-[#10b981] bg-[#edfbf7] text-[#10b981]'
                             : isSeasonal
-                              ? 'border-[#048c73]/30 bg-[#f4faf7] text-gray-800 hover:border-[#048c73] hover:bg-[#edfbf7]'
+                              ? 'border-[#10b981]/30 bg-[#f4faf7] text-gray-800 hover:border-[#10b981] hover:bg-[#edfbf7]'
                               : 'border-gray-200 bg-white text-gray-800 hover:border-gray-300 hover:bg-gray-50'
                         }`}
                       >
                         <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <Sparkles className={`w-3.5 h-3.5 shrink-0 ${isChecked ? 'text-[#048c73]' : isSeasonal ? 'text-amber-500 fill-amber-400' : 'text-gray-400'}`} />
+                          <Sparkles className={`w-3.5 h-3.5 shrink-0 ${isChecked ? 'text-[#10b981]' : isSeasonal ? 'text-amber-500 fill-amber-400' : 'text-gray-400'}`} />
                           <div className="flex flex-col truncate min-w-0">
                             <div className="flex items-center gap-1.5 truncate">
                               <span className="font-bold truncate">{att.name}</span>
@@ -1513,7 +1513,7 @@ export default function SearchHub() {
                             <div className="flex items-center gap-2 text-xs text-gray-500 truncate">
                               <span className="truncate">{att.regionName || att.address || 'Điểm vui chơi'}</span>
                               {(startFmt || endFmt) && (
-                                <span className="shrink-0 text-[#048c73] font-semibold bg-white/80 px-1 rounded-xs border border-[#048c73]/20">
+                                <span className="shrink-0 text-[#10b981] font-semibold bg-white/80 px-1 rounded-xs border border-[#10b981]/20">
                                   {startFmt && endFmt ? `${startFmt} - ${endFmt}` : (endFmt ? `Đến ${endFmt}` : 'Đang vào mùa')}
                                 </span>
                               )}
@@ -1521,7 +1521,7 @@ export default function SearchHub() {
                           </div>
                         </div>
                         <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
-                          isChecked ? 'bg-[#048c73] border-[#048c73] text-white' : 'border-gray-300 bg-white'
+                          isChecked ? 'bg-[#10b981] border-[#10b981] text-white' : 'border-gray-300 bg-white'
                         }`}>
                           {isChecked && <Check className="w-3 h-3" />}
                         </div>
@@ -1540,7 +1540,7 @@ export default function SearchHub() {
                 <button
                   type="button"
                   onClick={goNext}
-                  className="flex items-center gap-1.5 text-xs font-bold text-[#048c73] hover:text-[#03725e] cursor-pointer transition-colors"
+                  className="flex items-center gap-1.5 text-xs font-bold text-[#10b981] hover:text-[#03725e] cursor-pointer transition-colors"
                 >
                   Tiếp: Chọn ngày
                   <ChevronRight className="w-3.5 h-3.5" />
@@ -1560,7 +1560,7 @@ export default function SearchHub() {
                     : 'Chọn ngày nhận và trả phòng.'}
                 </span>
                 <Button
-                  className="bg-[#048c73] hover:bg-[#03725e] text-white text-sm font-bold px-5 py-1.5 h-auto rounded-md border-2 border-[#025a4a] cursor-pointer flex items-center gap-1.5"
+                  className="bg-[#10b981] hover:bg-[#03725e] text-white text-sm font-bold px-5 py-1.5 h-auto rounded-md border-2 border-[#059669] cursor-pointer flex items-center gap-1.5"
                   onClick={handleSearch}
                 >
                   <Search className="w-3.5 h-3.5 text-[#7ef2dd]" />
@@ -1599,7 +1599,7 @@ export default function SearchHub() {
               <button
                 onClick={() => setActiveTab('location')}
                 className={`py-1.5 text-xs font-bold rounded text-center transition-all truncate ${
-                  activeTab === 'location' ? 'bg-white text-[#048c73] shadow-xs' : 'text-gray-600'
+                  activeTab === 'location' ? 'bg-white text-[#10b981] shadow-xs' : 'text-gray-600'
                 }`}
               >
                 1. Điểm đến
@@ -1607,7 +1607,7 @@ export default function SearchHub() {
               <button
                 onClick={() => setActiveTab('attractions')}
                 className={`py-1.5 text-xs font-bold rounded text-center transition-all truncate ${
-                  activeTab === 'attractions' ? 'bg-white text-[#048c73] shadow-xs' : 'text-gray-600'
+                  activeTab === 'attractions' ? 'bg-white text-[#10b981] shadow-xs' : 'text-gray-600'
                 }`}
               >
                 2. Vui chơi
@@ -1615,7 +1615,7 @@ export default function SearchHub() {
               <button
                 onClick={() => setActiveTab('dates')}
                 className={`py-1.5 text-xs font-bold rounded text-center transition-all truncate ${
-                  activeTab === 'dates' ? 'bg-white text-[#048c73] shadow-xs' : 'text-gray-600'
+                  activeTab === 'dates' ? 'bg-white text-[#10b981] shadow-xs' : 'text-gray-600'
                 }`}
               >
                 3. Ngày đi
@@ -1631,7 +1631,7 @@ export default function SearchHub() {
                     <button
                       onClick={() => setLocationMobileStep('province')}
                       className={`flex-1 py-1.5 text-xs font-bold rounded border-2 transition-all ${
-                        locationMobileStep === 'province' ? 'bg-[#048c73] text-white border-[#025a4a]' : 'bg-white text-gray-600 border-gray-200'
+                        locationMobileStep === 'province' ? 'bg-[#10b981] text-white border-[#059669]' : 'bg-white text-gray-600 border-gray-200'
                       }`}
                     >
                       1. Tỉnh/TP: {selectedProvince}
@@ -1639,7 +1639,7 @@ export default function SearchHub() {
                     <button
                       onClick={() => setLocationMobileStep('area')}
                       className={`flex-1 py-1.5 text-xs font-bold rounded border-2 transition-all ${
-                        locationMobileStep === 'area' ? 'bg-[#048c73] text-white border-[#025a4a]' : 'bg-white text-gray-600 border-gray-200'
+                        locationMobileStep === 'area' ? 'bg-[#10b981] text-white border-[#059669]' : 'bg-white text-gray-600 border-gray-200'
                       }`}
                     >
                       2. Huyện/Xã
@@ -1666,7 +1666,7 @@ export default function SearchHub() {
                               setLocationMobileStep('area');
                             }}
                             className={`p-2.5 rounded-md text-base font-bold border text-left cursor-pointer ${
-                              selectedProvince === p.province ? 'bg-[#edfbf7] border-[#048c73] text-[#048c73]' : 'bg-white border-gray-200'
+                              selectedProvince === p.province ? 'bg-[#edfbf7] border-[#10b981] text-[#10b981]' : 'bg-white border-gray-200'
                             }`}
                           >
                             {p.province}
@@ -1686,7 +1686,7 @@ export default function SearchHub() {
                             handleSelectWard(null);
                           }}
                           className={`px-2 py-1 text-xs font-bold rounded border ${
-                            selectedDistrict === null && selectedWard === null ? 'bg-[#048c73] text-white border-[#048c73]' : 'bg-white text-gray-700 border-gray-200'
+                            selectedDistrict === null && selectedWard === null ? 'bg-[#10b981] text-white border-[#10b981]' : 'bg-white text-gray-700 border-gray-200'
                           }`}
                         >
                           Toàn tỉnh
@@ -1705,7 +1705,7 @@ export default function SearchHub() {
                         <button
                           onClick={() => { setSelectedDistrict(null); setSelectedWard(null); }}
                           className={`p-2 rounded-md text-xs font-bold border text-left flex justify-between items-center cursor-pointer ${
-                            selectedDistrict === null ? 'bg-[#048c73] text-white border-[#048c73]' : 'bg-white border-gray-200'
+                            selectedDistrict === null ? 'bg-[#10b981] text-white border-[#10b981]' : 'bg-white border-gray-200'
                           }`}
                         >
                           <span>Tất cả quận/huyện</span>
@@ -1716,7 +1716,7 @@ export default function SearchHub() {
                             key={d.name}
                             onClick={() => { setSelectedDistrict(d.name); setSelectedWard(null); }}
                             className={`p-2 rounded-md text-xs font-bold border text-left flex justify-between items-center cursor-pointer ${
-                              selectedDistrict === d.name ? 'bg-[#048c73] text-white border-[#048c73]' : 'bg-white border-gray-200'
+                              selectedDistrict === d.name ? 'bg-[#10b981] text-white border-[#10b981]' : 'bg-white border-gray-200'
                             }`}
                           >
                             <span className="truncate">{d.name}</span>
@@ -1741,7 +1741,7 @@ export default function SearchHub() {
                           <button
                             onClick={() => handleSelectWard(null)}
                             className={`p-2 rounded-md text-xs font-bold border text-left flex justify-between items-center cursor-pointer ${
-                              selectedWard === null ? 'bg-[#048c73] text-white border-[#048c73]' : 'bg-white border-gray-200'
+                              selectedWard === null ? 'bg-[#10b981] text-white border-[#10b981]' : 'bg-white border-gray-200'
                             }`}
                           >
                             <span>Tất cả</span>
@@ -1752,7 +1752,7 @@ export default function SearchHub() {
                               key={w.name}
                               onClick={() => handleSelectWard(w.name)}
                               className={`p-2 rounded-md text-xs font-bold border text-left flex justify-between items-center cursor-pointer ${
-                                selectedWard === w.name ? 'bg-[#048c73] text-white border-[#048c73]' : 'bg-white border-gray-200'
+                                selectedWard === w.name ? 'bg-[#10b981] text-white border-[#10b981]' : 'bg-white border-gray-200'
                               }`}
                             >
                               <span className="truncate">{w.name}</span>
@@ -1784,7 +1784,7 @@ export default function SearchHub() {
                           key={att.id}
                           onClick={() => toggleAttraction(att)}
                           className={`p-2.5 rounded-md border text-base font-bold flex justify-between items-center cursor-pointer ${
-                            isChecked ? 'bg-[#edfbf7] border-[#048c73] text-[#048c73]' : 'bg-white border-gray-200'
+                            isChecked ? 'bg-[#edfbf7] border-[#10b981] text-[#10b981]' : 'bg-white border-gray-200'
                           }`}
                         >
                           <div className="flex items-center gap-2">
@@ -1792,7 +1792,7 @@ export default function SearchHub() {
                             <span>{att.name}</span>
                           </div>
                           <div className={`w-4 h-4 rounded border flex items-center justify-center ${
-                            isChecked ? 'bg-[#048c73] border-[#048c73] text-white' : 'border-gray-300'
+                            isChecked ? 'bg-[#10b981] border-[#10b981] text-white' : 'border-gray-300'
                           }`}>
                             {isChecked && <Check className="w-3.5 h-3.5 text-white" />}
                           </div>
@@ -1822,14 +1822,14 @@ export default function SearchHub() {
                   type="button"
                   onClick={(e) => { e.stopPropagation(); goPrev(); }}
                   disabled={activeTab === 'location'}
-                  className="w-8 h-8 rounded-md border border-gray-200 flex items-center justify-center text-gray-500 hover:border-[#048c73] hover:text-[#048c73] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                  className="w-8 h-8 rounded-md border border-gray-200 flex items-center justify-center text-gray-500 hover:border-[#10b981] hover:text-[#10b981] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
                 {/* Next arrow or Search on last tab */}
                 {activeTab === 'dates' ? (
                   <Button
-                    className="bg-[#048c73] hover:bg-[#03725e] text-white text-xs font-bold px-4 py-1.5 h-8 rounded-md border-2 border-[#025a4a] shadow-xs active:scale-95 flex items-center gap-1.5 cursor-pointer"
+                    className="bg-[#10b981] hover:bg-[#03725e] text-white text-xs font-bold px-4 py-1.5 h-8 rounded-md border-2 border-[#059669] shadow-xs active:scale-95 flex items-center gap-1.5 cursor-pointer"
                     onClick={handleSearch}
                   >
                     <Search className="w-3.5 h-3.5 text-[#7ef2dd]" />
@@ -1839,7 +1839,7 @@ export default function SearchHub() {
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); goNext(); }}
-                    className="w-8 h-8 rounded-md border border-[#048c73] bg-[#048c73] flex items-center justify-center text-white hover:bg-[#03725e] transition-colors cursor-pointer shadow-xs"
+                    className="w-8 h-8 rounded-md border border-[#10b981] bg-[#10b981] flex items-center justify-center text-white hover:bg-[#03725e] transition-colors cursor-pointer shadow-xs"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>

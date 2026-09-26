@@ -64,7 +64,7 @@ export const HeroPwaDownloadBanner: React.FC<HeroPwaDownloadBannerProps> = ({ cl
         >
           {/* Logo Đi Du Lịch đồng nhất chuẩn với web */}
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-white border border-[#048C73]/20 flex items-center justify-center shrink-0 shadow-2xs transition-transform group-hover:scale-105 p-1">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-white border border-[#10b981]/20 flex items-center justify-center shrink-0 shadow-2xs transition-transform group-hover:scale-105 p-1">
               <VietTrackLogoMark size={32} />
             </div>
 
@@ -85,7 +85,7 @@ export const HeroPwaDownloadBanner: React.FC<HeroPwaDownloadBannerProps> = ({ cl
               type="button"
               onClick={handleAction}
               disabled={isInstalling}
-              className="px-4 py-1.5 rounded-lg text-xs sm:text-[13px] font-bold text-white bg-[#048C73] hover:bg-[#03735E] border-2 border-[#025a4a] active:scale-95 transition-all shadow-xs hover:shadow-sm cursor-pointer disabled:opacity-70"
+              className="px-4 py-1.5 rounded-lg text-xs sm:text-[13px] font-bold text-white bg-[#10b981] hover:bg-[#03735E] border-2 border-[#059669] active:scale-95 transition-all shadow-xs hover:shadow-sm cursor-pointer disabled:opacity-70"
             >
               {isInstalling ? 'Đang cài...' : 'Cài đặt'}
             </button>

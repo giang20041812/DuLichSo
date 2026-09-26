@@ -105,25 +105,6 @@ public class NotificationServiceImpl implements NotificationService {
             return Collections.emptyList();
         }
 
-        // Tự động kiểm tra và đồng bộ các booking đã có trạng thái CONFIRMED, REJECTED, REFUNDED
-        try {
-            List<Booking> myBookings = bookingRepository.findByGuestEmailOrPhone(safeEmail, safePhone);
-            for (Booking b : myBookings) {
-                if (b.getStatus() == BookingStatus.CONFIRMED || b.getStatus() == BookingStatus.REJECTED || b.getStatus() == BookingStatus.REFUNDED) {
-                    List<Notification> existingList = notificationRepository.findByRelatedEntityTypeAndRelatedEntityId("booking", b.getId());
-                    boolean alreadyNotified = existingList.stream().anyMatch(n -> {
-                        Object s = n.getPayload() != null ? n.getPayload().get("bookingStatus") : null;
-                        return b.getStatus().name().equals(s);
-                    });
-                    if (!alreadyNotified) {
-                        notifyBookingStatusChange(b, b.getStatus(), b.getCloseReason());
-                    }
-                }
-            }
-        } catch (Exception ex) {
-            log.warn("Lỗi khi đồng bộ booking sang notification: {}", ex.getMessage());
-        }
-
         List<Notification> list = notificationRepository.findNotificationsForCustomer(safeEmail, safePhone, accountId);
         List<NotificationDto> result = new ArrayList<>();
         for (Notification n : list) {

@@ -64,16 +64,16 @@ export default function DesignSystemPage() {
         
         <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-12">
           <div className="bg-white rounded-lg shadow-sm border border-[#59766e]/15 overflow-hidden flex flex-col h-[280px]">
-            <div className="bg-[#048c73] h-32 p-4 text-white flex flex-col justify-end">
+            <div className="bg-[#10b981] h-32 p-4 text-white flex flex-col justify-end">
               <div className="text-xs font-semibold opacity-80 uppercase tracking-widest">Primary</div>
-              <div className="text-2xl font-bold">#048C73</div>
+              <div className="text-2xl font-bold">#10b981</div>
             </div>
             <div className="p-4 flex flex-col flex-1">
               <div className="font-bold text-[#0a2e26] mb-1">Deep Teal</div>
               <div className="text-xs text-[#59766e] mb-auto">bg-primary</div>
               <div className="flex justify-between items-center bg-[#edfbf7] rounded p-2 text-xs font-medium">
                 <span className="text-[#59766e]">Tương phản</span>
-                <span className="text-[#048c73] font-bold">AA (4.6:1)</span>
+                <span className="text-[#10b981] font-bold">AA (4.6:1)</span>
               </div>
             </div>
           </div>

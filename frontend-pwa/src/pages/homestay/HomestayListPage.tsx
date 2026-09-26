@@ -450,7 +450,7 @@ export default function HomestayListPage() {
               <button
                 onClick={() => setShowMap(!showMap)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-xs md:text-sm font-semibold rounded-md border transition-all shadow-2xs active:scale-98 cursor-pointer ${showMap
-                    ? 'border-[#048c73] bg-[#048c73] text-white'
+                    ? 'border-[#10b981] bg-[#10b981] text-white'
                     : 'border-[var(--color-primary)] bg-[var(--color-primary-50)] text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-white'
                   }`}
                 title="Bật/Tắt chế độ xem bản đồ VietMap"
@@ -711,7 +711,7 @@ export default function HomestayListPage() {
             {showMap && (
               <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-xs mb-2 animate-in fade-in duration-300">
                 <div className="px-4 py-2.5 bg-[#edfbf7] border-b border-gray-200 flex items-center justify-between">
-                  <span className="text-xs font-bold text-[#048c73] flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-[#10b981] flex items-center gap-1.5">
                     <MapPin className="w-3.5 h-3.5" /> Bản đồ vị trí homestay (Nguồn: VietMap)
                   </span>
                   <button
@@ -825,7 +825,7 @@ export default function HomestayListPage() {
                                 <button
                                   type="button"
                                   onClick={() => setShowMap(true)}
-                                  className="hover:underline flex items-center gap-1 truncate text-[#048c73] cursor-pointer"
+                                  className="hover:underline flex items-center gap-1 truncate text-[#10b981] cursor-pointer"
                                   title="Xem vị trí trên bản đồ VietMap"
                                 >
                                   <MapPin className="w-3.5 h-3.5 shrink-0" />
@@ -906,7 +906,7 @@ export default function HomestayListPage() {
                               </div>
 
                               <Link to={`/homestays/${hs.id}`} className="shrink-0">
-                                <Button variant="primary" className="rounded-lg font-bold h-8.5 px-4 text-xs bg-[#048c73] hover:bg-[#03725e] shadow-xs hover:shadow-sm active:scale-95 transition-all">
+                                <Button variant="primary" className="rounded-lg font-bold h-8.5 px-4 text-xs bg-[#10b981] hover:bg-[#03725e] shadow-xs hover:shadow-sm active:scale-95 transition-all">
                                   Xem chỗ trống
                                 </Button>
                               </Link>

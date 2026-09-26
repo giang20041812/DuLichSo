@@ -386,7 +386,7 @@ export default function PlaceDetailPage() {
             </p>
 
             {place.suitableDateStart && place.suitableDateEnd && (
-              <div className="p-3.5 bg-[#edfbf7] rounded-md border border-[#048c73]/20 text-xs md:text-sm text-[#048c73] flex items-center justify-between font-semibold">
+              <div className="p-3.5 bg-[#edfbf7] rounded-md border border-[#10b981]/20 text-xs md:text-sm text-[#10b981] flex items-center justify-between font-semibold">
                 <span className="flex items-center gap-2">
                   <Flame className="w-4 h-4 text-[var(--color-coral)]" />
                   Thời điểm tham quan đẹp nhất trong năm:

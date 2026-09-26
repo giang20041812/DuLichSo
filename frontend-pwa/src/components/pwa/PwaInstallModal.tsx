@@ -94,7 +94,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
 
         {/* App Identity row - Logo chuẩn đồng bộ với web */}
         <div className="px-6 py-4 flex items-center gap-3.5">
-          <div className="w-13 h-13 rounded-xl bg-white border border-[#048C73]/25 flex items-center justify-center shrink-0 shadow-sm p-1.5">
+          <div className="w-13 h-13 rounded-xl bg-white border border-[#10b981]/25 flex items-center justify-center shrink-0 shadow-sm p-1.5">
             <VietTrackLogoMark size={38} />
           </div>
           <div className="min-w-0 flex-1">
@@ -121,7 +121,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
             type="button"
             onClick={handleInstallClick}
             disabled={isInstalling}
-            className="px-5 py-2 rounded-lg text-xs font-bold text-white bg-[#048C73] hover:bg-[#03735E] border-2 border-[#025a4a] active:scale-95 transition-all shadow-xs hover:shadow-sm cursor-pointer disabled:opacity-70"
+            className="px-5 py-2 rounded-lg text-xs font-bold text-white bg-[#10b981] hover:bg-[#03735E] border-2 border-[#059669] active:scale-95 transition-all shadow-xs hover:shadow-sm cursor-pointer disabled:opacity-70"
           >
             {isInstalling ? 'Đang cài...' : canInstall ? 'Cài đặt' : 'Xem cách cài'}
           </button>
@@ -151,7 +151,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                     onClick={() => setActiveTab('quick')}
                     className={`pb-2 px-2 text-xs font-bold border-b-2 transition-colors cursor-pointer ${
                       activeTab === 'quick'
-                        ? 'border-[#048C73] text-[#048C73]'
+                        ? 'border-[#10b981] text-[#10b981]'
                         : 'border-transparent text-gray-500 hover:text-gray-800'
                     }`}
                   >
@@ -162,7 +162,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                     onClick={() => setActiveTab('ios')}
                     className={`pb-2 px-2 text-xs font-bold border-b-2 transition-colors cursor-pointer flex items-center gap-1 ${
                       activeTab === 'ios' || (isIos && activeTab === 'quick')
-                        ? 'border-[#048C73] text-[#048C73]'
+                        ? 'border-[#10b981] text-[#10b981]'
                         : 'border-transparent text-gray-500 hover:text-gray-800'
                     }`}
                   >
@@ -174,7 +174,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                     onClick={() => setActiveTab('android')}
                     className={`pb-2 px-2 text-xs font-bold border-b-2 transition-colors cursor-pointer flex items-center gap-1 ${
                       activeTab === 'android'
-                        ? 'border-[#048C73] text-[#048C73]'
+                        ? 'border-[#10b981] text-[#10b981]'
                         : 'border-transparent text-gray-500 hover:text-gray-800'
                     }`}
                   >
@@ -186,7 +186,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                     onClick={() => setActiveTab('desktop')}
                     className={`pb-2 px-2 text-xs font-bold border-b-2 transition-colors cursor-pointer flex items-center gap-1 ${
                       activeTab === 'desktop'
-                        ? 'border-[#048C73] text-[#048C73]'
+                        ? 'border-[#10b981] text-[#10b981]'
                         : 'border-transparent text-gray-500 hover:text-gray-800'
                     }`}
                   >
@@ -200,7 +200,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
               {activeTab === 'quick' && (
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-2.5">
-                    <div className="p-3 rounded-md bg-[#F6FAF8] border border-[#048C73]/15">
+                    <div className="p-3 rounded-md bg-[#F6FAF8] border border-[#10b981]/15">
                       <div className="flex items-center gap-1.5 text-xs font-bold text-gray-900 mb-1">
                         <Zap className="w-4 h-4 text-[#F59E0B]" />
                         <span>Mở tức thì</span>
@@ -210,9 +210,9 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                       </p>
                     </div>
 
-                    <div className="p-3 rounded-md bg-[#F6FAF8] border border-[#048C73]/15">
+                    <div className="p-3 rounded-md bg-[#F6FAF8] border border-[#10b981]/15">
                       <div className="flex items-center gap-1.5 text-xs font-bold text-gray-900 mb-1">
-                        <Smartphone className="w-4 h-4 text-[#048C73]" />
+                        <Smartphone className="w-4 h-4 text-[#10b981]" />
                         <span>Toàn màn hình</span>
                       </div>
                       <p className="text-[11px] text-gray-600 leading-snug">
@@ -220,7 +220,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                       </p>
                     </div>
 
-                    <div className="p-3 rounded-md bg-[#F6FAF8] border border-[#048C73]/15">
+                    <div className="p-3 rounded-md bg-[#F6FAF8] border border-[#10b981]/15">
                       <div className="flex items-center gap-1.5 text-xs font-bold text-gray-900 mb-1">
                         <BellRing className="w-4 h-4 text-[#EA580C]" />
                         <span>Thông báo phòng</span>
@@ -230,7 +230,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                       </p>
                     </div>
 
-                    <div className="p-3 rounded-md bg-[#F6FAF8] border border-[#048C73]/15">
+                    <div className="p-3 rounded-md bg-[#F6FAF8] border border-[#10b981]/15">
                       <div className="flex items-center gap-1.5 text-xs font-bold text-gray-900 mb-1">
                         <ShieldCheck className="w-4 h-4 text-[#10B981]" />
                         <span>Siêu nhẹ & An toàn</span>
@@ -245,7 +245,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                   <div className="mt-4 p-3.5 rounded-md border border-gray-200 bg-gray-50 flex items-center justify-between gap-3">
                     <div className="space-y-1">
                       <div className="flex items-center gap-1.5 text-xs font-bold text-gray-900">
-                        <QrCode className="w-4 h-4 text-[#048C73]" />
+                        <QrCode className="w-4 h-4 text-[#10b981]" />
                         <span>Mở trên điện thoại di động</span>
                       </div>
                       <p className="text-[11px] text-gray-500">
@@ -254,7 +254,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                       <button
                         type="button"
                         onClick={handleCopyLink}
-                        className="inline-flex items-center gap-1 text-[11px] text-[#048C73] hover:underline font-semibold cursor-pointer pt-1"
+                        className="inline-flex items-center gap-1 text-[11px] text-[#10b981] hover:underline font-semibold cursor-pointer pt-1"
                       >
                         {copied ? <Check className="w-3.5 h-3.5 text-[#10B981]" /> : <Copy className="w-3.5 h-3.5" />}
                         <span>{copied ? 'Đã sao chép link!' : 'Sao chép đường dẫn'}</span>
@@ -281,7 +281,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
 
                   <ol className="space-y-2.5 text-xs text-gray-700">
                     <li className="flex items-start gap-2.5 p-2 rounded-md bg-gray-50 border border-gray-100">
-                      <div className="w-6 h-6 rounded-md bg-[#048C73] text-white flex items-center justify-center font-bold text-xs shrink-0">
+                      <div className="w-6 h-6 rounded-md bg-[#10b981] text-white flex items-center justify-center font-bold text-xs shrink-0">
                         1
                       </div>
                       <div className="flex-1">
@@ -294,7 +294,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                     </li>
 
                     <li className="flex items-start gap-2.5 p-2 rounded-md bg-gray-50 border border-gray-100">
-                      <div className="w-6 h-6 rounded-md bg-[#048C73] text-white flex items-center justify-center font-bold text-xs shrink-0">
+                      <div className="w-6 h-6 rounded-md bg-[#10b981] text-white flex items-center justify-center font-bold text-xs shrink-0">
                         2
                       </div>
                       <div className="flex-1">
@@ -306,7 +306,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                     </li>
 
                     <li className="flex items-start gap-2.5 p-2 rounded-md bg-gray-50 border border-gray-100">
-                      <div className="w-6 h-6 rounded-md bg-[#048C73] text-white flex items-center justify-center font-bold text-xs shrink-0">
+                      <div className="w-6 h-6 rounded-md bg-[#10b981] text-white flex items-center justify-center font-bold text-xs shrink-0">
                         3
                       </div>
                       <div className="flex-1">
@@ -326,7 +326,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
 
                   <ol className="space-y-2.5 text-xs text-gray-700">
                     <li className="flex items-start gap-2.5 p-2 rounded-md bg-gray-50 border border-gray-100">
-                      <div className="w-6 h-6 rounded-md bg-[#048C73] text-white flex items-center justify-center font-bold text-xs shrink-0">
+                      <div className="w-6 h-6 rounded-md bg-[#10b981] text-white flex items-center justify-center font-bold text-xs shrink-0">
                         1
                       </div>
                       <div className="flex-1">
@@ -335,7 +335,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                     </li>
 
                     <li className="flex items-start gap-2.5 p-2 rounded-md bg-gray-50 border border-gray-100">
-                      <div className="w-6 h-6 rounded-md bg-[#048C73] text-white flex items-center justify-center font-bold text-xs shrink-0">
+                      <div className="w-6 h-6 rounded-md bg-[#10b981] text-white flex items-center justify-center font-bold text-xs shrink-0">
                         2
                       </div>
                       <div className="flex-1">
@@ -344,7 +344,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                     </li>
 
                     <li className="flex items-start gap-2.5 p-2 rounded-md bg-gray-50 border border-gray-100">
-                      <div className="w-6 h-6 rounded-md bg-[#048C73] text-white flex items-center justify-center font-bold text-xs shrink-0">
+                      <div className="w-6 h-6 rounded-md bg-[#10b981] text-white flex items-center justify-center font-bold text-xs shrink-0">
                         3
                       </div>
                       <div className="flex-1">
@@ -364,7 +364,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
 
                   <ol className="space-y-2.5 text-xs text-gray-700">
                     <li className="flex items-start gap-2.5 p-2 rounded-md bg-gray-50 border border-gray-100">
-                      <div className="w-6 h-6 rounded-md bg-[#048C73] text-white flex items-center justify-center font-bold text-xs shrink-0">
+                      <div className="w-6 h-6 rounded-md bg-[#10b981] text-white flex items-center justify-center font-bold text-xs shrink-0">
                         1
                       </div>
                       <div className="flex-1">
@@ -373,7 +373,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                     </li>
 
                     <li className="flex items-start gap-2.5 p-2 rounded-md bg-gray-50 border border-gray-100">
-                      <div className="w-6 h-6 rounded-md bg-[#048C73] text-white flex items-center justify-center font-bold text-xs shrink-0">
+                      <div className="w-6 h-6 rounded-md bg-[#10b981] text-white flex items-center justify-center font-bold text-xs shrink-0">
                         2
                       </div>
                       <div className="flex-1">
@@ -382,7 +382,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({ isOpen, onClos
                     </li>
 
                     <li className="flex items-start gap-2.5 p-2 rounded-md bg-gray-50 border border-gray-100">
-                      <div className="w-6 h-6 rounded-md bg-[#048C73] text-white flex items-center justify-center font-bold text-xs shrink-0">
+                      <div className="w-6 h-6 rounded-md bg-[#10b981] text-white flex items-center justify-center font-bold text-xs shrink-0">
                         3
                       </div>
                       <div className="flex-1">

@@ -172,7 +172,7 @@ export function PriceSlider({ min, max, step, value, onChange, onChangeEnd }: Pr
         <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
           {/* Active Range Highlight */}
           <div
-            className="h-full bg-gradient-to-r from-[var(--color-primary,#048c73)] to-[var(--color-secondary,#06b6d4)] transition-none"
+            className="h-full bg-gradient-to-r from-[var(--color-primary,#10b981)] to-[var(--color-secondary,#06b6d4)] transition-none"
             style={{
               marginLeft: `${minPercent}%`,
               width: `${Math.max(0, maxPercent - minPercent)}%`,
@@ -189,12 +189,12 @@ export function PriceSlider({ min, max, step, value, onChange, onChangeEnd }: Pr
           onPointerDown={(e) => handlePointerDown('min', e)}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
-          className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-white border-2 border-[var(--color-primary,#048c73)] shadow-md flex items-center justify-center cursor-ew-resize hover:scale-115 active:scale-95 transition-transform z-20 ${
+          className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-white border-2 border-[var(--color-primary,#10b981)] shadow-md flex items-center justify-center cursor-ew-resize hover:scale-115 active:scale-95 transition-transform z-20 ${
             activeThumb === 'min' ? 'ring-4 ring-[var(--color-primary-100,#d1f6ec)] scale-115' : ''
           }`}
           style={{ left: `${minPercent}%` }}
         >
-          <div className="w-2 h-2 rounded-full bg-[var(--color-primary,#048c73)]" />
+          <div className="w-2 h-2 rounded-full bg-[var(--color-primary,#10b981)]" />
         </div>
 
         {/* 2. Right Circle (Max Handle) */}
@@ -206,19 +206,19 @@ export function PriceSlider({ min, max, step, value, onChange, onChangeEnd }: Pr
           onPointerDown={(e) => handlePointerDown('max', e)}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
-          className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-white border-2 border-[var(--color-primary,#048c73)] shadow-md flex items-center justify-center cursor-ew-resize hover:scale-115 active:scale-95 transition-transform z-20 ${
+          className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-white border-2 border-[var(--color-primary,#10b981)] shadow-md flex items-center justify-center cursor-ew-resize hover:scale-115 active:scale-95 transition-transform z-20 ${
             activeThumb === 'max' ? 'ring-4 ring-[var(--color-primary-100,#d1f6ec)] scale-115' : ''
           }`}
           style={{ left: `${maxPercent}%` }}
         >
-          <div className="w-2 h-2 rounded-full bg-[var(--color-primary,#048c73)]" />
+          <div className="w-2 h-2 rounded-full bg-[var(--color-primary,#10b981)]" />
         </div>
       </div>
 
       {/* Range Caption / Helper Text */}
       <div className="flex justify-between items-center text-[11px] text-[var(--color-muted,#59766e)] mt-1 px-1">
         <span>Kéo 2 nút ở 2 đầu để chỉnh khoảng giá</span>
-        <span className="font-semibold text-[var(--color-primary,#048c73)]">
+        <span className="font-semibold text-[var(--color-primary,#10b981)]">
           {minVal.toLocaleString('vi-VN')}đ – {maxVal.toLocaleString('vi-VN')}đ
         </span>
       </div>
@@ -226,7 +226,7 @@ export function PriceSlider({ min, max, step, value, onChange, onChangeEnd }: Pr
       {/* 2 Editable Input Boxes: Tối thiểu & Tối đa */}
       <div className="grid grid-cols-2 gap-2.5 mt-3.5">
         {/* Min Input Box */}
-        <div className="bg-gray-50/90 border border-gray-200 rounded-md p-2 transition-all focus-within:border-[var(--color-primary,#048c73)] focus-within:bg-white focus-within:ring-1 focus-within:ring-[var(--color-primary,#048c73)]">
+        <div className="bg-gray-50/90 border border-gray-200 rounded-md p-2 transition-all focus-within:border-[var(--color-primary,#10b981)] focus-within:bg-white focus-within:ring-1 focus-within:ring-[var(--color-primary,#10b981)]">
           <label 
             htmlFor="price-filter-min-input"
             className="block text-[11px] font-semibold text-[var(--color-muted,#59766e)] uppercase tracking-wider mb-0.5"
@@ -255,7 +255,7 @@ export function PriceSlider({ min, max, step, value, onChange, onChangeEnd }: Pr
         </div>
 
         {/* Max Input Box */}
-        <div className="bg-gray-50/90 border border-gray-200 rounded-md p-2 transition-all focus-within:border-[var(--color-primary,#048c73)] focus-within:bg-white focus-within:ring-1 focus-within:ring-[var(--color-primary,#048c73)]">
+        <div className="bg-gray-50/90 border border-gray-200 rounded-md p-2 transition-all focus-within:border-[var(--color-primary,#10b981)] focus-within:bg-white focus-within:ring-1 focus-within:ring-[var(--color-primary,#10b981)]">
           <label 
             htmlFor="price-filter-max-input"
             className="block text-[11px] font-semibold text-[var(--color-muted,#59766e)] uppercase tracking-wider mb-0.5"
@@ -300,7 +300,7 @@ export function PriceSlider({ min, max, step, value, onChange, onChangeEnd }: Pr
               onClick={() => applyPreset(preset.minP, preset.maxP)}
               className={`text-xs px-2.5 py-1 rounded-md border font-medium transition-all ${
                 isSelected
-                  ? 'bg-[var(--color-primary-50,#edfbf7)] text-[var(--color-primary,#048c73)] border-[var(--color-primary,#048c73)] font-semibold shadow-2xs'
+                  ? 'bg-[var(--color-primary-50,#edfbf7)] text-[var(--color-primary,#10b981)] border-[var(--color-primary,#10b981)] font-semibold shadow-2xs'
                   : 'bg-white text-[var(--color-ink,#1f2937)] border-gray-200 hover:border-gray-300 hover:bg-gray-50'
               }`}
             >

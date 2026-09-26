@@ -230,7 +230,7 @@ export default function TikTokEmbedPlayer({
       {/* Footer ghi chú & CTA */}
       <div className="p-3 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
         <div className="flex items-center gap-1.5 text-slate-600">
-          <AlertCircle className="w-3.5 h-3.5 text-[#048c73] shrink-0" />
+          <AlertCircle className="w-3.5 h-3.5 text-[#10b981] shrink-0" />
           <span className="text-[11px]">
             Video review thực tế được gán trực tiếp từ kênh truyền thông của chỗ nghỉ
           </span>

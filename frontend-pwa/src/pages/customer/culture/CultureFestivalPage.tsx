@@ -79,7 +79,7 @@ export default function CultureFestivalPage() {
 
         {/* 🌟 1. BANNER GỢI Ý ĐẶC BIỆT CHO THỜI ĐIỂM HIỆN TẠI (THÁNG 9 - 10) 🌟 */}
         {currentSeasonFestivals.length > 0 && (
-          <div className="mb-10 p-5 md:p-6 bg-gradient-to-br from-[#048c73]/10 via-[#06b6d4]/10 to-amber-500/10 rounded-xl border border-[#048c73]/30 shadow-sm relative overflow-hidden">
+          <div className="mb-10 p-5 md:p-6 bg-gradient-to-br from-[#10b981]/10 via-[#06b6d4]/10 to-amber-500/10 rounded-xl border border-[#10b981]/30 shadow-sm relative overflow-hidden">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
               <div>
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500 text-white font-bold text-xs uppercase tracking-wider mb-2 shadow-xs">
@@ -104,7 +104,7 @@ export default function CultureFestivalPage() {
               {currentSeasonFestivals.map(item => (
                 <div
                   key={item.id}
-                  className="bg-white rounded-lg p-4 border border-[#048c73]/25 shadow-xs hover:shadow-md transition-all flex flex-col justify-between"
+                  className="bg-white rounded-lg p-4 border border-[#10b981]/25 shadow-xs hover:shadow-md transition-all flex flex-col justify-between"
                 >
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-2">
@@ -129,9 +129,9 @@ export default function CultureFestivalPage() {
                     </div>
 
                     {/* Hiển thị thời gian phù hợp */}
-                    <div className="mb-2 py-1 px-2.5 rounded-sm bg-[#edfbf7] border border-[#048c73]/20 flex items-center justify-between text-xs">
+                    <div className="mb-2 py-1 px-2.5 rounded-sm bg-[#edfbf7] border border-[#10b981]/20 flex items-center justify-between text-xs">
                       <span className="text-slate-600 font-medium">Thời gian phù hợp:</span>
-                      <span className="font-bold text-[#048c73]">
+                      <span className="font-bold text-[#10b981]">
                         {item.suitableDateStart && item.suitableDateEnd
                           ? `${item.suitableDateStart.split('-').reverse().slice(0, 2).join('/')} – ${item.suitableDateEnd.split('-').reverse().slice(0, 2).join('/')}`
                           : (item.suitableDateEnd ? `Đến ${item.suitableDateEnd.split('-').reverse().slice(0, 2).join('/')}` : item.timeRange)}
@@ -240,7 +240,7 @@ export default function CultureFestivalPage() {
                         <Calendar className="w-3.5 h-3.5" /> {fest.seasonNote}
                       </span>
                       {fest.suitableDateStart && fest.suitableDateEnd && (
-                        <span className="flex items-center gap-1 bg-[#edfbf7] text-[#048c73] px-2.5 py-1 rounded-md border border-[#048c73]/20 font-bold">
+                        <span className="flex items-center gap-1 bg-[#edfbf7] text-[#10b981] px-2.5 py-1 rounded-md border border-[#10b981]/20 font-bold">
                           Đẹp nhất: {fest.suitableDateStart.split('-').reverse().slice(0, 2).join('/')} – {fest.suitableDateEnd.split('-').reverse().slice(0, 2).join('/')}
                         </span>
                       )}

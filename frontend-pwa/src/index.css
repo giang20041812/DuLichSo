@@ -3,7 +3,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @theme {
-  --color-primary: #048C73;
+  --color-primary: #10b981;
   --color-secondary: #06B6D4;
   --color-sun: #F59E0B;
   --color-coral: #F97316;
@@ -17,7 +17,7 @@
 }
 
 :root {
-  --primary: #048C73;
+  --primary: #10b981;
   --secondary: #06B6D4;
   --background: #F6FAF8;
   --surface: #FFFFFF;
@@ -46,10 +46,10 @@ body {
 }
 .sidebar-link:hover {
   background: #E8F5F3; /* hover background */
-  color: #048C73; /* primary */
+  color: #10b981; /* primary */
 }
 .sidebar-link.active {
-  background: #048C73;
+  background: #10b981;
   color: #FFFFFF;
 }
 .sidebar-link.active svg {

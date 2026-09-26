@@ -46,20 +46,20 @@ export const VietTrackLogoMark: React.FC<{ size?: number | string; className?: s
         <linearGradient id="vjBorderGrad" x1="20" y1="20" x2="220" y2="220" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#F59E0B" stopOpacity="0.8" />
           <stop offset="50%" stopColor="#06B6D4" stopOpacity="0.5" />
-          <stop offset="100%" stopColor="#048C73" stopOpacity="0.9" />
+          <stop offset="100%" stopColor="#10b981" stopOpacity="0.9" />
         </linearGradient>
 
         {/* Gradient xanh sinh thái thiên nhiên cho bản đồ Việt Nam */}
         <linearGradient id="vjGreenMapGrad" x1="90" y1="35" x2="130" y2="200" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#10B981" />
           <stop offset="35%" stopColor="#059669" />
-          <stop offset="75%" stopColor="#048C73" />
-          <stop offset="100%" stopColor="#025A4A" />
+          <stop offset="75%" stopColor="#10b981" />
+          <stop offset="100%" stopColor="#059669" />
         </linearGradient>
 
         {/* Soft Shadow cho khối bản đồ */}
         <filter id="vjMapShadow" x="60" y="25" width="165" height="195" filterUnits="userSpaceOnUse">
-          <feDropShadow dx="1.5" dy="3.5" stdDeviation="3" floodColor="#048C73" floodOpacity="0.28" />
+          <feDropShadow dx="1.5" dy="3.5" stdDeviation="3" floodColor="#10b981" floodOpacity="0.28" />
         </filter>
 
         {/* Pin Hà Nội (Đỏ cờ sao vàng) */}
@@ -91,7 +91,7 @@ export const VietTrackLogoMark: React.FC<{ size?: number | string; className?: s
       {/* 1. KHUNG ĐĨA TRÒN VIỀN KIM - NGỌC (Bán kính chuẩn, bản đồ nằm cân đối ở giữa) */}
       <circle cx="120" cy="120" r="105" fill="url(#vjBgPlate)" />
       <circle cx="120" cy="120" r="103" stroke="url(#vjBorderGrad)" strokeWidth="2.5" />
-      <circle cx="120" cy="120" r="98" stroke="#048C73" strokeWidth="0.8" strokeOpacity="0.16" strokeDasharray="3.5 4" />
+      <circle cx="120" cy="120" r="98" stroke="#10b981" strokeWidth="0.8" strokeOpacity="0.16" strokeDasharray="3.5 4" />
 
       {/* 2. BẢN ĐỒ VIỆT NAM CHUẨN XÁC 100% CĂN VÀO CHÍNH GIỮA ĐĨA TRÒN */}
       <g filter="url(#vjMapShadow)">

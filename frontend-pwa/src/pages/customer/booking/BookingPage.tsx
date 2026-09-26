@@ -621,9 +621,9 @@ export default function BookingPage() {
                     <div className="text-gray-500">Dịch vụ đi kèm đã lưu</div>
                     <div className="col-span-2 space-y-2">
                       {bookingResult.serviceItems.map((svc, idx) => (
-                        <div key={idx} className="p-2.5 rounded-md bg-[#edfbf7] border border-[#048c73]/20 text-xs">
-                          <div className="font-bold text-[#048c73] flex items-center gap-1.5">
-                            <Sparkles className="w-3.5 h-3.5 text-[#048c73]" />
+                        <div key={idx} className="p-2.5 rounded-md bg-[#edfbf7] border border-[#10b981]/20 text-xs">
+                          <div className="font-bold text-[#10b981] flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-[#10b981]" />
                             {svc.serviceName}
                           </div>
                           {svc.note && (
@@ -995,7 +995,7 @@ export default function BookingPage() {
                       onClick={() => setNearbyCategory('ALL')}
                       className={`px-2.5 py-1 rounded-xs text-xs font-semibold transition-all cursor-pointer ${
                         nearbyCategory === 'ALL'
-                          ? 'bg-[#048c73] text-white'
+                          ? 'bg-[#10b981] text-white'
                           : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                       }`}
                     >
@@ -1478,8 +1478,8 @@ export default function BookingPage() {
 
                       {/* Hiển thị tóm tắt các dịch vụ đi kèm đã add */}
                       {serviceItems.length > 0 && (
-                        <div className="p-2.5 bg-[#edfbf7] rounded-md border border-[#048c73]/30 space-y-1">
-                          <div className="font-bold text-xs text-[#048c73] flex items-center gap-1">
+                        <div className="p-2.5 bg-[#edfbf7] rounded-md border border-[#10b981]/30 space-y-1">
+                          <div className="font-bold text-xs text-[#10b981] flex items-center gap-1">
                             <Sparkles className="w-3.5 h-3.5" />
                             Đã thêm {serviceItems.length} dịch vụ tư vấn thêm:
                           </div>
@@ -1567,7 +1567,7 @@ export default function BookingPage() {
                       )}
 
                       {serviceItems.length > 0 && (
-                        <div className="flex justify-between items-center text-[#048c73] pt-1 border-t border-dashed border-gray-200">
+                        <div className="flex justify-between items-center text-[#10b981] pt-1 border-t border-dashed border-gray-200">
                           <span className="font-medium">Dịch vụ đính kèm ({serviceItems.length} mục)</span>
                           <span className="font-bold">Miễn phí (Hỗ trợ tại chỗ)</span>
                         </div>
@@ -1763,8 +1763,8 @@ export default function BookingPage() {
 
             {/* Chú thích màu sắc */}
             <div className="flex flex-wrap items-center gap-2 mb-3 text-[11px] font-bold">
-              <div className="flex items-center gap-1.5 bg-[#edfbf7] text-[#048c73] px-2.5 py-1 rounded-sm border border-[#048c73]/30">
-                <span className="w-2.5 h-2.5 rounded-xs bg-[#048C73]"></span> Chỗ nghỉ (Mục tiêu)
+              <div className="flex items-center gap-1.5 bg-[#edfbf7] text-[#10b981] px-2.5 py-1 rounded-sm border border-[#10b981]/30">
+                <span className="w-2.5 h-2.5 rounded-xs bg-[#10b981]"></span> Chỗ nghỉ (Mục tiêu)
               </div>
               <div className="flex items-center gap-1.5 bg-[#eff6ff] text-[#2563eb] px-2.5 py-1 rounded-sm border border-[#2563eb]/30">
                 <span className="w-2.5 h-2.5 rounded-xs bg-[#2563EB]"></span> Thắng cảnh / Check-in
