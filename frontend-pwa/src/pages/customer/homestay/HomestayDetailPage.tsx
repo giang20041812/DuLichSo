@@ -288,7 +288,7 @@ export default function HomestayDetailPage() {
     return (
       <div className="min-h-screen bg-[var(--color-canvas)] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="animate-spin rounded-md h-10 w-10 border-3 border-[var(--color-primary)] border-t-transparent"></div>
+          <div className="animate-spin rounded-full h-10 w-10 border-3 border-[var(--color-primary)] border-t-transparent"></div>
           <span className="text-sm font-semibold text-[var(--color-muted)]">Đang tải thông tin chỗ nghỉ...</span>
         </div>
       </div>
