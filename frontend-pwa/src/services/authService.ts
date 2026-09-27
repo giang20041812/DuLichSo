@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import { PortalLoginRequest, PortalLoginResponse, AuthErrorResponse } from '../types/user';
 import type { GoogleLoginResponse } from '../types/integrations/google-identity';
+import { revokePortalToken } from '../lib/authInterceptor';
 
 const API_BASE_URL = '/api/v1/auth';
 
@@ -56,6 +57,31 @@ const postTravelerAuth = async (path: string, body: unknown): Promise<GoogleLogi
       timeout: 10000,
     });
     return response.data;
+  } catch (err: unknown) {
+    throw toAuthError(err);
+  }
+};
+
+export interface ForgotPasswordResponse {
+  message: string;
+  otpTtlMinutes: number;
+  resendAfterSeconds: number;
+}
+
+/** Gửi OTP đặt lại mật khẩu qua email. Server luôn trả cùng một kết quả dù tài khoản có tồn tại hay không. */
+export const requestPasswordReset = async (identifier: string): Promise<ForgotPasswordResponse> => {
+  try {
+    const res = await axios.post<ForgotPasswordResponse>(`${API_BASE_URL}/forgot-password`, { identifier }, { timeout: 15000 });
+    return res.data;
+  } catch (err: unknown) {
+    throw toAuthError(err);
+  }
+};
+
+/** Đặt lại mật khẩu bằng OTP đã nhận qua email. */
+export const resetPasswordWithOtp = async (identifier: string, otp: string, newPassword: string): Promise<void> => {
+  try {
+    await axios.post(`${API_BASE_URL}/reset-password`, { identifier, otp, newPassword }, { timeout: 15000 });
   } catch (err: unknown) {
     throw toAuthError(err);
   }
@@ -148,6 +174,7 @@ export const getCurrentCustomer = (): CurrentCustomer | null => {
 
 /** Xóa sạch phiên đăng nhập của mọi vai trò */
 export const clearAllAuthSession = () => {
+  revokePortalToken();
   localStorage.removeItem('portal_token');
   localStorage.removeItem('portal_user');
   localStorage.removeItem('traveler_token');

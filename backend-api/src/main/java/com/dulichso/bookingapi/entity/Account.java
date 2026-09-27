@@ -35,6 +35,13 @@ public class Account {
     private String fullName;
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
+    /** Tăng khi đổi quyền/khóa/đặt lại mật khẩu/đăng xuất: mọi JWT cũ mang phiên bản khác sẽ bị từ chối. */
+    @Column(name = "token_version", nullable = false)
+    @Builder.Default
+    private int tokenVersion = 0;
+    /** Lần hoạt động gần nhất của phiên (dùng để hết phiên do không hoạt động). */
+    @Column(name = "last_activity_at")
+    private LocalDateTime lastActivityAt;
     @Column(name = "created_at", nullable = false, updatable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();

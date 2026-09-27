@@ -92,6 +92,19 @@ public class AdminAccountController {
     }
 
     /**
+     * PATCH /api/v1/admin/accounts/{id}/role
+     * Đổi quyền ADMIN ⇄ PROVIDER (có hiệu lực ngay, bắt buộc lý do).
+     */
+    @PatchMapping("/{id}/role")
+    public ResponseEntity<AccountDto> updateAccountRole(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateAccountRoleRequest request,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        Long callerId = principal != null ? principal.accountId() : null;
+        return ResponseEntity.ok(adminAccountService.updateAccountRole(id, request, callerId));
+    }
+
+    /**
      * PATCH /api/v1/admin/accounts/{id}/reset-password
      * Đặt lại mật khẩu tài khoản.
      */

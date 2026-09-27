@@ -6,16 +6,14 @@ import {
   CheckCircle2,
   Eye,
   EyeOff,
-  HelpCircle,
   Lock,
   Mail,
   RefreshCw,
-  Send,
-  X,
 } from 'lucide-react';
 import { AUTH_IMAGES } from '@/config/authImages';
 import { AuthDivider, AuthShell, authInputClass } from '@/components/auth/AuthShell';
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
+import { ForgotPasswordModal } from '@/components/auth/ForgotPasswordModal';
 import { googleLogin, portalLogin, saveTravelerSession, travelerLogin } from '@/services/authService';
 import type { AuthErrorResponse } from '@/types/user';
 
@@ -37,10 +35,6 @@ export default function PortalLoginPage() {
 
   // Forgot password modal state
   const [isForgotOpen, setIsForgotOpen] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState('');
-  const [forgotSent, setForgotSent] = useState(false);
-  const [forgotLoading, setForgotLoading] = useState(false);
-  const [forgotError, setForgotError] = useState<string | null>(null);
 
   const markTouched = (field: string) => {
     setTouched((prev) => ({ ...prev, [field]: true }));
@@ -123,28 +117,6 @@ export default function PortalLoginPage() {
     }
   };
 
-  const handleForgotSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setForgotError(null);
-
-    const emailTrim = forgotEmail.trim();
-    if (!emailTrim || !EMAIL_REGEX.test(emailTrim)) {
-      setForgotError('Vui lòng nhập địa chỉ email hợp lệ để nhận hướng dẫn.');
-      return;
-    }
-
-    setForgotLoading(true);
-    try {
-      // Giả lập gửi mail khôi phục mật khẩu mượt mà
-      await new Promise((r) => setTimeout(r, 1000));
-      setForgotSent(true);
-    } catch {
-      setForgotError('Không thể gửi yêu cầu lúc này. Vui lòng liên hệ ban quản trị.');
-    } finally {
-      setForgotLoading(false);
-    }
-  };
-
   return (
     <>
       <AuthShell
@@ -220,12 +192,7 @@ export default function PortalLoginPage() {
               {/* Nút Quên mật khẩu */}
               <button
                 type="button"
-                onClick={() => {
-                  setIsForgotOpen(true);
-                  setForgotSent(false);
-                  setForgotError(null);
-                  setForgotEmail(identifier.includes('@') ? identifier.trim() : '');
-                }}
+                onClick={() => setIsForgotOpen(true)}
                 className="text-xs font-semibold text-primary transition-colors hover:text-primary-600 hover:underline"
               >
                 Quên mật khẩu?
@@ -326,105 +293,16 @@ export default function PortalLoginPage() {
 
       {/* Modal Quên Mật Khẩu */}
       {isForgotOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="relative w-full max-w-md rounded-lg border border-[var(--color-border)] bg-white p-6 shadow-xl">
-            <button
-              type="button"
-              onClick={() => setIsForgotOpen(false)}
-              className="absolute right-4 top-4 text-muted transition-colors hover:text-ink-deep"
-              aria-label="Đóng"
-            >
-              <X className="h-5 w-5" />
-            </button>
-
-            <div className="mb-4 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
-                <HelpCircle className="h-5 w-5" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-ink-deep">Khôi phục mật khẩu</h3>
-                <p className="text-xs text-muted">Nhận hướng dẫn đặt lại mật khẩu qua email</p>
-              </div>
-            </div>
-
-            {forgotSent ? (
-              <div className="space-y-4">
-                <div className="rounded-md border border-emerald-500/30 bg-emerald-50/50 p-4 text-center">
-                  <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-600" />
-                  <h4 className="mt-2 text-sm font-bold text-emerald-800">Đã gửi hướng dẫn khôi phục</h4>
-                  <p className="mt-1 text-xs text-emerald-700">
-                    Hệ thống đã gửi liên kết đặt lại mật khẩu đến <strong>{forgotEmail}</strong>. Vui lòng kiểm tra hộp thư đến (và thư rác).
-                  </p>
-                </div>
-                <div className="rounded-md bg-slate-50 p-3 text-xs text-muted">
-                  <strong>Đối tác Homestay / Admin:</strong> Nếu không truy cập được email, vui lòng liên hệ Hotline{' '}
-                  <span className="font-semibold text-primary">0988 888 888</span> hoặc email{' '}
-                  <span className="font-semibold text-primary">admin@taybactrails.vn</span> để được cấp lại mật khẩu.
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsForgotOpen(false)}
-                  className="w-full h-10 rounded-md bg-primary text-sm font-semibold text-white transition hover:bg-primary-600"
-                >
-                  Đóng
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleForgotSubmit} className="space-y-4">
-                <p className="text-xs leading-relaxed text-ink-light">
-                  Nhập email đăng ký tài khoản của bạn. Chúng tôi sẽ gửi đường dẫn đặt lại mật khẩu trong ít phút.
-                </p>
-
-                <div>
-                  <label htmlFor="forgot-email" className="mb-1 block text-xs font-semibold text-ink-deep">
-                    Email tài khoản
-                  </label>
-                  <div className="relative">
-                    <Mail className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted" />
-                    <input
-                      id="forgot-email"
-                      type="email"
-                      value={forgotEmail}
-                      onChange={(e) => setForgotEmail(e.target.value)}
-                      placeholder="ban@email.com"
-                      required
-                      className={`${authInputClass} text-sm py-2`}
-                    />
-                  </div>
-                </div>
-
-                {forgotError && (
-                  <p className="flex items-center gap-1 text-xs text-danger">
-                    <AlertCircle className="h-3 w-3 shrink-0" /> {forgotError}
-                  </p>
-                )}
-
-                <div className="flex gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setIsForgotOpen(false)}
-                    className="h-10 flex-1 rounded-md border border-[var(--color-border)] text-sm font-semibold text-ink-deep hover:bg-slate-50"
-                  >
-                    Hủy
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={forgotLoading}
-                    className="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-md bg-primary text-sm font-semibold text-white shadow-xs transition hover:bg-primary-600 disabled:opacity-60"
-                  >
-                    {forgotLoading ? (
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <>
-                        <Send className="h-3.5 w-3.5" /> Gửi yêu cầu
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
+        <ForgotPasswordModal
+          initialIdentifier={identifier}
+          onClose={() => setIsForgotOpen(false)}
+          onDone={(id) => {
+            setIdentifier(id);
+            setPassword('');
+            setError(null);
+            setIsForgotOpen(false);
+          }}
+        />
       )}
     </>
   );

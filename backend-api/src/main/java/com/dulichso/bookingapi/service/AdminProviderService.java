@@ -80,6 +80,23 @@ public class AdminProviderService {
         return mapToDto(provider, placeCount, accountCount);
     }
 
+    @Transactional(readOnly = true)
+    public List<ProviderAccountDto> getProviderAccounts(Long providerId) {
+        if (!providerRepository.existsById(providerId)) {
+            throw new IllegalArgumentException("Không tìm thấy đối tác NCC với ID: " + providerId);
+        }
+        return accountRepository.findByProviderIdOrderByIdAsc(providerId).stream()
+                .map(a -> ProviderAccountDto.builder()
+                        .id(a.getId())
+                        .email(a.getEmail())
+                        .phone(a.getPhone())
+                        .fullName(a.getFullName())
+                        .status(a.getStatus() != null ? a.getStatus().name() : null)
+                        .lastLoginAt(a.getLastLoginAt())
+                        .build())
+                .toList();
+    }
+
     @Transactional
     public ProviderSummaryDto createProviderWithAccount(CreateProviderWithAccountRequest request, Long callerAccountId) {
         if (accountRepository.existsByEmail(request.getAccountEmail())) {

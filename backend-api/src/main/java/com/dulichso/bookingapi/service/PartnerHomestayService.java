@@ -102,13 +102,53 @@ public class PartnerHomestayService {
         return detail(place);
     }
 
+    /**
+     * Ghi trực tiếp thông tin Homestay chưa công khai. Homestay đang PUBLISHED không được ghi trực tiếp:
+     * thay đổi phải qua yêu cầu chờ Admin duyệt (xem {@link PartnerChangeService}).
+     */
     @Transactional
     public PartnerHomestayDetailDto saveHomestayDetail(UserPrincipal principal, Long id, PartnerHomestayDetailDto dto) {
         Account account = actor(principal, true);
         Place place = owned(id, account, true);
+        requireNotPublic(place);
         validate(dto);
         apply(place, dto, account);
         repository.flush();
+        return detail(place);
+    }
+
+    /** Áp dụng thay đổi đã được Admin duyệt; người gửi yêu cầu được ghi nhận là người cập nhật. */
+    @Transactional
+    public PartnerHomestayDetailDto applyApproved(Account submitter, Long placeId, PartnerHomestayDetailDto dto) {
+        Place place = owned(placeId, submitter, true);
+        validate(dto);
+        apply(place, dto, submitter);
+        repository.flush();
+        return detail(place);
+    }
+
+    /** Homestay của NCC (đã kiểm tra quyền sở hữu, NCC đang được phép ghi) — dùng để quyết định ghi trực tiếp hay gửi yêu cầu. */
+    Place ownedForWrite(UserPrincipal principal, Long id) {
+        return owned(id, actor(principal, true), false);
+    }
+
+    public static boolean isPublic(Place place) {
+        return place.getVisibility() == PlaceVisibility.PUBLISHED;
+    }
+
+    static void requireNotPublic(Place place) {
+        if (isPublic(place)) throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "Homestay đang công khai: thay đổi phải gửi yêu cầu để quản trị viên duyệt.");
+    }
+
+    /** Kiểm tra dữ liệu gửi lên (dùng khi NCC gửi yêu cầu để lỗi nhập liệu được báo ngay). */
+    void validateInput(PartnerHomestayDetailDto dto) {
+        validate(dto);
+    }
+
+    /** Ảnh chụp chi tiết hiện tại của Homestay (dùng làm "nội dung cũ" khi so sánh). */
+    @Transactional(readOnly = true)
+    public PartnerHomestayDetailDto detailOf(Place place) {
         return detail(place);
     }
 

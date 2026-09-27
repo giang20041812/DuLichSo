@@ -4,6 +4,7 @@ import type { PartnerRoom, PartnerRoomInput, RoomPrice, RoomPriceInput, RoomQuot
 import type { HomestayOptionsDto } from '@/types/partner';
 import { partnerRoomService as api } from '@/services/partnerRoomService';
 import { homestayError } from '@/services/partnerHomestayService';
+import { isSubmittedChange } from '@/services/changeRequestService';
 import MediaManager from '@/components/partner/MediaManager';
 import RoomInventoryCalendar from '@/components/partner/RoomInventoryCalendar';
 
@@ -21,7 +22,7 @@ export default function PartnerRoomsPage() {
   const load=useCallback(async()=>{setLoading(true);try{const [r,o]=await Promise.all([api.list(placeId),api.options(placeId)]);setRooms(r);setOptions(o);setError('');}catch(e:unknown){setError(homestayError(e));}finally{setLoading(false);}},[placeId]);
   useEffect(()=>{void load();},[load]);
   function set<K extends keyof PartnerRoomInput>(key:K,value:PartnerRoomInput[K]) {setForm(p=>p?{...p,[key]:value}:p);}
-  async function save(){if(!form)return;setBusy(true);setError('');try{await api.save(placeId,editId,form);setForm(null);setSelected(null);await load();}catch(e:unknown){setError(homestayError(e));}finally{setBusy(false);}}
+  async function save(){if(!form)return;setBusy(true);setError('');try{const saved=await api.save(placeId,editId,form);if(isSubmittedChange(saved))window.alert(saved.message);setForm(null);setSelected(null);await load();}catch(e:unknown){setError(homestayError(e));}finally{setBusy(false);}}
   return <div className="space-y-5">
     <Link to={`/partner/homestay/${placeId}`} className="text-primary">← Thông tin Homestay</Link>
     <div className="flex items-center justify-between gap-3"><h1 className="text-2xl font-bold">Phòng, giá và lịch bán</h1><button className={button} onClick={()=>{setEditId(null);setForm({...blank});setSelected(null);setPhotoRoom(null);}}>Thêm loại phòng</button></div>
@@ -65,7 +66,7 @@ function RoomCalendar({placeId,room}:{placeId:number;room:PartnerRoom}) {
     }
   },[placeId,room.id]);
   useEffect(()=>{setQuote(null);setError('');void load();return()=>{generation.current += 1;};},[load]);
-  async function act(action:()=>Promise<unknown>,text:string){setBusy(true);setError('');setMessage('');try{await action();await load();setQuote(null);setMessage(text);}catch(e:unknown){setError(homestayError(e));}finally{setBusy(false);}}
+  async function act(action:()=>Promise<unknown>,text:string){setBusy(true);setError('');setMessage('');try{const result=await action();await load();setQuote(null);setMessage(isSubmittedChange(result)?result.message:text);}catch(e:unknown){setError(homestayError(e));}finally{setBusy(false);}}
   return <section className="space-y-5 rounded-lg border border-border bg-surface p-5">
     <h2 className="text-lg font-bold">{room.name} — Giá & lịch phòng</h2>
     {error&&<p role="alert" className="text-danger">{error}</p>}{message&&<p role="status" className="text-primary">{message}</p>}
@@ -77,7 +78,7 @@ function RoomCalendar({placeId,room}:{placeId:number;room:PartnerRoom}) {
       <h3 className="font-semibold">Giá theo thời điểm</h3>
       <p className="text-xs text-muted">Giá đặc biệt tính cả ngày bắt đầu và ngày kết thúc. Các khoảng giá không được trùng nhau.</p>
       {prices.map(p=><div key={p.id} className="flex flex-wrap justify-between gap-3 border-b border-border py-2 text-sm"><span>{p.name}: {p.periodStart} → {p.periodEnd} · {money(p.price)}</span><div className="flex gap-3"><button type="button" className="text-primary" onClick={()=>{setPrice(p);setPriceId(p.id);}}>Sửa</button><button type="button" className="text-danger" onClick={()=>void act(()=>api.deletePrice(placeId,room.id,p.id),'Đã xóa khoảng giá.')}>Xóa</button></div></div>)}
-      <form className="grid gap-3 sm:grid-cols-2" onSubmit={e=>{e.preventDefault();void act(async()=>{await api.savePrice(placeId,room.id,priceId,price);setPriceId(null);setPrice({...price,name:''});},'Đã lưu giá.');}}>
+      <form className="grid gap-3 sm:grid-cols-2" onSubmit={e=>{e.preventDefault();void act(async()=>{const saved=await api.savePrice(placeId,room.id,priceId,price);setPriceId(null);setPrice({...price,name:''});return saved;},'Đã lưu giá.');}}>
         <Label title="Tên bảng giá"><input required maxLength={255} className={field} value={price.name} onChange={e=>setPrice({...price,name:e.target.value})}/></Label><Label title="Giá / đêm"><input required min={0} type="number" className={field} value={price.price} onChange={e=>setPrice({...price,price:Number(e.target.value)})}/></Label><Label title="Bắt đầu"><input required type="date" className={field} value={price.periodStart} onChange={e=>setPrice({...price,periodStart:e.target.value})}/></Label><Label title="Kết thúc"><input required type="date" min={price.periodStart} className={field} value={price.periodEnd} onChange={e=>setPrice({...price,periodEnd:e.target.value})}/></Label><button className={button}>{priceId?'Lưu thay đổi giá':'Thêm khoảng giá'}</button>{priceId&&<button type="button" onClick={()=>{setPriceId(null);setPrice({...price,name:''});}}>Hủy sửa</button>}
       </form>
     </fieldset>

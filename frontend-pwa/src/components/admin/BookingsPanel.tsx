@@ -1,48 +1,33 @@
 import { useCallback, useEffect, useState } from 'react';
-import { CheckCircle2, Mail, Phone, RefreshCw, RotateCcw, StickyNote, X, XCircle } from 'lucide-react';
+import { AlertTriangle, Eye, X } from 'lucide-react';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { adminService } from '@/services/adminService';
 import { partnerBookingService } from '@/services/partnerBookingService';
-import type { AdminBookingDto, BookingStatus, BookingStatusSummary, PageResponse } from '@/types/admin';
+import { getApiErrorMessage } from '@/lib/apiError';
+import type {
+  AdminBookingDto,
+  BookingAttentionItem,
+  BookingStatus,
+  BookingStatusSummary,
+  PageResponse,
+} from '@/types/admin';
 import {
-  ChipGroup,
-  DateRangeFilter,
-  FilterFooter,
+  CompactDateRange,
   FilterSearch,
-  Pagination,
+  RefreshButton,
   SortSelect,
-  type ChipOption,
+  TableFooter,
+  UnderlineTabs,
   type SortOption,
+  type TabItem,
 } from './AdminFilters';
+import { StatusBadge } from './StatusBadge';
+import { actionButtonClass } from './statusStyles';
+import BookingDetailDrawer from './BookingDetailDrawer';
+import { ATTENTION_TONE, STATUS_LABEL, STATUS_TONE, fmtDate, fmtDateTime, isPendingStatus, vnd } from './bookingMeta';
 
 const PAGE_SIZE = 15;
 
-const STATUS_LABEL: Record<BookingStatus, string> = {
-  PENDING: 'Chờ xử lý',
-  AWAITING_PAYMENT: 'Chờ thanh toán',
-  CONFIRMED: 'Đã xác nhận',
-  CHECKED_IN: 'Đã nhận phòng',
-  CHECKED_OUT: 'Đã trả phòng',
-  REJECTED: 'Bị từ chối',
-  CANCELLED: 'Đã hủy',
-  REFUNDED: 'Đã hoàn tiền',
-  EXPIRED: 'Hết hạn giữ chỗ',
-  COMPLETED: 'Hoàn tất',
-  NO_SHOW: 'Khách không đến',
-};
-const STATUS_TONE: Record<BookingStatus, string> = {
-  PENDING: 'border-amber-200 bg-amber-50 text-amber-700',
-  AWAITING_PAYMENT: 'border-secondary-200 bg-secondary-50 text-secondary-700',
-  CONFIRMED: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  CHECKED_IN: 'border-blue-200 bg-blue-50 text-blue-700',
-  CHECKED_OUT: 'border-purple-200 bg-purple-50 text-purple-700',
-  COMPLETED: 'border-primary/30 bg-primary-50 text-primary',
-  REFUNDED: 'border-orange-200 bg-orange-50 text-orange-700',
-  REJECTED: 'border-rose-200 bg-rose-50 text-rose-700',
-  CANCELLED: 'border-rose-200 bg-rose-50 text-rose-700',
-  EXPIRED: 'border-border bg-canvas text-muted',
-  NO_SHOW: 'border-border bg-canvas text-muted',
-};
 const SORT_OPTIONS: SortOption[] = [
   { value: 'createdAt:desc', label: 'Đặt gần đây' },
   { value: 'createdAt:asc', label: 'Đặt lâu nhất' },
@@ -51,59 +36,65 @@ const SORT_OPTIONS: SortOption[] = [
   { value: 'totalAmount:desc', label: 'Giá trị cao nhất' },
 ];
 
-const vnd = (n?: number | null) => (n == null ? '—' : new Intl.NumberFormat('vi-VN').format(n) + 'đ');
-const date = (d?: string | null) => (d ? new Date(d).toLocaleDateString('vi-VN') : '—');
-const dateTime = (d?: string | null) => (d ? new Date(d).toLocaleString('vi-VN') : '—');
-const pill = (cls: string) => `rounded-sm border px-2 py-0.5 text-[10px] font-bold ${cls}`;
+const STATUS_ORDER: BookingStatus[] = [
+  'PENDING',
+  'AWAITING_PAYMENT',
+  'CONFIRMED',
+  'CHECKED_IN',
+  'CHECKED_OUT',
+  'COMPLETED',
+  'REFUNDED',
+  'CANCELLED',
+  'REJECTED',
+  'EXPIRED',
+  'NO_SHOW',
+];
+
+/** Giá trị tab đặc biệt cho danh sách "Cần chú ý" (chỉ Admin). */
+const ATTENTION_TAB = 'ATTENTION';
+type TabValue = BookingStatus | typeof ATTENTION_TAB;
+
+/** Bộ lọc khởi tạo khi mở từ nơi khác (vd: drill-down từ báo cáo). */
+export interface BookingsPreset {
+  providerId?: number;
+  placeId?: number;
+  status?: BookingStatus;
+  createdFrom?: string;
+  createdTo?: string;
+  /** Mô tả ngắn hiển thị cho người dùng, vd: "NCC Hello Mù Cang Chải · T9/2026". */
+  label?: string;
+}
 
 interface BookingsPanelProps {
   /** 'admin': toàn hệ thống; 'partner': chỉ đơn của nhà cung cấp đang đăng nhập. */
   scope?: 'admin' | 'partner';
+  preset?: BookingsPreset;
 }
 
-export default function BookingsPanel({ scope = 'admin' }: BookingsPanelProps) {
+export default function BookingsPanel({ scope = 'admin', preset }: BookingsPanelProps) {
   const [keyword, setKeyword] = useState('');
-  const [status, setStatus] = useState<BookingStatus | ''>('');
-  const [createdFrom, setCreatedFrom] = useState('');
-  const [createdTo, setCreatedTo] = useState('');
+  const [status, setStatus] = useState<BookingStatus | ''>(preset?.status ?? '');
+  const [createdFrom, setCreatedFrom] = useState(preset?.createdFrom ?? '');
+  const [createdTo, setCreatedTo] = useState(preset?.createdTo ?? '');
   const [checkInFrom, setCheckInFrom] = useState('');
   const [checkInTo, setCheckInTo] = useState('');
+  const [providerId, setProviderId] = useState<number | undefined>(preset?.providerId);
+  const [placeId, setPlaceId] = useState<number | undefined>(preset?.placeId);
+  const [presetLabel, setPresetLabel] = useState(preset?.label ?? '');
   const [sort, setSort] = useState('createdAt:desc');
   const [page, setPage] = useState(0);
+  const [mode, setMode] = useState<'all' | 'attention'>('all');
 
   const [data, setData] = useState<PageResponse<AdminBookingDto> | null>(null);
   const [summary, setSummary] = useState<BookingStatusSummary | null>(null);
+  const [attention, setAttention] = useState<BookingAttentionItem[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState('');
   const [reload, setReload] = useState(0);
   const [selected, setSelected] = useState<AdminBookingDto | null>(null);
 
-  const [updatingStatus, setUpdatingStatus] = useState(false);
-  const [statusActionMsg, setStatusActionMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [rejectReasonInput, setRejectReasonInput] = useState('');
-  const [showRejectDialog, setShowRejectDialog] = useState(false);
-
-  const handleUpdateStatus = async (newStatus: BookingStatus, reason?: string) => {
-    if (!selected) return;
-    setUpdatingStatus(true);
-    setStatusActionMsg(null);
-    try {
-      const updateFn = scope === 'partner' ? partnerBookingService.updateStatus : adminService.updateBookingStatus;
-      await updateFn(selected.id, newStatus, reason);
-      setSelected((prev) => (prev ? { ...prev, status: newStatus, closeReason: reason || prev.closeReason } : null));
-      setReload((n) => n + 1);
-      setShowRejectDialog(false);
-      setRejectReasonInput('');
-      setStatusActionMsg({ type: 'success', text: `Đã đổi trạng thái đơn sang: ${STATUS_LABEL[newStatus]}` });
-    } catch {
-      setStatusActionMsg({ type: 'error', text: 'Cập nhật trạng thái thất bại. Vui lòng thử lại.' });
-    } finally {
-      setUpdatingStatus(false);
-    }
-  };
-
   const debouncedKeyword = useDebouncedValue(keyword);
-  const activeCount = [debouncedKeyword, status, createdFrom || createdTo, checkInFrom || checkInTo].filter(Boolean).length;
+  const activeCount = [debouncedKeyword, status, createdFrom || createdTo, checkInFrom || checkInTo, providerId, placeId].filter(Boolean).length;
 
   const resetPage = <T,>(setter: (v: T) => void) => (v: T) => {
     setter(v);
@@ -117,79 +108,106 @@ export default function BookingsPanel({ scope = 'admin' }: BookingsPanelProps) {
     setCreatedTo('');
     setCheckInFrom('');
     setCheckInTo('');
+    setProviderId(undefined);
+    setPlaceId(undefined);
+    setPresetLabel('');
     setPage(0);
   };
 
   const load = useCallback(async () => {
-    const api =
-      scope === 'partner'
-        ? { list: partnerBookingService.getBookings, summary: partnerBookingService.getSummary }
-        : { list: adminService.getBookings, summary: adminService.getBookingsSummary };
     const [sortBy, sortDir] = sort.split(':') as [string, 'asc' | 'desc'];
     setLoading(true);
     setLoadError('');
     try {
-      const [list, counts] = await Promise.all([
-        api.list({
-          keyword: debouncedKeyword.trim() || undefined,
-          status: status || undefined,
-          createdFrom: createdFrom || undefined,
-          createdTo: createdTo || undefined,
-          checkInFrom: checkInFrom || undefined,
-          checkInTo: checkInTo || undefined,
-          sortBy,
-          sortDir,
-          page,
-          size: PAGE_SIZE,
-        }),
-        api.summary(),
-      ]);
-      setData(list);
-      setSummary(counts);
-    } catch {
-      setLoadError('Không tải được danh sách đặt phòng. Vui lòng kiểm tra kết nối máy chủ và thử lại.');
+      if (scope === 'admin' && mode === 'attention') {
+        setAttention(await adminService.getBookingAttention());
+        return;
+      }
+      const params = {
+        keyword: debouncedKeyword.trim() || undefined,
+        status: status || undefined,
+        createdFrom: createdFrom || undefined,
+        createdTo: createdTo || undefined,
+        checkInFrom: checkInFrom || undefined,
+        checkInTo: checkInTo || undefined,
+        sortBy,
+        sortDir,
+        page,
+        size: PAGE_SIZE,
+      };
+      if (scope === 'partner') {
+        const [list, counts] = await Promise.all([partnerBookingService.getBookings(params), partnerBookingService.getSummary()]);
+        setData(list);
+        setSummary(counts);
+      } else {
+        const [list, counts, att] = await Promise.all([
+          adminService.getBookings({ ...params, providerId, placeId }),
+          adminService.getBookingsSummary(),
+          adminService.getBookingAttention(),
+        ]);
+        setData(list);
+        setSummary(counts);
+        setAttention(att);
+      }
+    } catch (err: unknown) {
+      setLoadError(getApiErrorMessage(err, 'Không tải được danh sách đặt phòng. Vui lòng kiểm tra kết nối máy chủ và thử lại.'));
     } finally {
       setLoading(false);
     }
-  }, [scope, debouncedKeyword, status, createdFrom, createdTo, checkInFrom, checkInTo, sort, page]);
+  }, [scope, mode, debouncedKeyword, status, createdFrom, createdTo, checkInFrom, checkInTo, providerId, placeId, sort, page]);
 
   useEffect(() => {
     void load();
   }, [load, reload]);
 
-  const statusOptions: ChipOption<BookingStatus>[] = [
-    { value: '', label: 'Tất cả' },
-    ...(Object.keys(STATUS_LABEL) as BookingStatus[]).map((s) => ({
-      value: s,
-      label: `${STATUS_LABEL[s]}${summary ? ` (${summary[s] ?? 0})` : ''}`,
-    })),
-  ];
+  const showingAttention = scope === 'admin' && mode === 'attention';
+  const attentionCount = attention?.length ?? 0;
+  const totalAll = summary ? STATUS_ORDER.reduce((a, s) => a + (summary[s] ?? 0), 0) : null;
 
-  const th = 'px-3 py-2.5';
-  const rows = data?.content ?? [];
+  const tabs: TabItem<TabValue>[] = [
+    { value: '', label: 'Tất cả', count: totalAll },
+    ...(scope === 'admin'
+      ? [{ value: ATTENTION_TAB as TabValue, label: 'Cần chú ý', count: attention ? attentionCount : null, tone: 'danger' as const }]
+      : []),
+    ...STATUS_ORDER.map((s) => ({ value: s as TabValue, label: STATUS_LABEL[s], count: summary ? summary[s] ?? 0 : null, tone: STATUS_TONE[s] })),
+  ];
+  const tabValue: TabValue | '' = showingAttention ? ATTENTION_TAB : status;
+  const onTab = (v: TabValue | '') => {
+    setPage(0);
+    if (v === ATTENTION_TAB) {
+      setMode('attention');
+      return;
+    }
+    setMode('all');
+    setStatus(v);
+  };
+
+  const th = 'px-4 py-2.5';
+  const td = 'px-4 py-2.5';
+  const rows = showingAttention
+    ? (attention ?? []).map((a) => ({ b: a.booking, reason: a as BookingAttentionItem | null }))
+    : (data?.content ?? []).map((b) => ({ b, reason: null as BookingAttentionItem | null }));
 
   return (
-    <div className="flex flex-col gap-4 rounded-lg border border-border bg-white p-4 shadow-xs">
-      <div className="flex flex-col gap-3 rounded-md border border-border bg-canvas/60 p-3">
-        <div className="flex flex-wrap items-center gap-3">
+    <section className="rounded-lg border border-border bg-white shadow-sm">
+      <UnderlineTabs ariaLabel="Trạng thái đơn" items={tabs} value={tabValue} onChange={onTab} />
+
+      {showingAttention ? (
+        <div className="flex items-center justify-between gap-3 border-b border-border bg-danger/5 px-4 py-2.5 text-xs text-ink">
+          <span className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-danger" />
+            Chờ NCC quá 24 giờ, quá hạn thanh toán, đã qua ngày trả phòng chưa hoàn tất, hoặc được đánh dấu cần theo dõi.
+          </span>
+          <RefreshButton loading={loading} onClick={() => setReload((n) => n + 1)} />
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2.5">
           <FilterSearch
             value={keyword}
             onChange={resetPage(setKeyword)}
-            placeholder={scope === 'partner' ? 'Tìm theo mã đặt, tên / SĐT / email khách hoặc homestay...' : 'Tìm theo mã đặt, tên / SĐT / email khách, homestay hoặc nhà cung cấp...'}
+            placeholder={scope === 'partner' ? 'Tìm theo mã đặt, tên / SĐT khách hoặc homestay...' : 'Tìm theo mã đặt VJ-..., tên khách, SĐT hoặc Homestay...'}
           />
-          <SortSelect value={sort} options={SORT_OPTIONS} onChange={resetPage(setSort)} />
-          <button
-            type="button"
-            onClick={() => setReload((n) => n + 1)}
-            aria-label="Tải lại"
-            className="flex h-9 w-9 items-center justify-center rounded-md border border-border bg-white text-muted hover:text-primary"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
-        <ChipGroup label="Trạng thái" options={statusOptions} value={status} onChange={resetPage(setStatus)} />
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-          <DateRangeFilter
+          <CompactDateRange
             label="Ngày đặt"
             from={createdFrom}
             to={createdTo}
@@ -199,7 +217,7 @@ export default function BookingsPanel({ scope = 'admin' }: BookingsPanelProps) {
               setPage(0);
             }}
           />
-          <DateRangeFilter
+          <CompactDateRange
             label="Nhận phòng"
             from={checkInFrom}
             to={checkInTo}
@@ -209,221 +227,128 @@ export default function BookingsPanel({ scope = 'admin' }: BookingsPanelProps) {
               setPage(0);
             }}
           />
+          <div className="ml-auto flex shrink-0 items-center gap-2">
+            <SortSelect value={sort} options={SORT_OPTIONS} onChange={resetPage(setSort)} />
+            <RefreshButton loading={loading} onClick={() => setReload((n) => n + 1)} />
+          </div>
+          {presetLabel && (
+            <span className="rise-in flex w-full items-center gap-2 text-xs">
+              <StatusBadge tone="brand">Đang lọc: {presetLabel}</StatusBadge>
+              <button
+                type="button"
+                onClick={() => {
+                  setProviderId(undefined);
+                  setPlaceId(undefined);
+                  setPresetLabel('');
+                  setPage(0);
+                }}
+                className="flex items-center gap-1 text-muted hover:text-danger"
+              >
+                <X className="h-3.5 w-3.5" /> Bỏ lọc này
+              </button>
+            </span>
+          )}
         </div>
-        <FilterFooter total={data?.totalElements ?? 0} activeCount={activeCount} onClear={clearFilters} />
-      </div>
+      )}
 
       {loadError && (
-        <div role="alert" className="rounded-md border border-danger/30 bg-danger/5 p-3 text-xs text-danger">
+        <div role="alert" className="border-b border-danger/20 bg-danger/5 px-4 py-2.5 text-xs text-danger">
           {loadError}
         </div>
       )}
 
-      <div className={`overflow-x-auto rounded-md border border-border transition-opacity ${loading ? 'opacity-60' : ''}`}>
+      <div className={`overflow-x-auto transition-opacity duration-200 ${loading ? 'opacity-60' : ''}`}>
         <table className="w-full border-collapse text-left text-xs">
           <thead>
-            <tr className="border-b border-border bg-canvas font-semibold text-muted">
+            <tr className="border-b border-border bg-canvas/60 text-[11px] font-semibold uppercase tracking-wide text-muted">
               <th className={th}>Mã đặt</th>
               <th className={th}>Khách hàng</th>
               <th className={th}>Homestay / Phòng</th>
               <th className={th}>Lưu trú</th>
               <th className={`${th} text-right`}>Tổng tiền</th>
-              <th className={th}>Trạng thái</th>
+              <th className={th}>{showingAttention ? 'Lý do cần chú ý' : 'Trạng thái'}</th>
               <th className={th}>Ngày đặt</th>
+              <th className={`${th} text-right`}>Thao tác</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
-            {rows.map((b) => (
-              <tr
-                key={b.id}
-                onClick={() => setSelected(b)}
-                className="cursor-pointer transition-colors hover:bg-hover/60"
-              >
-                <td className={`${th} font-mono font-semibold text-primary`}>{b.bookingCode}</td>
-                <td className={th}>
-                  <div className="font-semibold text-ink-deep">{b.guestName}</div>
-                  <div className="text-[11px] text-muted">{b.guestPhone}</div>
+          <tbody className="divide-y divide-border/70">
+            {rows.map(({ b, reason }) => (
+              <tr key={b.id} onClick={() => setSelected(b)} className="cursor-pointer transition-colors duration-150 hover:bg-canvas">
+                <td className={`${td} whitespace-nowrap font-mono font-semibold text-primary`}>{b.bookingCode}</td>
+                <td className={td}>
+                  <div className="max-w-[180px] truncate font-semibold text-ink-deep">{b.guestName}</div>
+                  <div className="text-[11px] tabular-nums text-muted">{b.guestPhone}</div>
                 </td>
-                <td className={th}>
-                  <div className="font-medium text-ink">{b.placeName}</div>
-                  <div className="text-[11px] text-muted">{b.roomTypeName} · {b.providerName}</div>
+                <td className={td}>
+                  <div className="max-w-[220px] truncate font-medium text-ink">{b.placeName}</div>
+                  <div className="max-w-[220px] truncate text-[11px] text-muted">
+                    {b.roomTypeName} · {b.providerName}
+                  </div>
                 </td>
-                <td className={`${th} text-ink`}>
-                  <div>{date(b.checkIn)} → {date(b.checkOut)}</div>
-                  <div className="text-[11px] text-muted">{b.nights} đêm · {b.roomCount} phòng · {b.guestCount} khách</div>
+                <td className={`${td} whitespace-nowrap text-ink`}>
+                  <div>
+                    {fmtDate(b.checkIn)} → {fmtDate(b.checkOut)}
+                  </div>
+                  <div className="text-[11px] text-muted">
+                    {b.nights} đêm · {b.roomCount} phòng · {b.guestCount} khách
+                  </div>
                 </td>
-                <td className={`${th} text-right font-semibold text-ink-deep`}>{vnd(b.totalAmount)}</td>
-                <td className={th}>
-                  <span className={pill(STATUS_TONE[b.status])}>{STATUS_LABEL[b.status]}</span>
+                <td className={`${td} whitespace-nowrap text-right font-semibold tabular-nums text-ink-deep`}>{vnd(b.totalAmount)}</td>
+                <td className={td}>
+                  {reason ? (
+                    <div className="flex flex-col items-start gap-1">
+                      <StatusBadge tone={ATTENTION_TONE[reason.reason]} pulse>
+                        {reason.reasonLabel}
+                      </StatusBadge>
+                      <span className="text-[11px] text-muted">{STATUS_LABEL[b.status]}</span>
+                    </div>
+                  ) : (
+                    <StatusBadge tone={STATUS_TONE[b.status]} pulse={isPendingStatus(b.status)}>
+                      {STATUS_LABEL[b.status]}
+                    </StatusBadge>
+                  )}
                 </td>
-                <td className={`${th} text-muted`}>{dateTime(b.createdAt)}</td>
+                <td className={`${td} whitespace-nowrap text-muted`}>{fmtDateTime(b.createdAt)}</td>
+                <td className={`${td} text-right`} onClick={(e) => e.stopPropagation()}>
+                  <button type="button" onClick={() => setSelected(b)} className={actionButtonClass('brand')} aria-label={`Chi tiết đơn ${b.bookingCode}`}>
+                    <Eye className="h-3 w-3" /> Chi tiết
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
-        {!loading && rows.length === 0 && !loadError && (
-          <div className="py-10 text-center text-xs text-muted">Không có đơn đặt phòng nào khớp bộ lọc.</div>
+        {!loading && !loadError && rows.length === 0 && (
+          <div className="py-12 text-center text-xs text-muted">
+            {showingAttention ? 'Không có đơn nào cần chú ý.' : 'Không có đơn đặt phòng nào khớp bộ lọc.'}
+          </div>
         )}
       </div>
 
-      <Pagination page={page} totalPages={data?.totalPages ?? 0} onChange={setPage} />
+      {showingAttention ? (
+        <div className="border-t border-border px-4 py-2.5 text-xs text-muted">
+          <strong className="tabular-nums text-ink">{attentionCount}</strong> đơn cần chú ý
+        </div>
+      ) : (
+        <TableFooter
+          total={data?.totalElements ?? 0}
+          activeCount={activeCount}
+          onClear={clearFilters}
+          page={page}
+          totalPages={data?.totalPages ?? 0}
+          onPage={setPage}
+        />
+      )}
 
       {selected && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/50" onClick={() => setSelected(null)}>
-          <aside
-            className="flex h-full w-full max-w-md flex-col gap-4 overflow-y-auto bg-white p-5 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-            aria-label={`Chi tiết đơn ${selected.bookingCode}`}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">Mã đặt phòng</p>
-                <h3 className="font-mono text-lg font-bold text-primary">{selected.bookingCode}</h3>
-              </div>
-              <button type="button" onClick={() => setSelected(null)} aria-label="Đóng" className="rounded-md p-1.5 text-muted hover:bg-hover">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <span className={`${pill(STATUS_TONE[selected.status])} w-fit`}>{STATUS_LABEL[selected.status]}</span>
-
-            <Section title="Khách hàng">
-              <p className="text-sm font-bold text-ink-deep">{selected.guestName}</p>
-              <p className="flex items-center gap-2 text-xs text-ink"><Phone className="h-3.5 w-3.5 text-muted" /> {selected.guestPhone}</p>
-              <p className="flex items-center gap-2 text-xs text-ink"><Mail className="h-3.5 w-3.5 text-muted" /> {selected.guestEmail || '—'}</p>
-              {selected.guestNote && (
-                <p className="flex items-start gap-2 rounded-md bg-canvas p-2.5 text-xs text-ink">
-                  <StickyNote className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted" /> {selected.guestNote}
-                </p>
-              )}
-            </Section>
-
-            <Section title="Lưu trú">
-              <Row k="Homestay" v={selected.placeName} />
-              <Row k="Loại phòng" v={selected.roomTypeName} />
-              <Row k="Nhà cung cấp" v={selected.providerName} />
-              <Row k="Nhận phòng" v={date(selected.checkIn)} />
-              <Row k="Trả phòng" v={date(selected.checkOut)} />
-              <Row k="Số đêm" v={`${selected.nights}`} />
-              <Row k="Số phòng / khách" v={`${selected.roomCount} phòng · ${selected.guestCount} khách`} />
-            </Section>
-
-            <Section title="Thanh toán & thời gian">
-              <Row k="Tổng tiền" v={vnd(selected.totalAmount)} strong />
-              <Row k="Ngày đặt" v={dateTime(selected.createdAt)} />
-              <Row k="Ngày xác nhận" v={dateTime(selected.confirmedAt)} />
-              {selected.closedAt && <Row k="Đóng đơn lúc" v={dateTime(selected.closedAt)} />}
-              {selected.closeReason && <Row k="Lý do đóng" v={selected.closeReason} />}
-            </Section>
-
-            {statusActionMsg && (
-              <div
-                className={`rounded-md p-2.5 text-xs font-medium border ${
-                  statusActionMsg.type === 'success'
-                    ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                    : 'border-rose-200 bg-rose-50 text-rose-800'
-                }`}
-              >
-                {statusActionMsg.text}
-              </div>
-            )}
-
-            {/* Thao tác duyệt / từ chối / hoàn tiền đơn */}
-            {['PENDING', 'AWAITING_PAYMENT'].includes(selected.status) && (
-              <Section title="Thao tác xử lý">
-                <div className="flex flex-col gap-2">
-                  <button
-                    type="button"
-                    disabled={updatingStatus}
-                    onClick={() => void handleUpdateStatus('CONFIRMED')}
-                    className="flex items-center justify-center gap-1.5 rounded-md bg-[var(--color-primary)] py-2 px-3 text-xs font-bold text-white hover:bg-[var(--color-primary-dark,#03705C)] disabled:opacity-50 cursor-pointer shadow-xs"
-                  >
-                    <CheckCircle2 className="h-4 w-4" />
-                    <span>Xác nhận đơn đặt phòng</span>
-                  </button>
-
-                  {!showRejectDialog ? (
-                    <button
-                      type="button"
-                      disabled={updatingStatus}
-                      onClick={() => setShowRejectDialog(true)}
-                      className="flex items-center justify-center gap-1.5 rounded-md border border-rose-200 bg-rose-50 py-2 px-3 text-xs font-bold text-rose-700 hover:bg-rose-100 disabled:opacity-50 cursor-pointer shadow-xs"
-                    >
-                      <XCircle className="h-4 w-4" />
-                      <span>Từ chối đơn đặt phòng</span>
-                    </button>
-                  ) : (
-                    <div className="flex flex-col gap-2 rounded-md border border-rose-200 bg-rose-50/60 p-2.5">
-                      <label htmlFor="reject-reason" className="text-[11px] font-bold text-rose-900">
-                        Lý do từ chối:
-                      </label>
-                      <input
-                        id="reject-reason"
-                        type="text"
-                        value={rejectReasonInput}
-                        onChange={(e) => setRejectReasonInput(e.target.value)}
-                        placeholder="Nhập lý do từ chối (vd: Hết phòng)..."
-                        className="rounded-md border border-rose-200 bg-white px-2.5 py-1.5 text-xs text-ink outline-none focus:border-rose-500"
-                      />
-                      <div className="flex items-center justify-end gap-2 mt-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowRejectDialog(false);
-                            setRejectReasonInput('');
-                          }}
-                          className="rounded-md border border-border bg-white px-2.5 py-1 text-xs text-muted hover:text-ink cursor-pointer"
-                        >
-                          Hủy
-                        </button>
-                        <button
-                          type="button"
-                          disabled={updatingStatus}
-                          onClick={() => void handleUpdateStatus('REJECTED', rejectReasonInput || 'Không còn phòng trống.')}
-                          className="rounded-md bg-rose-600 px-3 py-1 text-xs font-bold text-white hover:bg-rose-700 disabled:opacity-50 cursor-pointer shadow-xs"
-                        >
-                          Xác nhận từ chối
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </Section>
-            )}
-
-            {selected.status === 'CONFIRMED' && (
-              <Section title="Thao tác xử lý">
-                <button
-                  type="button"
-                  disabled={updatingStatus}
-                  onClick={() => void handleUpdateStatus('REFUNDED', 'Quản lý duyệt hoàn tiền theo chính sách')}
-                  className="flex items-center justify-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 py-2 px-3 text-xs font-bold text-amber-800 hover:bg-amber-100 disabled:opacity-50 cursor-pointer shadow-xs"
-                >
-                  <RotateCcw className="h-4 w-4 text-amber-700" />
-                  <span>Duyệt hoàn tiền cho đơn</span>
-                </button>
-              </Section>
-            )}
-          </aside>
-        </div>
+        <BookingDetailDrawer
+          key={selected.id}
+          booking={selected}
+          scope={scope}
+          onClose={() => setSelected(null)}
+          onChanged={() => setReload((n) => n + 1)}
+        />
       )}
-    </div>
-  );
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="flex flex-col gap-2 rounded-md border border-border p-3">
-      <h4 className="text-[11px] font-bold uppercase tracking-wider text-muted">{title}</h4>
-      {children}
     </section>
-  );
-}
-
-function Row({ k, v, strong }: { k: string; v: string; strong?: boolean }) {
-  return (
-    <div className="flex items-start justify-between gap-4 text-xs">
-      <span className="text-muted">{k}</span>
-      <span className={`text-right ${strong ? 'font-bold text-ink-deep' : 'text-ink'}`}>{v}</span>
-    </div>
   );
 }

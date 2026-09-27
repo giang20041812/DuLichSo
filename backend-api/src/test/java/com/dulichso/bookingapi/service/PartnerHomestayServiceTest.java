@@ -63,6 +63,22 @@ class PartnerHomestayServiceTest {
         verify(repository, never()).persist(any());
         verifyNoInteractions(contacts, amenities);
     }
+    @Test void publishedHomestayCannotBeWrittenDirectly() {
+        place.setVisibility(PlaceVisibility.PUBLISHED);
+        authenticate(); when(repository.findOwned(21L, 12L, true)).thenReturn(Optional.of(place));
+        assertEquals(409, assertThrows(ResponseStatusException.class, () -> service.saveHomestayDetail(principal, 21L, input())).getStatusCode().value());
+        assertEquals("Homestay A", place.getName());
+        verifyNoInteractions(contacts, amenities);
+    }
+    @Test void approvedChangeIsAppliedToPublishedHomestayAsSubmitter() {
+        place.setVisibility(PlaceVisibility.PUBLISHED);
+        when(repository.findOwned(21L, 12L, true)).thenReturn(Optional.of(place));
+        when(repository.profile(21L)).thenReturn(Optional.empty());
+        var result = service.applyApproved(account, 21L, input());
+        assertEquals("Tên mới", place.getName());
+        assertEquals("Tên mới", result.getName());
+        assertSame(account, place.getUpdatedBy());
+    }
     @Test void suspendedProviderCannotCreate() {
         authenticate(); account.getProvider().setStatus(ProviderStatus.SUSPENDED);
         assertEquals(403, assertThrows(ResponseStatusException.class, () -> service.createHomestay(principal, input())).getStatusCode().value());

@@ -41,6 +41,27 @@ public class AdminDashboardDtos {
 
         /** Doanh thu 6 tháng gần nhất, cũ → mới. */
         private java.util.List<MonthlyRevenuePoint> revenueTrend;
+
+        /**
+         * Giá trị đặt phòng (GMV) 6 tháng gần nhất, cũ → mới — không phụ thuộc đã thanh toán hay chưa.
+         * Frontend dùng làm số liệu tạm khi revenueTrend toàn 0đ (chưa có giao dịch đối soát thành công).
+         */
+        private java.util.List<MonthlyRevenuePoint> gmvTrend;
+    }
+
+    /** Một dòng nhật ký hoạt động gần đây cho Live Audit Feed ở Tổng quan. */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class AuditLogEntryDto {
+        private Long id;
+        private String action;
+        private String entityType;
+        private Long entityId;
+        private String reason;
+        private String actorName;
+        private java.time.LocalDateTime createdAt;
     }
 
     @Data

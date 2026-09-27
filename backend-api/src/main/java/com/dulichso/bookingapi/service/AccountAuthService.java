@@ -5,8 +5,10 @@ import com.dulichso.bookingapi.entity.Account;
 import com.dulichso.bookingapi.entity.Provider;
 import com.dulichso.bookingapi.entity.enums.AccountRole;
 import com.dulichso.bookingapi.entity.enums.AccountStatus;
+import com.dulichso.bookingapi.entity.enums.ActorType;
 import com.dulichso.bookingapi.entity.enums.ProviderStatus;
 import com.dulichso.bookingapi.repository.AccountRepository;
+import com.dulichso.bookingapi.security.ClientIp;
 import com.dulichso.bookingapi.security.JwtUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -24,14 +27,17 @@ public class AccountAuthService {
     private final AccountRepository accountRepository;
     private final JwtUtils jwtUtils;
     private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+    private final AuditLogService auditLogService;
     private final boolean qaMockAccounts;
 
     public AccountAuthService(AccountRepository accountRepository, JwtUtils jwtUtils,
                               org.springframework.security.crypto.password.PasswordEncoder passwordEncoder,
+                              AuditLogService auditLogService,
                               @org.springframework.beans.factory.annotation.Value("${app.qa-mock-accounts:false}") boolean qaMockAccounts) {
         this.accountRepository = accountRepository;
         this.jwtUtils = jwtUtils;
         this.passwordEncoder = passwordEncoder;
+        this.auditLogService = auditLogService;
         this.qaMockAccounts = qaMockAccounts;
     }
 
@@ -56,19 +62,22 @@ public class AccountAuthService {
             boolean passwordMatches = checkPassword(password, account.getPasswordHash());
             if (!passwordMatches) {
                 // BV-08 / UC-08: Sai thông tin -> thông báo chung, không tiết lộ identifier
+                loginEvent(account, identifier, "LOGIN_FAILED", AuditLogService.RESULT_FAILURE, "Sai mật khẩu");
                 throw new BadCredentialsException("Thông tin đăng nhập không chính xác. Vui lòng kiểm tra lại Email/Số điện thoại hoặc Mật khẩu.");
             }
         } else {
             // Fallback: Kiểm tra dữ liệu mẫu QA Simulator phục vụ dev & test ngay cả khi DB chưa seed
             account = qaMockAccounts ? getMockAccountForQa(identifier, password) : null;
             if (account == null) {
+                loginEvent(null, identifier, "LOGIN_FAILED", AuditLogService.RESULT_FAILURE, "Tài khoản không tồn tại");
                 throw new BadCredentialsException("Thông tin đăng nhập không chính xác. Vui lòng kiểm tra lại Email/Số điện thoại hoặc Mật khẩu.");
             }
         }
 
         // UC-08: Kiểm tra Account Status
         if (account.getStatus() != AccountStatus.ACTIVE) {
-            log.info("Đăng nhập bị từ chối: Tài khoản {} ở trạng thái INACTIVE", identifier);
+            log.info("Đăng nhập bị từ chối: Tài khoản {} ở trạng thái INACTIVE", AuditLogService.mask(identifier));
+            loginEvent(account, identifier, "LOGIN_BLOCKED", AuditLogService.RESULT_DENIED, "Tài khoản bị vô hiệu hóa");
             throw new AccountInactiveException("Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ ban quản trị hệ thống.");
         }
 
@@ -76,20 +85,24 @@ public class AccountAuthService {
         if (account.getRole() == AccountRole.PROVIDER) {
             Provider provider = account.getProvider();
             if (provider == null || provider.getStatus() != ProviderStatus.ACTIVE) {
-                log.info("Đăng nhập bị từ chối: Nhà cung cấp cho tài khoản {} không ở trạng thái ACTIVE", identifier);
+                log.info("Đăng nhập bị từ chối: Nhà cung cấp cho tài khoản {} không ở trạng thái ACTIVE", AuditLogService.mask(identifier));
+                loginEvent(account, identifier, "LOGIN_BLOCKED", AuditLogService.RESULT_DENIED, "Nhà cung cấp không hoạt động");
                 throw new ProviderSuspendedException("Nhà cung cấp đã bị đình chỉ hoạt động hoặc không khả dụng. Vui lòng liên hệ kênh hỗ trợ đối tác.");
             }
         }
 
         // Cập nhật last login time nếu tài khoản có ID trong DB
         if (account.getId() != null && accountOpt.isPresent()) {
-            account.setLastLoginAt(LocalDateTime.now());
+            LocalDateTime now = LocalDateTime.now();
+            account.setLastLoginAt(now);
+            account.setLastActivityAt(now);
             accountRepository.save(account);
         }
+        loginEvent(account, identifier, "LOGIN_SUCCESS", AuditLogService.RESULT_SUCCESS, null);
 
-        // Sinh JWT token
+        // Sinh JWT token (mang phiên bản token để có thể thu hồi khi đổi quyền/khóa/đăng xuất)
         String tokenIdentifier = account.getEmail() != null ? account.getEmail() : account.getPhone();
-        String token = jwtUtils.generateToken(tokenIdentifier, "ROLE_" + account.getRole().name());
+        String token = jwtUtils.generateToken(tokenIdentifier, "ROLE_" + account.getRole().name(), account.getTokenVersion());
 
         // Chuẩn bị DTO trả về (Không bao giờ trả JPA Entity trực tiếp theo AGENTS.md)
         ProviderSummaryDto providerDto = null;
@@ -121,6 +134,27 @@ public class AccountAuthService {
                 .redirectUrl(redirectUrl)
                 .message("Đăng nhập thành công! Đang điều hướng đến " + (account.getRole() == AccountRole.ADMIN ? "Cổng Quản Trị Hệ Thống." : "Cổng Nhà Cung Cấp Đối Tác."))
                 .build();
+    }
+
+    /** Đăng xuất: tăng phiên bản token để mọi JWT đang giữ của tài khoản này bị thu hồi. */
+    @Transactional
+    public void logout(String identifier) {
+        if (identifier == null) return;
+        accountRepository.findByIdentifier(identifier).ifPresent(account -> {
+            account.setTokenVersion(account.getTokenVersion() + 1);
+            account.setLastActivityAt(null);
+            accountRepository.save(account);
+            loginEvent(account, identifier, "LOGOUT", AuditLogService.RESULT_SUCCESS, null);
+        });
+    }
+
+    /** NFR-SEC-05: ghi sự kiện xác thực; định danh được che, không ghi mật khẩu/token. */
+    private void loginEvent(Account account, String identifier, String action, String result, String reason) {
+        ActorType actor = account == null ? ActorType.SYSTEM
+                : account.getRole() == AccountRole.PROVIDER ? ActorType.PROVIDER : ActorType.ADMIN;
+        auditLogService.recordEvent(actor, account != null ? account.getId() : null, action, "Account",
+                account != null ? account.getId() : null, result, ClientIp.current(), reason,
+                Map.of("identifier", AuditLogService.mask(identifier)));
     }
 
     private boolean checkPassword(String plainPassword, String storedHash) {

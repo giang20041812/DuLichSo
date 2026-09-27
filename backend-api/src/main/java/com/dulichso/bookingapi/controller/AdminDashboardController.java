@@ -1,6 +1,9 @@
 package com.dulichso.bookingapi.controller;
 
 import com.dulichso.bookingapi.dto.admin.AdminDashboardDtos.AdminDashboardSummaryDto;
+import com.dulichso.bookingapi.dto.admin.AdminDashboardDtos.AuditLogEntryDto;
+import org.springframework.web.bind.annotation.RequestParam;
+import java.util.List;
 import com.dulichso.bookingapi.service.AdminDashboardService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,5 +27,15 @@ public class AdminDashboardController {
     @GetMapping("/summary")
     public ResponseEntity<AdminDashboardSummaryDto> getSummary() {
         return ResponseEntity.ok(adminDashboardService.getSummary());
+    }
+
+    /**
+     * GET /api/v1/admin/dashboard/activity
+     * Nhật ký hoạt động gần đây (Live Audit Feed) cho trang Tổng quan.
+     */
+    @GetMapping("/activity")
+    public ResponseEntity<List<AuditLogEntryDto>> getRecentActivity(
+            @RequestParam(defaultValue = "8") int limit) {
+        return ResponseEntity.ok(adminDashboardService.recentActivity(limit));
     }
 }

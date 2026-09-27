@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,10 +27,13 @@ public class AdminTravelerService {
 
     private final TravelerRepository travelerRepository;
     private final AuditLogService auditLogService;
+    private final PasswordEncoder passwordEncoder;
 
-    public AdminTravelerService(TravelerRepository travelerRepository, AuditLogService auditLogService) {
+    public AdminTravelerService(TravelerRepository travelerRepository, AuditLogService auditLogService,
+                                PasswordEncoder passwordEncoder) {
         this.travelerRepository = travelerRepository;
         this.auditLogService = auditLogService;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public record TravelerDto(Long id, String email, String phone, String fullName, String pictureUrl,
@@ -62,6 +66,31 @@ public class AdminTravelerService {
         };
         return travelerRepository.findAll(spec, PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100), sort))
                 .map(this::toDto);
+    }
+
+    /** Admin tạo tài khoản khách (đăng ký bằng email + mật khẩu) cho người chưa có tài khoản. */
+    @Transactional
+    public TravelerDto create(String fullName, String email, String phone, String password, Long callerAccountId) {
+        String name = fullName == null ? "" : fullName.trim();
+        String mail = email == null ? "" : email.trim().toLowerCase();
+        String tel = phone == null || phone.isBlank() ? null : phone.trim();
+        if (name.isEmpty()) throw new IllegalArgumentException("Họ tên không được để trống.");
+        if (!mail.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) throw new IllegalArgumentException("Email không đúng định dạng.");
+        if (password == null || password.length() < 6) throw new IllegalArgumentException("Mật khẩu tối thiểu 6 ký tự.");
+        if (travelerRepository.existsByEmailIgnoreCase(mail)) {
+            throw new IllegalArgumentException("Email " + mail + " đã có tài khoản khách.");
+        }
+        if (tel != null && travelerRepository.existsByPhone(tel)) {
+            throw new IllegalArgumentException("Số điện thoại " + tel + " đã có tài khoản khách.");
+        }
+        Traveler saved = travelerRepository.save(Traveler.builder()
+                .fullName(name).email(mail).phone(tel)
+                .passwordHash(passwordEncoder.encode(password))
+                .status(AccountStatus.ACTIVE)
+                .build());
+        auditLogService.record(callerAccountId, "CREATE_TRAVELER", "Traveler", saved.getId(),
+                "Admin tạo tài khoản khách: " + mail, null, Map.of("email", mail, "fullName", name));
+        return toDto(saved);
     }
 
     @Transactional

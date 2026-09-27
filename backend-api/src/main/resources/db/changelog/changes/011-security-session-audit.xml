@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+  <!-- NFR-SEC-03: vô hiệu hóa phiên khi đổi quyền/khóa/đặt lại mật khẩu (token_version) và hết phiên do không hoạt động (last_activity_at). -->
+  <changeSet id="011-account-session-columns" author="claude">
+    <addColumn tableName="account">
+      <column name="token_version" type="INT" defaultValueNumeric="0">
+        <constraints nullable="false"/>
+      </column>
+      <column name="last_activity_at" type="DATETIME"/>
+    </addColumn>
+    <rollback>
+      <dropColumn tableName="account" columnName="last_activity_at"/>
+      <dropColumn tableName="account" columnName="token_version"/>
+    </rollback>
+  </changeSet>
+
+  <!-- NFR-SEC-05 / NFR-AUD-01 / FR-AD-17: audit_log ghi được kết quả, IP và sự kiện không gắn với đối tượng cụ thể (đăng nhập thất bại...). -->
+  <changeSet id="011-audit-log-result-ip" author="claude">
+    <addColumn tableName="audit_log">
+      <column name="result" type="VARCHAR(16)"/>
+      <column name="ip" type="VARCHAR(64)"/>
+    </addColumn>
+    <dropNotNullConstraint tableName="audit_log" columnName="entity_id" columnDataType="BIGINT UNSIGNED"/>
+    <rollback>
+      <dropColumn tableName="audit_log" columnName="ip"/>
+      <dropColumn tableName="audit_log" columnName="result"/>
+    </rollback>
+  </changeSet>
+
+  <!-- Tra cứu Audit Log theo thời gian / người thao tác / hành động (FR-AD-17). -->
+  <changeSet id="011-audit-log-indexes" author="claude">
+    <createIndex tableName="audit_log" indexName="idx_audit_created">
+      <column name="created_at"/>
+    </createIndex>
+    <createIndex tableName="audit_log" indexName="idx_audit_actor">
+      <column name="actor"/>
+      <column name="actor_id"/>
+      <column name="created_at"/>
+    </createIndex>
+    <createIndex tableName="audit_log" indexName="idx_audit_action">
+      <column name="action"/>
+      <column name="created_at"/>
+    </createIndex>
+  </changeSet>
+</databaseChangeLog>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+  <!-- FR-AD-15: Admin kiểm duyệt đánh giá — thêm trạng thái REMOVED (gỡ) và ghi nhận người/lý do/thời điểm xử lý. -->
+  <changeSet id="014-review-status-removed" author="claude">
+    <sql>ALTER TABLE review MODIFY status ENUM('VISIBLE','HIDDEN','REMOVED') NOT NULL DEFAULT 'VISIBLE'</sql>
+    <rollback>
+      <sql>ALTER TABLE review MODIFY status ENUM('VISIBLE','HIDDEN') NOT NULL DEFAULT 'VISIBLE'</sql>
+    </rollback>
+  </changeSet>
+  <changeSet id="014-review-moderation-columns" author="claude">
+    <addColumn tableName="review">
+      <column name="moderated_by" type="BIGINT UNSIGNED">
+        <constraints referencedTableName="account" referencedColumnNames="id" foreignKeyName="fk_review_moderated_by"/>
+      </column>
+      <column name="moderated_at" type="DATETIME"/>
+      <column name="moderation_reason" type="VARCHAR(500)"/>
+    </addColumn>
+    <createIndex tableName="review" indexName="idx_review_status_created">
+      <column name="status"/>
+      <column name="created_at"/>
+    </createIndex>
+    <rollback>
+      <dropIndex tableName="review" indexName="idx_review_status_created"/>
+      <dropColumn tableName="review" columnName="moderation_reason"/>
+      <dropColumn tableName="review" columnName="moderated_at"/>
+      <dropColumn tableName="review" columnName="moderated_by"/>
+    </rollback>
+  </changeSet>
+</databaseChangeLog>

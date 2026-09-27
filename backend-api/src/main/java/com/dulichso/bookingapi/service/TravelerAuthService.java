@@ -2,7 +2,9 @@ package com.dulichso.bookingapi.service;
 
 import com.dulichso.bookingapi.entity.Traveler;
 import com.dulichso.bookingapi.entity.enums.AccountStatus;
+import com.dulichso.bookingapi.entity.enums.ActorType;
 import com.dulichso.bookingapi.repository.TravelerRepository;
+import com.dulichso.bookingapi.security.ClientIp;
 import com.dulichso.bookingapi.security.JwtUtils;
 import com.dulichso.bookingapi.service.GoogleTokenVerifier.GoogleProfile;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -10,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 /** Đăng ký / đăng nhập khách du lịch (email + mật khẩu hoặc Google). */
 @Service
@@ -21,11 +24,14 @@ public class TravelerAuthService {
     private final TravelerRepository travelerRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
+    private final AuditLogService auditLogService;
 
-    public TravelerAuthService(TravelerRepository travelerRepository, PasswordEncoder passwordEncoder, JwtUtils jwtUtils) {
+    public TravelerAuthService(TravelerRepository travelerRepository, PasswordEncoder passwordEncoder, JwtUtils jwtUtils,
+                               AuditLogService auditLogService) {
         this.travelerRepository = travelerRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtils = jwtUtils;
+        this.auditLogService = auditLogService;
     }
 
     public record TravelerSession(String token, String email, String fullName, String picture, String phone) {}
@@ -89,15 +95,32 @@ public class TravelerAuthService {
         String id = identifier == null ? "" : identifier.trim();
         Traveler traveler = travelerRepository.findByEmailIgnoreCase(id)
                 .or(() -> travelerRepository.findByPhone(id))
-                .orElseThrow(InvalidTravelerCredentialsException::new);
+                .orElse(null);
+        if (traveler == null) {
+            loginEvent(null, id, "LOGIN_FAILED", AuditLogService.RESULT_FAILURE, "Tài khoản không tồn tại");
+            throw new InvalidTravelerCredentialsException();
+        }
 
         if (traveler.getPasswordHash() == null || password == null
                 || !passwordEncoder.matches(password, traveler.getPasswordHash())) {
+            loginEvent(traveler, id, "LOGIN_FAILED", AuditLogService.RESULT_FAILURE, "Sai mật khẩu");
             throw new InvalidTravelerCredentialsException();
+        }
+        if (traveler.getStatus() != AccountStatus.ACTIVE) {
+            loginEvent(traveler, id, "LOGIN_BLOCKED", AuditLogService.RESULT_DENIED, "Tài khoản bị vô hiệu hóa");
         }
         assertActive(traveler);
         traveler.setLastLoginAt(LocalDateTime.now());
+        loginEvent(traveler, id, "LOGIN_SUCCESS", AuditLogService.RESULT_SUCCESS, null);
         return session(travelerRepository.save(traveler));
+    }
+
+    /** NFR-SEC-05: ghi sự kiện xác thực của khách; định danh được che, không ghi mật khẩu/token. */
+    private void loginEvent(Traveler traveler, String identifier, String action, String result, String reason) {
+        auditLogService.recordEvent(traveler == null ? ActorType.SYSTEM : ActorType.CUSTOMER,
+                traveler != null ? traveler.getId() : null, action, "Traveler",
+                traveler != null ? traveler.getId() : null, result, ClientIp.current(), reason,
+                Map.of("identifier", AuditLogService.mask(identifier)));
     }
 
     /** Tìm theo email Google đã xác minh, chưa có thì tạo mới. */
