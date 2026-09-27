@@ -146,9 +146,9 @@
 *.mat                filter=lfs diff=lfs merge=lfs -text
 
 # ---------------------------------------------------------------------------
-# Overrides: Frontend PWA static icons (DO NOT track with LFS so Vercel can serve real binary images)
+# Overrides: Frontend PWA static assets (DO NOT track with LFS so Vercel can serve real binary images)
 # ---------------------------------------------------------------------------
-/frontend-pwa/public/*.png !filter !diff !merge text=auto
-/frontend-pwa/public/*.ico !filter !diff !merge text=auto
-/frontend-pwa/public/screenshots/*.png !filter !diff !merge text=auto
+frontend-pwa/public/** !filter !diff !merge -text
+frontend-pwa/src/assets/** !filter !diff !merge -text
+
 
