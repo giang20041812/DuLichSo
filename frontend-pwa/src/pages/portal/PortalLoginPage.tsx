@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   AlertCircle,
@@ -32,6 +32,20 @@ export default function PortalLoginPage() {
   const [touched, setTouched] = useState<{ [key: string]: boolean }>({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<AuthErrorResponse | null>(null);
+
+  // Redirect if already logged in
+  React.useEffect(() => {
+    const rawPortal = localStorage.getItem('portal_user');
+    const portalToken = localStorage.getItem('portal_token');
+    if (rawPortal && portalToken) {
+      try {
+        const parsed = JSON.parse(rawPortal);
+        if (parsed.role === 'ADMIN') navigate('/admin', { replace: true });
+        else if (parsed.role === 'PROVIDER') navigate('/partner', { replace: true });
+      } catch (e) {}
+    }
+  }, [navigate]);
+
 
   // Forgot password modal state
   const [isForgotOpen, setIsForgotOpen] = useState(false);

@@ -10,7 +10,8 @@ import {
   X,
   Calendar,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ChevronDown
 } from "lucide-react"
 
 import { fetchPublicRegions, PublicRegionDto } from "@/services/homestayService"
@@ -932,91 +933,99 @@ export default function SearchHub() {
       className="w-full relative z-30 transition-all text-left"
     >
       {/* ---------------- KHU VỰC TÌM KIẾM GỐC TRÊN TRANG (GIỮ NGUYÊN KHI CHƯA CUỘN) ---------------- */}
-      <div className={`w-full flex flex-col md:flex-row items-stretch md:items-center gap-2 md:gap-2.5 p-2 sm:p-2.5 rounded-xl bg-white/95 backdrop-blur-md shadow-xl border border-white/80 transition-opacity duration-200 text-left ${isSticky ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-        {/* BỘ LỌC ĐỊA ĐIỂM & NGÀY ĐI (3 CỘT) */}
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
+      <div className={`w-full flex flex-col md:flex-row items-stretch md:items-center gap-2 md:gap-2.5 p-3 sm:p-3.5 rounded-2xl bg-white/95 backdrop-blur-md shadow-xl border border-white/80 transition-opacity duration-200 text-left ${isSticky ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+        {/* BỘ LỌC ĐỊA ĐIỂM & NGÀY ĐI */}
+        <div className="flex-1 flex flex-col md:grid md:grid-cols-3 gap-2">
           {/* Cột 1: Thành phố & Khu vực */}
           <div 
-            className={`bg-white rounded-lg shadow-xs border-2 px-3 sm:px-3.5 h-[52px] sm:h-[58px] flex items-center gap-2.5 cursor-pointer transition-all relative ${
+            className={`bg-white rounded-xl shadow-xs border px-3.5 h-[56px] flex items-center justify-between gap-3 cursor-pointer transition-all relative ${
               activeTab === 'location' 
-                ? 'border-[#10b981] ring-2 ring-[#10b981]/20 bg-[#edfbf7]/20 z-40' 
-                : 'border-slate-200 hover:border-[#10b981] z-20'
+                ? 'border-[#048c73] ring-2 ring-[#048c73]/20 bg-[#edfbf7]/20 z-40' 
+                : 'border-slate-100 hover:border-slate-300 z-20'
             }`}
             onClick={() => setActiveTab(activeTab === 'location' ? null : 'location')}
           >
-            <MapPin className="text-[#10b981] w-5 h-5 shrink-0" />
-            <div className="flex flex-col justify-center min-w-0 flex-1">
-              <span className="text-xs font-bold text-[#66716c] uppercase tracking-wider mb-0.5 truncate">
-                Thành phố &amp; Khu vực
-              </span>
-              <span className="text-sm sm:text-base font-bold text-[#0a2e26] truncate">
-                {selectedWard
-                  ? `${selectedWard}, ${selectedDistrict || selectedProvince}`
-                  : selectedDistrict
-                    ? `${selectedDistrict}, ${selectedProvince}`
-                    : (selectedProvince || "Chọn điểm đến")}
-              </span>
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <MapPin className="text-[#048c73] w-5 h-5 shrink-0" />
+              <div className="flex flex-col justify-center min-w-0 flex-1">
+                <span className="text-[10px] sm:text-[11px] font-bold text-[#8a9893] uppercase tracking-wider mb-0.5 truncate">
+                  Thành phố &amp; Khu vực
+                </span>
+                <span className="text-sm sm:text-base font-semibold text-[#1a2e29] truncate">
+                  {selectedWard
+                    ? `${selectedWard}, ${selectedDistrict || selectedProvince}`
+                    : selectedDistrict
+                      ? `${selectedDistrict}, ${selectedProvince}`
+                      : (selectedProvince || "Chọn điểm đến")}
+                </span>
+              </div>
             </div>
+            <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
           </div>
 
           {/* Cột 2: Địa điểm vui chơi */}
           <div 
-            className={`bg-white rounded-lg shadow-xs border-2 px-3 sm:px-3.5 h-[52px] sm:h-[58px] flex items-center gap-2.5 cursor-pointer transition-all relative ${
+            className={`bg-white rounded-xl shadow-xs border px-3.5 h-[56px] flex items-center justify-between gap-3 cursor-pointer transition-all relative ${
               activeTab === 'attractions' 
-                ? 'border-[#10b981] ring-2 ring-[#10b981]/20 bg-[#edfbf7]/20 z-40' 
-                : 'border-slate-200 hover:border-[#10b981] z-20'
+                ? 'border-[#048c73] ring-2 ring-[#048c73]/20 bg-[#edfbf7]/20 z-40' 
+                : 'border-slate-100 hover:border-slate-300 z-20'
             }`}
             onClick={() => setActiveTab(activeTab === 'attractions' ? null : 'attractions')}
           >
-            <Sparkles className="text-[#f59e0b] w-5 h-5 shrink-0" />
-            <div className="flex flex-col justify-center min-w-0 flex-1">
-              <span className="text-xs font-bold text-[#66716c] uppercase tracking-wider mb-0.5 truncate flex items-center gap-1">
-                Điểm vui chơi
-                {selectedAttractions.length > 0 && (
-                  <span className="bg-[#f59e0b] text-white text-[11px] px-1.5 py-0.2 rounded-xs font-bold leading-none">
-                    {selectedAttractions.length}
-                  </span>
-                )}
-              </span>
-              <span className="text-sm sm:text-base font-bold text-[#0a2e26] truncate">
-                {selectedAttractions.length === 0
-                  ? "Chọn điểm đến"
-                  : selectedAttractions.length === 1
-                    ? (selectedAttractions[0]?.name ?? '')
-                    : `${selectedAttractions.length} điểm đã chọn`}
-              </span>
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <Sparkles className="text-[#f59e0b] w-5 h-5 shrink-0" />
+              <div className="flex flex-col justify-center min-w-0 flex-1">
+                <span className="text-[10px] sm:text-[11px] font-bold text-[#8a9893] uppercase tracking-wider mb-0.5 truncate flex items-center gap-1">
+                  Điểm vui chơi
+                  {selectedAttractions.length > 0 && (
+                    <span className="bg-[#f59e0b] text-white text-[11px] px-1.5 py-0.2 rounded-xs font-bold leading-none">
+                      {selectedAttractions.length}
+                    </span>
+                  )}
+                </span>
+                <span className="text-sm sm:text-base font-semibold text-[#1a2e29] truncate">
+                  {selectedAttractions.length === 0
+                    ? "Chọn điểm đến"
+                    : selectedAttractions.length === 1
+                      ? (selectedAttractions[0]?.name ?? '')
+                      : `${selectedAttractions.length} điểm đã chọn`}
+                </span>
+              </div>
             </div>
+            <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
           </div>
 
           {/* Cột 3: Ngày nhận & trả phòng */}
           <div 
-            className={`bg-white rounded-lg shadow-xs border-2 px-3 sm:px-3.5 h-[52px] sm:h-[58px] flex items-center gap-2.5 cursor-pointer transition-all relative ${
+            className={`bg-white rounded-xl shadow-xs border px-3.5 h-[56px] flex items-center justify-between gap-3 cursor-pointer transition-all relative ${
               activeTab === 'dates' 
-                ? 'border-[#10b981] ring-2 ring-[#10b981]/20 bg-[#edfbf7]/20 z-40' 
-                : 'border-slate-200 hover:border-[#10b981] z-20'
+                ? 'border-[#048c73] ring-2 ring-[#048c73]/20 bg-[#edfbf7]/20 z-40' 
+                : 'border-slate-100 hover:border-slate-300 z-20'
             }`}
             onClick={() => setActiveTab(activeTab === 'dates' ? null : 'dates')}
           >
-            <Calendar className="text-[#10b981] w-5 h-5 shrink-0" />
-            <div className="flex flex-col justify-center min-w-0 flex-1">
-              <span className="text-xs font-bold text-[#66716c] uppercase tracking-wider mb-0.5 truncate">
-                Nhận - Trả phòng
-              </span>
-              <span className="text-sm sm:text-base font-bold text-[#0a2e26] truncate">
-                {displayDate}
-              </span>
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <Calendar className="text-[#048c73] w-5 h-5 shrink-0" />
+              <div className="flex flex-col justify-center min-w-0 flex-1">
+                <span className="text-[10px] sm:text-[11px] font-bold text-[#8a9893] uppercase tracking-wider mb-0.5 truncate">
+                  Nhận - Trả phòng
+                </span>
+                <span className="text-sm sm:text-base font-semibold text-[#1a2e29] truncate">
+                  {displayDate}
+                </span>
+              </div>
             </div>
+            <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
           </div>
-
         </div>
 
         {/* Nút Tìm kiếm */}
-        <div className="flex items-center shrink-0">
+        <div className="flex items-center shrink-0 w-full md:w-auto mt-1 md:mt-0">
           <Button 
             onClick={handleSearch}
-            className="h-[52px] sm:h-[58px] px-6 sm:px-8 bg-[#10b981] hover:bg-[#03725e] text-white font-bold rounded-lg border-2 border-[#059669] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all active:scale-95 flex items-center justify-center gap-2 text-[15px] sm:text-[16px] cursor-pointer w-full md:w-auto"
+            className="h-[52px] md:h-[56px] px-8 bg-[#048c73] hover:bg-[#03725e] text-white font-bold rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 text-base cursor-pointer w-full md:w-auto"
           >
-            <Search className="w-5 h-5 text-[#7ef2dd]" strokeWidth={2.5} />
+            <Search className="w-5 h-5 text-white/90" strokeWidth={2.2} />
             Tìm kiếm
           </Button>
         </div>

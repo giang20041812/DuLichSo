@@ -125,6 +125,14 @@ export default function AdminDashboardPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
+  useEffect(() => {
+    const allowed = currentUser !== null && currentUser.role === 'ADMIN' && Boolean(localStorage.getItem('portal_token'));
+    if (!allowed) navigate('/portal/login', { replace: true });
+  }, [currentUser, navigate]);
+
+  if (!currentUser || currentUser.role !== 'ADMIN') return null;
+
+
   // 1. Dashboard State
   const [dashboardData, setDashboardData] = useState<AdminDashboardSummaryDto | null>(null);
   const [dashboardError, setDashboardError] = useState(false);

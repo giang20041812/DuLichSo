@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import Footer from './Footer';
+import BottomNav from './BottomNav';
 
 import { hasHeroOverlay } from '@/lib/routeUtils';
 
@@ -60,6 +61,9 @@ export default function SidebarLayout() {
           <Footer />
         </div>
       </div>
+
+      {/* Thanh điều hướng dưới đáy màn hình trên Mobile (theo thiết kế ảnh) */}
+      {location.pathname !== '/' && <BottomNav />}
     </div>
   );
 }

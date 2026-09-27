@@ -1,7 +1,6 @@
 package com.dulichso.bookingapi.service;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -11,25 +10,16 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
 /**
- * Tra tọa độ từ địa chỉ bằng Nominatim (OpenStreetMap) — cùng nguồn bản đồ với OpenStreetMapView ở frontend, không cần API key.
- * Theo Nominatim Usage Policy (https://operations.osmfoundation.org/policies/nominatim/): tối đa 1 request/giây,
- * phải có User-Agent định danh ứng dụng, nên backend gọi thay trình duyệt, xếp hàng 1 request/giây và cache kết quả.
- * Endpoint: https://nominatim.org/release-docs/latest/api/Search/
- * TODO: verify against docs — chưa xác minh với API thật (field lat/lon trả dạng chuỗi, display_name, importance).
+ * Tra tọa độ từ địa chỉ bằng VietMap Search API.
  */
 @Service
 @Slf4j
 public class GeocodingService {
-
-    /** Một phần tử trong mảng kết quả /search?format=jsonv2. TODO: verify against docs — chưa xác minh với API thật */
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public record NominatimPlace(String lat, String lon, @JsonProperty("display_name") String displayName) {}
 
     public record GeocodeResult(double latitude, double longitude, String displayName) {}
 
@@ -41,11 +31,11 @@ public class GeocodingService {
     };
     private long lastCallAt;
 
-    @Value("${app.geocoding.nominatim-url:https://nominatim.openstreetmap.org/search}")
+    @Value("${app.geocoding.vietmap-url:https://maps.vietmap.vn/api/search/v3}")
     private String endpoint;
 
-    @Value("${app.geocoding.user-agent:DuLichSo/1.0 (homestay partner portal)}")
-    private String userAgent;
+    @Value("${app.geocoding.vietmap-api-key:${VIETMAP_API_KEY:}}")
+    private String apiKey;
 
     /** Optional.empty() khi không tìm thấy địa chỉ. */
     public Optional<GeocodeResult> geocode(String address) {
@@ -61,20 +51,33 @@ public class GeocodingService {
     }
 
     private synchronized Optional<GeocodeResult> call(String address) {
+        if (apiKey == null || apiKey.trim().isEmpty()) {
+            log.warn("Chưa cấu hình VIETMAP_API_KEY");
+            return Optional.empty();
+        }
         waitForSlot();
-        // Truyền java.net.URI (đã encode một lần) để RestTemplate không encode lại, tránh hỏng tiếng Việt có dấu.
         java.net.URI url = UriComponentsBuilder.fromHttpUrl(endpoint)
-                .queryParam("q", address).queryParam("format", "jsonv2").queryParam("limit", 1)
-                .queryParam("countrycodes", "vn").queryParam("accept-language", "vi")
+                .queryParam("apikey", apiKey)
+                .queryParam("text", address)
                 .build().encode().toUri();
         HttpHeaders headers = new HttpHeaders();
-        headers.set(HttpHeaders.USER_AGENT, userAgent);
         headers.setAccept(java.util.List.of(MediaType.APPLICATION_JSON));
         try {
-            NominatimPlace[] body = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), NominatimPlace[].class).getBody();
-            return Arrays.stream(body == null ? new NominatimPlace[0] : body).findFirst().flatMap(GeocodingService::toResult);
+            JsonNode[] body = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), JsonNode[].class).getBody();
+            if (body != null && body.length > 0) {
+                JsonNode first = body[0];
+                if (first.has("lat") && first.has("lng")) {
+                    double lat = first.get("lat").asDouble();
+                    double lon = first.get("lng").asDouble();
+                    String display = first.has("display") ? first.get("display").asText() : (first.has("name") ? first.get("name").asText() : address);
+                    if (lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
+                        return Optional.of(new GeocodeResult(lat, lon, display));
+                    }
+                }
+            }
+            return Optional.empty();
         } catch (RestClientException e) {
-            log.warn("Không gọi được Nominatim: {}", e.getMessage());
+            log.warn("Không gọi được Vietmap API: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Không kết nối được dịch vụ bản đồ. Bạn có thể nhập tọa độ thủ công.");
         } finally {
             lastCallAt = System.currentTimeMillis();
@@ -91,14 +94,4 @@ public class GeocodingService {
         }
     }
 
-    private static Optional<GeocodeResult> toResult(NominatimPlace place) {
-        try {
-            double lat = Double.parseDouble(place.lat());
-            double lon = Double.parseDouble(place.lon());
-            if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return Optional.empty();
-            return Optional.of(new GeocodeResult(lat, lon, place.displayName()));
-        } catch (NumberFormatException | NullPointerException e) {
-            return Optional.empty();
-        }
-    }
 }

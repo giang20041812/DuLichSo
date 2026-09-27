@@ -23,18 +23,16 @@ import static com.dulichso.bookingapi.dto.partner.PartnerMediaDtos.MAX_IMAGES_PE
  */
 @Service @RequiredArgsConstructor @Transactional(readOnly = true)
 public class PartnerMediaService {
-    static final String STORAGE_PREFIX = "cloudflare-images:";
-    private static final List<String> ALLOWED_TYPES = List.of("image/jpeg", "image/png", "image/webp");
-
+    static final String STORAGE_PREFIX = "cloudinary:";
+    
     private final PartnerHomestayService homestays;
     private final PartnerRoomService rooms;
-    private final CloudflareImagesService cloudflare;
+    private final CloudinaryService cloudinary;
     private final EntityManager em;
 
-    public DirectUploadDto directUpload(UserPrincipal principal) {
-        Account actor = homestays.actor(principal, true);
-        var upload = cloudflare.createDirectUpload(Map.of("providerId", String.valueOf(actor.getProvider().getId()), "accountId", String.valueOf(actor.getId())));
-        return new DirectUploadDto(upload.uploadURL(), upload.id(), MAX_FILE_BYTES, ALLOWED_TYPES);
+    public Map<String, Object> directUpload(UserPrincipal principal) {
+        homestays.actor(principal, true);
+        return cloudinary.getUploadConfig();
     }
 
     // ------------------------------------------------------------ Homestay
@@ -134,17 +132,14 @@ public class PartnerMediaService {
     // ------------------------------------------------------------ helpers
 
     private MediaAsset verifiedAsset(AttachInput input, Account actor) {
-        String key = STORAGE_PREFIX + input.imageId();
+        String url = input.imageId();
+        if (url == null || url.isBlank()) throw bad("URL ảnh không hợp lệ.");
+        
+        String key = STORAGE_PREFIX + url;
         if (!em.createQuery("select m from MediaAsset m where m.storageKey=:key", MediaAsset.class).setParameter("key", key).getResultList().isEmpty())
             throw bad("Ảnh này đã được sử dụng.");
-        var image = cloudflare.getImage(input.imageId()).orElseThrow(() -> bad("Không tìm thấy ảnh trên dịch vụ lưu trữ. Hãy upload lại."));
-        if (Boolean.TRUE.equals(image.draft())) throw bad("Ảnh chưa upload xong. Hãy thử lại.");
-        Object owner = image.meta() == null ? null : image.meta().get("providerId");
-        if (owner == null || !owner.toString().equals(String.valueOf(actor.getProvider().getId())))
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Ảnh không thuộc tài khoản của bạn.");
-        String url = CloudflareImagesService.deliveryUrl(image);
-        if (url == null) throw bad("Dịch vụ lưu trữ chưa trả về đường dẫn hiển thị ảnh.");
-        MediaAsset asset = MediaAsset.builder().storageKey(key).publicUrl(url).mimeType(mimeType(image.filename())).uploadedBy(actor.getId()).build();
+            
+        MediaAsset asset = MediaAsset.builder().storageKey(key).publicUrl(url).mimeType(mimeType(url)).uploadedBy(actor.getId()).build();
         em.persist(asset);
         return asset;
     }
@@ -154,7 +149,6 @@ public class PartnerMediaService {
                 + em.createQuery("select count(m) from RoomTypeMedia m where m.media.id=:id", Long.class).setParameter("id", asset.getId()).getSingleResult();
         if (used > 0) return;
         em.remove(asset);
-        if (asset.getStorageKey().startsWith(STORAGE_PREFIX)) cloudflare.deleteImageQuietly(asset.getStorageKey().substring(STORAGE_PREFIX.length()));
     }
 
     private List<PlaceMedia> placeLinks(Long placeId) {

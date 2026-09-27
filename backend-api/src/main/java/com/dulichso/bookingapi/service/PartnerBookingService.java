@@ -39,6 +39,7 @@ public class PartnerBookingService {
     private final RoomCalendarService calendar;
     private final EntityManager em;
     private final NotificationRecorder notifications;
+    private final NotificationService notificationService;
 
     public BookingDetailDto detail(UserPrincipal principal, Long id) {
         Account actor = homestays.actor(principal, false);
@@ -85,6 +86,11 @@ public class PartnerBookingService {
         flush("Khách đã có một đơn khác còn hiệu lực cho loại phòng và khoảng ngày này.");
         notifyCustomer("BOOKING_ACCEPTED_CUSTOMER", booking, Map.of(
                 "room_type", booking.getRoomType().getName(), "message", note == null ? "" : note));
+        try {
+            notificationService.notifyBookingStatusChange(booking, BookingStatus.CONFIRMED, note);
+        } catch (Exception ex) {
+            // Log & ignore to prevent rollback of main business transaction
+        }
         return toDetail(booking);
     }
 
@@ -105,6 +111,11 @@ public class PartnerBookingService {
         history(booking, from, actor, reason);
         flush("Không thể cập nhật đơn đặt phòng.");
         notifyCustomer("BOOKING_REJECTED_CUSTOMER", booking, Map.of("reason", reason));
+        try {
+            notificationService.notifyBookingStatusChange(booking, BookingStatus.REJECTED, reason);
+        } catch (Exception ex) {
+            // Log & ignore
+        }
         return toDetail(booking);
     }
 

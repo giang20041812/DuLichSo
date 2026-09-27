@@ -14,9 +14,9 @@ import java.util.List;
 public class PartnerMediaController {
     private final PartnerMediaService service;
 
-    /** Xin uploadURL dùng một lần; trình duyệt upload file thẳng lên Cloudflare. */
+    /** Lấy cấu hình upload Cloudinary */
     @PostMapping("/media/direct-upload")
-    public DirectUploadDto directUpload(@AuthenticationPrincipal UserPrincipal p) {return service.directUpload(p);}
+    public java.util.Map<String, Object> directUpload(@AuthenticationPrincipal UserPrincipal p) {return service.directUpload(p);}
 
     @GetMapping("/homestays/{placeId}/media")
     public List<MediaDto> placeMedia(@AuthenticationPrincipal UserPrincipal p, @PathVariable Long placeId) {return service.placeMedia(p, placeId);}

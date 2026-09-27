@@ -22,9 +22,12 @@ export async function createBooking(request: CreateBookingRequest): Promise<Book
   return response.json() as Promise<BookingResponseDto>;
 }
 
-export async function getBookingByCode(bookingCode: string, phone: string): Promise<BookingResponseDto> {
+export async function getBookingByCode(bookingCode: string, phone?: string): Promise<BookingResponseDto> {
   try {
-    const response = await fetch(`/api/public/bookings/${encodeURIComponent(bookingCode)}?phone=${encodeURIComponent(phone)}`);
+    const url = phone && phone.trim()
+      ? `/api/public/bookings/${encodeURIComponent(bookingCode)}?phone=${encodeURIComponent(phone.trim())}`
+      : `/api/public/bookings/${encodeURIComponent(bookingCode)}`;
+    const response = await fetch(url);
     if (response.ok) {
       return (await response.json()) as BookingResponseDto;
     }

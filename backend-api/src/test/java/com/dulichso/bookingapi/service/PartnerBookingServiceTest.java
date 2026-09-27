@@ -35,6 +35,7 @@ class PartnerBookingServiceTest {
     @Mock RoomCalendarService calendar;
     @Mock EntityManager em;
     @Mock NotificationRecorder notifications;
+    @Mock NotificationService notificationService;
     PartnerBookingService service;
     final UserPrincipal principal = new UserPrincipal(null, "provider@example.test", AccountRole.PROVIDER, null);
     Account account;
@@ -43,7 +44,7 @@ class PartnerBookingServiceTest {
     Booking booking;
 
     @BeforeEach void setup() {
-        service = new PartnerBookingService(homestays, bookings, nights, rooms, calendar, em, notifications);
+        service = new PartnerBookingService(homestays, bookings, nights, rooms, calendar, em, notifications, notificationService);
         Provider provider = Provider.builder().id(12L).build();
         account = Account.builder().id(7L).role(AccountRole.PROVIDER).provider(provider).build();
         place = Place.builder().id(21L).name("Homestay A").provider(provider).build();

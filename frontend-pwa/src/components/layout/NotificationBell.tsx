@@ -115,7 +115,7 @@ export default function NotificationBell({ isSolid }: NotificationBellProps) {
     }
     setIsOpen(false);
     if (item.bookingCode) {
-      navigate(`/bookings?code=${encodeURIComponent(item.bookingCode)}`);
+      navigate(`/bookings/${encodeURIComponent(item.bookingCode)}`);
     } else {
       navigate('/bookings');
     }

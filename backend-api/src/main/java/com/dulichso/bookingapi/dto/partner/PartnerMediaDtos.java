@@ -14,9 +14,9 @@ public final class PartnerMediaDtos {
     public static final long MAX_FILE_BYTES = 10L * 1024 * 1024;
     public static final int MAX_IMAGES_PER_OWNER = 30;
 
-    public record DirectUploadDto(String uploadUrl, String imageId, long maxFileBytes, List<String> allowedTypes) {}
+    public record DirectUploadDto(String uploadUrl, String imageId, long maxFileBytes, List<String> allowedTypes) {} // deprecated for Cloudinary, but kept for signature matching if needed
 
-    public record AttachInput(@NotBlank @Size(max = 100) @Pattern(regexp = "[A-Za-z0-9-]+") String imageId, @Size(max = 500) String caption) {}
+    public record AttachInput(@NotBlank @Size(max = 500) String imageId, @Size(max = 500) String caption) {}
 
     public record MediaDto(Long mediaId, String url, MediaRole role, String caption, Integer sortOrder) {}
 }

@@ -216,14 +216,12 @@ public class BookingServiceImpl implements BookingService {
     public BookingResponseDto getBookingByCode(String bookingCode, String phone) {
         Booking booking = bookingRepository.findByBookingCode(bookingCode)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn đặt phòng với mã: " + bookingCode));
-        
-        if (phone == null || phone.trim().isEmpty()) {
-            throw new IllegalArgumentException("Yêu cầu cung cấp số điện thoại để tra cứu chi tiết đơn đặt phòng");
-        }
-        
-        if (booking.getGuestPhone() == null || !booking.getGuestPhone().equals(phone.trim())) {
-             // Return not found to not confirm existence if phone is wrong
-             throw new IllegalArgumentException("Không tìm thấy đơn đặt phòng với mã: " + bookingCode);
+
+        // Nếu có truyền phone và không khớp thì mới kiểm tra, nếu không truyền phone thì cho phép xem đơn trực tiếp theo mã bookingCode
+        if (phone != null && !phone.trim().isEmpty()) {
+            if (booking.getGuestPhone() != null && !booking.getGuestPhone().trim().equals(phone.trim())) {
+                throw new IllegalArgumentException("Không tìm thấy đơn đặt phòng với mã: " + bookingCode);
+            }
         }
 
         int nights = (int) ChronoUnit.DAYS.between(booking.getCheckIn(), booking.getCheckOut());

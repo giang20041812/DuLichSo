@@ -40,7 +40,7 @@ public class PublicBookingController {
     @GetMapping("/{bookingCode}")
     public ResponseEntity<BookingResponseDto> getBookingByCode(
             @PathVariable("bookingCode") String bookingCode,
-            @RequestParam(value = "phone", required = true) String phone) {
+            @RequestParam(value = "phone", required = false) String phone) {
         BookingResponseDto response = bookingService.getBookingByCode(bookingCode, phone);
         return ResponseEntity.ok(response);
     }

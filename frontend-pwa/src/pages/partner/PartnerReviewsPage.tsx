@@ -15,6 +15,13 @@ export default function PartnerReviewsPage() {
   const [error, setError] = useState('');
   const [filter, setFilter] = useState<Filter>('unreplied');
   const [placeId, setPlaceId] = useState<number | ''>('');
+  const [homestays, setHomestays] = useState<{ id: number; name: string }[]>([]);
+
+  useEffect(() => {
+    import('@/services/partnerHomestayService').then(({ fetchPartnerHomestays }) => {
+      fetchPartnerHomestays().then(res => setHomestays(res.homestays.map(h => ({ id: h.id, name: h.name })))).catch(console.error);
+    });
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -25,10 +32,9 @@ export default function PartnerReviewsPage() {
     return () => { active = false; };
   }, []);
 
-  const places = [...new Map(reviews.map((r) => [r.placeId, r.placeName])).entries()];
-  const shown = reviews.filter((r) => (placeId === '' || r.placeId === placeId)
-    && (filter === 'all' || (filter === 'replied' ? !!r.providerReply : !r.providerReply)));
-  const avg = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
+  const filteredByPlace = reviews.filter((r) => placeId === '' || r.placeId === placeId);
+  const shown = filteredByPlace.filter((r) => filter === 'all' || (filter === 'replied' ? !!r.providerReply : !r.providerReply));
+  const avg = filteredByPlace.length ? filteredByPlace.reduce((s, r) => s + r.rating, 0) / filteredByPlace.length : 0;
   const update = (next: PartnerReviewDto) => setReviews((list) => list.map((r) => (r.id === next.id ? next : r)));
 
   return (
@@ -40,25 +46,23 @@ export default function PartnerReviewsPage() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <Stat label="Tổng đánh giá" value={String(reviews.length)} />
-        <Stat label="Điểm trung bình" value={reviews.length ? `${avg.toFixed(1)} / 5` : '—'} />
-        <Stat label="Chưa phản hồi" value={String(reviews.filter((r) => !r.providerReply).length)} />
+        <Stat label="Tổng đánh giá" value={String(filteredByPlace.length)} />
+        <Stat label="Điểm trung bình" value={filteredByPlace.length ? `${avg.toFixed(1)} / 5` : '—'} />
+        <Stat label="Chưa phản hồi" value={String(filteredByPlace.filter((r) => !r.providerReply).length)} />
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-surface p-3">
-        <div className="flex gap-1 rounded-md bg-canvas p-1 text-sm font-semibold">
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-primary/10 bg-surface p-4 shadow-[var(--shadow-card)]">
+        <div className="flex gap-1 rounded-md bg-canvas p-1 text-sm font-semibold border border-border">
           {(['unreplied', 'replied', 'all'] as const).map((f) => (
-            <button key={f} type="button" onClick={() => setFilter(f)} className={`rounded px-3 py-1.5 transition-colors ${filter === f ? 'bg-surface text-primary shadow-xs' : 'text-muted'}`}>
+            <button key={f} type="button" onClick={() => setFilter(f)} className={`rounded px-3 py-1.5 transition-colors ${filter === f ? 'bg-white text-primary shadow-sm border border-primary/10' : 'text-muted hover:text-ink'}`}>
               {f === 'unreplied' ? 'Chưa phản hồi' : f === 'replied' ? 'Đã phản hồi' : 'Tất cả'}
             </button>
           ))}
         </div>
-        {places.length > 1 && (
-          <select className="rounded-md border border-border bg-surface px-3 py-2 text-sm" value={placeId} onChange={(e) => setPlaceId(e.target.value === '' ? '' : Number(e.target.value))}>
-            <option value="">Tất cả Homestay</option>
-            {places.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
-          </select>
-        )}
+        <select className="h-9 min-w-[200px] rounded-md border border-border bg-surface px-3 text-sm focus:border-primary focus:outline-none" value={placeId} onChange={(e) => setPlaceId(e.target.value === '' ? '' : Number(e.target.value))}>
+          <option value="">Tất cả Homestay</option>
+          {homestays.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
+        </select>
       </div>
 
       {error && <p role="alert" className="rounded-md border border-danger/30 bg-danger/5 p-3 text-sm text-danger">{error}</p>}
@@ -85,7 +89,7 @@ function ReviewCard({ review, onChange }: { review: PartnerReviewDto; onChange: 
   }
 
   return (
-    <article className="flex flex-col gap-3 rounded-lg border border-border bg-surface p-5 shadow-[var(--shadow-card)] transition-all duration-300 hover:-translate-y-0.5">
+    <article className="flex flex-col gap-3 rounded-lg border border-primary/10 bg-surface p-6 shadow-[var(--shadow-card)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[var(--shadow-card-hover)] hover:border-primary/30">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="font-semibold text-ink-deep">{review.guestName}</p>
@@ -126,9 +130,9 @@ function ReviewCard({ review, onChange }: { review: PartnerReviewDto; onChange: 
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-border bg-surface p-4 shadow-[var(--shadow-card)]">
-      <p className="text-xs text-muted">{label}</p>
-      <p className="mt-1 font-display text-2xl font-bold text-ink-deep">{value}</p>
+    <div className="rounded-lg border border-primary/10 bg-surface p-5 shadow-[var(--shadow-card)]">
+      <p className="text-xs font-semibold text-muted uppercase tracking-wider">{label}</p>
+      <p className="mt-2 font-display text-3xl font-extrabold text-ink-deep tabular-nums">{value}</p>
     </div>
   );
 }

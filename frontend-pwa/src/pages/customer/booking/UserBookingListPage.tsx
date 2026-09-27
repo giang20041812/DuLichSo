@@ -78,6 +78,12 @@ export default function UserBookingListPage() {
 
   const currentUser = getCurrentCustomer();
 
+  useEffect(() => {
+    if (currentUser?.role === 'ADMIN' || currentUser?.role === 'PROVIDER') {
+      navigate(currentUser.role === 'ADMIN' ? '/admin' : '/partner', { replace: true });
+    }
+  }, [currentUser, navigate]);
+
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {

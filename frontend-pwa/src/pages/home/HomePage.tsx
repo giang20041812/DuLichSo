@@ -8,7 +8,7 @@ import { HomeResponseDto, PlaceSummaryDto } from "@/types/home"
 import { getCurrentCustomer, googleLogin, saveTravelerSession } from "@/services/authService"
 import { initGoogleOneTap } from "@/lib/firebase"
 import FramerSwipeCardStack from "@/components/ui/FramerSwipeCardStack"
-import heroBg from "@/assets/1790440239069_4720231300519975082_g6756248586457253608_eaaa778d132481589c48214bdd4f2894.jpg"
+const heroBg = '/images/hero-home.jpg';
 
 const PROVINCE_TAGS = [
   'Tất cả',
@@ -191,7 +191,14 @@ export default function HomePage() {
     return (
       <div className="w-full flex flex-col min-h-screen bg-[var(--color-canvas)]">
         {/* Hero Section Skeleton */}
-        <section className="relative z-30 w-full min-h-[460px] md:min-h-[500px] flex items-center justify-center pt-[100px] pb-16 bg-[#07362c]/90">
+        <section className="relative z-30 w-full min-h-[460px] md:min-h-[500px] flex items-center justify-center pt-[100px] pb-16 bg-[#07362c]">
+          <div
+            className="absolute inset-0 z-0 bg-cover bg-center bg-[#07362c]"
+            style={{ backgroundImage: `url(${heroBg})` }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent"></div>
+            <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-[#0f2d3c]/80"></div>
+          </div>
           <div className="relative z-30 flex flex-col items-center justify-center px-4 max-w-5xl mx-auto w-full animate-pulse">
             <div className="h-14 md:h-20 bg-emerald-800/60 rounded-md w-3/4 max-w-xl mb-4" />
             <div className="h-5 bg-emerald-800/40 rounded-sm w-1/2 max-w-md mb-8" />
@@ -244,7 +251,7 @@ export default function HomePage() {
   return (
     <div className="w-full flex flex-col">
       {/* 1. Hero Section */}
-      <section className="relative z-30 w-full min-h-[600px] md:min-h-[700px] flex items-center justify-center pt-[100px] pb-16 md:pb-20">
+      <section className="relative z-30 w-full min-h-[100dvh] md:min-h-[700px] flex flex-col pt-[100px] pb-10 md:pb-20">
         <div
           className="absolute inset-0 z-0 bg-cover bg-center bg-[#07362c]"
           style={{ backgroundImage: `url(${heroBg})` }}
@@ -254,13 +261,13 @@ export default function HomePage() {
           <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-[#0f2d3c]/80"></div>
         </div>
 
-        <div className="relative z-30 flex flex-col items-start justify-center px-4 md:px-8 max-w-[1280px] mx-auto w-full mt-6 md:mt-14">
-          <div className="max-w-4xl text-left mb-8 md:mb-12">
-            <h1 className="italic font-bold text-4xl sm:text-6xl md:text-[90px] lg:text-[115px] text-[var(--color-sun)] leading-[0.95] mb-3 md:mb-4 drop-shadow-lg text-left" style={{ fontFamily: 'var(--font-brush)' }}>
+        <div className="relative z-30 flex flex-col flex-1 px-4 md:px-8 max-w-[1280px] mx-auto w-full">
+          <div className="w-[75%] md:w-[70%] lg:w-[60%] text-left my-auto py-8 md:py-12">
+            <h1 className="italic font-bold text-5xl sm:text-6xl md:text-[90px] lg:text-[115px] text-[var(--color-sun)] leading-[0.95] mb-3 md:mb-4 drop-shadow-lg text-left" style={{ fontFamily: 'var(--font-brush)' }}>
               Đi Du Lịch
             </h1>
-            <p className="text-base sm:text-xl md:text-2xl lg:text-[32px] font-bold text-white leading-snug md:leading-relaxed mb-0 drop-shadow-md text-left" style={{ fontFamily: 'var(--font-brush)' }}>
-              Nền tảng đặt phòng Homestay & khám phá trải nghiệm du lịch di sản, sinh thái Việt Nam.
+            <p className="text-[20px] sm:text-xl md:text-2xl lg:text-[32px] font-bold text-white leading-[1.4] md:leading-relaxed mb-0 drop-shadow-md text-left" style={{ fontFamily: 'var(--font-brush)' }}>
+              Nền tảng đặt phòng Homestay & khám phá trải nghiệm du lịch di sản, sinh thái Việt Nam. Tìm nơi phù hợp cho chuyến đi của bạn
             </p>
           </div>
 
@@ -269,7 +276,7 @@ export default function HomePage() {
             <HeroPwaDownloadBanner />
 
             {/* SearchHub */}
-            <div className="w-full max-w-5xl mx-auto">
+            <div className="w-full max-w-5xl mx-auto relative z-20">
               <SearchHub />
             </div>
           </div>

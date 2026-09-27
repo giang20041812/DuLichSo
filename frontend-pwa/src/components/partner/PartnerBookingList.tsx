@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { RefreshCw, Search } from 'lucide-react';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { partnerBookingService } from '@/services/partnerBookingService';
-import { homestayError } from '@/services/partnerHomestayService';
+import { fetchPartnerHomestays, homestayError } from '@/services/partnerHomestayService';
 import { BOOKING_STATUS_LABEL, BOOKING_STATUS_TONE } from '@/lib/bookingStatus';
 import type { AdminBookingDto, BookingStatusSummary, PageResponse } from '@/types/admin';
 import type { BookingStatus } from '@/types/booking';
@@ -20,27 +20,58 @@ const ACTIONABLE: BookingStatus[] = ['PENDING', 'CONFIRMED', 'CHECKED_IN', 'CHEC
 export default function PartnerBookingList() {
   const [keyword, setKeyword] = useState('');
   const [status, setStatus] = useState<BookingStatus | ''>('PENDING');
+  const [placeId, setPlaceId] = useState<number | ''>('');
+  const [checkInFrom, setCheckInFrom] = useState('');
+  const [checkInTo, setCheckInTo] = useState('');
   const [page, setPage] = useState(0);
   const [reload, setReload] = useState(0);
   const [data, setData] = useState<PageResponse<AdminBookingDto> | null>(null);
   const [summary, setSummary] = useState<BookingStatusSummary | null>(null);
+  const [homestays, setHomestays] = useState<{ id: number; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const debounced = useDebouncedValue(keyword);
 
   useEffect(() => {
+    fetchPartnerHomestays().then(res => setHomestays(res.homestays.map(h => ({ id: h.id, name: h.name })))).catch(console.error);
+  }, []);
+
+  useEffect(() => {
     let active = true;
     Promise.all([
-      partnerBookingService.getBookings({ keyword: debounced.trim() || undefined, status: status || undefined, sortBy: 'createdAt', sortDir: 'desc', page, size: PAGE_SIZE }),
+      partnerBookingService.getBookings({ 
+        keyword: debounced.trim() || undefined, 
+        status: status || undefined, 
+        placeId: placeId || undefined,
+        checkInFrom: checkInFrom || undefined,
+        checkInTo: checkInTo || undefined,
+        sortBy: 'createdAt', sortDir: 'desc', page, size: PAGE_SIZE 
+      }),
       partnerBookingService.getSummary(),
     ])
       .then(([list, counts]) => { if (active) { setData(list); setSummary(counts); setError(''); } })
       .catch((e: unknown) => { if (active) setError(homestayError(e)); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [debounced, status, page, reload]);
+  }, [debounced, status, placeId, checkInFrom, checkInTo, page, reload]);
 
   const refresh = (change: () => void) => { setLoading(true); change(); };
+
+  const handleQuickAction = async (bookingId: number, currentStatus: BookingStatus) => {
+    try {
+      if (currentStatus === 'PENDING') {
+        await partnerBookingService.accept(bookingId, { roomTypeId: null, note: 'Xác nhận nhanh từ danh sách' });
+      } else if (currentStatus === 'CONFIRMED') {
+        await partnerBookingService.stayAction(bookingId, { action: 'CHECK_IN', note: 'Check-in nhanh' });
+      } else if (currentStatus === 'CHECKED_IN') {
+        await partnerBookingService.stayAction(bookingId, { action: 'CHECK_OUT', note: 'Check-out nhanh' });
+      }
+      setReload(n => n + 1);
+    } catch (err) {
+      alert('Lỗi: ' + homestayError(err));
+    }
+  };
+
   const rows = data?.content ?? [];
   const th = 'px-3 py-2.5';
 
@@ -52,6 +83,27 @@ export default function PartnerBookingList() {
           <input className="h-9 w-full rounded-md border border-border bg-surface pl-9 pr-3 text-sm focus:border-primary focus:outline-none" placeholder="Tìm theo mã đặt, tên / SĐT / email khách hoặc homestay..."
             value={keyword} onChange={(e) => refresh(() => { setKeyword(e.target.value); setPage(0); })} />
         </label>
+        
+        <select
+          className="h-9 rounded-md border border-border bg-surface px-3 text-sm focus:border-primary focus:outline-none"
+          value={placeId}
+          onChange={(e) => refresh(() => { setPlaceId(e.target.value ? Number(e.target.value) : ''); setPage(0); })}
+        >
+          <option value="">Tất cả Homestay</option>
+          {homestays.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+        </select>
+
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-muted">Từ:</label>
+          <input type="date" className="h-9 rounded-md border border-border bg-surface px-3 text-sm focus:border-primary focus:outline-none"
+            value={checkInFrom} onChange={(e) => refresh(() => { setCheckInFrom(e.target.value); setPage(0); })} />
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-muted">Đến:</label>
+          <input type="date" className="h-9 rounded-md border border-border bg-surface px-3 text-sm focus:border-primary focus:outline-none"
+            value={checkInTo} onChange={(e) => refresh(() => { setCheckInTo(e.target.value); setPage(0); })} />
+        </div>
+
         <button type="button" onClick={() => refresh(() => setReload((n) => n + 1))} aria-label="Tải lại" className="flex h-9 w-9 items-center justify-center rounded-md border border-border text-muted hover:text-primary">
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
         </button>
@@ -88,11 +140,28 @@ export default function PartnerBookingList() {
                 <td className={th}><span className={`rounded-sm border px-2 py-0.5 text-[10px] font-bold ${BOOKING_STATUS_TONE[b.status]}`}>{BOOKING_STATUS_LABEL[b.status]}</span></td>
                 <td className={`${th} text-muted`}>{dateTime(b.createdAt)}</td>
                 <td className={`${th} text-right`}>
-                  <Link to={`/partner/bookings/${b.id}`} className={ACTIONABLE.includes(b.status)
-                    ? 'inline-block whitespace-nowrap rounded-md bg-coral px-3 py-1.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-coral-hover'
-                    : 'inline-block whitespace-nowrap rounded-md border border-border px-3 py-1.5 text-xs font-semibold text-primary transition-colors duration-200 hover:border-primary'}>
-                    {ACTIONABLE.includes(b.status) ? 'Xử lý' : 'Xem'}
-                  </Link>
+                  <div className="flex items-center justify-end gap-2">
+                    {b.status === 'PENDING' && (
+                      <button onClick={() => handleQuickAction(b.id, b.status)} className="rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-emerald-600">
+                        Duyệt
+                      </button>
+                    )}
+                    {b.status === 'CONFIRMED' && (
+                      <button onClick={() => handleQuickAction(b.id, b.status)} className="rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-emerald-600">
+                        Check-in
+                      </button>
+                    )}
+                    {b.status === 'CHECKED_IN' && (
+                      <button onClick={() => handleQuickAction(b.id, b.status)} className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-primary-hover">
+                        Check-out
+                      </button>
+                    )}
+                    <Link to={`/partner/bookings/${b.id}`} className={ACTIONABLE.includes(b.status)
+                      ? 'inline-block whitespace-nowrap rounded-md bg-coral px-3 py-1.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-coral-hover'
+                      : 'inline-block whitespace-nowrap rounded-md border border-border px-3 py-1.5 text-xs font-semibold text-primary transition-colors duration-200 hover:border-primary'}>
+                      {ACTIONABLE.includes(b.status) ? 'Xử lý' : 'Xem'}
+                    </Link>
+                  </div>
                 </td>
               </tr>
             ))}
