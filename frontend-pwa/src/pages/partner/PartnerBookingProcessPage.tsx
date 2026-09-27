@@ -212,7 +212,7 @@ function DecisionPanel({ booking, onDone }: { booking: PartnerBookingDetailDto; 
       {error && <p role="alert" className="rounded-md border border-danger/30 bg-danger/5 p-2.5 text-sm text-danger">{error}</p>}
 
       {mode === 'accept' ? (
-        <form className="flex flex-col gap-4" onSubmit={(e) => { e.preventDefault(); setConfirm({ title: `Chấp nhận đơn ${booking.bookingCode}?`, confirmLabel: "Chấp nhận đơn", tone: "coral", body: <>Phương án: <b>{chosen?.name}</b> · {booking.roomCount} phòng · {booking.nights} đêm · tổng <b>{vnd(chosen?.totalAmount)}</b>.<br />Đơn chuyển sang <b>Chờ thanh toán</b>, khách có 15 phút để thanh toán.{note.trim() && <><br />Lời nhắn: “{note.trim()}”</>}</>, onConfirm: () => void submit(() => partnerBookingService.accept(booking.id, { roomTypeId: changed ? roomTypeId : null, note: note.trim() })) }); }}>
+        <form className="flex flex-col gap-4" onSubmit={(e) => { e.preventDefault(); setConfirm({ title: `Chấp nhận đơn ${booking.bookingCode}?`, confirmLabel: "Chấp nhận đơn", tone: "coral", body: <>Phương án: <b>{chosen?.name}</b> · {booking.roomCount} phòng · {booking.nights} đêm · tổng <b>{vnd(chosen?.totalAmount)}</b>.<br />Đơn chuyển sang <b>Đã xác nhận</b>; khách thanh toán trực tiếp tại chỗ nghỉ.{note.trim() && <><br />Lời nhắn: “{note.trim()}”</>}</>, onConfirm: () => void submit(() => partnerBookingService.accept(booking.id, { roomTypeId: changed ? roomTypeId : null, note: note.trim() })) }); }}>
           <fieldset disabled={busy} className="flex flex-col gap-2">
             <legend className="mb-2 text-xs font-semibold text-muted">Phương án phòng ({booking.roomCount} phòng · {booking.nights} đêm)</legend>
             {booking.roomOptions.map((o) => (
@@ -239,7 +239,7 @@ function DecisionPanel({ booking, onDone }: { booking: PartnerBookingDetailDto; 
               placeholder={booking.guestNote ? 'VD: Đã chuẩn bị nôi em bé, nhận phòng sớm tùy tình trạng phòng...' : 'Không bắt buộc'} />
             <span className="self-end font-normal">{note.length}/500</span>
           </label>
-          <p className="text-xs text-muted">Sau khi chấp nhận, đơn chuyển sang <b>Chờ thanh toán</b> và khách có 15 phút để thanh toán.</p>
+          <p className="text-xs text-muted">Sau khi chấp nhận, đơn chuyển sang <b>Đã xác nhận</b> và phòng được giữ cho khách. Khách thanh toán trực tiếp tại chỗ nghỉ.</p>
           <button disabled={busy || !chosen?.suitable} className="rounded-md bg-coral px-4 py-2.5 text-sm font-semibold text-white shadow-[var(--shadow-coral)] transition-all duration-200 hover:bg-coral-hover disabled:opacity-50">
             {busy ? 'Đang xử lý...' : 'Chấp nhận đơn'}
           </button>

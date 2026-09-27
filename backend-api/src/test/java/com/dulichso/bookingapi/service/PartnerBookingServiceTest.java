@@ -95,24 +95,32 @@ class PartnerBookingServiceTest {
         return (BookingStatusHistory) captor.getValue();
     }
 
-    @Test void acceptMovesToAwaitingPaymentWithFifteenMinuteDeadline() {
+    /** Khách thanh toán trực tiếp tại chỗ nghỉ: chấp nhận = xác nhận luôn, phòng chuyển từ đang giữ sang đã xác nhận. */
+    @Test void acceptConfirmsBookingAndMovesHeldRoomsToConfirmed() {
         when(bookings.findLockedById(50L)).thenReturn(Optional.of(booking));
         when(rooms.findLockedById(3L)).thenReturn(Optional.of(room));
-        when(calendar.lockedDay(eq(room), any())).thenReturn(RoomInventoryDay.builder().totalRooms(3).heldRooms(1).confirmedRooms(0).stopSell(false).build());
+        RoomInventoryDay first = RoomInventoryDay.builder().totalRooms(3).heldRooms(1).confirmedRooms(0).stopSell(false).build();
+        RoomInventoryDay second = RoomInventoryDay.builder().totalRooms(3).heldRooms(1).confirmedRooms(0).stopSell(false).build();
+        when(calendar.lockedDay(room, booking.getCheckIn())).thenReturn(first);
+        when(calendar.lockedDay(room, booking.getCheckIn().plusDays(1))).thenReturn(second);
         var result = service.accept(principal, 50L, new AcceptInput(null, "  Có chuẩn bị nôi cho em bé  "));
-        assertEquals(BookingStatus.AWAITING_PAYMENT, result.status());
+        assertEquals(BookingStatus.CONFIRMED, result.status());
         assertFalse(result.canAccept());
-        long minutes = java.time.Duration.between(LocalDateTime.now(), booking.getPaymentDeadlineAt()).toMinutes();
-        assertTrue(minutes >= 14 && minutes <= 15);
+        assertNotNull(booking.getConfirmedAt());
+        assertEquals(0, first.getHeldRooms());
+        assertEquals(1, first.getConfirmedRooms());
+        assertEquals(0, second.getHeldRooms());
+        assertEquals(1, second.getConfirmedRooms());
         var history = capturedHistory();
         assertEquals(BookingStatus.PENDING, history.getFromStatus());
-        assertEquals(BookingStatus.AWAITING_PAYMENT, history.getToStatus());
+        assertEquals(BookingStatus.CONFIRMED, history.getToStatus());
         assertEquals(ActorType.PROVIDER, history.getActor());
         assertEquals(7L, history.getActorId());
         assertEquals("Có chuẩn bị nôi cho em bé", history.getReason());
         verify(notifications).toCustomer(eq("BOOKING_ACCEPTED_CUSTOMER"), eq("0912345678"), isNull(), eq("booking"), eq(50L),
                 argThat(m -> "VJ-123456".equals(m.get("booking_code")) && String.valueOf(m.get("message")).contains("Có chuẩn bị nôi cho em bé")));
-        verify(calendar, times(2)).lockedDay(eq(room), any());
+        // Kiểm tra giữ chỗ từng đêm (2 lần) + chuyển sang đã xác nhận (2 lần).
+        verify(calendar, times(4)).lockedDay(eq(room), any());
     }
 
     @Test void acceptAfterDecisionDeadlineIsRejected() {
@@ -189,13 +197,16 @@ class PartnerBookingServiceTest {
 
         service.accept(principal, 50L, new AcceptInput(4L, null));
 
+        // Nhả phòng cũ; phòng mới được giữ rồi chuyển luôn sang đã xác nhận.
         assertEquals(0, oldA.getHeldRooms());
         assertEquals(0, oldB.getHeldRooms());
-        assertEquals(1, newA.getHeldRooms());
-        assertEquals(1, newB.getHeldRooms());
+        assertEquals(0, newA.getHeldRooms());
+        assertEquals(2, newA.getConfirmedRooms());
+        assertEquals(0, newB.getHeldRooms());
+        assertEquals(1, newB.getConfirmedRooms());
         assertSame(larger, booking.getRoomType());
         assertEquals(new BigDecimal("1300000"), booking.getTotalAmount());
-        assertEquals(BookingStatus.AWAITING_PAYMENT, booking.getStatus());
+        assertEquals(BookingStatus.CONFIRMED, booking.getStatus());
         verify(nights, times(2)).save(any(BookingNight.class));
     }
 
@@ -219,16 +230,18 @@ class PartnerBookingServiceTest {
         when(bookings.findLockedById(50L)).thenReturn(Optional.of(booking));
     }
 
-    @Test void checkInOnArrivalDayThenCheckOutThenComplete() {
+    /** Trả phòng đồng thời hoàn thành đơn; không còn bước Hoàn thành riêng. */
+    @Test void checkInOnArrivalDayThenCheckOutCompletesBooking() {
         confirmedStay(LocalDate.now(), 2);
         assertEquals(List.of(StayAction.CHECK_IN), PartnerBookingService.allowedStayActions(booking, LocalDate.now()));
         assertEquals(BookingStatus.CHECKED_IN, service.stayAction(principal, 50L, new StayActionInput(StayAction.CHECK_IN, null)).status());
-        assertEquals(BookingStatus.CHECKED_OUT, service.stayAction(principal, 50L, new StayActionInput(StayAction.CHECK_OUT, null)).status());
-        var done = service.stayAction(principal, 50L, new StayActionInput(StayAction.COMPLETE, "Khách hài lòng"));
+        var done = service.stayAction(principal, 50L, new StayActionInput(StayAction.CHECK_OUT, "Khách hài lòng"));
         assertEquals(BookingStatus.COMPLETED, done.status());
         assertNotNull(booking.getClosedAt());
         assertEquals(ActorType.PROVIDER, booking.getClosedByActor());
-        verify(em, times(3)).persist(any(BookingStatusHistory.class));
+        assertEquals(409, assertThrows(ResponseStatusException.class,
+                () -> service.stayAction(principal, 50L, new StayActionInput(StayAction.COMPLETE, null))).getStatusCode().value());
+        verify(em, times(2)).persist(any(BookingStatusHistory.class));
         verifyNoInteractions(calendar);
     }
 
