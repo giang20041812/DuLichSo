@@ -14,6 +14,7 @@ import {
   RefreshCw,
   Star,
   TrendingUp,
+  type LucideIcon,
 } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { partnerDashboardService, type PartnerDashboardSummaryDto, type MonthlyRevenuePoint } from '@/services/partnerDashboardService';
@@ -83,23 +84,38 @@ export default function PartnerDashboardPage() {
   const seriesTotal = data.revenueTrend.reduce((acc, pt) => acc + pt.totalAmount, 0);
   const bookingsTotal = data.completedBookings + data.pendingBookings + data.cancelledBookings;
   const PIE_DATA = [
-    { name: 'Hoàn thành', value: data.completedBookings, color: '#10B981' }, // success/accent
-    { name: 'Chờ xử lý', value: data.pendingBookings, color: '#F59E0B' }, // warning/sun
-    { name: 'Đã hủy', value: data.cancelledBookings, color: '#EF4444' }, // danger
+    { name: 'Hoàn thành', value: data.completedBookings, color: 'var(--color-accent)' },
+    { name: 'Chờ xử lý', value: data.pendingBookings, color: 'var(--color-sun)' },
+    { name: 'Đã hủy', value: data.cancelledBookings, color: 'var(--color-danger)' },
   ].filter(d => d.value > 0);
 
   return (
     <div className={`flex flex-col gap-4 transition-opacity duration-300 ${loading ? 'opacity-60' : ''}`}>
-      {/* KPI Cards (Giống Admin) */}
+      {data.pendingBookings > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-sun/30 bg-gradient-to-r from-sun-light/70 to-surface px-5 py-4 shadow-[var(--shadow-card)]">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-sun/20 text-amber-700"><Clock className="h-4 w-4" /></span>
+            <div>
+              <p className="text-sm font-bold text-ink-deep">Bạn có {data.pendingBookings} đơn đặt phòng đang chờ xử lý</p>
+              <p className="text-xs text-muted">Phản hồi sớm giúp khách yên tâm và tránh đơn bị hủy.</p>
+            </div>
+          </div>
+          <button type="button" onClick={() => navigate('/partner/bookings')} className="inline-flex h-10 items-center gap-2 rounded-md bg-coral px-4 text-sm font-bold text-white shadow-[var(--shadow-coral)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-coral-hover">
+            Xử lý ngay <ArrowRight className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
+      {/* KPI Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard
           icon={<Banknote className="h-4 w-4" />}
           iconTone="bg-primary-50 text-primary"
           label="Doanh thu tháng này"
           value={vnd.format(data.monthlyRevenue)}
-          badge={{ tone: 'success', text: `Tăng trưởng ổn định`, up: true }}
+          badge={{ tone: 'neutral', text: 'Từ đơn đã hoàn thành' }}
           progress={null}
-          onClick={() => {}}
+          onClick={() => navigate('/partner/bookings')}
         />
         <KpiCard
           icon={<CalendarCheck className="h-4 w-4" />}
@@ -167,10 +183,16 @@ export default function PartnerDashboardPage() {
         {/* Trạng thái đơn */}
         <section className="rounded-lg border border-primary/10 bg-surface shadow-[var(--shadow-card)]">
           <header className="flex items-center justify-between border-b border-primary/10 px-5 py-4">
-            <h3 className="font-display text-sm font-bold text-ink-deep">Trạng thái đơn (YTD)</h3>
+            <h3 className="font-display text-sm font-bold text-ink-deep">Trạng thái đơn từ đầu năm</h3>
           </header>
           <div className="px-4 py-6">
-            <div className="h-40 w-full mb-4">
+            {PIE_DATA.length === 0 ? (
+              <div className="mb-4 flex h-40 flex-col items-center justify-center gap-2 text-center text-xs text-muted">
+                <CalendarCheck className="h-6 w-6 text-primary-300" />
+                Chưa có đơn đặt phòng nào trong năm nay.
+              </div>
+            ) : (
+            <div className="mb-4 h-40 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -193,10 +215,11 @@ export default function PartnerDashboardPage() {
                 </PieChart>
               </ResponsiveContainer>
             </div>
+            )}
             <div className="flex justify-center gap-4 text-xs font-semibold">
-              <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-accent"></span> Hoàn thành</div>
-              <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-sun"></span> Chờ xử lý</div>
-              <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-danger"></span> Đã hủy</div>
+              <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-accent"></span> Hoàn thành</div>
+              <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-sun"></span> Chờ xử lý</div>
+              <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-danger"></span> Đã hủy</div>
             </div>
             <div className="mt-5 border-t border-border pt-4 text-center">
               <p className="text-sm font-semibold text-ink-deep">Tổng số: {bookingsTotal} đơn</p>
@@ -306,9 +329,9 @@ function KpiCard({ icon, iconTone, label, value, badge, progress, onClick }: {
   );
 }
 
-function QuickActionBtn({ icon: Icon, title, desc, onClick }: { icon: any, title: string, desc: string, onClick: () => void }) {
+function QuickActionBtn({ icon: Icon, title, desc, onClick }: { icon: LucideIcon; title: string; desc: string; onClick: () => void }) {
   return (
-    <button 
+    <button type="button"
       onClick={onClick}
       className="group flex items-start gap-3 rounded-md border border-primary/10 p-3 text-left transition-all hover:border-primary/40 hover:bg-primary-50/50 hover:shadow-sm"
     >

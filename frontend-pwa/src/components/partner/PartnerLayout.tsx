@@ -79,7 +79,7 @@ export default function PartnerLayout() {
               onClick={() => setDrawerOpen(false)}
               className={({ isActive }) =>
                 `flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-semibold transition-all duration-200 ${
-                  isActive ? 'bg-primary text-white shadow-[var(--shadow-teal)]' : 'text-ink hover:bg-canvas hover:text-primary'
+                  isActive || (to === '/partner/homestays' && pathname.startsWith('/partner/homestay/')) ? 'bg-primary text-white shadow-[var(--shadow-teal)]' : 'text-ink hover:bg-canvas hover:text-primary'
                 }`
               }
             >

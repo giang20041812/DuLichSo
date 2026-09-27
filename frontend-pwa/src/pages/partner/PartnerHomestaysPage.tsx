@@ -1,24 +1,23 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
-  Bed,
+  BedDouble,
   CheckCircle2,
   Clock,
-  Edit,
   Eye,
+  EyeOff,
   FileText,
   Home,
-  Info,
   MapPin,
-  PlusCircle,
+  Pencil,
+  Plus,
+  Search,
   ShieldCheck,
-  Tag,
   Wrench,
-  SlidersHorizontal,
+  X,
   type LucideIcon,
 } from 'lucide-react';
-import { ChipGroup, FilterSearch, type ChipOption } from '@/components/admin/AdminFilters';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { fetchPartnerHomestays, updateHomestayStatus, homestayError } from '@/services/partnerHomestayService';
 import type {
@@ -27,6 +26,8 @@ import type {
   PlaceOperationStatus,
   PlaceVisibility,
 } from '@/types/partner';
+import { Alert, EmptyState, PageHeader, Pill, Tabs } from '@/components/partner/PartnerUI';
+import { ui, vnd } from '@/lib/partnerUi';
 
 const EMPTY_STATS: PartnerHomestayStatsDto = {
   totalCount: 0,
@@ -37,169 +38,141 @@ const EMPTY_STATS: PartnerHomestayStatsDto = {
   tempClosedCount: 0,
 };
 
-const formatPrice = (price: number | null) => price == null ? 'Chưa có giá' : `${price.toLocaleString('vi-VN')}đ`;
+type VisibilityTab = PlaceVisibility | 'ALL';
+type Notice = { tone: 'success' | 'error' | 'info'; text: string } | null;
 
+/** Trang chủ quản lý cơ sở lưu trú của NCC: thống kê, lọc và danh sách Homestay. */
 export default function PartnerHomestaysPage() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [homestays, setHomestays] = useState<PartnerHomestaySummaryDto[]>([]);
   const [stats, setStats] = useState<PartnerHomestayStatsDto>(EMPTY_STATS);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
+  const [result, setResult] = useState<{ key: string; ok: boolean }>({ key: '', ok: true });
+  const [reloadTick, setReloadTick] = useState(0);
+  const [busyId, setBusyId] = useState<number | null>(null);
 
   const [keyword, setKeyword] = useState('');
-  const [visibility, setVisibility] = useState<PlaceVisibility | ''>('');
+  const [visibility, setVisibility] = useState<VisibilityTab>('ALL');
   const [operation, setOperation] = useState<PlaceOperationStatus | ''>('');
-  const [toast, setToast] = useState<string | null>(null);
+  const [notice, setNotice] = useState<Notice>(() => {
+    const state: unknown = location.state;
+    if (typeof state === 'object' && state !== null && 'notice' in state && typeof state.notice === 'string') {
+      return { tone: 'info', text: state.notice };
+    }
+    return null;
+  });
 
   const debouncedKeyword = useDebouncedValue(keyword);
 
-  const showToast = (msg: string) => {
-    setToast(msg);
-    window.setTimeout(() => setToast(null), 3000);
-  };
-
-  const load = useCallback(async () => {
-    setIsLoading(true);
-    setLoadError(false);
-    try {
-      const res = await fetchPartnerHomestays(
-        debouncedKeyword,
-        visibility || undefined,
-        operation || undefined,
-      );
-      setHomestays(res.homestays);
-      setStats(res.stats);
-    } catch {
-      setLoadError(true);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [debouncedKeyword, visibility, operation]);
+  // Đang tải = kết quả hiện có chưa ứng với bộ lọc hiện tại (tính khi render, không setState trong effect).
+  const queryKey = `${debouncedKeyword}|${visibility}|${operation}|${reloadTick}`;
+  const isLoading = result.key !== queryKey;
+  const loadError = !isLoading && !result.ok;
+  const load = useCallback(() => setReloadTick((n) => n + 1), []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    let active = true;
+    fetchPartnerHomestays(debouncedKeyword, visibility === 'ALL' ? undefined : visibility, operation || undefined)
+      .then((res) => {
+        if (!active) return;
+        setHomestays(res.homestays);
+        setStats(res.stats);
+        setResult({ key: queryKey, ok: true });
+      })
+      .catch(() => { if (active) setResult({ key: queryKey, ok: false }); });
+    return () => { active = false; };
+  }, [debouncedKeyword, visibility, operation, queryKey]);
 
   const handleToggleVisibility = async (homestay: PartnerHomestaySummaryDto) => {
     const next: PlaceVisibility = homestay.visibility === 'PUBLISHED' ? 'UNPUBLISHED' : 'PUBLISHED';
+    setBusyId(homestay.id);
+    setNotice(null);
     try {
-      const updated = await updateHomestayStatus(homestay.id, { visibility: next });
-      setHomestays((prev) => prev.map((h) => (h.id === homestay.id ? updated : h)));
-      await load();
-      showToast(
-        next === 'PUBLISHED'
-          ? `Đã xuất bản "${homestay.name}" lên trang chủ.`
-          : `Đã ngừng hiển thị "${homestay.name}" khỏi web.`,
-      );
+      await updateHomestayStatus(homestay.id, { visibility: next });
+      load();
+      setNotice({
+        tone: 'success',
+        text: next === 'PUBLISHED' ? `Đã xuất bản “${homestay.name}”. Khách có thể tìm thấy ngay.` : `Đã ngừng hiển thị “${homestay.name}”.`,
+      });
     } catch (error) {
-      showToast(homestayError(error));
+      setNotice({ tone: 'error', text: homestayError(error) });
+    } finally {
+      setBusyId(null);
     }
   };
 
-  const visibilityOptions: ChipOption<PlaceVisibility>[] = [
-    { value: '', label: `Tất cả (${stats.totalCount})` },
-    { value: 'PUBLISHED', label: `Đang hiển thị (${stats.publishedCount})` },
-    { value: 'DRAFT', label: `Nháp (${stats.draftCount})` },
-    { value: 'UNPUBLISHED', label: `Ngừng hiển thị (${stats.unpublishedCount})` },
-  ];
-  const operationOptions: ChipOption<PlaceOperationStatus>[] = [
-    { value: '', label: 'Tất cả' },
-    { value: 'OPERATING', label: `Đang đón khách (${stats.operatingCount})` },
-    { value: 'TEMP_CLOSED', label: `Tạm đóng (${stats.tempClosedCount})` },
-  ];
-
-  const filtersActive = Boolean(keyword || visibility || operation);
+  const filtersActive = Boolean(keyword || visibility !== 'ALL' || operation);
+  const clearFilters = () => { setKeyword(''); setVisibility('ALL'); setOperation(''); };
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Tiêu đề */}
-      <div className="flex flex-wrap items-center justify-between gap-5">
-        <div>
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Tổng quan cơ sở lưu trú</p>
-          <h1 className="font-display text-2xl font-extrabold tracking-tight text-ink-deep sm:text-3xl">Homestay của tôi</h1>
-          <p className="mt-1 max-w-xl text-sm leading-relaxed text-muted">
-            Quản lý không gian nghỉ dưỡng, cập nhật phòng và sẵn sàng đón những vị khách mới.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => navigate('/partner/homestay/create')}
-          className="flex h-11 items-center gap-2 rounded-md bg-coral px-5 text-sm font-bold text-white shadow-[var(--shadow-coral)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-coral-hover active:translate-y-0"
-        >
-          <PlusCircle className="h-4 w-4" /> Tạo homestay mới
-        </button>
-      </div>
+      <PageHeader eyebrow="Cơ sở lưu trú" title="Homestay của tôi"
+        description="Chọn một Homestay để cập nhật thông tin, phòng, giá và lịch đón khách."
+        actions={<Link to="/partner/homestay/create" className={ui.btnCoral}><Plus className="h-4 w-4" />Tạo Homestay mới</Link>} />
 
-      {toast && (
-        <div role="status" className="flex items-center gap-2 rounded-md bg-ink-deep px-4 py-2.5 text-xs text-white shadow-lg">
-          <Info className="h-4 w-4 shrink-0 text-primary-light" />
-          {toast}
-        </div>
+      {notice && (
+        <Alert tone={notice.tone} action={<button type="button" aria-label="Đóng thông báo" className="opacity-60 transition-opacity duration-200 hover:opacity-100" onClick={() => setNotice(null)}><X className="h-4 w-4" /></button>}>
+          {notice.text}
+        </Alert>
       )}
 
-      {/* Thống kê */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Tổng homestay" value={stats.totalCount} tone="bg-primary-50 text-primary" icon={Home} hint="Cơ sở lưu trú của bạn" loading={isLoading} error={loadError} />
-        <StatCard label="Đang hiển thị" value={stats.publishedCount} tone="bg-secondary-50 text-secondary-700" icon={Eye} hint="Hiển thị trên trang du lịch" loading={isLoading} error={loadError} />
-        <StatCard label="Bản nháp" value={stats.draftCount} tone="bg-sun-light text-ink-deep" icon={FileText} hint="Chưa xuất bản lên trang" loading={isLoading} error={loadError} />
-        <StatCard label="Tạm đóng" value={stats.tempClosedCount} tone="bg-coral-light text-coral-hover" icon={Clock} hint="Tạm ngưng đón khách" loading={isLoading} error={loadError} />
+        <StatCard label="Tổng Homestay" value={stats.totalCount} tone="bg-primary-50 text-primary" icon={Home} loading={isLoading} error={loadError} />
+        <StatCard label="Đang hiển thị" value={stats.publishedCount} tone="bg-secondary-50 text-secondary-700" icon={Eye} loading={isLoading} error={loadError} />
+        <StatCard label="Bản nháp" value={stats.draftCount} tone="bg-sun-light text-ink-deep" icon={FileText} loading={isLoading} error={loadError} />
+        <StatCard label="Tạm đóng cửa" value={stats.tempClosedCount} tone="bg-coral-light text-coral-hover" icon={Clock} loading={isLoading} error={loadError} />
       </div>
 
-      {/* Bộ lọc */}
-      <div className="flex flex-col gap-4 rounded-lg border border-primary/10 bg-surface p-5 shadow-[var(--shadow-card)]">
-        <div className="flex flex-col justify-between gap-4 border-b border-primary/10 pb-4 sm:flex-row sm:items-center">
-          <div className="flex items-center gap-2"><SlidersHorizontal className="h-4 w-4 text-primary" /><h2 className="text-sm font-bold">Danh sách homestay</h2></div>
-          <div className="w-full sm:max-w-sm"><FilterSearch value={keyword} onChange={setKeyword} placeholder="Tìm theo tên homestay..." /></div>
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <label className="relative flex-1">
+            <span className="sr-only">Tìm Homestay</span>
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+            <input className={`${ui.input} pl-9`} value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="Tìm theo tên Homestay..." />
+          </label>
+          <select aria-label="Lọc trạng thái đón khách" className={`${ui.select} sm:w-56`} value={operation} onChange={(e) => setOperation(e.target.value === 'OPERATING' || e.target.value === 'TEMP_CLOSED' ? e.target.value : '')}>
+            <option value="">Mọi trạng thái đón khách</option>
+            <option value="OPERATING">Đang đón khách ({stats.operatingCount})</option>
+            <option value="TEMP_CLOSED">Tạm đóng cửa ({stats.tempClosedCount})</option>
+          </select>
         </div>
-        <ChipGroup label="Hiển thị" options={visibilityOptions} value={visibility} onChange={setVisibility} />
-        <ChipGroup label="Vận hành" options={operationOptions} value={operation} onChange={setOperation} />
-        {filtersActive && <button type="button" onClick={() => { setKeyword(''); setVisibility(''); setOperation(''); }} className="self-start rounded-md text-xs font-semibold text-primary underline underline-offset-4 hover:text-primary-700">Xóa tất cả bộ lọc</button>}
+        <Tabs<VisibilityTab> value={visibility} onChange={setVisibility} tabs={[
+          { id: 'ALL', label: 'Tất cả', badge: stats.totalCount },
+          { id: 'PUBLISHED', label: 'Đang hiển thị', badge: stats.publishedCount },
+          { id: 'DRAFT', label: 'Bản nháp', badge: stats.draftCount },
+          { id: 'UNPUBLISHED', label: 'Ngừng hiển thị', badge: stats.unpublishedCount },
+        ]} />
       </div>
 
-      {/* Danh sách */}
       {isLoading ? (
-        <div role="status" className="grid grid-cols-1 gap-5 md:grid-cols-2">
-          <span className="sr-only">Đang tải danh sách homestay...</span>
-          {[0, 1].map((item) => <div key={item} aria-hidden="true" className="overflow-hidden rounded-lg border border-primary/10 bg-surface"><div className="h-52 animate-pulse bg-primary/10" /><div className="space-y-4 p-5"><div className="h-5 w-2/3 animate-pulse rounded-sm bg-primary/10" /><div className="h-3 w-full animate-pulse rounded-sm bg-primary/5" /><div className="h-10 animate-pulse rounded-md bg-primary/5" /></div></div>)}
+        <div role="status" className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+          <span className="sr-only">Đang tải danh sách Homestay...</span>
+          {[0, 1, 2].map((item) => (
+            <div key={item} aria-hidden="true" className="overflow-hidden rounded-lg border border-primary/10 bg-surface">
+              <div className="h-44 animate-pulse bg-primary/10" />
+              <div className="space-y-3 p-5"><div className="h-5 w-2/3 animate-pulse rounded-sm bg-primary/10" /><div className="h-3 w-full animate-pulse rounded-sm bg-primary/5" /><div className="h-10 animate-pulse rounded-md bg-primary/5" /></div>
+            </div>
+          ))}
         </div>
       ) : loadError ? (
-        <div role="alert" className="flex flex-col items-center gap-3 rounded-lg border border-danger/30 bg-danger/5 p-8 text-center">
-          <AlertTriangle className="h-6 w-6 text-danger" />
-          <p className="text-sm text-danger">Không tải được danh sách. Vui lòng kiểm tra kết nối và thử lại.</p>
-          <button type="button" onClick={() => void load()} className="rounded-md bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary-600">
-            Thử lại
-          </button>
-        </div>
+        <Alert tone="error" action={<button type="button" onClick={() => void load()} className={ui.btnGhost}>Thử lại</button>}>
+          Không tải được danh sách. Vui lòng kiểm tra kết nối và thử lại.
+        </Alert>
       ) : homestays.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-lg border border-border bg-white p-10 text-center shadow-xs">
-          <span className="flex h-14 w-14 items-center justify-center rounded-md bg-primary-50 text-primary">
-            <Home className="h-7 w-7" />
-          </span>
-          <h3 className="font-display text-base font-bold text-ink-deep">
-            {filtersActive ? 'Không có homestay khớp bộ lọc' : 'Chưa có homestay nào'}
-          </h3>
-          <p className="max-w-xs text-xs leading-relaxed text-muted">
-            {filtersActive
-              ? 'Thử đổi từ khóa hoặc bỏ bớt bộ lọc.'
-              : 'Tạo homestay đầu tiên để bắt đầu đón khách qua Đi Du Lịch.'}
-          </p>
-          {!filtersActive && (
-            <button
-              type="button"
-              onClick={() => navigate('/partner/homestay/create')}
-              className="mt-1 flex items-center gap-1.5 rounded-md bg-coral px-4 py-2.5 text-xs font-bold text-white shadow-[var(--shadow-coral)] hover:bg-coral-hover"
-            >
-              <PlusCircle className="h-4 w-4" /> Tạo homestay đầu tiên
-            </button>
-          )}
-        </div>
+        <EmptyState icon={Home}
+          title={filtersActive ? 'Không có Homestay khớp bộ lọc' : 'Chưa có Homestay nào'}
+          description={filtersActive ? 'Thử đổi từ khóa hoặc bỏ bớt bộ lọc.' : 'Tạo Homestay đầu tiên để bắt đầu đón khách qua Đi Du Lịch.'}
+          action={filtersActive
+            ? <button type="button" onClick={clearFilters} className={ui.btnOutline}>Xóa bộ lọc</button>
+            : <Link to="/partner/homestay/create" className={ui.btnCoral}><Plus className="h-4 w-4" />Tạo Homestay đầu tiên</Link>} />
       ) : (
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
           {homestays.map((homestay) => (
             <HomestayCard
               key={homestay.id}
               homestay={homestay}
+              busy={busyId === homestay.id}
               onToggle={() => void handleToggleVisibility(homestay)}
               onNavigate={navigate}
             />
@@ -210,124 +183,103 @@ export default function PartnerHomestaysPage() {
   );
 }
 
-function StatCard({ label, value, tone, icon: Icon, hint, loading, error }: { label: string; value: number; tone: string; icon: LucideIcon; hint: string; loading: boolean; error: boolean }) {
+function StatCard({ label, value, tone, icon: Icon, loading, error }: { label: string; value: number; tone: string; icon: LucideIcon; loading: boolean; error: boolean }) {
   return (
-    <div className="rounded-lg border border-primary/10 bg-surface p-4 shadow-[var(--shadow-card)] transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 sm:p-5">
-      <div className="flex items-start justify-between gap-2"><span className="text-xs font-medium text-muted">{label}</span><span className={`rounded-md p-2 ${tone}`}><Icon className="h-4 w-4" /></span></div>
-      <p className="mt-1 font-display text-3xl font-extrabold tabular-nums text-ink-deep" aria-label={loading ? 'Đang tải' : error ? 'Không có dữ liệu' : undefined}>{loading || error ? '—' : value}</p>
-      <p className="mt-2 text-[11px] text-muted">{hint}</p>
+    <div className={`${ui.card} ${ui.cardHover} flex items-center gap-3 p-4`}>
+      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${tone}`}><Icon className="h-5 w-5" /></span>
+      <div className="min-w-0">
+        <p className="font-display text-2xl font-extrabold leading-none tabular-nums text-ink-deep" aria-label={loading ? 'Đang tải' : error ? 'Không có dữ liệu' : undefined}>{loading || error ? '—' : value}</p>
+        <p className="mt-1 truncate text-xs text-muted">{label}</p>
+      </div>
     </div>
   );
 }
 
-function HomestayCard({
-  homestay,
-  onNavigate,
-}: {
+function HomestayCard({ homestay, busy, onToggle, onNavigate }: {
   homestay: PartnerHomestaySummaryDto;
-  onToggle?: () => void;
+  busy: boolean;
+  onToggle: () => void;
   onNavigate: (to: string) => void;
 }) {
   const published = homestay.visibility === 'PUBLISHED';
   const draft = homestay.visibility === 'DRAFT';
-  const quick = 'flex items-center justify-center gap-1 rounded-md bg-canvas py-2 text-[11px] font-semibold text-ink transition-colors hover:bg-primary-50 hover:text-primary';
+  const operating = homestay.operationStatus === 'OPERATING';
+  const canToggle = published || homestay.isReadyToPublish;
+  const needsWork = !published && !homestay.isReadyToPublish;
+  const editUrl = `/partner/homestay/${homestay.id}/edit`;
+  const priceText = homestay.priceRefMin == null
+    ? 'Chưa có giá'
+    : homestay.priceRefMax != null && homestay.priceRefMax > homestay.priceRefMin
+      ? `${vnd(homestay.priceRefMin)} – ${vnd(homestay.priceRefMax)}`
+      : vnd(homestay.priceRefMin);
 
   return (
-    <article className="flex flex-col overflow-hidden rounded-lg border border-border bg-white shadow-[var(--shadow-card)] transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[var(--shadow-card-hover)]">
-      <div className="relative h-52 w-full overflow-hidden bg-primary-50">
-        <div className="absolute inset-0 flex items-center justify-center text-primary/30"><Home className="h-12 w-12" /></div>
-        {homestay.coverImageUrl && <img src={homestay.coverImageUrl} alt={homestay.name} loading="lazy" onError={(event) => { event.currentTarget.style.display = 'none'; }} className="relative h-full w-full object-cover" />}
-        <div className="absolute inset-x-2.5 bottom-2.5 flex items-center justify-between">
-          <span
-            className={`flex items-center gap-1.5 rounded-sm px-2 py-1 text-[10px] font-bold text-white ${
-              published ? 'bg-primary' : draft ? 'bg-sun text-ink-deep' : 'bg-ink/80'
-            }`}
-          >
+    <article className={`group flex flex-col overflow-hidden ${ui.card} ${ui.cardHover}`}>
+      <button type="button" onClick={() => onNavigate(editUrl)} className="relative h-44 w-full overflow-hidden bg-primary-50 text-left" aria-label={`Mở ${homestay.name}`}>
+        <span className="absolute inset-0 flex items-center justify-center text-primary/30"><Home className="h-12 w-12" /></span>
+        {homestay.coverImageUrl && (
+          <img src={homestay.coverImageUrl} alt="" loading="lazy" onError={(event) => { event.currentTarget.style.display = 'none'; }}
+            className="relative h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
+        )}
+        <span className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-ink-deep/50 to-transparent" />
+        <span className="absolute left-2.5 top-2.5 flex gap-1.5">
+          <span className={`rounded-sm px-2 py-1 text-[10px] font-bold ${published ? 'bg-primary text-white' : draft ? 'bg-sun text-ink-deep' : 'bg-ink/80 text-white'}`}>
             {published ? 'Đang hiển thị' : draft ? 'Bản nháp' : 'Ngừng hiển thị'}
           </span>
-          {homestay.operationStatus === 'OPERATING' ? (
-            <span className="flex items-center gap-1 rounded-sm bg-white/95 px-2 py-1 text-[10px] font-bold text-primary">
-              <CheckCircle2 className="h-3 w-3" /> {draft ? 'Sẵn sàng phòng' : 'Đang nhận khách'}
-            </span>
-          ) : (
-            <span className="flex items-center gap-1 rounded-sm bg-danger px-2 py-1 text-[10px] font-bold text-white">
-              <AlertTriangle className="h-3 w-3" /> Tạm ngưng đón khách
-            </span>
-          )}
-        </div>
-      </div>
+          {!operating && <span className="flex items-center gap-1 rounded-sm bg-danger px-2 py-1 text-[10px] font-bold text-white"><AlertTriangle className="h-3 w-3" />Tạm đóng cửa</span>}
+        </span>
+        <span className="absolute bottom-2.5 left-3 right-3 truncate text-xs font-semibold text-white">{homestay.code}</span>
+      </button>
 
-      <div className="flex flex-1 flex-col gap-3 p-5">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="font-display text-lg font-bold leading-snug text-ink-deep">{homestay.name}</h3>
-          <span className="shrink-0 text-xs font-bold text-muted">{homestay.code}</span>
+      <div className="flex flex-1 flex-col gap-3 p-4">
+        <div className="min-w-0">
+          <h3 className="line-clamp-1 font-display text-base font-bold text-ink-deep">{homestay.name}</h3>
+          <p className="mt-0.5 flex items-center gap-1 text-xs text-muted"><MapPin className="h-3.5 w-3.5 shrink-0 text-coral" /><span className="line-clamp-1">{homestay.address || 'Chưa có địa chỉ'}</span></p>
         </div>
 
-        <div className="flex items-center gap-1 text-xs text-muted">
-          <MapPin className="h-3.5 w-3.5 shrink-0 text-coral" />
-          <span className="line-clamp-1">{homestay.address}</span>
+        <div className="grid grid-cols-2 gap-2 rounded-md bg-canvas p-2.5 text-xs">
+          <span className="flex items-center gap-1.5 text-ink"><BedDouble className="h-4 w-4 text-primary" />{homestay.roomTypesCount} loại phòng</span>
+          <span className="truncate text-right font-bold text-coral-hover">{priceText}</span>
         </div>
 
         {homestay.alertNote && (
-          <div
-            className={`flex items-start gap-2 rounded-md border p-2.5 text-xs leading-relaxed ${
-              draft ? 'border-sun/40 bg-sun-light text-ink-deep' : 'border-secondary-200 bg-secondary-50 text-ink-deep'
-            }`}
-          >
-            {draft ? <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-sun" /> : <Info className="mt-0.5 h-4 w-4 shrink-0 text-secondary-700" />}
+          <p className={`flex items-start gap-2 rounded-md border p-2.5 text-xs leading-relaxed text-ink-deep ${needsWork ? 'border-sun/40 bg-sun-light' : 'border-secondary/30 bg-secondary-50'}`}>
+            <AlertTriangle className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${needsWork ? 'text-sun' : 'text-secondary-700'}`} />
             <span>{homestay.alertNote}</span>
-          </div>
+          </p>
         )}
 
-        <div className="flex items-center justify-between border-y border-border py-2 text-xs">
-          <span className="flex items-center gap-1.5 font-medium text-ink">
-            <Bed className="h-4 w-4 text-muted" /> {homestay.roomTypesCount} loại phòng
-          </span>
-          <span className="flex items-center gap-1 font-bold text-coral-hover">
-            <Tag className="h-3.5 w-3.5" />
-            {formatPrice(homestay.priceRefMin)}
-            {homestay.priceRefMax != null && homestay.priceRefMin != null && homestay.priceRefMax > homestay.priceRefMin && ` – ${formatPrice(homestay.priceRefMax)}`}
-          </span>
-        </div>
-
-        <div className="flex items-center justify-between text-[11px] text-muted">
-          <span>Cập nhật: {homestay.lastUpdatedText}</span>
-          <span
-            className={`flex items-center gap-1 font-semibold ${
-              homestay.auditStatus === 'STANDARD' ? 'text-primary' : homestay.auditStatus === 'MAINTENANCE' ? 'text-danger' : 'text-sun'
-            }`}
-          >
-            {homestay.auditStatus === 'STANDARD' && <ShieldCheck className="h-3.5 w-3.5" />}
-            {homestay.auditStatus === 'MAINTENANCE' && <Wrench className="h-3.5 w-3.5" />}
-            {homestay.auditStatus === 'NEEDS_DATA' && <Clock className="h-3.5 w-3.5" />}
+        <div className="flex items-center justify-between gap-2 text-[11px] text-muted">
+          <span className="truncate">Cập nhật {homestay.lastUpdatedText}</span>
+          <Pill tone={homestay.auditStatus === 'STANDARD' ? 'primary' : homestay.auditStatus === 'MAINTENANCE' ? 'danger' : 'sun'}>
+            {homestay.auditStatus === 'STANDARD' && <ShieldCheck className="h-3 w-3" />}
+            {homestay.auditStatus === 'MAINTENANCE' && <Wrench className="h-3 w-3" />}
+            {homestay.auditStatus === 'NEEDS_DATA' && <Clock className="h-3 w-3" />}
             {homestay.auditStatusText}
-          </span>
+          </Pill>
         </div>
 
-        <div className="grid grid-cols-1 gap-2">
-          <button type="button" onClick={() => onNavigate(`/partner/homestay/${homestay.id}/rooms`)} className={quick}>
-            <Bed className="h-3.5 w-3.5" /> Quản lý phòng & lịch phòng
-          </button>
-        </div>
-
-        <div className="mt-auto flex items-center gap-2 pt-1">
-          {draft && !homestay.isReadyToPublish ? (
-            <button
-              type="button"
-              onClick={() => onNavigate(`/partner/homestay/${homestay.id}/edit`)}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-coral py-2.5 text-xs font-bold text-white shadow-[var(--shadow-coral)] transition-colors hover:bg-coral-hover"
-            >
-              <Edit className="h-3.5 w-3.5" /> Hoàn thiện để xuất bản
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => onNavigate(`/partner/homestay/${homestay.id}/edit`)}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-primary py-2.5 text-xs font-bold text-white shadow-[var(--shadow-teal)] transition-colors hover:bg-primary-600"
-            >
-              <Edit className="h-3.5 w-3.5" /> Chi tiết & Quản trị
-            </button>
-          )}
+        <div className="mt-auto flex flex-col gap-2 border-t border-primary/10 pt-3">
+          <div className="grid grid-cols-2 gap-2">
+            {needsWork ? (
+              <button type="button" onClick={() => onNavigate(editUrl)} className={`${ui.btnCoral} col-span-2`}><Pencil className="h-4 w-4" />Hoàn thiện để xuất bản</button>
+            ) : (
+              <>
+                <button type="button" onClick={() => onNavigate(editUrl)} className={ui.btnPrimary}><Pencil className="h-4 w-4" />Sửa thông tin</button>
+                <button type="button" onClick={() => onNavigate(`/partner/homestay/${homestay.id}/rooms`)} className={ui.btnOutline}><BedDouble className="h-4 w-4" />Phòng & lịch</button>
+              </>
+            )}
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            {needsWork
+              ? <button type="button" onClick={() => onNavigate(`/partner/homestay/${homestay.id}/rooms`)} className={`${ui.btnGhost} -ml-2`}><BedDouble className="h-4 w-4" />Phòng & lịch</button>
+              : <span className="flex items-center gap-1 text-[11px] font-semibold text-accent-700">{operating && <><CheckCircle2 className="h-3.5 w-3.5" />Đang nhận khách</>}</span>}
+            {canToggle && (
+              <button type="button" disabled={busy} onClick={onToggle} className={`${ui.btnGhost} -mr-2`}>
+                {published ? <><EyeOff className="h-4 w-4" />{busy ? 'Đang xử lý...' : 'Ngừng hiển thị'}</> : <><Eye className="h-4 w-4" />{busy ? 'Đang xử lý...' : 'Xuất bản'}</>}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </article>
