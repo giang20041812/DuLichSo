@@ -8,7 +8,7 @@ import { HomeResponseDto, PlaceSummaryDto } from "@/types/home"
 import { getCurrentCustomer, googleLogin, saveTravelerSession } from "@/services/authService"
 import { initGoogleOneTap } from "@/lib/firebase"
 import FramerSwipeCardStack from "@/components/ui/FramerSwipeCardStack"
-const heroBg = '/images/hero-home.jpg';
+import heroBg from "@/assets/hero-home.jpg"
 
 const PROVINCE_TAGS = [
   'Tất cả',

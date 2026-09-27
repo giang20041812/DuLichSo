@@ -3,7 +3,7 @@ import Header from "./Header"
 import Footer from "./Footer"
 import { hasHeroOverlay } from "@/lib/routeUtils"
 
-const heroBg = '/images/hero-home.jpg';
+import heroBg from "@/assets/hero-home.jpg";
 
 export default function AppShell() {
   const location = useLocation();
