@@ -2,7 +2,8 @@ import { Outlet, useLocation } from "react-router-dom"
 import Header from "./Header"
 import Footer from "./Footer"
 import { hasHeroOverlay } from "@/lib/routeUtils"
-import heroBg from "@/assets/1790440239069_4720231300519975082_g6756248586457253608_eaaa778d132481589c48214bdd4f2894.jpg"
+
+const heroBg = '/images/hero-home.jpg';
 
 export default function AppShell() {
   const location = useLocation();

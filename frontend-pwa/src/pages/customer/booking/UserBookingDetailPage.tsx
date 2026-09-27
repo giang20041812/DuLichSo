@@ -24,6 +24,7 @@ import {
   Edit3,
   Compass,
 } from 'lucide-react';
+import { getCurrentCustomer } from '@/services/authService';
 import { getBookingByCode, fetchBookingReview } from '@/services/bookingService';
 import type { BookingResponseDto, BookingStatus } from '@/types/booking';
 import type { ReviewDto } from '@/types/review';
@@ -38,15 +39,20 @@ export default function UserBookingDetailPage() {
   const { bookingCode } = useParams<{ bookingCode: string }>();
   const navigate = useNavigate();
 
+  const currentUser = getCurrentCustomer();
+  useEffect(() => {
+    if (currentUser?.role === 'ADMIN' || currentUser?.role === 'PROVIDER') {
+      navigate(currentUser.role === 'ADMIN' ? '/admin' : '/partner', { replace: true });
+    }
+  }, [currentUser, navigate]);
+
   const [booking, setBooking] = useState<BookingResponseDto | null>(null);
   const [existingReview, setExistingReview] = useState<ReviewDto | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const phoneParam = searchParams.get('phone') || '';
-  const [phoneInput, setPhoneInput] = useState(phoneParam);
-  const [isPhoneVerified, setIsPhoneVerified] = useState(!!phoneParam);
 
   // Modal đánh giá
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
@@ -58,12 +64,12 @@ export default function UserBookingDetailPage() {
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
   const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlaceDto[]>([]);
 
-  const loadBookingData = useCallback(async (phoneToUse: string) => {
+  const loadBookingData = useCallback(async (phoneToUse?: string) => {
     if (!bookingCode) return;
     setIsLoading(true);
     setErrorMsg(null);
     try {
-      const data = await getBookingByCode(bookingCode, phoneToUse);
+      const data = await getBookingByCode(bookingCode, phoneToUse || undefined);
       setBooking(data);
 
       // Tải danh sách địa điểm/dịch vụ lân cận để liên kết bản đồ
@@ -93,17 +99,8 @@ export default function UserBookingDetailPage() {
   }, [bookingCode]);
 
   useEffect(() => {
-    if (isPhoneVerified && phoneParam) {
-      loadBookingData(phoneParam);
-    }
-  }, [loadBookingData, isPhoneVerified, phoneParam]);
-
-  const handlePhoneSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!phoneInput.trim()) return;
-    setSearchParams({ phone: phoneInput.trim() });
-    setIsPhoneVerified(true);
-  };
+    loadBookingData(phoneParam || undefined);
+  }, [loadBookingData, phoneParam]);
 
   const getStatusBadge = (status: BookingStatus) => {
     switch (status) {
@@ -202,45 +199,7 @@ export default function UserBookingDetailPage() {
     }
   };
 
-  if (!isPhoneVerified) {
-    return (
-      <div className="min-h-screen bg-[#F6FAF8] flex flex-col items-center justify-center p-6">
-        <form onSubmit={handlePhoneSubmit} className="bg-white rounded-lg border border-gray-100 p-8 max-w-md w-full text-center space-y-6 shadow-[0_4px_20px_-4px_rgba(4,140,115,0.08)] transition-all duration-300 hover:-translate-y-0.5">
-          <div className="w-14 h-14 rounded-md bg-teal-50 flex items-center justify-center mx-auto text-[var(--color-primary)]">
-            <ShieldCheck className="w-7 h-7" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-slate-800 mb-2">Xác minh bảo mật</h2>
-            <p className="text-sm text-gray-500">
-              Vui lòng nhập số điện thoại bạn đã dùng để đặt phòng <strong>{bookingCode}</strong> để xem chi tiết.
-            </p>
-          </div>
-          <div className="text-left space-y-1.5">
-            <label className="text-xs font-semibold text-gray-700">Số điện thoại <span className="text-rose-500">*</span></label>
-            <input
-              type="tel"
-              value={phoneInput}
-              onChange={(e) => setPhoneInput(e.target.value)}
-              className="w-full bg-white border border-gray-200 text-sm rounded-md px-4 py-2.5 outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] transition-shadow"
-              placeholder="Ví dụ: 0912345678"
-              required
-            />
-          </div>
-          <button
-            type="submit"
-            className="w-full bg-[var(--color-primary)] hover:bg-teal-700 text-white font-semibold py-2.5 px-4 rounded-md text-sm transition-all shadow-sm active:scale-[0.98]"
-          >
-            Tra cứu đơn
-          </button>
-        </form>
-        
-        <Link to="/" className="mt-8 flex items-center gap-2 text-sm text-gray-500 hover:text-[var(--color-primary)] transition-colors">
-          <ArrowLeft className="w-4 h-4" />
-          Quay lại trang chủ
-        </Link>
-      </div>
-    );
-  }
+
 
   if (isLoading) {
     return (

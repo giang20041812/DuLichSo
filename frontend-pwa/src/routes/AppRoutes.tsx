@@ -9,7 +9,6 @@ import {
   HomePage,
   HomestayListPage,
   HomestayDetailPage,
-  RoomAvailabilityPage,
   FullScreenMapPage,
   BookingPage,
   UserBookingListPage,
@@ -26,8 +25,8 @@ import {
   ProviderSuspendedPage,
   AdminDashboardPage,
   PartnerDashboardPage,
+  PartnerHomestaysPage,
   PartnerBookingsPage,
-  PartnerHomestayDetailPage,
   PartnerHomestayEditPage,
   DesignSystemPage,
   DownloadAppPage,
@@ -87,8 +86,6 @@ export function AppRoutes() {
       <Route path="booking" element={<BookingPage />} />
 
       {/* Dedicated Homestay, Room Availability & Fullscreen Map Routes (No Sidebar for fullscreen) */}
-      <Route path="homestay/:slug/availability" element={<RoomAvailabilityPage />} />
-      <Route path="homestay/:slug/check-rooms" element={<RoomAvailabilityPage />} />
       <Route path="homestay/:slug/map" element={<FullScreenMapPage />} />
       <Route path="map" element={<FullScreenMapPage />} />
 
@@ -102,12 +99,11 @@ export function AppRoutes() {
       <Route path="admin" element={<AdminDashboardPage />} />
       <Route element={<PartnerLayout />}>
         <Route path="partner" element={<PartnerDashboardPage />} />
+        <Route path="partner/homestays" element={<PartnerHomestaysPage />} />
         <Route path="partner/bookings" element={<PartnerBookingsPage />} />
         <Route path="partner/bookings/:id" element={<PartnerBookingProcessPage />} />
         <Route path="partner/reviews" element={<PartnerReviewsPage />} />
-        <Route path="partner/homestays" element={<PartnerDashboardPage />} />
         <Route path="partner/homestay/create" element={<PartnerHomestayEditPage />} />
-        <Route path="partner/homestay/:id" element={<PartnerHomestayDetailPage />} />
         <Route path="partner/homestay/:id/edit" element={<PartnerHomestayEditPage />} />
         <Route path="partner/homestay/:id/rooms" element={<PartnerRoomsPage />} />
       </Route>
