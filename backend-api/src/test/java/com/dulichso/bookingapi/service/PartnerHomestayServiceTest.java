@@ -147,14 +147,20 @@ class PartnerHomestayServiceTest {
         assertFalse(json.has("readyToPublish"));
     }
 
-    @Test void reviewVideoMustBeAFullTikTokVideoLink() {
+    @Test void reviewVideoMustBeAnHttpsTikTokLink() {
         authenticate();
         lenient().when(repository.findOwned(21L, 12L, true)).thenReturn(Optional.of(place));
-        for (String bad : List.of("https://vt.tiktok.com/ZSabc/", "https://youtube.com/watch?v=1", "http://www.tiktok.com/@kenh/video/123")) {
+        for (String bad : List.of("https://youtube.com/watch?v=1", "http://www.tiktok.com/@kenh/video/123", "https://tiktok.com.evil.com/@kenh", "https://www.tiktok.com.vn/@kenh")) {
             PartnerHomestayDetailDto dto = input();
             dto.setReviewVideoUrl(bad);
             assertEquals(400, assertThrows(ResponseStatusException.class, () -> service.saveHomestayDetail(principal, 21L, dto)).getStatusCode().value(), bad);
         }
         verify(repository, never()).persist(any());
+    }
+
+    @Test void existingSeedTikTokLinksStayValid() {
+        for (String ok : List.of("https://www.tiktok.com/@vn.cng8742?_r=1&_t=ZS-99pdoOCSCrh", "https://vt.tiktok.com/ZSqtJaVhA/",
+                "https://www.tiktok.com/@siunhonbonbon/video/7677072691366497543?is_from_webapp=1&sender_device=pc"))
+            assertTrue(PartnerHomestayService.TIKTOK_VIDEO.matcher(ok).matches(), ok);
     }
 }
