@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { fetchDestinations, DestinationDto, DestinationFilterParams } from '@/services/destinationService';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CardSkeleton } from '@/components/ui/CardSkeleton';
 import { SakuraBlossomIcon } from '@/components/ui/SakuraBlossomIcon';

@@ -349,7 +349,7 @@ export default function BookingPage() {
 
   // Dịch vụ đi kèm theo thiết kế DB mới: booking_service_item
   const [serviceItems, setServiceItems] = useState<BookingServiceItemDto[]>([]);
-  const [showServiceForm, setShowServiceForm] = useState(true);
+
 
   // State cho phần Địa điểm quanh đây (đồng bộ như trang chi tiết)
   const [radius, setRadius] = useState<number>(10);

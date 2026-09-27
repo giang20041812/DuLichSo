@@ -250,12 +250,7 @@ export default function UtilityListPage() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                   {paginatedServices.map((srv) => {
-                    const googleMapsQuery = encodeURIComponent(
-                      (srv.address || '') + ' ' + srv.name
-                    );
-                    const googleMapsUrl = srv.latitude && srv.longitude
-                      ? `https://www.google.com/maps/search/?api=1&query=${srv.latitude},${srv.longitude}`
-                      : `https://www.google.com/maps/search/?api=1&query=${googleMapsQuery}`;
+
 
                     return (
                       <div
