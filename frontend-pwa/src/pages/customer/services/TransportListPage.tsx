@@ -19,8 +19,10 @@ import {
   MapPin,
   ThumbsUp,
   ThumbsDown,
-  Navigation2
+  Navigation2,
+  Map
 } from 'lucide-react';
+import { openGoogleMapsDirections } from '@/lib/mapUtils';
 
 const CATEGORY_GROUPS = [
   { id: 'LOCAL_MOTO', label: 'Xe ôm bản địa vượt dốc', desc: 'Đồi Móng Ngựa, Mâm Xôi, Rừng Trúc, Ngã 3' },
@@ -468,14 +470,26 @@ export default function TransportListPage() {
                             </div>
                           </div>
 
-                          <Link to={`/transport/${t.id}`}>
-                            <Button
-                              variant="primary"
-                              className="rounded-md font-bold h-9 px-4 text-xs bg-[var(--color-primary)] hover:bg-[var(--color-primary-600)]"
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => openGoogleMapsDirections(t.latitude, t.longitude, `${t.address || ''} ${t.name}`)}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold border border-blue-200 transition-colors cursor-pointer"
+                              title="Chỉ đường từ vị trí của bạn"
                             >
-                              Xem chi tiết
-                            </Button>
-                          </Link>
+                              <Map className="w-3.5 h-3.5 text-blue-600" />
+                              Chỉ đường
+                            </button>
+
+                            <Link to={`/transport/${t.id}`}>
+                              <Button
+                                variant="primary"
+                                className="rounded-md font-bold h-9 px-4 text-xs bg-[var(--color-primary)] hover:bg-[var(--color-primary-600)] cursor-pointer"
+                              >
+                                Xem chi tiết
+                              </Button>
+                            </Link>
+                          </div>
                         </div>
                       </div>
                     ))}

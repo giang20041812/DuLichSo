@@ -189,9 +189,46 @@ export default function HomePage() {
 
   if (loading) {
     return (
-      <div className="w-full h-screen flex flex-col items-center justify-center gap-3 text-[var(--color-primary)] font-semibold">
-        <div className="w-8 h-8 border-3 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin"></div>
-        <p className="font-light tracking-wide">Đang tải dữ liệu Đi Du Lịch...</p>
+      <div className="w-full flex flex-col min-h-screen bg-[var(--color-canvas)]">
+        {/* Hero Section Skeleton */}
+        <section className="relative z-30 w-full min-h-[460px] md:min-h-[500px] flex items-center justify-center pt-[100px] pb-16 bg-[#07362c]/90">
+          <div className="relative z-30 flex flex-col items-center justify-center px-4 max-w-5xl mx-auto w-full animate-pulse">
+            <div className="h-14 md:h-20 bg-emerald-800/60 rounded-md w-3/4 max-w-xl mb-4" />
+            <div className="h-5 bg-emerald-800/40 rounded-sm w-1/2 max-w-md mb-8" />
+            <div className="w-full h-32 md:h-36 bg-white/95 rounded-xl border border-white/20 shadow-md p-4" />
+          </div>
+        </section>
+
+        {/* Content Section Skeleton */}
+        <div className="max-w-[1280px] mx-auto w-full px-4 md:px-8 py-10 space-y-12">
+          <div>
+            <div className="h-7 bg-gray-200 rounded-sm w-48 mb-6 animate-pulse" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((n) => (
+                <div key={n} className="bg-white rounded-xl p-4 border border-gray-100 shadow-xs animate-pulse flex flex-col">
+                  <div className="w-full h-48 bg-gray-200 rounded-lg mb-3" />
+                  <div className="h-4 bg-gray-200 rounded-sm w-3/4 mb-2.5" />
+                  <div className="h-3 bg-gray-100 rounded-sm w-1/2 mb-4" />
+                  <div className="h-8 bg-gray-200 rounded-md w-full mt-auto" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="h-7 bg-gray-200 rounded-sm w-56 mb-6 animate-pulse" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[1, 2, 3, 4].map((n) => (
+                <div key={n} className="bg-white rounded-xl p-4 border border-gray-100 shadow-xs animate-pulse flex flex-col">
+                  <div className="w-full h-40 bg-gray-200 rounded-lg mb-3" />
+                  <div className="h-4 bg-gray-200 rounded-sm w-3/4 mb-2" />
+                  <div className="h-3 bg-gray-100 rounded-sm w-1/2 mb-3" />
+                  <div className="h-8 bg-gray-200 rounded-md w-full mt-auto" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

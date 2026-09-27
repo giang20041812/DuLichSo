@@ -3,6 +3,8 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { fetchUtilityServices, UtilityServiceDto, UtilityFilterParams } from '@/services/utilityService';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { CardSkeleton } from '@/components/ui/CardSkeleton';
+import { openGoogleMapsDirections } from '@/lib/mapUtils';
 import {
   MapPin,
   Star,
@@ -238,9 +240,7 @@ export default function UtilityListPage() {
         {/* Content List */}
         <div>
           {loading ? (
-            <div className="flex items-center justify-center p-12 text-[var(--color-primary)] font-bold">
-              Đang tải dịch vụ tiện ích...
-            </div>
+            <CardSkeleton count={6} layout="grid-3" imageHeight="h-[200px]" />
           ) : (
             <div>
               {paginatedServices.length === 0 ? (
@@ -303,15 +303,15 @@ export default function UtilityListPage() {
                             </p>
 
                             <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-gray-100">
-                              <a
-                                href={googleMapsUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-blue-50 text-blue-700 text-[11px] font-bold border border-blue-200 hover:bg-blue-100"
+                              <button
+                                type="button"
+                                onClick={() => openGoogleMapsDirections(srv.latitude, srv.longitude, `${srv.address || ''} ${srv.name}`)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 text-[11px] font-bold border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer"
+                                title="Chỉ đường từ vị trí của bạn"
                               >
                                 <Map className="w-3 h-3 text-blue-600" />
-                                Maps
-                              </a>
+                                Chỉ đường
+                              </button>
 
                               {srv.contacts && srv.contacts.length > 0 ? (
                                 srv.contacts.map((contact, cIdx) => (

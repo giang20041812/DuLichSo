@@ -5,6 +5,8 @@ import { HomestayDto } from '@/types/homestay';
 import SearchHub from '@/components/layout/SearchHub';
 import { PriceSlider } from '@/components/ui/price-slider';
 import { Button } from '@/components/ui/button';
+import { CardSkeleton } from '@/components/ui/CardSkeleton';
+import { openGoogleMapsDirections } from '@/lib/mapUtils';
 import {
   MapPin,
   SlidersHorizontal,
@@ -744,32 +746,25 @@ export default function HomestayListPage() {
             )}
 
             <div className="flex-1 flex flex-col gap-4 relative min-h-[350px]">
-              {loading && (
-                <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-20 flex items-start justify-center pt-24 rounded-lg">
-                  <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-md shadow-md border border-gray-200 text-[var(--color-primary)] font-bold text-sm">
-                    <div className="w-4 h-4 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin"></div>
-                    <span>Đang cập nhật danh sách homestay...</span>
-                  </div>
+              {loading ? (
+                <CardSkeleton count={ITEMS_PER_PAGE} layout="grid-2" imageHeight="h-48" />
+              ) : paginatedHomestays.length === 0 ? (
+                <div className="bg-white p-8 text-center rounded-lg border border-gray-200 shadow-xs">
+                  <p className="text-gray-500 font-medium">Không tìm thấy homestay nào phù hợp với bộ lọc đã chọn.</p>
+                  <button
+                    onClick={handleClearFilters}
+                    className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 bg-[var(--color-primary-50)] text-[var(--color-primary)] font-bold text-xs rounded-md border border-[var(--color-primary)] hover:bg-[var(--color-primary-100)] transition-colors cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" /> Bỏ tất cả bộ lọc
+                  </button>
                 </div>
-              )}
-              <div>
-                {paginatedHomestays.length === 0 ? (
-                  <div className="bg-white p-8 text-center rounded-lg border border-gray-200 shadow-xs">
-                    <p className="text-gray-500 font-medium">Không tìm thấy homestay nào phù hợp với bộ lọc đã chọn.</p>
-                    <button
-                      onClick={handleClearFilters}
-                      className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 bg-[var(--color-primary-50)] text-[var(--color-primary)] font-bold text-xs rounded-md border border-[var(--color-primary)] hover:bg-[var(--color-primary-100)] transition-colors"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" /> Bỏ tất cả bộ lọc
-                    </button>
-                  </div>
-                ) : (
-                  /* 2 Ô 1 DÒNG KHI CHƯA RESPONSIVE (grid-cols-1 md:grid-cols-2) */
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5">
-                    {paginatedHomestays.map((hs) => {
-                      const phone = getHomestayPhone(hs);
-                      const fb = getHomestayFacebook(hs);
-                      const tiktok = getHomestayTikTok(hs);
+              ) : (
+                /* 2 Ô 1 DÒNG KHI CHƯA RESPONSIVE (grid-cols-1 md:grid-cols-2) */
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5">
+                  {paginatedHomestays.map((hs) => {
+                    const phone = getHomestayPhone(hs);
+                    const fb = getHomestayFacebook(hs);
+                    const tiktok = getHomestayTikTok(hs);
 
                       return (
                         <div
@@ -905,11 +900,23 @@ export default function HomestayListPage() {
                                 <span className="text-[10px] text-gray-400">/đêm</span>
                               </div>
 
-                              <Link to={`/homestays/${hs.id}`} className="shrink-0">
-                                <Button variant="primary" className="rounded-lg font-bold h-8.5 px-4 text-xs bg-[#10b981] hover:bg-[#03725e] shadow-xs hover:shadow-sm active:scale-95 transition-all">
-                                  Xem chỗ trống
-                                </Button>
-                              </Link>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => openGoogleMapsDirections(hs.latitude, hs.longitude, `${hs.district || ''} ${hs.name}`)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold border border-blue-200 transition-colors cursor-pointer"
+                                  title="Chỉ đường từ vị trí của bạn"
+                                >
+                                  <Map className="w-3.5 h-3.5 text-blue-600" />
+                                  Chỉ đường
+                                </button>
+
+                                <Link to={`/homestays/${hs.id}`} className="shrink-0">
+                                  <Button variant="primary" className="rounded-lg font-bold h-8.5 px-3.5 text-xs bg-[#10b981] hover:bg-[#03725e] shadow-xs hover:shadow-sm active:scale-95 transition-all cursor-pointer">
+                                    Xem chỗ trống
+                                  </Button>
+                                </Link>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -962,7 +969,6 @@ export default function HomestayListPage() {
                     </button>
                   </div>
                 )}
-              </div>
             </div>
           </div>
         </div>

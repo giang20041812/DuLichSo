@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 
 import { fetchPublicRegions, PublicRegionDto } from "@/services/homestayService"
+import { SakuraBlossomIcon } from "@/components/ui/SakuraBlossomIcon"
 
 export interface AttractionItem {
   id: number;
@@ -1500,12 +1501,17 @@ export default function SearchHub() {
                         }`}
                       >
                         <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <Sparkles className={`w-3.5 h-3.5 shrink-0 ${isChecked ? 'text-[#10b981]' : isSeasonal ? 'text-amber-500 fill-amber-400' : 'text-gray-400'}`} />
+                          {isSeasonal ? (
+                            <SakuraBlossomIcon className="w-4 h-4 shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.1)]" />
+                          ) : (
+                            <Sparkles className={`w-3.5 h-3.5 shrink-0 ${isChecked ? 'text-[#10b981]' : 'text-gray-400'}`} />
+                          )}
                           <div className="flex flex-col truncate min-w-0">
                             <div className="flex items-center gap-1.5 truncate">
                               <span className="font-bold truncate">{att.name}</span>
                               {isSeasonal && (
-                                <span className="shrink-0 bg-amber-500 text-white text-[11px] font-bold px-1.5 py-0.2 rounded-xs leading-tight">
+                                <span className="shrink-0 bg-gradient-to-r from-[#fef08a] via-[#fde047] to-[#facc15] text-[#713f12] text-[11px] font-extrabold px-1.5 py-0.5 rounded-xs leading-tight border border-[#fde047] flex items-center gap-1">
+                                  <SakuraBlossomIcon className="w-3 h-3 shrink-0" />
                                   Mùa đẹp
                                 </span>
                               )}

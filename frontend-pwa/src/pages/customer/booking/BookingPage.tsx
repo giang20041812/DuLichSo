@@ -16,7 +16,6 @@ import {
   BedDouble,
   Utensils,
   ArrowRight,
-  Edit3,
   Star,
   CheckCircle2,
   Banknote,
@@ -26,12 +25,14 @@ import {
   MapPin,
   Map as MapIcon,
   Plus,
+  Minus,
+  AlertTriangle,
   Trash2,
   X,
   Lock
 } from 'lucide-react';
-import { BookingNavigationState, BookingResponseDto, BookingServiceItemDto } from '@/types/booking';
-import { createBooking, saveUserBooking } from '@/services/bookingService';
+import { BookingNavigationState, BookingResponseDto, BookingServiceItemDto, BookedDateRangeDto } from '@/types/booking';
+import { createBooking, saveUserBooking, fetchBookedDatesByPlace, fetchBookedDatesByRoom } from '@/services/bookingService';
 import { fetchNearbyPlaces, getHomestayById } from '@/services/homestayService';
 import { getCurrentCustomer } from '@/services/authService';
 import { NearbyPlaceDto } from '@/types/homestay';
@@ -39,6 +40,7 @@ import { Button } from '@/components/ui/button';
 import { VietTrackLogoMark } from '@/components/ui/logo';
 import VietmapView from '@/components/map/VietmapView';
 import type { VietmapMarkerItem } from '@/types/integrations/vietmap';
+import RoomAvailabilityCalendar from '@/components/homestay/RoomAvailabilityCalendar';
 
 // Helper tính khoảng cách Haversine chuẩn theo tọa độ GPS
 function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -63,6 +65,22 @@ function formatISODate(isoDate: string): string {
   });
 }
 
+// Helper: chuyển string YYYY-MM-DD sang YYYY-MM-DD an toàn theo giờ địa phương
+function formatDateKey(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function parseLocalDate(dateStr: string) {
+  const parts = dateStr.split('-');
+  const y = Number(parts[0]) || 2026;
+  const m = Number(parts[1]) || 1;
+  const d = Number(parts[2]) || 1;
+  return new Date(y, m - 1, d);
+}
+
 export default function BookingPage() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -70,9 +88,58 @@ export default function BookingPage() {
   // Nhận state từ HomestayDetailPage hoặc fallback dữ liệu mẫu
   const navState = location.state as BookingNavigationState | undefined;
 
-  const checkIn = navState?.checkIn;
-  const checkOut = navState?.checkOut;
-  const stateNights = navState?.nights;
+  const todayStr = useMemo(() => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }, []);
+
+  // Ngày nhận / trả phòng có thể chỉnh sửa trực tiếp
+  const [checkIn, setCheckIn] = useState<string>(() => {
+    if (navState?.checkIn) return navState.checkIn;
+    const d = new Date();
+    d.setDate(d.getDate() + 2);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  });
+
+  const [checkOut, setCheckOut] = useState<string>(() => {
+    if (navState?.checkOut) return navState.checkOut;
+    const d = new Date();
+    d.setDate(d.getDate() + 3);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  });
+
+  // Số lượng phòng tối đa của loại phòng này
+  const maxRooms = Math.max(1, navState?.totalRoomCount || 5);
+  const [roomCount, setRoomCount] = useState<number>(() => Math.max(1, Math.min(maxRooms, navState?.roomCount || 1)));
+
+  // Số lượng khách (mặc định 2, tối đa theo sức chứa của số phòng)
+  const roomMaxOccupancy = Math.max(1, navState?.maxOccupancy || 2);
+  const maxGuests = Math.max(1, roomMaxOccupancy * roomCount);
+  const [guestCount, setGuestCount] = useState<number>(() => {
+    if (navState?.guestCount) {
+      return Math.max(1, Math.min(maxGuests, navState.guestCount));
+    }
+    return Math.min(2, maxGuests);
+  });
+
+  // Tự động điều chỉnh số lượng phòng và khách khi người dùng thay đổi
+  const handleRoomCountChange = (newCount: number) => {
+    const clamped = Math.max(1, Math.min(maxRooms, newCount));
+    setRoomCount(clamped);
+    const updatedMaxGuests = Math.max(1, roomMaxOccupancy * clamped);
+    if (guestCount > updatedMaxGuests) {
+      setGuestCount(updatedMaxGuests);
+    }
+  };
 
   // 1. Tính toán số đêm lưu trú chính xác từ khoảng ngày checkIn - checkOut
   const nights = useMemo(() => {
@@ -82,12 +149,90 @@ export default function BookingPage() {
       const diff = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
       if (diff > 0) return diff;
     }
-    return stateNights && stateNights > 0 ? stateNights : 1;
-  }, [checkIn, checkOut, stateNights]);
+    return 1;
+  }, [checkIn, checkOut]);
 
-  // 2. Số lượng phòng và khách lưu trú
-  const [roomCount, setRoomCount] = useState<number>(() => navState?.roomCount || 1);
-  const [guestCount, setGuestCount] = useState<number>(() => navState?.guestCount || 2);
+  // Danh sách các khoảng ngày đã đặt của phòng này
+  const [bookedDates, setBookedDates] = useState<BookedDateRangeDto[]>([]);
+
+  useEffect(() => {
+    if (navState?.roomTypeId) {
+      fetchBookedDatesByRoom(navState.roomTypeId)
+        .then((data) => {
+          if (Array.isArray(data)) setBookedDates(data);
+        })
+        .catch((err) => console.warn('fetchBookedDatesByRoom in BookingPage error:', err));
+    } else if (navState?.placeId) {
+      fetchBookedDatesByPlace(navState.placeId)
+        .then((data) => {
+          if (Array.isArray(data)) setBookedDates(data);
+        })
+        .catch((err) => console.warn('fetchBookedDatesByPlace in BookingPage error:', err));
+    }
+  }, [navState?.roomTypeId, navState?.placeId]);
+
+  const navStateRoomTypeId = navState?.roomTypeId;
+  const weekendPrice = navState?.weekendPrice;
+
+  // Lọc danh sách booking riêng của loại phòng này
+  const roomBookedDates = useMemo(() => {
+    if (!navStateRoomTypeId) return bookedDates;
+    return bookedDates.filter(
+      (b) => !b.roomTypeId || Number(b.roomTypeId) === 0 || Number(b.roomTypeId) === Number(navStateRoomTypeId)
+    );
+  }, [bookedDates, navStateRoomTypeId]);
+
+  // Bản đồ phòng đã đặt từng ngày
+  const occupiedMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const b of roomBookedDates) {
+      if (!b.checkIn || !b.checkOut) continue;
+      const cur = parseLocalDate(b.checkIn);
+      const end = parseLocalDate(b.checkOut);
+      while (cur < end) {
+        const key = formatDateKey(cur);
+        map[key] = (map[key] || 0) + (b.roomCount || 1);
+        cur.setDate(cur.getDate() + 1);
+      }
+    }
+    return map;
+  }, [roomBookedDates]);
+
+  // Kiểm tra tính khả dụng của khoảng ngày đã chọn đối với số lượng phòng yêu cầu
+  const validation = useMemo(() => {
+    if (!checkIn || !checkOut || checkOut <= checkIn) {
+      return { isValid: false, availableRooms: 0, message: 'Vui lòng chọn ngày nhận phòng và ngày trả phòng hợp lệ.' };
+    }
+
+    const cur = parseLocalDate(checkIn);
+    const end = parseLocalDate(checkOut);
+    let minAvail = maxRooms;
+
+    while (cur < end) {
+      const key = formatDateKey(cur);
+      const occupied = occupiedMap[key] || 0;
+      const available = Math.max(0, maxRooms - occupied);
+      if (available < minAvail) minAvail = available;
+
+      if (available <= 0) {
+        return {
+          isValid: false,
+          availableRooms: 0,
+          message: `Đêm ${key} đã kín toàn bộ ${maxRooms} phòng. Vui lòng chọn khoảng ngày khác.`,
+        };
+      }
+      if (available < roomCount) {
+        return {
+          isValid: false,
+          availableRooms: available,
+          message: `Đêm ${key} chỉ còn ${available}/${maxRooms} phòng trống, không đủ ${roomCount} phòng bạn đang chọn.`,
+        };
+      }
+      cur.setDate(cur.getDate() + 1);
+    }
+
+    return { isValid: true, availableRooms: minAvail, message: '' };
+  }, [checkIn, checkOut, occupiedMap, maxRooms, roomCount]);
 
   // 3. Đơn giá 1 phòng / 1 đêm
   const unitPrice = useMemo(() => navState?.basePrice || 361028, [navState?.basePrice]);
@@ -100,28 +245,23 @@ export default function BookingPage() {
   const subtotalRoomPrice = useMemo(() => {
     if (!checkIn || !checkOut) return unitPrice * nights * roomCount;
     let totalPerRoom = 0;
-    const cur = new Date(checkIn + 'T12:00:00');
-    const end = new Date(checkOut + 'T12:00:00');
+    const cur = parseLocalDate(checkIn);
+    const end = parseLocalDate(checkOut);
     while (cur < end) {
       const dayOfWeek = cur.getDay(); // 0 is Sunday, 6 is Saturday
       const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-      const price = (isWeekend && navState?.weekendPrice) ? navState.weekendPrice : unitPrice;
+      const price = (isWeekend && weekendPrice) ? weekendPrice : unitPrice;
       totalPerRoom += price;
       cur.setDate(cur.getDate() + 1);
     }
     return totalPerRoom * roomCount;
-  }, [unitPrice, navState?.weekendPrice, checkIn, checkOut, nights, roomCount]);
+  }, [unitPrice, weekendPrice, checkIn, checkOut, nights, roomCount]);
+
   // Tổng giá niêm yết ban đầu
   const totalOriginalPrice = useMemo(
     () => originalUnitPrice * nights * roomCount,
     [originalUnitPrice, nights, roomCount]
   );
-  // Số tiền ưu đãi tiết kiệm được
-  const discountAmount = useMemo(
-    () => (totalOriginalPrice > subtotalRoomPrice ? totalOriginalPrice - subtotalRoomPrice : 0),
-    [totalOriginalPrice, subtotalRoomPrice]
-  );
-
   // Tổng thanh toán thực tế (khớp tuyệt đối với backend: unitPrice * nights * roomCount)
   const totalPrice = subtotalRoomPrice;
 
@@ -154,17 +294,17 @@ export default function BookingPage() {
       latitude: navState?.latitude,
       longitude: navState?.longitude,
       roomName: navState?.roomTypeName || 'Phòng nghỉ',
-      checkInDateStr: navState?.checkIn ? formatISODate(navState.checkIn) : '',
+      checkInDateStr: checkIn ? formatISODate(checkIn) : '',
       checkInTime: 'Từ 14:00',
-      checkOutDateStr: navState?.checkOut ? formatISODate(navState.checkOut) : '',
+      checkOutDateStr: checkOut ? formatISODate(checkOut) : '',
       checkOutTime: 'Trước 12:00',
       bedInfo: navState?.bedInfo || '1 giường đôi',
       hasBreakfast: navState?.hasBreakfast ?? false,
       freeCancellation: navState?.freeCancellation ?? true,
-      totalRoomsLeft: navState?.totalRoomCount || 5,
-      maxOccupancy: navState?.maxOccupancy || 2,
+      totalRoomsLeft: maxRooms,
+      maxOccupancy: roomMaxOccupancy,
     };
-  }, [navState, fetchedRating]);
+  }, [navState, fetchedRating, checkIn, checkOut, maxRooms, roomMaxOccupancy]);
 
   // Yêu cầu bắt buộc đăng nhập tài khoản khách hàng để đặt phòng
   const customer = useMemo(() => getCurrentCustomer(), []);
@@ -191,10 +331,8 @@ export default function BookingPage() {
   });
   const [phoneTouched, setPhoneTouched] = useState(false);
   const [email, setEmail] = useState(() => customer?.email || '');
-  const [isBookingForSelf, setIsBookingForSelf] = useState(true);
 
   // Guest info
-  const [isEditingGuest, setIsEditingGuest] = useState(false);
   const [guestName, setGuestName] = useState(() => customer?.fullName || '');
 
   // Special requests
@@ -203,7 +341,6 @@ export default function BookingPage() {
     connectingRooms: false,
     highFloor: false,
   });
-  const [showAllPolicies, setShowAllPolicies] = useState(false);
   const [showAllRequests, setShowAllRequests] = useState(false);
   const [customNote, setCustomNote] = useState('');
 
@@ -212,6 +349,7 @@ export default function BookingPage() {
 
   // Dịch vụ đi kèm theo thiết kế DB mới: booking_service_item
   const [serviceItems, setServiceItems] = useState<BookingServiceItemDto[]>([]);
+  const [showServiceForm, setShowServiceForm] = useState(true);
 
   // State cho phần Địa điểm quanh đây (đồng bộ như trang chi tiết)
   const [radius, setRadius] = useState<number>(10);
@@ -390,6 +528,10 @@ export default function BookingPage() {
       alert('Vui lòng nhập họ và tên liên hệ.');
       return;
     }
+    if (!guestName.trim()) {
+      alert('Vui lòng nhập họ tên khách lưu trú.');
+      return;
+    }
     if (!isPhoneValid) {
       alert('Vui lòng nhập số điện thoại hợp lệ để tiếp tục.');
       return;
@@ -398,8 +540,13 @@ export default function BookingPage() {
       alert('Vui lòng nhập email hợp lệ để nhận xác nhận đặt phòng.');
       return;
     }
-    if (!navState?.placeId || !navState?.roomTypeId || !navState?.checkIn || !navState?.checkOut) {
-      alert('Thiếu thông tin phòng. Vui lòng quay lại và chọn phòng lại.');
+    if (!navState?.placeId || !navState?.roomTypeId || !checkIn || !checkOut) {
+      alert('Thiếu thông tin phòng hoặc ngày lưu trú. Vui lòng kiểm tra lại.');
+      return;
+    }
+
+    if (!validation.isValid) {
+      alert(validation.message || 'Khoảng ngày hoặc số lượng phòng không khả dụng. Vui lòng kiểm tra lại.');
       return;
     }
 
@@ -412,11 +559,11 @@ export default function BookingPage() {
       const result = await createBooking({
         placeId: navState.placeId,
         roomTypeId: navState.roomTypeId,
-        checkIn: navState.checkIn,
-        checkOut: navState.checkOut,
+        checkIn: checkIn,
+        checkOut: checkOut,
         roomCount: roomCount,
         guestCount: guestCount,
-        guestName: !isBookingForSelf && guestName.trim() ? guestName.trim() : fullName.trim(),
+        guestName: guestName.trim(),
         guestPhone: `${countryCode}${phone.trim()}`,
         guestEmail: email.trim(),
         guestNote: customNote.trim() || undefined,
@@ -766,59 +913,47 @@ export default function BookingPage() {
               {/* ================= CỘT TRÁI: FORM ĐIỀN THÔNG TIN ================= */}
               <div className="lg:col-span-7 space-y-6">
 
-                {/* Khối 1: Liên hệ đặt chỗ (Tự động điền theo tài khoản) */}
+                {/* Khối 1: Liên hệ đặt chỗ */}
                 <div className="bg-white rounded-lg border border-gray-200 shadow-xs p-5 md:p-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-gray-100 mb-5">
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-md bg-[#edfbf7] text-[var(--color-primary)] flex items-center justify-center shrink-0 mt-0.5">
-                        <Mail className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h2 className="text-lg font-bold text-[var(--color-ink-deep)]">Liên hệ đặt chỗ</h2>
-                        <p className="text-xs md:text-sm text-[var(--color-muted)] mt-0.5">
-                          Thông tin liên hệ nhận xác nhận đặt phòng
-                        </p>
-                      </div>
+                  <div className="flex items-center gap-3 pb-4 border-b border-gray-100 mb-5">
+                    <div className="w-8 h-8 rounded-md bg-[#edfbf7] text-[var(--color-primary)] flex items-center justify-center shrink-0">
+                      <Mail className="w-4 h-4" />
                     </div>
-
-                    {customer && (
-                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold self-start sm:self-auto">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>Tài khoản: {customer.fullName}</span>
-                      </div>
-                    )}
+                    <div>
+                      <h2 className="text-lg font-bold text-[var(--color-ink-deep)]">Liên hệ đặt chỗ</h2>
+                      <p className="text-xs md:text-sm text-[var(--color-muted)] mt-0.5">
+                        Thông tin liên hệ nhận xác nhận đặt phòng
+                      </p>
+                    </div>
                   </div>
 
-                  {customer && (
-                    <div className="mb-4 p-3 rounded-md bg-[#f0fdf4] border border-emerald-200 flex items-center gap-2.5 text-xs text-emerald-900">
-                      <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span>
-                        Hệ thống đã tự động điền thông tin từ tài khoản <strong>{customer.fullName}</strong> ({customer.email}).
-                      </span>
-                    </div>
-                  )}
-
                   <div className="space-y-4">
-                    {/* Họ tên */}
+                    {/* Họ tên người liên hệ */}
                     <div>
                       <label className="block text-xs font-bold text-gray-700 mb-1">
-                        Họ tên<span className="text-red-500 ml-0.5">*</span>
+                        Họ và tên người liên hệ<span className="text-red-500 ml-0.5">*</span>
                       </label>
                       <input
                         type="text"
                         value={fullName}
-                        onChange={(e) => {
-                          setFullName(e.target.value);
-                          if (isBookingForSelf) {
-                            setGuestName(e.target.value);
-                          }
-                        }}
+                        onChange={(e) => setFullName(e.target.value)}
                         className="w-full h-11 px-3.5 text-sm bg-white border border-gray-300 rounded-md focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] transition-colors outline-none"
                         placeholder="Nhập họ và tên đầy đủ"
                       />
-                      <span className="text-[11px] text-[var(--color-muted)] mt-1 block">
-                        Người Việt: nhập Tên đệm + Tên chính + Họ. Người nước ngoài: nhập Tên + Họ.
-                      </span>
+                    </div>
+
+                    {/* Họ tên khách lưu trú */}
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Họ tên khách lưu trú<span className="text-red-500 ml-0.5">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={guestName}
+                        onChange={(e) => setGuestName(e.target.value)}
+                        className="w-full h-11 px-3.5 text-sm bg-white border border-gray-300 rounded-md focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] transition-colors outline-none"
+                        placeholder="Nhập họ tên khách lưu trú"
+                      />
                     </div>
 
                     {/* SĐT + Email */}
@@ -871,105 +1006,216 @@ export default function BookingPage() {
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           className="w-full h-11 px-3.5 text-sm bg-white border border-gray-300 rounded-md focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] transition-colors outline-none"
-                          placeholder="VD: email@example.com"
+                          placeholder="Nhập địa chỉ email"
                         />
-                        <span className="text-[11px] text-[var(--color-muted)] mt-1 block">
-                          VD: email@example.com
-                        </span>
                       </div>
-                    </div>
-
-                    {/* Checkbox tôi đặt chỗ cho chính mình */}
-                    <div className="pt-2">
-                      <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                        <input
-                          type="checkbox"
-                          checked={isBookingForSelf}
-                          onChange={(e) => {
-                            const val = e.target.checked;
-                            setIsBookingForSelf(val);
-                            if (val) {
-                              setGuestName(fullName);
-                              setIsEditingGuest(false);
-                            }
-                          }}
-                          className="w-4 h-4 text-[var(--color-primary)] border-gray-300 rounded-sm focus:ring-[var(--color-primary)] accent-[var(--color-primary)]"
-                        />
-                        <span className="text-sm font-medium text-gray-800">
-                          Tôi đặt chỗ cho chính mình
-                        </span>
-                      </label>
                     </div>
                   </div>
                 </div>
 
-                {/* Khối 2: Thông tin Khách hàng */}
-                <div className="bg-white rounded-lg border border-gray-200 shadow-xs p-5 md:p-6">
-                  <div className="flex items-start gap-3 pb-4 border-b border-gray-100 mb-4">
-                    <div className="w-8 h-8 rounded-md bg-[#edfbf7] text-[var(--color-primary)] flex items-center justify-center shrink-0 mt-0.5">
-                      <User className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h2 className="text-lg font-bold text-[var(--color-ink-deep)]">Thông tin Khách hàng</h2>
-                      <p className="text-xs md:text-sm text-[var(--color-muted)] mt-0.5">
-                        Vui lòng điền đầy đủ các thông tin để nhận xác nhận đơn hàng
-                      </p>
-                    </div>
-                  </div>
-
-                  {isEditingGuest ? (
-                    <div className="space-y-3">
+                {/* ================= KHỐI THÔNG SỐ VÀ LỊCH PHÒNG ================= */}
+                {/* Thẻ chỉnh sửa thông số phòng & Lịch trống chi tiết */}
+                <div
+                  className={`bg-white rounded-lg border shadow-xs overflow-hidden transition-all ${
+                    validation.isValid ? 'border-gray-200' : 'border-rose-300 ring-1 ring-rose-200 bg-rose-50/20'
+                  }`}
+                >
+                  <div className="p-4 md:p-5">
+                    {/* Header: Tên phòng & Giá niêm yết */}
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 mb-3 pb-3 border-b border-gray-100">
                       <div>
-                        <label className="block text-xs font-bold text-gray-700 mb-1">
-                          Họ tên khách lưu trú<span className="text-red-500 ml-0.5">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={guestName}
-                          onChange={(e) => setGuestName(e.target.value)}
-                          className="w-full h-11 px-3.5 text-sm bg-white border border-gray-300 rounded-md focus:border-[var(--color-primary)] outline-none"
-                        />
+                        <h3 className="font-bold text-lg md:text-xl text-[var(--color-ink-deep)] leading-snug">
+                          {roomInfo.roomName}
+                        </h3>
+                        <div className="text-xs font-bold text-red-600 mt-0.5">
+                          Chỉ còn {maxRooms} phòng
+                        </div>
                       </div>
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="rounded-md"
-                          onClick={() => setIsEditingGuest(false)}
-                        >
-                          Xong
-                        </Button>
+                      <div className="sm:text-right shrink-0">
+                        <span className="text-xl md:text-2xl font-black text-[var(--color-coral)]">
+                          {new Intl.NumberFormat('vi-VN').format(unitPrice)}đ
+                        </span>
+                        <span className="text-xs text-[var(--color-muted)] font-medium"> /đêm</span>
+                        {navState?.weekendPrice ? (
+                          <div className="text-[11px] text-[var(--color-muted)] mt-0.5">
+                            Cuối tuần: {new Intl.NumberFormat('vi-VN').format(navState.weekendPrice)}đ
+                          </div>
+                        ) : null}
                       </div>
                     </div>
-                  ) : (
-                    <div className="flex items-center justify-between p-3.5 bg-gray-50/80 rounded-md border border-gray-100">
-                      <span className="font-semibold text-gray-800 text-sm">
-                        {guestName || fullName || 'Chưa nhập tên khách'}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setIsEditingGuest(true)}
-                        className="flex items-center gap-1 text-sm font-bold text-[var(--color-primary)] hover:underline cursor-pointer"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" /> Chỉnh sửa
-                      </button>
-                    </div>
-                  )}
-                </div>
 
+                    {/* Thanh chọn thông số phòng, khách & ngày lưu trú */}
+                    <div className="bg-slate-50 border border-slate-200/90 rounded-md p-3 mb-3.5 flex flex-wrap items-center justify-between gap-2.5 text-xs md:text-sm">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {/* Chọn số phòng */}
+                        <div className="flex items-center gap-1.5 bg-white border border-slate-200 px-2.5 py-1.5 rounded-sm shadow-2xs">
+                          <span className="font-semibold text-slate-700">Phòng:</span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleRoomCountChange(roomCount - 1)}
+                              disabled={roomCount <= 1}
+                              className="w-5 h-5 rounded-xs bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                              title="Giảm số phòng"
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <span className="font-black text-[var(--color-primary)] w-5 text-center text-xs md:text-sm">
+                              {roomCount}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleRoomCountChange(roomCount + 1)}
+                              disabled={roomCount >= maxRooms}
+                              className="w-5 h-5 rounded-xs bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                              title="Thêm phòng để đặt nhiều phòng"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Chọn số khách */}
+                        <div className="flex items-center gap-1.5 bg-white border border-slate-200 px-2.5 py-1.5 rounded-sm shadow-2xs">
+                          <span className="font-semibold text-slate-700">Khách:</span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => setGuestCount((prev) => Math.max(1, prev - 1))}
+                              disabled={guestCount <= 1}
+                              className="w-5 h-5 rounded-xs bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                              title="Giảm số khách"
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <span className="font-black text-slate-800 w-5 text-center text-xs md:text-sm">
+                              {guestCount}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setGuestCount((prev) => Math.min(maxGuests, prev + 1))}
+                              disabled={guestCount >= maxGuests}
+                              className="w-5 h-5 rounded-xs bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                              title="Tăng số khách"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Chọn khoảng ngày trực tiếp */}
+                        <div className="flex items-center gap-1.5 bg-white border border-slate-200 px-2.5 py-1.5 rounded-sm shadow-2xs">
+                          <Calendar className="w-3.5 h-3.5 text-[var(--color-primary)] shrink-0" />
+                          <input
+                            type="date"
+                            min={todayStr}
+                            value={checkIn}
+                            onChange={(e) => setCheckIn(e.target.value)}
+                            className="border-0 p-0 text-xs font-semibold text-slate-800 focus:outline-none cursor-pointer bg-transparent w-[105px] md:w-[115px]"
+                          />
+                          <span className="text-slate-400 font-bold">→</span>
+                          <input
+                            type="date"
+                            min={checkIn || todayStr}
+                            value={checkOut}
+                            onChange={(e) => setCheckOut(e.target.value)}
+                            className="border-0 p-0 text-xs font-semibold text-slate-800 focus:outline-none cursor-pointer bg-transparent w-[105px] md:w-[115px]"
+                          />
+                          {/* Badge tình trạng phòng */}
+                          {validation.isValid ? (
+                            <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-xs flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                              <span>Còn phòng</span>
+                            </span>
+                          ) : (
+                            <span className="text-[11px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded-xs flex items-center gap-1">
+                              <AlertTriangle className="w-3 h-3 text-rose-600" />
+                              <span>Hết phòng</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+
+
+
+                    {/* Lịch phòng độc lập - Luôn luôn hiển thị */}
+                    <div className="bg-slate-50/70 p-2.5 md:p-3 rounded-md border border-slate-200 mb-3">
+                      <RoomAvailabilityCalendar
+                        bookedDates={roomBookedDates}
+                        totalRoomCount={maxRooms}
+                        requestedRoomCount={roomCount}
+                        selectedCheckIn={checkIn}
+                        selectedCheckOut={checkOut}
+                        onSelectDates={(inDate, outDate) => {
+                          setCheckIn(inDate);
+                          setCheckOut(outDate);
+                        }}
+                      />
+                    </div>
+                    {/* Chỉ hiện cảnh báo khi hết phòng hoặc chọn ngày không hợp lệ */}
+                    {!validation.isValid && (
+                      <div className="mb-3 p-2.5 rounded-md bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-center gap-2 font-medium">
+                        <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
+                        <span>{validation.message}</span>
+                      </div>
+                    )}
+
+                    {/* Tiện ích cơ bản của phòng & chính sách tóm tắt */}
+                    <div className="space-y-2 text-xs text-gray-700 pt-2 border-t border-gray-100">
+                      <div className="flex items-center gap-2">
+                        <Users className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                        <span>{guestCount} khách lưu trú ({roomCount} phòng · {nights} đêm)</span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <BedDouble className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                        <span>{roomInfo.bedInfo}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Utensils className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                        <span>{roomInfo.hasBreakfast ? 'Bao gồm bữa sáng miễn phí' : 'Không bao gồm bữa sáng'}</span>
+                      </div>
+
+                      {/* Hiển thị tóm tắt các dịch vụ đi kèm đã add */}
+                      {serviceItems.length > 0 && (
+                        <div className="p-2.5 bg-[#edfbf7] rounded-md border border-[#10b981]/30 space-y-1">
+                          <div className="font-bold text-xs text-[#10b981] flex items-center gap-1">
+                            <Sparkles className="w-3.5 h-3.5" />
+                            Đã thêm {serviceItems.length} dịch vụ tư vấn thêm:
+                          </div>
+                          <ul className="text-[11px] text-gray-700 space-y-0.5 list-disc list-inside pl-1">
+                            {serviceItems.map((s, idx) => (
+                              <li key={idx} className="truncate">
+                                {s.serviceName}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-2 text-emerald-700 font-medium">
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <span>
+                          {roomInfo.freeCancellation 
+                            ? 'Miễn phí hủy phòng trước 24 giờ nhận phòng'
+                            : 'Không hoàn tiền nếu hủy phòng'
+                          }
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
                 {/* ================= KHỐI MỚI: ĐỊA ĐIỂM & DỊCH VỤ QUANH ĐÂY (GIỐNG TRANG CHI TIẾT & ADD VÀO BOOKING) ================= */}
                 <div className="bg-white rounded-lg border border-gray-200 shadow-xs p-5 md:p-6">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100 mb-4">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-md bg-[#edfbf7] text-[var(--color-primary)] flex items-center justify-center shrink-0">
-                          <Compass className="w-4 h-4" />
-                        </div>
-                        <h2 className="text-lg font-bold text-[var(--color-ink-deep)]">Tư vấn dịch vụ thêm</h2>
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-md bg-[#edfbf7] text-[var(--color-primary)] flex items-center justify-center shrink-0">
+                        <Compass className="w-4 h-4" />
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Khám phá điểm đến quanh đây và nhấn <strong>"+ Thêm vào booking"</strong> để homestay tư vấn dịch vụ thêm và chuẩn bị chu đáo trước khi nhận phòng
-                      </p>
+                      <h2 className="text-lg font-bold text-[var(--color-ink-deep)]">Tư vấn dịch vụ thêm</h2>
                     </div>
 
                     {/* Radius slider */}
@@ -1054,12 +1300,12 @@ export default function BookingPage() {
                                 : 'bg-[var(--color-canvas)] border-gray-100 hover:border-gray-200 hover:bg-gray-50/80'
                             }`}
                           >
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex items-start gap-2.5 min-w-0">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-start gap-2.5 min-w-0 flex-1">
                                 <div className="w-8 h-8 rounded-md bg-white flex items-center justify-center border border-gray-200 shrink-0 mt-0.5">
                                   {getPlaceIcon(item.kind)}
                                 </div>
-                                <div className="min-w-0">
+                                <div className="min-w-0 flex-1">
                                   <span className="text-xs md:text-sm font-bold text-[var(--color-ink-deep)] block truncate">
                                     {item.name}
                                   </span>
@@ -1070,47 +1316,29 @@ export default function BookingPage() {
                                 </div>
                               </div>
 
-                              <span className="text-[11px] font-bold text-[var(--color-primary)] bg-white px-2 py-0.5 rounded-sm border border-gray-200 shrink-0 shadow-2xs">
-                                {item.displayDistance < 1 ? Math.round(item.displayDistance * 1000) + ' m' : item.displayDistance + ' km'}
-                              </span>
-                            </div>
+                              {/* Cột phải: Khoảng cách và Nút dấu cộng ngay bên dưới */}
+                              <div className="flex flex-col items-end gap-1.5 shrink-0">
+                                <span className="text-[11px] font-bold text-[var(--color-primary)] bg-white px-2 py-0.5 rounded-sm border border-gray-200 shadow-2xs">
+                                  {item.displayDistance < 1 ? Math.round(item.displayDistance * 1000) + ' m' : item.displayDistance + ' km'}
+                                </span>
 
-                            {/* Nút hành động: Xem trên map & Thêm vào booking */}
-                            <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-200/60 mt-1">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const targetLat = item.latitude ?? roomInfo.latitude ?? 21.5833;
-                                  const targetLng = item.longitude ?? roomInfo.longitude ?? 104.1833;
-                                  setSelectedMapTarget({ lat: targetLat, lng: targetLng, zoom: 16 });
-                                  setShowMapModal(true);
-                                }}
-                                className="text-[11px] font-semibold text-gray-500 hover:text-[var(--color-primary)] flex items-center gap-1 cursor-pointer transition-colors"
-                              >
-                                <MapIcon className="w-3 h-3" /> Xem vị trí
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => handleOpenAddService(item)}
-                                className={`px-2.5 py-1 rounded-xs text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
-                                  isAdded
-                                    ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-2xs'
-                                    : 'bg-[var(--color-primary)] text-white hover:bg-[#03725e]'
-                                }`}
-                              >
-                                {isAdded ? (
-                                  <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenAddService(item)}
+                                  className={`w-7 h-7 rounded-md flex items-center justify-center transition-all cursor-pointer ${
+                                    isAdded
+                                      ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs'
+                                      : 'bg-[var(--color-primary-50)] text-[var(--color-primary)] border border-[var(--color-primary-200)] hover:bg-[var(--color-primary)] hover:text-white shadow-2xs'
+                                  }`}
+                                  title={isAdded ? 'Đã thêm vào booking (bấm để chỉnh sửa/hủy)' : 'Thêm tư vấn dịch vụ này vào booking'}
+                                >
+                                  {isAdded ? (
                                     <Check className="w-3.5 h-3.5 stroke-[3]" />
-                                    Đã thêm (Bỏ chọn)
-                                  </>
-                                ) : (
-                                  <>
+                                  ) : (
                                     <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                                    + Thêm vào booking
-                                  </>
-                                )}
-                              </button>
+                                  )}
+                                </button>
+                              </div>
                             </div>
                           </div>
                         );
@@ -1293,74 +1521,47 @@ export default function BookingPage() {
 
                 {/* Khối 4: Chính sách Chỗ ở */}
                 <div className="bg-white rounded-lg border border-gray-200 shadow-xs p-5 md:p-6">
-                  <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-md bg-[#edfbf7] text-[var(--color-primary)] flex items-center justify-center shrink-0">
-                        <FileText className="w-4 h-4" />
-                      </div>
-                      <h2 className="text-lg font-bold text-[var(--color-ink-deep)]">Chính sách Chỗ ở</h2>
+                  <div className="flex items-center gap-3 pb-3 border-b border-gray-100 mb-3.5">
+                    <div className="w-8 h-8 rounded-md bg-[#edfbf7] text-[var(--color-primary)] flex items-center justify-center shrink-0">
+                      <FileText className="w-4 h-4" />
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setShowAllPolicies(!showAllPolicies)}
-                      className="text-xs font-bold text-[var(--color-primary)] hover:underline cursor-pointer"
-                    >
-                      {showAllPolicies ? 'Thu gọn' : 'Đọc tất cả'}
-                    </button>
+                    <div>
+                      <h2 className="text-base md:text-lg font-bold text-[var(--color-ink-deep)]">Chính sách Chỗ ở</h2>
+                      <p className="text-xs text-[var(--color-muted)]">Quy định nhận phòng & thanh toán</p>
+                    </div>
                   </div>
 
-                  <div className="space-y-3.5 text-xs text-gray-700 leading-relaxed">
-                    {/* Chính sách Thanh toán tại chỗ nghỉ */}
-                    <div className="p-3.5 bg-[#edfbf7] rounded-md border border-[var(--color-primary)]/20 text-[var(--color-ink-deep)]">
-                      <div className="flex items-center gap-2 font-bold text-sm text-[var(--color-primary)] mb-1.5">
-                        <Banknote className="w-4 h-4" />
-                        Chính sách Thanh toán (Pay at Property)
-                      </div>
-                      <ul className="space-y-1.5 text-xs text-[var(--color-ink)]">
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                          <span><strong>Không cần thanh toán trước:</strong> Quý khách không cần trả tiền hay nhập thông tin thẻ hôm nay.</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                          <span><strong>Thanh toán trực tiếp:</strong> Tiền phòng sẽ được thanh toán cho chủ chỗ nghỉ khi làm thủ tục nhận phòng.</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                          <span><strong>Phương thức linh hoạt:</strong> Tiền mặt hoặc quét mã QR chuyển khoản ngân hàng tại quầy.</span>
-                        </li>
-                      </ul>
-                    </div>
-
-                    {/* Chính sách Hủy phòng nổi bật */}
-                    <div className="p-3.5 bg-emerald-50/80 rounded-md border border-emerald-300 text-[var(--color-ink-deep)]">
-                      <div className="flex items-center gap-2 font-bold text-sm text-emerald-800 mb-1.5">
-                        <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                        Chính sách Hủy phòng (Miễn phí hủy linh hoạt)
-                      </div>
-                      <p className="text-xs text-emerald-900 leading-relaxed font-medium">
-                        ✓ <strong>Miễn phí hủy phòng hoàn toàn trước 24 giờ</strong> so với thời gian nhận phòng ({roomInfo.checkInDateStr}).
-                      </p>
-                      <p className="text-[11px] text-emerald-700 mt-1">
-                        Quý khách có thể chủ động hủy hoặc chỉnh sửa ngày lưu trú trực tiếp trên hệ thống mà không phải chịu bất kỳ khoản phí phạt nào trước thời hạn trên.
-                      </p>
-                    </div>
-
-                    <div className="flex items-start gap-2 pt-1">
-                      <FileText className="w-3.5 h-3.5 text-[var(--color-primary)] shrink-0 mt-0.5" />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                    {/* Hủy phòng */}
+                    <div className="p-3 bg-emerald-50/70 rounded-md border border-emerald-200 flex items-start gap-2.5">
+                      <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                       <div>
-                        <span className="font-bold text-gray-800">Quy định nhận/trả phòng & lưu trú:</span>
-                        <ul className="list-disc list-inside mt-1 space-y-1 text-[var(--color-muted)]">
-                          <li>Nhận phòng từ 14:00, trả phòng trước 12:00 ngày hôm sau.</li>
-                          <li>Khách vui lòng xuất trình CMND/CCCD hoặc Hộ chiếu khi làm thủ tục nhận phòng.</li>
-                          {showAllPolicies && (
-                            <>
-                              <li>Không cho phép mang thú cưng vào khuôn viên phòng nghỉ.</li>
-                              <li>Không tổ chức tiệc tùng, sự kiện gây ồn sau 22:00.</li>
-                            </>
-                          )}
-                        </ul>
+                        <div className="font-bold text-emerald-900">Hủy phòng linh hoạt</div>
+                        <div className="text-emerald-800 text-[11px] mt-0.5">
+                          Miễn phí hủy trước 24 giờ nhận phòng ({roomInfo.checkInDateStr}).
+                        </div>
                       </div>
+                    </div>
+
+                    {/* Thanh toán */}
+                    <div className="p-3 bg-[#edfbf7] rounded-md border border-[var(--color-primary)]/20 flex items-start gap-2.5">
+                      <Banknote className="w-4 h-4 text-[var(--color-primary)] shrink-0 mt-0.5" />
+                      <div>
+                        <div className="font-bold text-[var(--color-ink-deep)]">Thanh toán khi nhận phòng</div>
+                        <div className="text-[var(--color-ink)] text-[11px] mt-0.5">
+                          Không cần trả trước. Thanh toán tiền mặt hoặc QR tại chỗ nghỉ.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Giờ giấc và giấy tờ */}
+                  <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-600">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-gray-800">Nhận phòng:</span> từ 14:00 · <span className="font-bold text-gray-800">Trả phòng:</span> trước 12:00
+                    </div>
+                    <div className="text-gray-500 text-[11px]">
+                      Vui lòng xuất trình CCCD/Hộ chiếu khi làm thủ tục
                     </div>
                   </div>
                 </div>
@@ -1370,148 +1571,6 @@ export default function BookingPage() {
               {/* ================= CỘT PHẢI: STICKY SIDEBAR TÓM TẮT & GIÁ ================= */}
               <div className="lg:col-span-5 space-y-5 lg:sticky lg:top-6">
 
-                {/* Thẻ tóm tắt thông tin phòng */}
-                <div className="bg-white rounded-lg border border-gray-200 shadow-xs overflow-hidden">
-                  <div className="p-5">
-                    {/* Tên phòng & số lượng còn lại */}
-                    <div className="mb-3">
-                      <h3 className="text-base font-bold text-[var(--color-ink-deep)] leading-snug">
-                        {roomInfo.roomName}
-                      </h3>
-                      <div className="text-xs font-bold text-red-600 mt-1">
-                        Chỉ còn {roomInfo.totalRoomsLeft} phòng
-                      </div>
-                    </div>
-
-                    {/* Hộp lịch Nhận - Trả phòng */}
-                    <div className="bg-[#f8faf9] border border-gray-200/80 rounded-md p-3 mb-3 flex items-center justify-between text-xs">
-                      <div>
-                        <div className="text-gray-500 font-medium">Nhận phòng</div>
-                        <div className="font-bold text-gray-800 mt-0.5">{roomInfo.checkInDateStr}</div>
-                        <div className="text-gray-400 text-[11px]">{roomInfo.checkInTime}</div>
-                      </div>
-
-                      <div className="text-center px-2">
-                        <span className="text-[11px] font-semibold text-gray-500 bg-white px-2 py-0.5 rounded-sm border border-gray-200 shadow-2xs inline-flex items-center gap-1">
-                          {nights} đêm <ArrowRight className="w-2.5 h-2.5" />
-                        </span>
-                      </div>
-
-                      <div className="text-right">
-                        <div className="text-gray-500 font-medium">Trả phòng</div>
-                        <div className="font-bold text-gray-800 mt-0.5">{roomInfo.checkOutDateStr}</div>
-                        <div className="text-gray-400 text-[11px]">{roomInfo.checkOutTime}</div>
-                      </div>
-                    </div>
-
-                    {/* Bộ chọn số lượng phòng & số khách */}
-                    <div className="grid grid-cols-2 gap-2 p-2.5 bg-gray-50 rounded-md border border-gray-200/80 mb-3 text-xs">
-                      <div>
-                        <div className="text-gray-600 font-medium mb-1 flex items-center justify-between">
-                          <span>Số phòng:</span>
-                          <span className="text-[11px] text-gray-400">(còn {roomInfo.totalRoomsLeft})</span>
-                        </div>
-                        <div className="flex items-center justify-between bg-white px-2 py-1 rounded-md border border-gray-200">
-                          <button
-                            type="button"
-                            disabled={roomCount <= 1}
-                            onClick={() => setRoomCount((prev) => Math.max(1, prev - 1))}
-                            className="w-5 h-5 flex items-center justify-center rounded-sm bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed font-bold cursor-pointer text-xs"
-                          >
-                            -
-                          </button>
-                          <span className="font-bold text-gray-900">{roomCount}</span>
-                          <button
-                            type="button"
-                            disabled={roomCount >= roomInfo.totalRoomsLeft}
-                            onClick={() => setRoomCount((prev) => Math.min(roomInfo.totalRoomsLeft, prev + 1))}
-                            className="w-5 h-5 flex items-center justify-center rounded-sm bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed font-bold cursor-pointer text-xs"
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="text-gray-600 font-medium mb-1 flex items-center justify-between">
-                          <span>Số khách:</span>
-                          <span className="text-[11px] text-gray-400">({roomCount * roomInfo.maxOccupancy} max)</span>
-                        </div>
-                        <div className="flex items-center justify-between bg-white px-2 py-1 rounded-md border border-gray-200">
-                          <button
-                            type="button"
-                            disabled={guestCount <= 1}
-                            onClick={() => setGuestCount((prev) => Math.max(1, prev - 1))}
-                            className="w-5 h-5 flex items-center justify-center rounded-sm bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed font-bold cursor-pointer text-xs"
-                          >
-                            -
-                          </button>
-                          <span className="font-bold text-gray-900">{guestCount}</span>
-                          <button
-                            type="button"
-                            disabled={guestCount >= roomCount * roomInfo.maxOccupancy * 2}
-                            onClick={() => setGuestCount((prev) => prev + 1)}
-                            className="w-5 h-5 flex items-center justify-center rounded-sm bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed font-bold cursor-pointer text-xs"
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Tiện ích cơ bản của phòng */}
-                    <div className="space-y-2 text-xs text-gray-700 pt-1 border-t border-gray-100">
-                      <div className="flex items-center gap-2">
-                        <Users className="w-3.5 h-3.5 text-gray-500 shrink-0" />
-                        <span>{guestCount} khách lưu trú ({roomCount} phòng)</span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <BedDouble className="w-3.5 h-3.5 text-gray-500 shrink-0" />
-                        <span>{roomInfo.bedInfo}</span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <Utensils className="w-3.5 h-3.5 text-gray-500 shrink-0" />
-                        <span>{roomInfo.hasBreakfast ? 'Bao gồm bữa sáng miễn phí' : 'Không bao gồm bữa sáng'}</span>
-                      </div>
-
-                      {/* Hiển thị tóm tắt các dịch vụ đi kèm đã add */}
-                      {serviceItems.length > 0 && (
-                        <div className="p-2.5 bg-[#edfbf7] rounded-md border border-[#10b981]/30 space-y-1">
-                          <div className="font-bold text-xs text-[#10b981] flex items-center gap-1">
-                            <Sparkles className="w-3.5 h-3.5" />
-                            Đã thêm {serviceItems.length} dịch vụ tư vấn thêm:
-                          </div>
-                          <ul className="text-[11px] text-gray-700 space-y-0.5 list-disc list-inside pl-1">
-                            {serviceItems.map((s, idx) => (
-                              <li key={idx} className="truncate">
-                                {s.serviceName}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      <div className="flex items-center gap-2 text-emerald-700 font-medium">
-                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                        <span>
-                          {roomInfo.freeCancellation 
-                            ? 'Miễn phí hủy phòng trước 24 giờ nhận phòng'
-                            : 'Không hoàn tiền nếu hủy phòng'
-                          }
-                        </span>
-                        <Info className="w-3 h-3 text-gray-400 shrink-0 cursor-pointer" />
-                      </div>
-
-                      <div className="flex items-center gap-2 text-emerald-700 font-medium">
-                        <Calendar className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                        <span>Có thể đổi lịch</span>
-                        <Info className="w-3 h-3 text-gray-400 shrink-0 cursor-pointer" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
 
                 {/* Thẻ Chi tiết giá & Nút Xác nhận đặt phòng */}
                 <div className="bg-white rounded-lg border border-gray-200 shadow-xs p-5">
@@ -1556,15 +1615,6 @@ export default function BookingPage() {
                           Đã bao gồm (0 VND)
                         </span>
                       </div>
-
-                      {discountAmount > 0 && (
-                        <div className="flex justify-between items-center text-emerald-700">
-                          <span className="font-medium">Ưu đãi tiết kiệm trực tiếp</span>
-                          <span className="font-bold">
-                            -{new Intl.NumberFormat('vi-VN').format(discountAmount)} VND
-                          </span>
-                        </div>
-                      )}
 
                       {serviceItems.length > 0 && (
                         <div className="flex justify-between items-center text-[#10b981] pt-1 border-t border-dashed border-gray-200">
@@ -1621,8 +1671,12 @@ export default function BookingPage() {
                   )}
                   <Button
                     onClick={handleSubmitBooking}
-                    disabled={isSubmitting}
-                    className="w-full py-4 bg-[var(--color-primary)] hover:bg-[#03725e] disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold rounded-md shadow-xs transition-colors cursor-pointer flex items-center justify-center gap-2"
+                    disabled={isSubmitting || !validation.isValid}
+                    className={`w-full py-4 font-bold rounded-md shadow-xs transition-colors flex items-center justify-center gap-2 ${
+                      !validation.isValid
+                        ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
+                        : 'bg-[var(--color-primary)] hover:bg-[#03725e] text-white cursor-pointer'
+                    }`}
                   >
                     {isSubmitting ? (
                       <>

@@ -4,6 +4,8 @@ import { fetchRestaurants, RestaurantDto, RestaurantFilterParams } from '@/servi
 import { PriceSlider } from '@/components/ui/price-slider';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { CardSkeleton } from '@/components/ui/CardSkeleton';
+import { openGoogleMapsDirections } from '@/lib/mapUtils';
 import {
   MapPin,
   Heart,
@@ -591,9 +593,7 @@ export default function RestaurantListPage() {
 
             {/* List */}
             {loading ? (
-              <div className="flex items-center justify-center p-12 text-[var(--color-primary)] font-bold">
-                Đang tải danh sách quán ăn...
-              </div>
+              <CardSkeleton count={6} layout="grid-2" imageHeight="h-[210px]" />
             ) : (
               <div>
                 {paginatedRestaurants.length === 0 ? (
@@ -601,7 +601,7 @@ export default function RestaurantListPage() {
                     <p className="text-gray-500">Không tìm thấy quán ăn nào phù hợp với bộ lọc.</p>
                     <button
                       onClick={handleClearFilters}
-                      className="mt-3 text-sm font-bold text-[var(--color-primary)] hover:underline inline-flex items-center gap-1"
+                      className="mt-3 text-sm font-bold text-[var(--color-primary)] hover:underline inline-flex items-center gap-1 cursor-pointer"
                     >
                       <RotateCcw className="w-3.5 h-3.5" /> Bỏ bộ lọc để xem tất cả
                     </button>
@@ -609,13 +609,6 @@ export default function RestaurantListPage() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     {paginatedRestaurants.map((res) => {
-                      const googleMapsQuery = encodeURIComponent(
-                        (res.address || res.district || '') + ' ' + res.name
-                      );
-                      const googleMapsUrl = res.latitude && res.longitude
-                        ? `https://www.google.com/maps/search/?api=1&query=${res.latitude},${res.longitude}`
-                        : `https://www.google.com/maps/search/?api=1&query=${googleMapsQuery}`;
-
                       return (
                         <div
                           key={res.id}
@@ -707,17 +700,16 @@ export default function RestaurantListPage() {
 
                               {/* Contact items badge row */}
                               <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-gray-100">
-                                {/* Luôn luôn hiện nút Google Maps trực tiếp */}
-                                <a
-                                  href={googleMapsUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 text-[11px] font-bold border border-blue-200 transition-colors"
-                                  title="Mở chỉ đường Google Maps"
+                                {/* Luôn luôn hiện nút Chỉ đường Google Maps từ vị trí người dùng */}
+                                <button
+                                  type="button"
+                                  onClick={() => openGoogleMapsDirections(res.latitude, res.longitude, `${res.address || res.district || ''} ${res.name}`)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 text-[11px] font-bold border border-blue-200 transition-colors cursor-pointer"
+                                  title="Chỉ đường từ vị trí của bạn"
                                 >
                                   <Map className="w-3 h-3 text-blue-600" />
-                                  Google Maps
-                                </a>
+                                  Chỉ đường
+                                </button>
 
                                 {/* Hiển thị các kênh liên hệ thật (SĐT, FB, TikTok, Zalo...) */}
                                 {res.contacts && res.contacts.length > 0 ? (

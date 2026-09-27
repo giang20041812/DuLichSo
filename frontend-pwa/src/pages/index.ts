@@ -1,11 +1,11 @@
 // Home
 export { default as HomePage } from './home/HomePage';
 
-// Homestay
-export { default as HomestayListPage } from './homestay/HomestayListPage';
-export { default as HomestayDetailPage } from './homestay/HomestayDetailPage';
-export { default as RoomAvailabilityPage } from './homestay/RoomAvailabilityPage';
-export { default as FullScreenMapPage } from './homestay/FullScreenMapPage';
+// Customer - Homestay
+export { default as HomestayListPage } from './customer/homestay/HomestayListPage';
+export { default as HomestayDetailPage } from './customer/homestay/HomestayDetailPage';
+export { default as RoomAvailabilityPage } from './customer/homestay/RoomAvailabilityPage';
+export { default as FullScreenMapPage } from './customer/homestay/FullScreenMapPage';
 
 // Customer - Booking
 export { default as BookingPage } from './customer/booking/BookingPage';

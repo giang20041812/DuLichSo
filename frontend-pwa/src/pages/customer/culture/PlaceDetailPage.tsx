@@ -31,6 +31,7 @@ import {
   ExternalLink,
   MessageCircle
 } from 'lucide-react';
+import { openGoogleMapsDirections } from '@/lib/mapUtils';
 
 
 
@@ -498,14 +499,15 @@ export default function PlaceDetailPage() {
                 </p>
               </div>
 
-              <a
-                href={googleMapsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-bold rounded-md border border-blue-200 hover:bg-blue-100 transition-colors shrink-0"
+              <button
+                type="button"
+                onClick={() => openGoogleMapsDirections(lat, lng, addressText || place.name)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-bold rounded-md border border-blue-200 hover:bg-blue-100 transition-colors shrink-0 cursor-pointer"
+                title="Chỉ đường từ vị trí của bạn"
               >
+                <MapIcon className="w-3.5 h-3.5 text-blue-600" />
                 <span>Chỉ đường trên Google Maps</span>
-              </a>
+              </button>
             </div>
 
             {/* Address Info */}

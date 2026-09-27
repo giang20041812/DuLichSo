@@ -3,6 +3,9 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { fetchDestinations, DestinationDto, DestinationFilterParams } from '@/services/destinationService';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { CardSkeleton } from '@/components/ui/CardSkeleton';
+import { SakuraBlossomIcon } from '@/components/ui/SakuraBlossomIcon';
+import { openGoogleMapsDirections } from '@/lib/mapUtils';
 import {
   MapPin,
   Heart,
@@ -443,132 +446,152 @@ export default function DestinationListPage() {
           </aside>
 
           <div className="flex-1 flex flex-col gap-4 relative min-h-[350px]">
-            {loading && (
-              <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-20 flex items-start justify-center pt-24 rounded-lg">
-                <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-md shadow-md border border-gray-200 text-[var(--color-primary)] font-bold text-sm">
-                  <div className="w-4 h-4 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin"></div>
-                  <span>Đang cập nhật danh lam thắng cảnh...</span>
-                </div>
+            {loading ? (
+              <CardSkeleton count={ITEMS_PER_PAGE} layout="grid-2" imageHeight="h-52" />
+            ) : paginatedDestinations.length === 0 ? (
+              <div className="bg-white p-8 text-center rounded-xl border border-gray-200">
+                <p className="text-gray-500">Không tìm thấy địa điểm nào phù hợp.</p>
+                <button
+                  onClick={handleClearFilters}
+                  className="mt-3 text-sm font-bold text-[var(--color-primary)] hover:underline inline-flex items-center gap-1 cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" /> Bỏ bộ lọc để xem tất cả
+                </button>
               </div>
-            )}
-            <div>
-              {paginatedDestinations.length === 0 ? (
-                <div className="bg-white p-8 text-center rounded-xl border border-gray-200">
-                  <p className="text-gray-500">Không tìm thấy địa điểm nào phù hợp.</p>
-                  <button
-                    onClick={handleClearFilters}
-                    className="mt-3 text-sm font-bold text-[var(--color-primary)] hover:underline inline-flex items-center gap-1"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" /> Bỏ bộ lọc để xem tất cả
-                  </button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {paginatedDestinations.map((dest) => {
-                    const googleMapsQuery = encodeURIComponent(
-                      (dest.address || dest.district || '') + ' ' + dest.name
-                    );
-                    const googleMapsUrl = dest.latitude && dest.longitude
-                      ? `https://www.google.com/maps/search/?api=1&query=${dest.latitude},${dest.longitude}`
-                      : `https://www.google.com/maps/search/?api=1&query=${googleMapsQuery}`;
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {paginatedDestinations.map((dest) => {
+                  const formatDate = (dStr?: string) => {
+                    if (!dStr) return '';
+                    const parts = dStr.split('-');
+                    if (parts.length === 3) return `${parts[2]}/${parts[1]}`;
+                    return dStr;
+                  };
 
-                    return (
-                      <div
-                        key={dest.id}
-                        className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-xs hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 flex flex-col justify-between"
-                      >
-                        <div>
-                          <div className="relative w-full h-[220px] overflow-hidden bg-gray-100">
-                            <Link to={`/destinations/${dest.id}`} className="block w-full h-full">
-                              <img
-                                src={dest.coverImageUrl}
-                                alt={dest.name}
-                                className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                              />
-                            </Link>
+                  const isSuitable = Boolean(dest.isSuitableByTime);
+                  const startFormatted = formatDate(dest.suitableDateStart);
+                  const endFormatted = formatDate(dest.suitableDateEnd);
 
-                            <button
-                              className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-white/90 backdrop-blur-xs flex items-center justify-center shadow-xs text-gray-500 hover:text-red-500 transition-colors"
-                              aria-label="Lưu điểm đến"
+                  return (
+                    <div
+                      key={dest.id}
+                      className={`bg-white border rounded-lg overflow-hidden shadow-xs hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 flex flex-col justify-between ${
+                        isSuitable ? 'border-teal-500/50 ring-1 ring-teal-500/20' : 'border-gray-200'
+                      }`}
+                    >
+                      <div>
+                        <div className="relative w-full h-[220px] overflow-hidden bg-gray-100">
+                          <Link to={`/destinations/${dest.id}`} className="block w-full h-full">
+                            <img
+                              src={dest.coverImageUrl}
+                              alt={dest.name}
+                              className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                            />
+                          </Link>
+
+                          <button
+                            className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-white/90 backdrop-blur-xs flex items-center justify-center shadow-xs text-gray-500 hover:text-red-500 transition-colors"
+                            aria-label="Lưu điểm đến"
+                          >
+                            <Heart className="w-4 h-4" />
+                          </button>
+
+                          {/* Huy hiệu mùa vụ với icon hoa anh đào tả thực như trang homepage */}
+                          <div className="absolute top-2.5 left-2.5 z-10 flex flex-col gap-1.5 items-start">
+                            <div
+                              className={`px-2.5 py-1.5 rounded-lg shadow-sm font-bold text-xs flex items-center gap-1.5 backdrop-blur-md border transition-transform ${
+                                isSuitable
+                                  ? 'bg-gradient-to-r from-[#fef08a] via-[#fde047] to-[#facc15] text-[#713f12] border-[#fde047] shadow-[0_2px_8px_rgba(234,179,8,0.25)]'
+                                  : 'bg-[#0f2d3c]/95 text-white border-white/20'
+                              }`}
                             >
-                              <Heart className="w-4 h-4" />
-                            </button>
-
-                            <div className="absolute top-2.5 left-2.5">
-                              <Badge className="bg-[var(--color-primary)] text-white text-xs sm:text-[13px] font-extrabold rounded-md px-2.5 py-1 shadow-xs tracking-wide">
-                                {dest.tagBadge || dest.scenicType}
-                              </Badge>
+                              <SakuraBlossomIcon className="w-4 h-4 shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.15)]" />
+                              <span className={`font-extrabold text-xs sm:text-[13px] tracking-tight ${isSuitable ? 'text-[#713f12]' : 'text-white'}`}>
+                                {startFormatted && endFormatted
+                                  ? `Mùa đẹp: ${startFormatted} – ${endFormatted}`
+                                  : endFormatted
+                                  ? `Mùa đẹp đến: ${endFormatted}`
+                                  : isSuitable
+                                  ? 'Mùa đẹp trong năm'
+                                  : 'Quanh năm'}
+                              </span>
                             </div>
-
-                            <div className="absolute bottom-2.5 left-2.5 bg-black/75 backdrop-blur-xs text-white px-2.5 py-1 rounded-md text-xs sm:text-sm font-extrabold flex items-center gap-1.5 shadow-sm">
-                              <Star className="w-4 h-4 text-[#f59e0b] fill-[#f59e0b]" />
-                              <span>{dest.ratingScore.toString().replace('.', ',')}</span>
-                              <span className="text-gray-300 text-xs font-medium">({dest.reviewCount} đánh giá)</span>
-                            </div>
+                            {dest.tagBadge && (
+                              <span className="bg-[#10b981] text-white text-xs sm:text-[13px] font-extrabold px-2.5 py-1 rounded-md tracking-tight shadow-xs border border-white/20">
+                                {dest.tagBadge}
+                              </span>
+                            )}
                           </div>
 
-                          <div className="p-4 flex flex-col gap-2.5">
-                            <div>
-                              <Link to={`/destinations/${dest.id}`}>
-                                <h3 className="text-lg md:text-xl font-extrabold text-[var(--color-ink-deep)] hover:text-[var(--color-primary)] transition-colors leading-snug line-clamp-1">
-                                  {dest.name}
-                                </h3>
-                              </Link>
-
-                              <p className="text-sm font-semibold text-[var(--color-muted)] flex items-center gap-1.5 mt-1 line-clamp-1">
-                                <MapPin className="w-4 h-4 shrink-0 text-[var(--color-primary)]" />
-                                <span>{dest.address || dest.district || 'Mù Cang Chải, Yên Bái'}</span>
-                              </p>
-                            </div>
-
-                            {dest.description && (
-                              <p className="text-sm font-medium text-slate-700 line-clamp-4 leading-relaxed">
-                                {dest.description}
-                              </p>
-                            )}
-
-                            <div className="flex items-center gap-1.5 text-sm font-bold text-[var(--color-primary)]">
-                              <Compass className="w-4 h-4" />
-                              <span>{dest.scenicType}</span>
-                            </div>
+                          <div className="absolute bottom-2.5 left-2.5 bg-black/75 backdrop-blur-xs text-white px-2.5 py-1 rounded-md text-xs sm:text-sm font-extrabold flex items-center gap-1.5 shadow-sm">
+                            <Star className="w-4 h-4 text-[#f59e0b] fill-[#f59e0b]" />
+                            <span>{dest.ratingScore.toString().replace('.', ',')}</span>
+                            <span className="text-gray-300 text-xs font-medium">({dest.reviewCount} đánh giá)</span>
                           </div>
                         </div>
 
-                        <div className="p-4 pt-2 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                        <div className="p-4 flex flex-col gap-2.5">
                           <div>
-                            <span className="text-xs font-semibold text-[var(--color-muted)] block leading-tight">Vé tham quan</span>
-                            <div className="text-xl font-black text-[var(--color-coral)] leading-tight">
-                              {dest.ticketPrice === 0 ? 'Miễn phí' : `${dest.ticketPrice.toLocaleString('vi-VN')}đ`}
-                              {dest.ticketPrice > 0 && <span className="text-xs text-gray-500 font-semibold"> /lượt</span>}
-                            </div>
+                            <Link to={`/destinations/${dest.id}`}>
+                              <h3 className="text-lg md:text-xl font-extrabold text-[var(--color-ink-deep)] hover:text-[var(--color-primary)] transition-colors leading-snug line-clamp-1">
+                                {dest.name}
+                              </h3>
+                            </Link>
+
+                            <p className="text-sm font-semibold text-[var(--color-muted)] flex items-center gap-1.5 mt-1 line-clamp-1">
+                              <MapPin className="w-4 h-4 shrink-0 text-[var(--color-primary)]" />
+                              <span>{dest.address || dest.district || 'Mù Cang Chải, Yên Bái'}</span>
+                            </p>
                           </div>
 
-                          <div className="flex items-center gap-2">
-                            <a
-                              href={googleMapsUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold border border-blue-200 transition-colors"
-                            >
-                              <Map className="w-3.5 h-3.5 text-blue-600" />
-                              Chỉ đường
-                            </a>
+                          {dest.description && (
+                            <p className="text-sm font-medium text-slate-700 line-clamp-4 leading-relaxed">
+                              {dest.description}
+                            </p>
+                          )}
 
-                            <Link to={`/destinations/${dest.id}`}>
-                              <Button
-                                variant="primary"
-                                className="rounded-md font-bold h-9 px-3.5 text-xs bg-[var(--color-primary)] hover:bg-[var(--color-primary-600)]"
-                              >
-                                Xem chi tiết
-                              </Button>
-                            </Link>
+                          <div className="flex items-center gap-1.5 text-sm font-bold text-[var(--color-primary)]">
+                            <Compass className="w-4 h-4" />
+                            <span>{dest.scenicType}</span>
                           </div>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
+
+                      <div className="p-4 pt-2 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                        <div>
+                          <span className="text-xs font-semibold text-[var(--color-muted)] block leading-tight">Vé tham quan</span>
+                          <div className="text-xl font-black text-[var(--color-coral)] leading-tight">
+                            {dest.ticketPrice === 0 ? 'Miễn phí' : `${dest.ticketPrice.toLocaleString('vi-VN')}đ`}
+                            {dest.ticketPrice > 0 && <span className="text-xs text-gray-500 font-semibold"> /lượt</span>}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openGoogleMapsDirections(dest.latitude, dest.longitude, `${dest.address || dest.district || ''} ${dest.name}`)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold border border-blue-200 transition-colors cursor-pointer"
+                            title="Chỉ đường từ vị trí của bạn"
+                          >
+                            <Map className="w-3.5 h-3.5 text-blue-600" />
+                            Chỉ đường
+                          </button>
+
+                          <Link to={`/destinations/${dest.id}`}>
+                            <Button
+                              variant="primary"
+                              className="rounded-md font-bold h-9 px-3.5 text-xs bg-[var(--color-primary)] hover:bg-[var(--color-primary-600)] cursor-pointer"
+                            >
+                              Xem chi tiết
+                            </Button>
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
               {totalPages > 1 && (
                 <div className="flex justify-center items-center gap-2 mt-6 mb-4">
@@ -613,7 +636,6 @@ export default function DestinationListPage() {
                   </button>
                 </div>
               )}
-            </div>
           </div>
         </div>
       </div>

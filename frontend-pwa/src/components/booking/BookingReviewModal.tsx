@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Star, X, CheckCircle2, AlertCircle, MessageSquare, Image as ImageIcon, Plus, Trash2 } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Star, X, CheckCircle2, AlertCircle, MessageSquare, Image as ImageIcon, Plus, Trash2, Upload, Loader2 } from 'lucide-react';
 import { submitBookingReview, updateBookingReview } from '@/services/bookingService';
+import { uploadReviewImageToCloudinary } from '@/services/cloudinaryService';
 import type { ReviewDto } from '@/types/review';
 
 interface BookingReviewModalProps {
@@ -29,9 +30,49 @@ export default function BookingReviewModal({
   const [images, setImages] = useState<string[]>(existingReview?.images || []);
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingFiles, setIsUploadingFiles] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    if (images.length + files.length > 8) {
+      setErrorMsg('Tối đa 8 hình ảnh cho một đánh giá.');
+      return;
+    }
+
+    setIsUploadingFiles(true);
+    setErrorMsg(null);
+
+    const uploadedUrls: string[] = [];
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (!file) continue;
+        if (!file.type.startsWith('image/')) {
+          throw new Error(`File ${file.name} không phải là hình ảnh.`);
+        }
+        if (file.size > 10 * 1024 * 1024) {
+          throw new Error(`Ảnh ${file.name} vượt quá dung lượng tối đa 10MB.`);
+        }
+        const secureUrl = await uploadReviewImageToCloudinary(file);
+        uploadedUrls.push(secureUrl);
+      }
+      setImages((prev) => [...prev, ...uploadedUrls]);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Tải ảnh lên Cloudinary thất bại.';
+      setErrorMsg(msg);
+    } finally {
+      setIsUploadingFiles(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   const handleAddImage = () => {
     const url = imageUrlInput.trim();
@@ -203,29 +244,62 @@ export default function BookingReviewModal({
               <span className="text-[11px] text-gray-400">Không bắt buộc</span>
             </div>
 
-            {/* Input URL ảnh */}
-            <div className="flex gap-2">
-              <input
-                type="url"
-                value={imageUrlInput}
-                onChange={(e) => setImageUrlInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleAddImage();
-                  }
-                }}
-                placeholder="Dán link ảnh (https://...)"
-                className="flex-1 px-3 py-1.5 text-xs rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] placeholder:text-gray-400"
-              />
-              <button
-                type="button"
-                onClick={handleAddImage}
-                className="px-3 py-1.5 text-xs font-semibold bg-[var(--color-primary-50)] text-[var(--color-primary)] border border-[var(--color-primary-200)] rounded-md hover:bg-[var(--color-primary-100)] flex items-center gap-1 cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Thêm ảnh
-              </button>
+            {/* Options chọn: Upload file hoặc Dán link ảnh */}
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  multiple
+                  accept="image/png,image/jpeg,image/webp,image/jpg"
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  disabled={isUploadingFiles || images.length >= 8}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex-1 px-3 py-2 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-300 rounded-md hover:bg-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-2xs"
+                >
+                  {isUploadingFiles ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Đang tải ảnh lên Cloudinary...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-3.5 h-3.5" />
+                      Tải ảnh từ máy / điện thoại
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Dán URL dự phòng */}
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  value={imageUrlInput}
+                  onChange={(e) => setImageUrlInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddImage();
+                    }
+                  }}
+                  placeholder="Hoặc dán liên kết URL ảnh (https://...)"
+                  className="flex-1 px-3 py-1.5 text-xs rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] placeholder:text-gray-400"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddImage}
+                  disabled={images.length >= 8}
+                  className="px-3 py-1.5 text-xs font-semibold bg-[var(--color-primary-50)] text-[var(--color-primary)] border border-[var(--color-primary-200)] rounded-md hover:bg-[var(--color-primary-100)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Thêm URL
+                </button>
+              </div>
             </div>
 
             {/* Danh sách ảnh đã thêm */}

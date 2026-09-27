@@ -26,13 +26,9 @@ public class CloudinaryService implements MediaStorageProvider {
 
     @Override
     public Map<String, Object> getUploadConfig() {
-        // In a real implementation, you would use Cloudinary's Java SDK to generate the signature
-        // e.g. cloudinary.utils.apiSignRequest(params, apiSecret)
         long timestamp = Instant.now().getEpochSecond();
-        
-        // Mocking signature for now as SDK is not installed.
-        // The real project would either install cloudinary SDK or implement SHA-1 HMAC manually.
-        String signature = "mock_signature_for_timestamp_" + timestamp;
+        String toSign = "timestamp=" + timestamp + apiSecret;
+        String signature = sha1Hex(toSign);
 
         Map<String, Object> config = new HashMap<>();
         config.put("provider", getProviderType().name());
@@ -42,5 +38,19 @@ public class CloudinaryService implements MediaStorageProvider {
         config.put("signature", signature);
         
         return config;
+    }
+
+    private String sha1Hex(String input) {
+        try {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-1");
+            byte[] digest = md.digest(input.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : digest) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-1 algorithm not available", e);
+        }
     }
 }

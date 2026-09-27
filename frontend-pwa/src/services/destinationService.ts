@@ -20,6 +20,9 @@ export interface DestinationDto {
   scenicType: string;
   amenities: string[];
   contacts?: PlaceContactItem[];
+  isSuitableByTime?: boolean;
+  suitableDateStart?: string;
+  suitableDateEnd?: string;
 }
 
 export interface DestinationFilterParams {
@@ -58,6 +61,9 @@ export const fetchDestinations = async (params?: DestinationFilterParams): Promi
       longitude?: number | null;
       address?: string | null;
       contacts?: PlaceContactItem[];
+      isSuitableByTime?: boolean | null;
+      suitableDateStart?: string | null;
+      suitableDateEnd?: string | null;
     }> = data.content || [];
 
     const mapped: DestinationDto[] = content.map((item) => {
@@ -97,6 +103,9 @@ export const fetchDestinations = async (params?: DestinationFilterParams): Promi
         scenicType: scenic,
         amenities: [],
         contacts: item.contacts || [],
+        isSuitableByTime: Boolean(item.isSuitableByTime),
+        suitableDateStart: item.suitableDateStart || undefined,
+        suitableDateEnd: item.suitableDateEnd || undefined,
       };
     });
 

@@ -1,0 +1,1 @@
+const fs=require('fs');const code=fs.readFileSync('src/pages/customer/booking/BookingPage.tsx','utf-8');const lines=code.split('\n');let depth=0;for(let i=865;i<1738;i++){const open=(lines[i].match(/<div(\\s|>)/g)||[]).length;const close=(lines[i].match(/<\/div>/g)||[]).length;depth+=open-close;console.log(i+1, depth, lines[i].trim());}
