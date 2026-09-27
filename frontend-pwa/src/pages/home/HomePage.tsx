@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react"
 import { Link } from "react-router-dom"
 import SearchHub from "@/components/layout/SearchHub"
 import HeroPwaDownloadBanner from "@/components/pwa/HeroPwaDownloadBanner"
-import { MapPin, Star, Handshake, Tag, Headphones, ShieldCheck, Mountain, Tent, Calendar, Check } from "lucide-react"
+import { MapPin, Star, Handshake, Tag, Headphones, ShieldCheck, Mountain, Tent } from "lucide-react"
 import { fetchHomeData } from "@/services/homeService"
 import { HomeResponseDto, PlaceSummaryDto } from "@/types/home"
 import { getCurrentCustomer, googleLogin, saveTravelerSession } from "@/services/authService"
@@ -29,33 +29,77 @@ const getHomestayImage = (hs: PlaceSummaryDto): string => {
 
 
 
+const SakuraBlossomIcon = ({ className = "w-4 h-4 shrink-0" }: { className?: string }) => (
+  <svg
+    viewBox="0 0 100 100"
+    className={className}
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <defs>
+      <linearGradient id="sakuraPetalGrad" x1="50%" y1="100%" x2="50%" y2="0%">
+        <stop offset="0%" stopColor="#fff5f7" />
+        <stop offset="40%" stopColor="#fce7f3" />
+        <stop offset="80%" stopColor="#f472b6" />
+        <stop offset="100%" stopColor="#ec4899" />
+      </linearGradient>
+      <path
+        id="sakuraPetalShape"
+        d="M 50 50 C 40 38, 24 26, 35 12 C 40 5, 46 8, 50 14 C 54 8, 60 5, 65 12 C 76 26, 60 38, 50 50 Z"
+      />
+    </defs>
+
+    {/* 5 cánh hoa anh đào thật xếp lớp xoay 72 độ quanh tâm */}
+    <g>
+      <use href="#sakuraPetalShape" fill="url(#sakuraPetalGrad)" stroke="#f472b6" strokeWidth="0.8" />
+      <use href="#sakuraPetalShape" transform="rotate(72 50 50)" fill="url(#sakuraPetalGrad)" stroke="#f472b6" strokeWidth="0.8" />
+      <use href="#sakuraPetalShape" transform="rotate(144 50 50)" fill="url(#sakuraPetalGrad)" stroke="#f472b6" strokeWidth="0.8" />
+      <use href="#sakuraPetalShape" transform="rotate(216 50 50)" fill="url(#sakuraPetalGrad)" stroke="#f472b6" strokeWidth="0.8" />
+      <use href="#sakuraPetalShape" transform="rotate(288 50 50)" fill="url(#sakuraPetalGrad)" stroke="#f472b6" strokeWidth="0.8" />
+    </g>
+
+    {/* Quầng nhụy đỏ tía tự nhiên ở tâm hoa */}
+    <circle cx="50" cy="50" r="14" fill="#e11d48" opacity="0.35" />
+    <circle cx="50" cy="50" r="8" fill="#be123c" opacity="0.65" />
+    <circle cx="50" cy="50" r="4.5" fill="#881337" />
+
+    {/* Chùm chỉ nhụy hoa anh đào mảnh mai */}
+    <g stroke="#be123c" strokeWidth="1.3" strokeLinecap="round">
+      <line x1="50" y1="50" x2="42" y2="34" />
+      <line x1="50" y1="50" x2="50" y2="30" />
+      <line x1="50" y1="50" x2="58" y2="34" />
+      <line x1="50" y1="50" x2="66" y2="42" />
+      <line x1="50" y1="50" x2="68" y2="52" />
+      <line x1="50" y1="50" x2="63" y2="62" />
+      <line x1="50" y1="50" x2="54" y2="68" />
+      <line x1="50" y1="50" x2="45" y2="68" />
+      <line x1="50" y1="50" x2="36" y2="60" />
+      <line x1="50" y1="50" x2="33" y2="49" />
+      <line x1="50" y1="50" x2="36" y2="40" />
+    </g>
+
+    {/* Bao phấn hoa vàng óng ánh ở đầu sợi nhụy */}
+    <g fill="#fbbf24" stroke="#d97706" strokeWidth="0.6">
+      <circle cx="42" cy="34" r="2.2" />
+      <circle cx="50" cy="30" r="2.2" />
+      <circle cx="58" cy="34" r="2.2" />
+      <circle cx="66" cy="42" r="2.2" />
+      <circle cx="68" cy="52" r="2.2" />
+      <circle cx="63" cy="62" r="2.2" />
+      <circle cx="54" cy="68" r="2.2" />
+      <circle cx="45" cy="68" r="2.2" />
+      <circle cx="36" cy="60" r="2.2" />
+      <circle cx="33" cy="49" r="2.2" />
+      <circle cx="36" cy="40" r="2.2" />
+      <circle cx="50" cy="50" r="2.5" fill="#f59e0b" stroke="#b45309" />
+    </g>
+  </svg>
+);
+
 export default function HomePage() {
   const [homeData, setHomeData] = useState<HomeResponseDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedProvince, setSelectedProvince] = useState<string>('Tất cả');
-  const [copiedShare, setCopiedShare] = useState(false);
-
-  const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'Đi Du Lịch - Mù Cang Chải',
-          text: 'Mỗi chuyến đi là một kỷ niệm đẹp. Cùng khám phá trải nghiệm du lịch di sản, sinh thái Việt Nam!',
-          url: window.location.href,
-        });
-      } catch {
-        // Người dùng hủy chia sẻ
-      }
-    } else {
-      try {
-        await navigator.clipboard.writeText(window.location.href);
-        setCopiedShare(true);
-        setTimeout(() => setCopiedShare(false), 2200);
-      } catch (err) {
-        console.error('Không thể sao chép liên kết:', err);
-      }
-    }
-  };
 
   useEffect(() => {
     fetchHomeData().then(data => {
@@ -173,12 +217,12 @@ export default function HomePage() {
           <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-[#0f2d3c]/80"></div>
         </div>
 
-        <div className="relative z-30 flex flex-col items-start justify-center px-4 md:px-8 max-w-[1280px] mx-auto w-full mt-10 md:mt-16">
-          <div className="max-w-4xl text-left mb-10 md:mb-16">
-            <h1 className="italic font-bold text-[70px] md:text-[100px] lg:text-[120px] text-[var(--color-sun)] leading-[0.9] mb-4 drop-shadow-lg" style={{ fontFamily: 'var(--font-brush)' }}>
+        <div className="relative z-30 flex flex-col items-start justify-center px-4 md:px-8 max-w-[1280px] mx-auto w-full mt-6 md:mt-14">
+          <div className="max-w-4xl text-left mb-8 md:mb-12">
+            <h1 className="italic font-bold text-4xl sm:text-6xl md:text-[90px] lg:text-[115px] text-[var(--color-sun)] leading-[0.95] mb-3 md:mb-4 drop-shadow-lg text-left" style={{ fontFamily: 'var(--font-brush)' }}>
               Đi Du Lịch
             </h1>
-            <p className="text-2xl md:text-3xl lg:text-4xl font-bold md:font-extrabold text-white leading-relaxed mb-0 drop-shadow-md">
+            <p className="text-base sm:text-xl md:text-2xl lg:text-[32px] font-bold text-white leading-snug md:leading-relaxed mb-0 drop-shadow-md text-left" style={{ fontFamily: 'var(--font-brush)' }}>
               Nền tảng đặt phòng Homestay & khám phá trải nghiệm du lịch di sản, sinh thái Việt Nam.
             </p>
           </div>
@@ -194,72 +238,48 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Góc truyền cảm hứng nhẹ nhàng & nút chia sẻ */}
-        <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 md:bottom-8 md:right-10 lg:right-14 z-30 flex items-center gap-3 select-none pointer-events-auto">
-          <div className="flex flex-col items-end text-right drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]">
-            <div
-              className="text-white text-lg sm:text-xl md:text-2xl lg:text-[26px] leading-tight tracking-wide font-bold"
-              style={{ fontFamily: 'var(--font-brush)' }}
-            >
-              Mỗi chuyến đi
-            </div>
-            <div
-              className="text-white text-lg sm:text-xl md:text-2xl lg:text-[26px] leading-tight tracking-wide font-bold flex items-center justify-end gap-1.5"
-              style={{ fontFamily: 'var(--font-brush)' }}
-            >
-              <span>là một kỷ niệm đẹp</span>
-              {/* Trái tim nét vẽ tay nhỏ xinh */}
-              <svg
-                className="w-4 h-4 md:w-5 md:h-5 text-white/90 inline-block -mt-1 rotate-12 transition-transform hover:scale-125"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-              </svg>
-            </div>
-            {/* Calligraphy underline flourish */}
-            <svg
-              className="w-28 sm:w-36 md:w-44 h-3.5 text-white/80 mt-0.5 overflow-visible"
-              viewBox="0 0 160 14"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-            >
-              <path d="M4 8 Q 40 1 80 7 T 148 6 C 153 6 156 4 154 2 C 152 0.5 147 3 151 8" />
-            </svg>
-          </div>
-
-          {/* Nút chia sẻ trang */}
-          <button
-            type="button"
-            onClick={handleShare}
-            className="w-10 h-10 md:w-11 md:h-11 rounded-[6px] border border-white/40 bg-white/10 hover:bg-white/20 active:scale-95 backdrop-blur-md flex items-center justify-center text-white transition-all shadow-[0_2px_8px_rgba(0,0,0,0.3)] group cursor-pointer"
-            title={copiedShare ? "Đã sao chép liên kết!" : "Chia sẻ hành trình"}
-            aria-label="Chia sẻ"
+        {/* Slogan nghệ thuật bẻ cong vút lên dịch hẳn sang mép phải theo sườn đồi ruộng bậc thang - Layer ở dưới SearchHub (z-10) */}
+        <div className="absolute bottom-2 right-0 sm:bottom-3 sm:right-1 md:bottom-4 md:right-2 lg:right-4 z-10 select-none pointer-events-auto">
+          <svg
+            viewBox="0 0 320 190"
+            className="w-[210px] sm:w-[260px] md:w-[310px] lg:w-[350px] h-auto overflow-visible select-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]"
+            aria-label="Mỗi chuyến đi đẹp là một kỷ niệm"
           >
-            {copiedShare ? (
-              <Check className="w-5 h-5 text-emerald-300 animate-in fade-in zoom-in-75 duration-200" />
-            ) : (
-              <svg
-                className="w-5 h-5 transition-transform group-hover:-translate-y-0.5"
-                viewBox="0 0 24 24"
+            <defs>
+              {/* Đường cong bắt đầu từ dưới rồi cong vút lên cao sang phải theo sườn ruộng bậc thang */}
+              <path
+                id="curve-travel-slogan-up"
+                d="M 12 165 C 115 165, 205 130, 285 22"
                 fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                <polyline points="16 6 12 2 8 6" />
-                <line x1="12" y1="2" x2="12" y2="15" />
-              </svg>
-            )}
-          </button>
+              />
+            </defs>
+            <text
+              fill="#ffffff"
+              className="font-bold tracking-wide"
+              style={{
+                fontFamily: 'var(--font-brush)',
+                fontSize: '23px',
+              }}
+            >
+              <textPath href="#curve-travel-slogan-up" startOffset="0%" textAnchor="start">
+                Mỗi chuyến đi đẹp là một kỷ niệm
+              </textPath>
+            </text>
+            {/* Calligraphy flourish gạch chân uốn lượn cong vút đồng điệu bên dưới */}
+            <path
+              d="M 14 175 C 118 175, 208 139, 290 28"
+              fill="none"
+              stroke="rgba(255, 255, 255, 0.7)"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+            />
+            {/* Trái tim nhỏ xinh ở đỉnh vút cong */}
+            <path
+              d="M 296 20 C 293 15 285 16 285 22 C 285 28 296 33 296 35 C 296 33 307 28 307 22 C 307 16 299 15 296 20 Z"
+              fill="rgba(255, 255, 255, 0.9)"
+              transform="scale(0.65) translate(150, -6)"
+            />
+          </svg>
         </div>
       </section>
 
@@ -272,7 +292,7 @@ export default function HomePage() {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
             <div>
               <h2 className="text-2xl md:text-3xl lg:text-[34px] font-extrabold text-[#0f2d3c] tracking-tight">
-                Điểm Đến Thích Hợp Theo Mùa
+                Hôm nay đi đâu
               </h2>
             </div>
 
@@ -330,13 +350,14 @@ export default function HomePage() {
                       {/* Huy hiệu thời gian mùa vụ thích hợp từ dữ liệu */}
                       <div className="absolute top-2.5 left-2.5 z-10 flex flex-col gap-1.5 items-start">
                         <div
-                          className={`px-2.5 py-1.5 rounded-lg shadow-sm font-bold text-xs flex items-center gap-1.5 backdrop-blur-md border-2 transition-transform group-hover:scale-105 ${isSuitable
-                            ? 'bg-gradient-to-r from-[#ea580c] to-[#f97316] text-white border-amber-300/50 shadow-orange-950/20'
+                          className={`px-2.5 py-1.5 rounded-lg shadow-sm font-bold text-xs flex items-center gap-1.5 backdrop-blur-md border transition-transform group-hover:scale-105 ${isSuitable
+                            ? 'bg-gradient-to-r from-[#fef08a] via-[#fde047] to-[#facc15] text-[#713f12] border-[#fde047] shadow-[0_2px_8px_rgba(234,179,8,0.25)]'
                             : 'bg-[#0f2d3c]/95 text-white border-white/20'
                             }`}
                         >
-                          <Calendar className={`w-3.5 h-3.5 shrink-0 ${isSuitable ? 'text-amber-200' : 'text-emerald-400'}`} />
-                          <span className="font-bold text-white text-xs sm:text-[13px] tracking-tight">
+                          {/* Bông hoa anh đào tả thực như hoa thật */}
+                          <SakuraBlossomIcon className="w-4 h-4 shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.15)]" />
+                          <span className={`font-extrabold text-xs sm:text-[13px] tracking-tight ${isSuitable ? 'text-[#713f12]' : 'text-white'}`}>
                             {startFormatted && endFormatted
                               ? `Mùa đẹp: ${startFormatted} – ${endFormatted}`
                               : (endFormatted
@@ -422,7 +443,7 @@ export default function HomePage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
           <div>
             <h2 className="text-2xl md:text-3xl lg:text-[34px] font-extrabold text-slate-800 tracking-tight">
-              Homestay Bản Địa & Chốn Nghỉ Bình Yên
+              Homestay & Nhà Nghỉ
             </h2>
           </div>
           <Link

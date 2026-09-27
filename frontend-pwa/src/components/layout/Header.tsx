@@ -134,8 +134,28 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
               : 'py-2.5 sm:py-3.5 min-h-[68px]'
           } gap-y-2`}
         >
-          {/* Logo */}
-          <div className="flex items-center shrink-0 w-auto lg:w-1/4">
+          {/* Logo & Menu Drawer Toggle */}
+          <div className="flex items-center gap-2 shrink-0 w-auto lg:w-1/4">
+            {toggleSidebar && (
+              <button
+                type="button"
+                onClick={handleOpen}
+                aria-label="Mở menu điều hướng"
+                title="Mở menu điều hướng"
+                className={`p-1.5 rounded-md transition-all cursor-pointer flex items-center justify-center ${
+                  isSidebarOpen 
+                    ? 'opacity-0 pointer-events-none invisible' 
+                    : 'opacity-100'
+                } ${
+                  isSolid
+                    ? 'text-[var(--color-ink-deep)] hover:bg-[#edfbf7] hover:text-[var(--color-primary)] active:scale-95'
+                    : 'text-white drop-shadow-md hover:bg-white/20 active:scale-95'
+                }`}
+              >
+                <Menu className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.4} />
+              </button>
+            )}
+
             <Link
               to="/"
               className="flex items-center gap-2 group shrink-0"
