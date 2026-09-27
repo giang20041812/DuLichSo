@@ -22,5 +22,9 @@ public interface BookingService {
     List<com.dulichso.bookingapi.dto.BookingChangeRequestDto> getChangeRequestsByBookingCode(String bookingCode);
     BookingResponseDto reviewBookingChangeRequest(Long changeRequestId, boolean approved, String rejectionReason, Long reviewerId);
     com.dulichso.bookingapi.dto.CheckAvailabilityResponse checkAvailability(Long roomTypeId, LocalDate checkIn, LocalDate checkOut, int roomCount, String excludeBookingCode);
-    BookingResponseDto updateBookingStatus(Long bookingId, com.dulichso.bookingapi.entity.enums.BookingStatus newStatus, String reason, Long actorAccountId);
+    // MON-BR-03/04: cố ý KHÔNG có phương thức đổi trạng thái Booking chung chung dùng được cho Admin.
+    // Trước đây có updateBookingStatus(...) bị AdminBookingController dùng để cho Admin tự xác nhận/từ chối/hoàn tiền
+    // Booking thay NCC — vi phạm nghiệp vụ nên đã gỡ bỏ. Chỉ NCC (PartnerBookingService, qua accept/reject/stay) được
+    // đổi trạng thái Booking do quyết định nghiệp vụ; các thay đổi khác (hủy do khách, thanh toán...) đi qua các
+    // phương thức nghiệp vụ cụ thể ở trên, không qua một hàm "set trạng thái bất kỳ" chung.
 }

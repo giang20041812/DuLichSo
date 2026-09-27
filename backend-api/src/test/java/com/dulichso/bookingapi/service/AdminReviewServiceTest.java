@@ -26,6 +26,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
@@ -36,6 +37,7 @@ class AdminReviewServiceTest {
     @Mock ReviewRepository reviews;
     @Mock AccountRepository accounts;
     @Mock AuditLogService auditLogService;
+    @Mock NotificationRecorder notifications;
 
     AdminReviewService service;
     Place place;
@@ -43,7 +45,7 @@ class AdminReviewServiceTest {
 
     @BeforeEach
     void setup() {
-        service = new AdminReviewService(reviews, accounts, auditLogService);
+        service = new AdminReviewService(reviews, accounts, auditLogService, notifications);
         Provider provider = Provider.builder().id(12L).name("NCC A").build();
         place = Place.builder().id(21L).name("Homestay A").provider(provider).build();
         place.setRatingCount(3);
@@ -92,6 +94,23 @@ class AdminReviewServiceTest {
         assertEquals(ReviewStatus.REMOVED, review.getStatus());
         assertThrows(IllegalStateException.class, () -> service.moderate(5L, 1L, ModerationAction.RESTORE, "Nhầm"));
         assertThrows(IllegalStateException.class, () -> service.moderate(5L, 1L, ModerationAction.KEEP, null));
+    }
+
+    @Test
+    @DisplayName("REV-BR-17: Gỡ đánh giá phải báo cho khách hàng viết đánh giá đó, kèm lý do")
+    void remove_notifiesCustomer() {
+        service.moderate(5L, 1L, ModerationAction.REMOVE, "Quảng cáo trái phép");
+
+        verify(notifications).toCustomer(eq("REVIEW_REMOVED_CUSTOMER"), eq("0911223344"), isNull(), eq("review"), eq(5L),
+                argThat(m -> "Quảng cáo trái phép".equals(m.get("reason")) && "Homestay A".equals(m.get("homestay_name"))));
+    }
+
+    @Test
+    @DisplayName("REV-BR-17: Ẩn đánh giá KHÔNG báo khách (chỉ Gỡ mới báo)")
+    void hide_doesNotNotifyCustomer() {
+        service.moderate(5L, 1L, ModerationAction.HIDE, "Ngôn từ xúc phạm");
+
+        verify(notifications, never()).toCustomer(any(), any(), any(), any(), any(), anyMap());
     }
 
     @Test

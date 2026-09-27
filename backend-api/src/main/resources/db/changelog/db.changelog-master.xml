@@ -49,4 +49,7 @@
 
     <!-- Kiểm duyệt đánh giá: trạng thái REMOVED + người/lý do xử lý -->
     <include file="db/changelog/changes/014-review-moderation.xml"/>
+
+    <!-- Mẫu thông báo: hủy đơn do khóa NCC (ACC-BR-08), gỡ đánh giá báo khách (REV-BR-17) -->
+    <include file="db/changelog/changes/015-notification-templates-admin.xml"/>
 </databaseChangeLog>

@@ -26,21 +26,22 @@ import java.util.Map;
 public class AdminBookingController {
 
     private final AdminBookingService adminBookingService;
-    private final com.dulichso.bookingapi.service.BookingService clientBookingService;
     private final com.dulichso.bookingapi.repository.BookingChangeRequestRepository bookingChangeRequestRepository;
 
     private final AdminBookingMonitorService monitorService;
 
     public AdminBookingController(AdminBookingService adminBookingService,
                                   AdminBookingMonitorService monitorService,
-                                  com.dulichso.bookingapi.service.BookingService clientBookingService,
                                   com.dulichso.bookingapi.repository.BookingChangeRequestRepository bookingChangeRequestRepository) {
         this.adminBookingService = adminBookingService;
         this.monitorService = monitorService;
-        this.clientBookingService = clientBookingService;
         this.bookingChangeRequestRepository = bookingChangeRequestRepository;
     }
 
+    /**
+     * MON-BR-01/02: chỉ đọc — danh sách yêu cầu thay đổi Booking toàn hệ thống để Admin theo dõi.
+     * MON-BR-04: Admin KHÔNG được duyệt/từ chối yêu cầu này thay NCC; việc xét duyệt thuộc PartnerBookingController.
+     */
     @GetMapping("/change-requests")
     public ResponseEntity<java.util.List<com.dulichso.bookingapi.dto.BookingChangeRequestDto>> getAllChangeRequests() {
         return ResponseEntity.ok(bookingChangeRequestRepository.findAllWithBookingAndPlace(null).stream().map(cr ->
@@ -64,32 +65,6 @@ public class AdminBookingController {
                         .createdAt(cr.getCreatedAt())
                         .build()
         ).collect(java.util.stream.Collectors.toList()));
-    }
-
-    @org.springframework.web.bind.annotation.PostMapping("/change-requests/{id}/review")
-    public ResponseEntity<com.dulichso.bookingapi.dto.BookingResponseDto> reviewChangeRequest(
-            @org.springframework.security.core.annotation.AuthenticationPrincipal com.dulichso.bookingapi.security.UserPrincipal principal,
-            @org.springframework.web.bind.annotation.PathVariable("id") Long id,
-            @org.springframework.web.bind.annotation.RequestBody java.util.Map<String, Object> body) {
-        boolean approved = Boolean.TRUE.equals(body.get("approved"));
-        String rejectionReason = body.get("rejectionReason") != null ? String.valueOf(body.get("rejectionReason")) : null;
-        Long reviewerId = principal != null ? principal.accountId() : null;
-
-        return ResponseEntity.ok(clientBookingService.reviewBookingChangeRequest(id, approved, rejectionReason, reviewerId));
-    }
-
-    @org.springframework.web.bind.annotation.PutMapping("/{id}/status")
-    public ResponseEntity<com.dulichso.bookingapi.dto.BookingResponseDto> updateStatus(
-            @org.springframework.security.core.annotation.AuthenticationPrincipal com.dulichso.bookingapi.security.UserPrincipal principal,
-            @org.springframework.web.bind.annotation.PathVariable("id") Long id,
-            @org.springframework.web.bind.annotation.RequestBody java.util.Map<String, Object> body) {
-        String statusStr = body.get("status") != null ? String.valueOf(body.get("status")) : null;
-        if (statusStr == null) return ResponseEntity.badRequest().build();
-        BookingStatus status = BookingStatus.valueOf(statusStr);
-        String reason = body.get("reason") != null ? String.valueOf(body.get("reason")) : null;
-        Long reviewerId = principal != null ? principal.accountId() : null;
-
-        return ResponseEntity.ok(clientBookingService.updateBookingStatus(id, status, reason, reviewerId));
     }
 
     @GetMapping

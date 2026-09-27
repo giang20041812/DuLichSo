@@ -63,12 +63,15 @@ class PartnerHomestayServiceTest {
         verify(repository, never()).persist(any());
         verifyNoInteractions(contacts, amenities);
     }
-    @Test void publishedHomestayCannotBeWrittenDirectly() {
+    /** Xác nhận nghiệp vụ (2026-09-28): sửa thông tin Homestay ghi trực tiếp dù đã PUBLISHED, không cần duyệt lại. */
+    @Test void publishedHomestayCanBeWrittenDirectly() {
         place.setVisibility(PlaceVisibility.PUBLISHED);
         authenticate(); when(repository.findOwned(21L, 12L, true)).thenReturn(Optional.of(place));
-        assertEquals(409, assertThrows(ResponseStatusException.class, () -> service.saveHomestayDetail(principal, 21L, input())).getStatusCode().value());
-        assertEquals("Homestay A", place.getName());
-        verifyNoInteractions(contacts, amenities);
+        when(repository.profile(21L)).thenReturn(Optional.empty());
+        var result = service.saveHomestayDetail(principal, 21L, input());
+        assertEquals("Tên mới", place.getName());
+        assertEquals("Tên mới", result.getName());
+        assertSame(account, place.getUpdatedBy());
     }
     @Test void approvedChangeIsAppliedToPublishedHomestayAsSubmitter() {
         place.setVisibility(PlaceVisibility.PUBLISHED);
@@ -135,11 +138,37 @@ class PartnerHomestayServiceTest {
         assertEquals(400, assertThrows(ResponseStatusException.class, () -> service.createHomestay(principal, dto)).getStatusCode().value());
         verify(repository, never()).persist(any());
     }
-    @Test void incompleteProfileCannotPublish() {
+    /**
+     * HOM-MGT-BR-04: NCC không được tự đưa Homestay từ chưa công khai sang PUBLISHED qua đường ghi trực tiếp
+     * này (kể cả khi hồ sơ đã đủ điều kiện) — phải qua {@link PartnerChangeService#updateStatus} để Admin duyệt.
+     * Điều kiện "đủ hồ sơ mới được duyệt xuất bản" được kiểm tra ở lớp đó (xem PartnerChangeServiceTest).
+     */
+    @Test void firstPublishAlwaysRejectedDirectly_evenWhenProfileComplete() {
         authenticate(); when(repository.findOwned(21L, 12L, true)).thenReturn(Optional.of(place));
-        assertEquals(400, assertThrows(ResponseStatusException.class, () -> service.updateStatus(principal, 21L,
+        assertEquals(409, assertThrows(ResponseStatusException.class, () -> service.updateStatus(principal, 21L,
                 UpdateStatusRequest.builder().visibility(PlaceVisibility.PUBLISHED).build())).getStatusCode().value());
         assertEquals(PlaceVisibility.DRAFT, place.getVisibility());
+    }
+    @Test void isReadyToPublish_falseWhenMissingPhoneCoverOrRooms() {
+        assertFalse(service.isReadyToPublish(place));
+    }
+    @Test void applyPublish_rejectsWhenNotReady() {
+        when(repository.findOwned(21L, 12L, true)).thenReturn(Optional.of(place));
+        assertEquals(409, assertThrows(ResponseStatusException.class, () -> service.applyPublish(account, 21L)).getStatusCode().value());
+        assertEquals(PlaceVisibility.DRAFT, place.getVisibility());
+    }
+    @Test void applyPublish_setsPublishedWhenReady() {
+        when(repository.findOwned(21L, 12L, true)).thenReturn(Optional.of(place));
+        when(contacts.findByPlaceIdAndIsPublicTrue(21L)).thenReturn(List.of(PlaceContact.builder().channel(ContactChannel.PHONE).value("0912345678").build()));
+        when(repository.media(List.of(21L))).thenReturn(List.of(PlaceMedia.builder().place(place).role(MediaRole.COVER)
+                .media(MediaAsset.builder().publicUrl("https://img.example/cover.jpg").build()).build()));
+        when(repository.roomCounts(List.of(21L))).thenReturn(java.util.Collections.singletonList(new Object[]{21L, 1L}));
+
+        var result = service.applyPublish(account, 21L);
+
+        assertEquals(PlaceVisibility.PUBLISHED, place.getVisibility());
+        assertEquals(PlaceVisibility.PUBLISHED, result.getVisibility());
+        assertSame(account, place.getUpdatedBy());
     }
     @Test void jsonUsesFrontendBooleanFieldNames() throws Exception {
         var json = new com.fasterxml.jackson.databind.ObjectMapper().valueToTree(PartnerHomestayDetailDto.builder().isReadyToPublish(true).build());

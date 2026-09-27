@@ -24,6 +24,7 @@ import {
 import { ChipGroup, FilterSearch, type ChipOption } from '@/components/admin/AdminFilters';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { fetchPartnerHomestays, updateHomestayStatus, homestayError } from '@/services/partnerHomestayService';
+import { isSubmittedChange } from '@/services/changeRequestService';
 import type {
   PartnerHomestaySummaryDto,
   PartnerHomestayStatsDto,
@@ -87,8 +88,13 @@ export default function PartnerDashboardPage() {
   const handleToggleVisibility = async (homestay: PartnerHomestaySummaryDto) => {
     const next: PlaceVisibility = homestay.visibility === 'PUBLISHED' ? 'UNPUBLISHED' : 'PUBLISHED';
     try {
-      const updated = await updateHomestayStatus(homestay.id, { visibility: next });
-      setHomestays((prev) => prev.map((h) => (h.id === homestay.id ? updated : h)));
+      const result = await updateHomestayStatus(homestay.id, { visibility: next });
+      if (isSubmittedChange(result)) {
+        // HOM-MGT-BR-04: lần đầu xuất bản chờ Admin duyệt, danh sách chưa đổi trạng thái hiển thị.
+        showToast(result.message);
+        return;
+      }
+      setHomestays((prev) => prev.map((h) => (h.id === homestay.id ? result : h)));
       await load();
       showToast(
         next === 'PUBLISHED'

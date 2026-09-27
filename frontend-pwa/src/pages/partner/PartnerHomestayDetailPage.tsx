@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Edit, MapPin } from 'lucide-react';
 import type { PartnerHomestayDetailDto, UpdateStatusRequest } from '@/types/partner';
 import { fetchPartnerHomestayDetail, homestayError, updateHomestayStatus } from '@/services/partnerHomestayService';
+import { isSubmittedChange } from '@/services/changeRequestService';
 import PartnerServicesPanel from '@/components/partner/PartnerServicesPanel';
 import MediaManager from '@/components/partner/MediaManager';
 import HomestayClosurePanel from '@/components/partner/HomestayClosurePanel';
@@ -34,6 +35,11 @@ export default function PartnerHomestayDetailPage() {
     setSaving(true); setActionMessage('');
     try {
       const result = await updateHomestayStatus(homestay.id, request);
+      if (isSubmittedChange(result)) {
+        // HOM-MGT-BR-04: lần đầu xuất bản chờ Admin duyệt, dữ liệu hiện hành (visibility) chưa đổi.
+        setActionMessage(result.message);
+        return;
+      }
       setHomestay(prev => prev ? { ...prev, visibility: result.visibility, operationStatus: result.operationStatus, isReadyToPublish: result.isReadyToPublish, alertNote: result.alertNote } : prev);
       setActionMessage('Đã cập nhật trạng thái.');
     } catch (error: unknown) { setActionMessage(homestayError(error)); }

@@ -18,6 +18,15 @@ public interface AccountRepository extends JpaRepository<Account, Long>, JpaSpec
     @Query("SELECT a FROM Account a LEFT JOIN FETCH a.provider WHERE a.email = :identifier OR a.phone = :identifier")
     Optional<Account> findByIdentifier(@Param("identifier") String identifier);
 
+    /**
+     * Khóa ghi (pessimistic write) khi Admin đổi trạng thái/quyền tài khoản — chống double-submit (2 request
+     * đổi trạng thái/quyền cùng tài khoản gửi gần như đồng thời) làm sai lệch audit log hoặc bỏ qua các điều
+     * kiện kiểm tra "trạng thái hiện tại" (vd: không hạ quyền Admin cuối cùng, không tự khóa chính mình).
+     */
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT a FROM Account a LEFT JOIN FETCH a.provider WHERE a.id = :id")
+    Optional<Account> findByIdForUpdate(@Param("id") Long id);
+
     /** Ghi nhận hoạt động của phiên mà không nạp/ghi lại toàn bộ entity (chạy ngoài transaction của request). */
     @Modifying
     @Transactional

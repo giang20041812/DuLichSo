@@ -42,6 +42,7 @@ public class AdminReviewService {
     private final ReviewRepository reviews;
     private final AccountRepository accounts;
     private final AuditLogService auditLogService;
+    private final NotificationRecorder notifications;
 
     public Page<ReviewDto> search(ReviewStatus status, Long placeId, Long providerId, Integer rating, String keyword,
                                   LocalDate from, LocalDate to, int page, int size) {
@@ -130,6 +131,8 @@ public class AdminReviewService {
         review.setModeratedAt(LocalDateTime.now());
         review.setModerationReason(cleanReason);
         if (old != target) refreshPlaceRating(review.getPlace());
+        // REV-BR-17: chỉ báo khách khi GỠ (xóa) đánh giá đã đăng — Ẩn không bắt buộc báo theo tài liệu.
+        if (action == ModerationAction.REMOVE) notifyCustomerRemoved(review, cleanReason);
 
         auditLogService.record(adminAccountId, "REVIEW_" + switch (action) {
                     case KEEP -> "KEPT";
@@ -139,6 +142,21 @@ public class AdminReviewService {
                 }, "Review", id, cleanReason,
                 Map.of("status", old.name()), Map.of("status", target.name(), "placeId", review.getPlace().getId()));
         return toDto(review, moderatorNames(List.of(review)));
+    }
+
+    /** REV-BR-17: báo cho khách hàng khi đánh giá của họ bị Admin gỡ, kèm lý do. */
+    private void notifyCustomerRemoved(Review review, String reason) {
+        var booking = review.getBooking();
+        if (booking == null) return;
+        Map<String, Object> payload = new java.util.HashMap<>();
+        payload.put("homestay_name", review.getPlace().getName());
+        payload.put("homestayName", review.getPlace().getName());
+        payload.put("reason", reason == null ? "" : reason);
+        payload.put("isRead", false);
+        payload.put("title", "Đánh giá của bạn đã bị gỡ");
+        payload.put("message", reason == null ? "" : reason);
+        notifications.toCustomer("REVIEW_REMOVED_CUSTOMER", booking.getGuestPhone(), booking.getGuestEmail(),
+                "review", review.getId(), payload);
     }
 
     /** Điểm trung bình và số đánh giá của Homestay chỉ tính các đánh giá đang hiển thị công khai. */

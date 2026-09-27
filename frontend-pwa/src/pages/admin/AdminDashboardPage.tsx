@@ -5,13 +5,9 @@ import OverviewPanel from '@/components/admin/OverviewPanel';
 import BookingsPanel, { type BookingsPreset } from '@/components/admin/BookingsPanel';
 import ReportsPanel from '@/components/admin/ReportsPanel';
 import ProvidersPanel from '@/components/admin/ProvidersPanel';
-import CashflowPanel from '@/components/admin/CashflowPanel';
 import AdminSidebar, { type SidebarItem } from '@/components/admin/AdminSidebar';
 import { getApiErrorMessage } from '@/lib/apiError';
 import { clearPortalSession } from '@/lib/authInterceptor';
-import { StatusBadge } from '@/components/admin/StatusBadge';
-import { actionButtonClass } from '@/components/admin/statusStyles';
-import type { StatusTone } from '@/components/admin/StatusBadge';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -19,13 +15,12 @@ import {
   CalendarCheck,
   CheckCircle,
   ChevronRight,
+  Construction,
   FileBarChart,
   LayoutDashboard,
   MapPin,
   Menu,
-  ReceiptText,
   RefreshCw,
-  Undo2,
   Users,
   Wallet,
   X,
@@ -40,40 +35,20 @@ import type {
 
 type AdminTab = 'dashboard' | 'accounts' | 'providers' | 'places' | 'bookings' | 'reports' | 'finance';
 
-const vnd = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 });
-
-const REFUND_STATUS: Record<'PENDING' | 'PROCESSED' | 'REJECTED', { tone: StatusTone; label: string }> = {
-  PENDING: { tone: 'warning', label: 'Chờ duyệt' },
-  PROCESSED: { tone: 'success', label: 'Đã hoàn tiền' },
-  REJECTED: { tone: 'danger', label: 'Đã từ chối' },
-};
-
 const TAB_META: Record<AdminTab, { label: string; description: string; icon: SidebarItem<AdminTab>['icon']; group: string }> = {
   dashboard: { label: 'Tổng quan', description: 'Chỉ số vận hành, việc cần xử lý và hoạt động gần đây.', icon: LayoutDashboard, group: 'Tổng quan' },
   reports: { label: 'Báo cáo', description: 'Thống kê đặt phòng theo thời gian, nhà cung cấp và homestay.', icon: FileBarChart, group: 'Tổng quan' },
-  places: { label: 'Kiểm duyệt điểm đến', description: 'Duyệt nội dung và kiểm soát hiển thị của điểm đến.', icon: MapPin, group: 'Vận hành' },
+  places: { label: 'Kiểm duyệt', description: 'Duyệt nội dung và kiểm soát hiển thị của điểm đến.', icon: MapPin, group: 'Vận hành' },
   bookings: { label: 'Đặt phòng', description: 'Giám sát đơn đặt phòng và ghi nhận xử lý trên toàn hệ thống.', icon: CalendarCheck, group: 'Vận hành' },
   accounts: { label: 'Tài khoản', description: 'Tài khoản quản trị, nhà cung cấp và khách du lịch.', icon: Users, group: 'Quản lý' },
   providers: { label: 'Đối tác / NCC', description: 'Trạng thái hoạt động và tài khoản đăng nhập của đối tác.', icon: Building2, group: 'Quản lý' },
-  finance: { label: 'Tài chính', description: 'Doanh thu đối soát và yêu cầu hoàn tiền.', icon: Wallet, group: 'Tài chính' },
+  finance: { label: 'Tài chính', description: 'Đối soát doanh thu và hoàn tiền — đang phát triển.', icon: Wallet, group: 'Tài chính' },
 };
 const TAB_ORDER: AdminTab[] = ['dashboard', 'reports', 'places', 'bookings', 'accounts', 'providers', 'finance'];
 
 const inputCls =
   'h-9 w-full rounded-md border border-border bg-white px-3 text-xs text-ink transition-colors placeholder:text-muted/70 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
 const labelCls = 'mb-1 block text-xs font-semibold text-ink-deep';
-
-function FinanceCard({ label, value, tone, icon }: { label: string; value: string; tone: string; icon: ReactNode }) {
-  return (
-    <div className="flex items-center gap-3 rounded-lg border border-border bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[var(--shadow-card-hover)]">
-      <span className={`flex h-10 w-10 items-center justify-center rounded-md ${tone}`}>{icon}</span>
-      <div>
-        <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">{label}</div>
-        <div className="font-display text-lg font-bold tabular-nums text-ink-deep">{value}</div>
-      </div>
-    </div>
-  );
-}
 
 /** Khung modal dùng chung cho các biểu mẫu của trang quản trị. */
 function Modal({ title, subtitle, onClose, size = 'md', children }: { title: string; subtitle?: string; onClose: () => void; size?: 'sm' | 'md' | 'lg'; children: ReactNode }) {
@@ -164,24 +139,6 @@ export default function AdminDashboardPage() {
     accountFullName: '',
   });
 
-  // 5. Finance State
-  const [revenueData, setRevenueData] = useState<{
-    grandTotal: number;
-    totalTransactions: number;
-    byMonth: Array<{ year: number; month: number; totalAmount: number; transactionCount: number }>;
-  } | null>(null);
-  const [financeError, setFinanceError] = useState(false);
-  const [refunds, setRefunds] = useState<
-    Array<{
-      id: number;
-      bookingCode: string;
-      amount: number;
-      reason: string;
-      type: string;
-      status: 'PENDING' | 'PROCESSED' | 'REJECTED';
-      requestedAt: string;
-    }>
-  >([]);
 
   const handleLogout = () => {
     clearPortalSession();
@@ -220,20 +177,6 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const loadFinance = async () => {
-    try {
-      setLoading(true);
-      setFinanceError(false);
-      const [rev, ref] = await Promise.all([adminService.getRevenueSummary(), adminService.getRefunds(false)]);
-      setRevenueData(rev);
-      setRefunds(ref);
-    } catch {
-      setFinanceError(true);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   /** Số đếm cho badge sidebar — tải ngầm, lỗi thì chỉ ẩn badge. */
   const loadNavCounts = async (withDashboard: boolean) => {
     const [summary, bookings] = await Promise.allSettled([
@@ -247,15 +190,13 @@ export default function AdminDashboardPage() {
   const refreshActiveTab = () => {
     if (activeTab === 'dashboard') loadDashboard();
     else if (activeTab === 'providers') loadProviders();
-    else if (activeTab === 'finance') loadFinance();
-    else setAccountsRefreshKey((k) => k + 1);
+    else if (activeTab !== 'finance') setAccountsRefreshKey((k) => k + 1);
     void loadNavCounts(activeTab !== 'dashboard');
   };
 
   useEffect(() => {
     if (activeTab === 'dashboard') loadDashboard();
     else if (activeTab === 'providers') loadProviders();
-    else if (activeTab === 'finance') loadFinance();
     void loadNavCounts(activeTab !== 'dashboard');
   }, [activeTab]);
 
@@ -345,27 +286,6 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const handleApproveRefund = async (id: number) => {
-    try {
-      await adminService.approveRefund(id, 'Admin duyệt hoàn tiền');
-      showNotification('success', 'Đã duyệt yêu cầu hoàn tiền thành công!');
-      loadFinance();
-    } catch (err: unknown) {
-      const msg = getApiErrorMessage(err, 'Lỗi duyệt hoàn tiền.');
-      showNotification('error', msg);
-    }
-  };
-
-  const handleRejectRefund = async (id: number) => {
-    try {
-      await adminService.rejectRefund(id, 'Yêu cầu không đủ điều kiện theo chính sách hủy');
-      showNotification('success', 'Đã từ chối yêu cầu hoàn tiền');
-      loadFinance();
-    } catch (err: unknown) {
-      const msg = getApiErrorMessage(err, 'Lỗi từ chối hoàn tiền.');
-      showNotification('error', msg);
-    }
-  };
 
   // ─────────────────────────────────────────────
   // Sidebar
@@ -381,6 +301,8 @@ export default function AdminDashboardPage() {
         ? { count: dashboardData.unverifiedPlaces, tone: 'amber' }
         : key === 'bookings'
         ? { count: pendingBookings, tone: 'green' }
+        : key === 'finance'
+        ? { text: 'Đang phát triển', tone: 'neutral' }
         : null,
   }));
   const meta = TAB_META[activeTab];
@@ -449,6 +371,7 @@ export default function AdminDashboardPage() {
               currentAccountId={currentUser?.accountId}
               refreshKey={accountsRefreshKey}
               onCreateAdmin={() => setShowCreateAdminModal(true)}
+              onCreateProvider={() => setShowCreateProviderModal(true)}
               onResetPassword={setResetPassModal}
               notify={showNotification}
             />
@@ -483,80 +406,18 @@ export default function AdminDashboardPage() {
             />
           )}
 
-          {/* Tab 5: Tài chính & Hoàn tiền */}
+          {/* Tab 5: Tài chính — đang phát triển, chưa bật xử lý dòng tiền thật */}
           {activeTab === 'finance' && (
-            <>
-              {financeError && (
-                <div role="alert" className="rounded-md border border-danger/30 bg-danger/5 p-3 text-xs text-danger">
-                  Không tải được dữ liệu tài chính. Vui lòng thử lại.
-                </div>
-              )}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <FinanceCard icon={<Wallet className="h-5 w-5" />} tone="bg-primary-50 text-primary" label="Tổng doanh thu sàn" value={vnd.format(revenueData?.grandTotal ?? 0)} />
-                <FinanceCard icon={<ReceiptText className="h-5 w-5" />} tone="bg-secondary/10 text-secondary-700" label="Giao dịch thành công" value={`${revenueData?.totalTransactions ?? 0} giao dịch`} />
-                <FinanceCard icon={<Undo2 className="h-5 w-5" />} tone="bg-sun/15 text-amber-700" label="Hoàn tiền chờ duyệt" value={`${refunds.filter((r) => r.status === 'PENDING').length} yêu cầu`} />
-              </div>
-
-              <section className="rounded-lg border border-border bg-white shadow-sm">
-                <header className="flex items-center justify-between border-b border-border px-4 py-3">
-                  <h3 className="font-display text-sm font-bold text-ink-deep">Yêu cầu hoàn tiền</h3>
-                  <span className="rounded bg-canvas px-1.5 py-px text-[10px] font-bold tabular-nums text-muted">{refunds.length}</span>
-                </header>
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse text-left text-xs">
-                    <thead>
-                      <tr className="border-b border-border bg-canvas/60 text-[11px] font-semibold uppercase tracking-wide text-muted">
-                        <th className="px-4 py-2.5">Mã đặt phòng</th>
-                        <th className="px-4 py-2.5 text-right">Số tiền</th>
-                        <th className="px-4 py-2.5">Lý do</th>
-                        <th className="px-4 py-2.5">Loại</th>
-                        <th className="px-4 py-2.5">Trạng thái</th>
-                        <th className="px-4 py-2.5">Thời gian</th>
-                        <th className="px-4 py-2.5 text-right">Thao tác</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/70">
-                      {refunds.map((ref) => (
-                        <tr key={ref.id} className="transition-colors duration-150 hover:bg-canvas">
-                          <td className="px-4 py-2.5 font-mono font-semibold text-primary">{ref.bookingCode}</td>
-                          <td className="px-4 py-2.5 text-right font-semibold tabular-nums text-ink-deep">{vnd.format(ref.amount)}</td>
-                          <td className="max-w-[240px] truncate px-4 py-2.5 text-muted" title={ref.reason}>
-                            {ref.reason}
-                          </td>
-                          <td className="px-4 py-2.5 font-mono text-[11px] text-muted">{ref.type}</td>
-                          <td className="px-4 py-2.5">
-                            <StatusBadge tone={REFUND_STATUS[ref.status].tone} pulse={ref.status === 'PENDING'}>
-                              {REFUND_STATUS[ref.status].label}
-                            </StatusBadge>
-                          </td>
-                          <td className="px-4 py-2.5 text-[11px] text-muted">{new Date(ref.requestedAt).toLocaleString('vi-VN')}</td>
-                          <td className="px-4 py-2.5 text-right">
-                            {ref.status === 'PENDING' && (
-                              <div className="flex items-center justify-end gap-1">
-                                <button type="button" onClick={() => handleApproveRefund(ref.id)} className={actionButtonClass('success')}>
-                                  Duyệt
-                                </button>
-                                <button type="button" onClick={() => handleRejectRefund(ref.id)} className={actionButtonClass('danger')}>
-                                  Từ chối
-                                </button>
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {refunds.length === 0 && <div className="py-12 text-center text-xs text-muted">Hiện không có yêu cầu hoàn tiền nào.</div>}
-                </div>
-              </section>
-
-              <CashflowPanel
-                onDrill={(preset) => {
-                  setBookingsPreset((p) => ({ key: p.key + 1, preset }));
-                  setActiveTab('bookings');
-                }}
-              />
-            </>
+            <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border bg-white p-12 text-center shadow-sm">
+              <span className="flex h-12 w-12 items-center justify-center rounded-md bg-canvas text-muted">
+                <Construction className="h-6 w-6" />
+              </span>
+              <h3 className="font-display text-sm font-bold text-ink-deep">Tính năng đang phát triển</h3>
+              <p className="max-w-md text-xs text-muted">
+                Đối soát doanh thu, xử lý hoàn tiền và dòng tiền theo nhà cung cấp đang được hoàn thiện. Màn hình
+                này sẽ được kích hoạt khi sẵn sàng.
+              </p>
+            </div>
           )}
         </main>
       </div>
