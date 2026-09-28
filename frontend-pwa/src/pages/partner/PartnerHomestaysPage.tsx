@@ -7,7 +7,6 @@ import {
   Clock,
   Eye,
   EyeOff,
-  FileText,
   Home,
   MapPin,
   Pencil,
@@ -16,17 +15,15 @@ import {
   ShieldCheck,
   Wrench,
   X,
-  type LucideIcon,
 } from 'lucide-react';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { fetchPartnerHomestays, updateHomestayStatus, homestayError } from '@/services/partnerHomestayService';
 import type {
   PartnerHomestaySummaryDto,
   PartnerHomestayStatsDto,
-  PlaceOperationStatus,
   PlaceVisibility,
 } from '@/types/partner';
-import { Alert, EmptyState, PageHeader, Pill, Tabs } from '@/components/partner/PartnerUI';
+import { Alert, EmptyState, PageHeader, Tabs } from '@/components/partner/PartnerUI';
 import { ui, vnd } from '@/lib/partnerUi';
 
 const EMPTY_STATS: PartnerHomestayStatsDto = {

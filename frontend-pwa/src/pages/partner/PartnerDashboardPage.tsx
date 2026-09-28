@@ -1,15 +1,13 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   AlertTriangle,
   ArrowRight,
-  ArrowUpRight,
   CalendarCheck,
   LineChart,
   RefreshCw,
   Star,
-  Filter,
-  Calendar
+  Filter
 } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { fetchPartnerHomestays } from '@/services/partnerHomestayService';
@@ -20,15 +18,6 @@ import type { PartnerHomestaySummaryDto } from '@/types/partner';
 import type { ChangeRequestSummary } from '@/types/changeRequest';
 
 type StatusTone = 'success' | 'warning' | 'danger' | 'info' | 'brand' | 'neutral';
-
-const BADGE_TONE: Record<StatusTone, string> = {
-  success: 'border border-success/40 bg-white text-success',
-  warning: 'border border-warning/50 bg-white text-warning',
-  danger: 'border border-danger/40 bg-white text-danger',
-  info: 'border border-secondary/40 bg-white text-secondary',
-  brand: 'border border-primary/40 bg-white text-primary',
-  neutral: 'border border-border bg-white text-muted',
-};
 
 const vnd = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 });
 const compactVnd = (n: number) =>
@@ -233,7 +222,7 @@ export default function PartnerDashboardPage() {
                 Chưa có doanh thu trong năm này.
               </div>
             ) : (
-              <AreaChart points={chartData.revenueTrend} unitLabel="đơn" />
+              <AreaChart points={chartData.revenueTrend} />
             )}
           </div>
         </div>
@@ -291,7 +280,7 @@ export default function PartnerDashboardPage() {
                   <RechartsTooltip 
                     contentStyle={{ borderRadius: '6px', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)', fontSize: '12px', background: 'var(--color-surface)', padding: '6px 10px' }}
                     itemStyle={{ color: 'var(--color-ink-deep)', fontWeight: 600, padding: 0 }}
-                    formatter={(value: number, name: string) => [
+                    formatter={(value: any, name: any) => [
                       `${value} đơn (${((value / totalProcessedBookings) * 100).toFixed(1)}%)`,
                       name
                     ]}
@@ -349,7 +338,7 @@ export default function PartnerDashboardPage() {
                       <td className="px-4 py-2.5 font-semibold text-ink-deep whitespace-nowrap">{booking.guestName}</td>
                       <td className="max-w-[150px] truncate px-4 py-2.5 text-muted" title={booking.homestayName}>{booking.homestayName}</td>
                       <td className="px-4 py-2.5 text-ink whitespace-nowrap">{new Date(booking.checkInDate).toLocaleDateString('vi-VN')}</td>
-                      <td className="px-4 py-2.5 whitespace-nowrap"><span className={`rounded-sm border px-2 py-0.5 text-[10px] font-bold ${BOOKING_STATUS_TONE[booking.status]}`}>{BOOKING_STATUS_LABEL[booking.status]}</span></td>
+                      <td className="px-4 py-2.5 whitespace-nowrap"><span className={`rounded-sm border px-2 py-0.5 text-[10px] font-bold ${BOOKING_STATUS_TONE[booking.status as keyof typeof BOOKING_STATUS_TONE]}`}>{BOOKING_STATUS_LABEL[booking.status as keyof typeof BOOKING_STATUS_LABEL]}</span></td>
                       <td className="px-4 py-2.5 text-right font-semibold tabular-nums text-ink-deep whitespace-nowrap">{vnd.format(booking.totalAmount)}</td>
                     </tr>
                   ))
@@ -416,7 +405,7 @@ export default function PartnerDashboardPage() {
 
 
 
-function AreaChart({ points, unitLabel }: { points: MonthlyRevenuePoint[]; unitLabel: string }) {
+function AreaChart({ points }: { points: MonthlyRevenuePoint[] }) {
   const W = 600;
   const H = 180;
   const PAD_T = 18;

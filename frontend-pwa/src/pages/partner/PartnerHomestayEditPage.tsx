@@ -19,7 +19,7 @@ import PartnerServicesPanel from '@/components/partner/PartnerServicesPanel';
 import MediaManager from '@/components/partner/MediaManager';
 import HomestayClosurePanel from '@/components/partner/HomestayClosurePanel';
 import HomestayChangeLogPanel from '@/components/partner/HomestayChangeLogPanel';
-import { Alert, Card, Field, LoadingBlock, PageHeader, Pill } from '@/components/partner/PartnerUI';
+import { Alert, Card, Field, LoadingBlock, PageHeader } from '@/components/partner/PartnerUI';
 import { ui } from '@/lib/partnerUi';
 
 const EMPTY: PartnerHomestayDetailDto = {
@@ -169,10 +169,6 @@ export default function PartnerHomestayEditPage() {
     ...(id ? [{ done: !!form.coverImageUrl, label: 'Ảnh đại diện', tab: 'media' as const }] : []),
   ];
   const doneCount = checklist.filter(c => c.done).length;
-  const tabDone = (tab: TabId) => {
-    const items = checklist.filter(c => c.tab === tab);
-    return items.length > 0 && items.every(c => c.done);
-  };
 
   const tabs: { id: TabId; label: string; icon: LucideIcon; hint: string }[] = [
     { id: 'info', label: 'Thông tin cơ bản', icon: Info, hint: 'Tên, mô tả, liên hệ' },

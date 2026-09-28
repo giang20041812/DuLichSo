@@ -8,8 +8,6 @@ export default function PartnerProfilePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = searchParams.get('tab') || 'info';
 
-  const [session, setSession] = useState<PortalLoginResponse | null>(null);
-  
   // Dummy form state
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -27,7 +25,6 @@ export default function PartnerProfilePage() {
       const raw = localStorage.getItem('portal_user');
       if (raw) {
         const s = JSON.parse(raw) as PortalLoginResponse;
-        setSession(s);
         setName(s.fullName || s.provider?.name || '');
         setEmail(s.email || '');
         setPhone(s.phone || '');
