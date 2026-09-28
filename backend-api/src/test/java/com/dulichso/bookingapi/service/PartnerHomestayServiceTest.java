@@ -158,6 +158,18 @@ class PartnerHomestayServiceTest {
         verify(repository, never()).persist(any());
     }
 
+    @Test void processingWindowNeedsBothTimesAndStartBeforeEnd() {
+        authenticate();
+        lenient().when(repository.findOwned(21L, 12L, true)).thenReturn(Optional.of(place));
+        for (String[] bad : List.of(new String[]{"07:00", ""}, new String[]{"", "22:00"}, new String[]{"22:00", "06:00"}, new String[]{"08:00", "08:00"}, new String[]{"7h", "22:00"})) {
+            PartnerHomestayDetailDto dto = input();
+            dto.setProcessingStartTime(bad[0]);
+            dto.setProcessingEndTime(bad[1]);
+            assertEquals(400, assertThrows(ResponseStatusException.class, () -> service.saveHomestayDetail(principal, 21L, dto)).getStatusCode().value(), String.join("-", bad));
+        }
+        verify(repository, never()).persist(any());
+    }
+
     @Test void existingSeedTikTokLinksStayValid() {
         for (String ok : List.of("https://www.tiktok.com/@vn.cng8742?_r=1&_t=ZS-99pdoOCSCrh", "https://vt.tiktok.com/ZSqtJaVhA/",
                 "https://www.tiktok.com/@siunhonbonbon/video/7677072691366497543?is_from_webapp=1&sender_device=pc"))

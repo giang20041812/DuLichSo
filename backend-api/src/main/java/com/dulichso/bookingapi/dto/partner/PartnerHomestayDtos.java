@@ -103,6 +103,9 @@ public class PartnerHomestayDtos {
         private List<String> amenities;
         private String checkInFrom;
         private String checkOutUntil;
+        /** Khung giờ xử lý đơn "HH:mm"; rỗng = mặc định 05:00 - 21:00. */
+        private String processingStartTime;
+        private String processingEndTime;
         private String houseRules;
         private String cancellationPolicy;
         private String policyName;

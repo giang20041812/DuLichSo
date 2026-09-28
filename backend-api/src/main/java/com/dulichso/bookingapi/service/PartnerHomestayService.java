@@ -205,6 +205,8 @@ public class PartnerHomestayService {
         if (isNew) profile = HomestayProfile.builder().place(place).build();
         profile.setCheckInFrom(time(dto.getCheckInFrom()));
         profile.setCheckOutUntil(time(dto.getCheckOutUntil()));
+        profile.setProcessingStartTime(time(dto.getProcessingStartTime()));
+        profile.setProcessingEndTime(time(dto.getProcessingEndTime()));
         profile.setHouseRules(text(dto.getHouseRules()));
         profile.setSurchargeNote(text(dto.getSurchargeNote()));
         profile.setChildrenPolicy(text(dto.getChildrenPolicy()));
@@ -256,6 +258,8 @@ public class PartnerHomestayService {
                 .amenities(placeAmenities.findByPlaceIdWithAmenity(p.getId()).stream().filter(a -> a.getValue() == AmenityValue.YES).map(a -> a.getAmenity().getName()).toList())
                 .checkInFrom(profile == null || profile.getCheckInFrom() == null ? "" : profile.getCheckInFrom().toString())
                 .checkOutUntil(profile == null || profile.getCheckOutUntil() == null ? "" : profile.getCheckOutUntil().toString())
+                .processingStartTime(profile == null || profile.getProcessingStartTime() == null ? "" : profile.getProcessingStartTime().toString())
+                .processingEndTime(profile == null || profile.getProcessingEndTime() == null ? "" : profile.getProcessingEndTime().toString())
                 .houseRules(profile == null ? "" : text(profile.getHouseRules())).surchargeNote(profile == null ? "" : text(profile.getSurchargeNote()))
                 .childrenPolicy(profile==null?"":text(profile.getChildrenPolicy())).petsPolicy(profile==null?"":text(profile.getPetsPolicy())).guestPolicy(profile==null?"":text(profile.getGuestPolicy()))
                 .cancellationPolicy(policy == null ? "" : policy.getContentText()).policyName(policy == null ? "" : policy.getName())
@@ -309,6 +313,10 @@ public class PartnerHomestayService {
         if (dto.getLatitude() != null && (!Double.isFinite(dto.getLatitude()) || Math.abs(dto.getLatitude()) > 90
                 || !Double.isFinite(dto.getLongitude()) || Math.abs(dto.getLongitude()) > 180)) throw bad("Tọa độ không hợp lệ.");
         time(dto.getCheckInFrom()); time(dto.getCheckOutUntil());
+        LocalTime processingStart = time(dto.getProcessingStartTime()), processingEnd = time(dto.getProcessingEndTime());
+        if ((processingStart == null) != (processingEnd == null)) throw bad("Cần chọn cả giờ bắt đầu và giờ kết thúc xử lý đơn.");
+        if (processingStart != null && !ResponseDeadlineCalculator.isValidWindow(processingStart, processingEnd))
+            throw bad("Giờ bắt đầu xử lý đơn phải trước giờ kết thúc.");
         if (text(dto.getCancellationPolicy()).isEmpty() && (!text(dto.getPolicyName()).isEmpty()
                 || dto.getFreeCancelCutoffHours() != null || dto.getRefundOnLateCancel() != null)) throw bad("Cần nhập nội dung chính sách hủy.");
         if (!text(dto.getCancellationPolicy()).isEmpty() && (text(dto.getPolicyName()).isEmpty() || text(dto.getPolicyName()).length() > 255

@@ -66,6 +66,9 @@ export interface PartnerHomestayDetailDto {
   amenities: string[];
   checkInFrom: string;
   checkOutUntil: string;
+  /** Khung giờ NCC xử lý đơn "HH:mm" (BOOK-BR-11); rỗng = mặc định 05:00 - 21:00. Khớp PartnerHomestayDetailDto bên backend. */
+  processingStartTime?: string;
+  processingEndTime?: string;
   houseRules: string;
   cancellationPolicy: string;
   policyName?: string;

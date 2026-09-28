@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
-  BedDouble, CheckCircle2, Circle, ClipboardList, Eye, EyeOff, History, Image as ImageIcon, Info, LocateFixed, Lock,
+  BedDouble, CheckCircle2, Circle, ClipboardList, Clock, Eye, EyeOff, History, Image as ImageIcon, Info, LocateFixed, Lock,
   MapPin, Save, ScrollText, Settings2, Sparkles, Unlock, X, type LucideIcon,
 } from 'lucide-react';
 import type { HomestayOptionsDto, PartnerHomestayDetailDto, UpdateStatusRequest } from '@/types/partner';
@@ -25,7 +25,7 @@ import { ui } from '@/lib/partnerUi';
 const EMPTY: PartnerHomestayDetailDto = {
   id: 0, code: '', slug: '', name: '', description: '', address: '', regionName: '', regionId: null,
   latitude: null, longitude: null, contactPhone: '', contactEmail: '', reviewVideoUrl: '', accessNote: '',
-  coverImageUrl: '', galleryUrls: [], amenities: [], checkInFrom: '', checkOutUntil: '',
+  coverImageUrl: '', galleryUrls: [], amenities: [], checkInFrom: '', checkOutUntil: '', processingStartTime: '', processingEndTime: '',
   houseRules: '', cancellationPolicy: '', policyName: '', freeCancelCutoffHours: null, refundOnLateCancel: null,
   surchargeNote: '', visibility: 'DRAFT', operationStatus: 'OPERATING', isReadyToPublish: false,
   cooperativeName: '', providerCode: '',
@@ -340,6 +340,8 @@ export default function PartnerHomestayEditPage() {
                             </div>
                             <Field label="Số khách và khách phù hợp"><textarea className={ui.textarea} rows={2} maxLength={10000} value={form.guestPolicy ?? ''} onChange={e => set('guestPolicy', e.target.value)} /></Field>
                           </Card>
+                          <ProcessingWindowCard start={form.processingStartTime ?? ''} end={form.processingEndTime ?? ''}
+                            onChange={(start, end) => setForm(prev => ({ ...prev, processingStartTime: start, processingEndTime: end }))} />
                           <Card title="Chính sách hủy phòng" icon={ScrollText}
                             description={`${form.policyVersion ? `Phiên bản hiện tại: ${form.policyVersion}. ` : ''}Thay đổi chính sách sẽ tạo phiên bản mới; đơn đã đặt giữ nguyên chính sách cũ.`}>
                             <Field label="Tên chính sách"><input className={ui.input} maxLength={255} required={!!form.cancellationPolicy.trim()} value={form.policyName ?? ''} onChange={e => set('policyName', e.target.value)} placeholder="VD: Linh hoạt" /></Field>
@@ -432,5 +434,64 @@ function StatusCard({ title, on, text, button }: { title: string; on: boolean; t
       <p className="text-xs leading-relaxed text-muted">{text}</p>
       <div className="mt-auto">{button}</div>
     </div>
+  );
+}
+
+const DEFAULT_WINDOW = { start: '05:00', end: '21:00' };
+const WINDOW_PRESETS = [
+  { label: 'Mặc định 05:00 – 21:00', start: '', end: '' },
+  { label: '07:00 – 22:00', start: '07:00', end: '22:00' },
+  { label: 'Cả ngày', start: '00:00', end: '23:59' },
+];
+const toMinutes = (hhmm: string) => { const [h = 0, m = 0] = hhmm.split(':').map(Number); return h * 60 + m; };
+const fmt = (minutes: number) => `${String(Math.floor(minutes / 60) % 24).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+
+/** Giống ResponseDeadlineCalculator bên backend: cộng 120 phút, chỉ tính trong khung giờ, hết khung thì sang hôm sau. */
+function previewDeadline(createdMinutes: number, start: number, end: number, budget = 120): { minutes: number; days: number } {
+  let t = createdMinutes; let days = 0; let remaining = budget;
+  for (;;) {
+    if (t < start) t = start;
+    if (t >= end) { t = start; days += 1; continue; }
+    const available = end - t;
+    if (remaining <= available) return { minutes: t + remaining, days };
+    remaining -= available; t = start; days += 1;
+  }
+}
+
+/** BOOK-BR-11: NCC tự chọn khung giờ xử lý đơn; hạn 120 phút chỉ được tính trong khung này. */
+function ProcessingWindowCard({ start, end, onChange }: { start: string; end: string; onChange: (start: string, end: string) => void }) {
+  const effectiveStart = start || DEFAULT_WINDOW.start;
+  const effectiveEnd = end || DEFAULT_WINDOW.end;
+  const valid = toMinutes(effectiveStart) < toMinutes(effectiveEnd);
+  const example = toMinutes(effectiveEnd) - 30;
+  const due = valid ? previewDeadline(example, toMinutes(effectiveStart), toMinutes(effectiveEnd)) : null;
+
+  return (
+    <Card title="Khung giờ xử lý đơn" icon={Clock}
+      description="Bạn có 120 phút để chấp nhận hoặc từ chối đơn mới. Thời gian này chỉ tính trong khung giờ bạn chọn; ngoài giờ sẽ tạm dừng và đếm tiếp vào sáng hôm sau.">
+      <div className="flex flex-wrap gap-2">
+        {WINDOW_PRESETS.map(p => {
+          const on = p.start === start && p.end === end;
+          return (
+            <button key={p.label} type="button" aria-pressed={on} onClick={() => onChange(p.start, p.end)}
+              className={`rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors duration-200 ${on ? 'border-primary bg-primary text-white' : 'border-border bg-surface text-ink hover:border-primary/50 hover:text-primary'}`}>
+              {p.label}
+            </button>
+          );
+        })}
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Bắt đầu nhận xử lý"><input className={ui.input} type="time" value={effectiveStart} onChange={e => onChange(e.target.value, effectiveEnd)} /></Field>
+        <Field label="Kết thúc"><input className={ui.input} type="time" value={effectiveEnd} onChange={e => onChange(effectiveStart, e.target.value)} /></Field>
+      </div>
+      {valid && due ? (
+        <p className="rounded-md border border-primary/10 bg-primary-50/60 px-3 py-2.5 text-xs leading-relaxed text-ink">
+          Ví dụ: khách đặt lúc <b>{fmt(example)}</b> → bạn cần phản hồi trước <b>{fmt(due.minutes)}{due.days > 0 ? (due.days === 1 ? ' sáng hôm sau' : ` sau ${due.days} ngày`) : ''}</b>.
+          {!start && !end && <span className="text-muted"> (Đang dùng khung mặc định.)</span>}
+        </p>
+      ) : (
+        <Alert tone="error">Giờ bắt đầu phải trước giờ kết thúc.</Alert>
+      )}
+    </Card>
   );
 }

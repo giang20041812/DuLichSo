@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+  <!-- BOOK-BR-11: khung giờ xử lý đơn do NCC tự chọn cho từng Homestay. NULL = mặc định 05:00 - 21:00. -->
+  <changeSet id="016-homestay-processing-hours" author="huy">
+    <!-- Bỏ qua nếu cột đã có (DB đã chạy bản thử với tên changeset 015 cũ). -->
+    <preConditions onFail="MARK_RAN">
+      <not><columnExists tableName="homestay_profile" columnName="processing_start_time"/></not>
+    </preConditions>
+    <addColumn tableName="homestay_profile">
+      <column name="processing_start_time" type="TIME"/>
+      <column name="processing_end_time" type="TIME"/>
+    </addColumn>
+    <rollback>
+      <dropColumn tableName="homestay_profile" columnName="processing_end_time"/>
+      <dropColumn tableName="homestay_profile" columnName="processing_start_time"/>
+    </rollback>
+  </changeSet>
+</databaseChangeLog>

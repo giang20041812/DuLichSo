@@ -25,7 +25,7 @@ final class ChangeRequestDiff {
             "name", "Tên Homestay", "description", "Mô tả", "address", "Địa chỉ", "regionId", "Khu vực (mã)",
             "latitude", "Vĩ độ", "longitude", "Kinh độ", "accessNote", "Hướng dẫn đường đi", "contactPhone", "Số điện thoại",
             "contactEmail", "Email", "reviewVideoUrl", "Video review TikTok", "amenities", "Tiện nghi",
-            "checkInFrom", "Giờ nhận phòng", "checkOutUntil", "Giờ trả phòng", "houseRules", "Nội quy",
+            "checkInFrom", "Giờ nhận phòng", "checkOutUntil", "Giờ trả phòng", "processingStartTime", "Bắt đầu xử lý đơn", "processingEndTime", "Kết thúc xử lý đơn","houseRules", "Nội quy",
             "surchargeNote", "Phụ thu", "childrenPolicy", "Chính sách trẻ em", "petsPolicy", "Chính sách thú cưng",
             "guestPolicy", "Chính sách khách", "policyName", "Tên chính sách hủy", "cancellationPolicy", "Nội dung chính sách hủy",
             "freeCancelCutoffHours", "Số giờ hủy miễn phí", "refundOnLateCancel", "Hoàn tiền khi hủy muộn");
