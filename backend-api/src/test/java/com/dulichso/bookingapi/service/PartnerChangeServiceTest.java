@@ -3,6 +3,8 @@ package com.dulichso.bookingapi.service;
 import com.dulichso.bookingapi.dto.ChangeRequestDtos.ChangeRequestSummaryDto;
 import com.dulichso.bookingapi.dto.ChangeRequestDtos.SubmittedDto;
 import com.dulichso.bookingapi.dto.partner.PartnerHomestayDtos.PartnerHomestayDetailDto;
+import com.dulichso.bookingapi.dto.partner.PartnerHomestayDtos.PartnerHomestaySummaryDto;
+import com.dulichso.bookingapi.dto.partner.PartnerHomestayDtos.UpdateStatusRequest;
 import com.dulichso.bookingapi.dto.partner.PartnerRoomDtos.PriceDto;
 import com.dulichso.bookingapi.dto.partner.PartnerRoomDtos.PriceInput;
 import com.dulichso.bookingapi.dto.partner.PartnerRoomDtos.RoomDto;
@@ -17,6 +19,7 @@ import com.dulichso.bookingapi.entity.enums.ChangeOperation;
 import com.dulichso.bookingapi.entity.enums.ChangeRequestStatus;
 import com.dulichso.bookingapi.entity.enums.ChangeTargetType;
 import com.dulichso.bookingapi.entity.enums.PlaceVisibility;
+import com.dulichso.bookingapi.entity.enums.ProviderStatus;
 import com.dulichso.bookingapi.repository.PartnerChangeRequestRepository;
 import com.dulichso.bookingapi.security.UserPrincipal;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -48,6 +51,7 @@ class PartnerChangeServiceTest {
     @Mock PartnerHomestayService homestays;
     @Mock PartnerRoomService rooms;
     @Mock PartnerChangeRequestRepository requests;
+    @Mock com.dulichso.bookingapi.repository.ProviderRepository providerRepository;
 
     final UserPrincipal principal = new UserPrincipal(null, "provider@example.test", AccountRole.PROVIDER, null);
     PartnerChangeService service;
@@ -58,7 +62,7 @@ class PartnerChangeServiceTest {
     @BeforeEach
     void setup() {
         ObjectMapper mapper = new ObjectMapper().findAndRegisterModules().disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        service = new PartnerChangeService(homestays, rooms, requests, mapper);
+        service = new PartnerChangeService(homestays, rooms, requests, providerRepository, mapper);
         provider = Provider.builder().id(12L).name("NCC A").build();
         account = Account.builder().id(7L).fullName("Chủ nhà").role(AccountRole.PROVIDER).provider(provider).build();
         place = Place.builder().id(21L).name("Homestay A").provider(provider).build();
@@ -84,41 +88,22 @@ class PartnerChangeServiceTest {
         return captor.getValue();
     }
 
+    /**
+     * Xác nhận nghiệp vụ (2026-09-28): sửa thông tin Homestay luôn ghi trực tiếp, kể cả khi đã PUBLISHED —
+     * không còn tạo yêu cầu chờ Admin duyệt cho trường hợp này (khác với lần đầu xuất bản/chuyển NCC).
+     */
     @Test
-    @DisplayName("Homestay đang công khai: sửa thông tin tạo yêu cầu PENDING, KHÔNG ghi vào dữ liệu chính thức")
-    void publishedHomestay_createsPendingRequest() {
-        when(homestays.detailOf(place)).thenReturn(homestay("Tên cũ"));
+    @DisplayName("Homestay đang công khai: sửa thông tin ghi trực tiếp, KHÔNG tạo yêu cầu chờ duyệt")
+    void publishedHomestay_savesDirectly() {
+        PartnerHomestayDetailDto result = homestay("Tên mới");
+        when(homestays.saveHomestayDetail(principal, 21L, result)).thenReturn(result);
 
-        var outcome = service.saveHomestay(principal, 21L, homestay("Tên mới"));
+        var outcome = service.saveHomestay(principal, 21L, result);
 
-        assertTrue(outcome.isPending());
-        assertNull(outcome.saved());
-        assertEquals(ChangeRequestStatus.PENDING, outcome.pending().status());
-        verify(homestays, never()).saveHomestayDetail(any(), anyLong(), any());
-        PartnerChangeRequest request = saved();
-        assertEquals(ChangeTargetType.HOMESTAY, request.getTargetType());
-        assertEquals(ChangeOperation.UPDATE, request.getOperation());
-        assertEquals("Tên mới", request.getPayload().get("name"));
-        assertEquals("Tên cũ", request.getBeforeData().get("name"));
-        assertEquals(12L, request.getProvider().getId());
-        assertEquals(7L, request.getSubmittedBy().getId());
-    }
-
-    @Test
-    @DisplayName("Payload chỉ chứa trường được phép đề xuất, không mang id/trạng thái hiển thị")
-    void payloadContainsOnlyEditableFields() {
-        when(homestays.detailOf(place)).thenReturn(homestay("Tên cũ"));
-        PartnerHomestayDetailDto dto = homestay("Tên mới");
-        dto.setVisibility(PlaceVisibility.PUBLISHED);
-        dto.setCoverImageUrl("https://evil.example/x.jpg");
-
-        service.saveHomestay(principal, 21L, dto);
-
-        Map<String, Object> payload = saved().getPayload();
-        assertEquals(ChangeRequestDiff.HOMESTAY.keySet(), payload.keySet());
-        assertFalse(payload.containsKey("id"));
-        assertFalse(payload.containsKey("visibility"));
-        assertFalse(payload.containsKey("coverImageUrl"));
+        assertFalse(outcome.isPending());
+        assertSame(result, outcome.saved());
+        verify(requests, never()).save(any());
+        verifyNoInteractions(requests);
     }
 
     @Test
@@ -133,30 +118,6 @@ class PartnerChangeServiceTest {
         assertFalse(outcome.isPending());
         assertSame(result, outcome.saved());
         verify(requests, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("Gửi lại nội dung y hệt hiện tại: bị từ chối, không tạo yêu cầu rỗng")
-    void unchangedContent_rejected() {
-        when(homestays.detailOf(place)).thenReturn(homestay("Tên cũ"));
-
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> service.saveHomestay(principal, 21L, homestay("Tên cũ")));
-
-        assertEquals(400, ex.getStatusCode().value());
-        verify(requests, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("Yêu cầu mới thay thế yêu cầu đang chờ cho cùng Homestay")
-    void newRequestSupersedesPendingOne() {
-        when(homestays.detailOf(place)).thenReturn(homestay("Tên cũ"));
-        PartnerChangeRequest old = PartnerChangeRequest.builder().id(50L).status(ChangeRequestStatus.PENDING).build();
-        when(requests.findOpen(ChangeRequestStatus.PENDING, 21L, ChangeTargetType.HOMESTAY, null, null)).thenReturn(List.of(old));
-
-        service.saveHomestay(principal, 21L, homestay("Tên mới"));
-
-        assertEquals(ChangeRequestStatus.CANCELLED, old.getStatus());
-        assertNotNull(old.getReviewNote());
     }
 
     private RoomDto currentRoom() {
@@ -257,5 +218,81 @@ class PartnerChangeServiceTest {
 
         assertEquals(ChangeRequestStatus.CANCELLED, own.getStatus());
         assertEquals(ChangeRequestStatus.CANCELLED, result.status());
+    }
+
+    @Test
+    @DisplayName("HOM-MGT-BR-04: lần đầu xuất bản (đủ điều kiện) tạo yêu cầu PUBLISH chờ duyệt, KHÔNG tự set PUBLISHED")
+    void firstPublish_readyToPublish_createsPendingPublishRequest() {
+        place.setVisibility(PlaceVisibility.DRAFT);
+        when(homestays.isReadyToPublish(place)).thenReturn(true);
+
+        var outcome = service.updateStatus(principal, 21L, UpdateStatusRequest.builder().visibility(PlaceVisibility.PUBLISHED).build());
+
+        assertTrue(outcome.isPending());
+        verify(homestays, never()).updateStatus(any(), anyLong(), any());
+        PartnerChangeRequest request = saved();
+        assertEquals(ChangeTargetType.HOMESTAY, request.getTargetType());
+        assertEquals(ChangeOperation.PUBLISH, request.getOperation());
+        assertEquals("DRAFT", request.getBeforeData().get("visibility"));
+        assertEquals("PUBLISHED", request.getPayload().get("visibility"));
+    }
+
+    @Test
+    @DisplayName("HOM-MGT-BR-04: lần đầu xuất bản nhưng chưa đủ điều kiện thì từ chối, không tạo yêu cầu")
+    void firstPublish_notReady_rejectedWithoutRequest() {
+        place.setVisibility(PlaceVisibility.DRAFT);
+        when(homestays.isReadyToPublish(place)).thenReturn(false);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> service.updateStatus(principal, 21L,
+                UpdateStatusRequest.builder().visibility(PlaceVisibility.PUBLISHED).build()));
+
+        assertEquals(400, ex.getStatusCode().value());
+        verify(requests, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Không phải lần đầu xuất bản (đổi vận hành, ngừng hiển thị...): ghi trực tiếp như trước, không tạo yêu cầu")
+    void notFirstPublish_delegatesDirectly() {
+        place.setVisibility(PlaceVisibility.PUBLISHED);
+        UpdateStatusRequest request = UpdateStatusRequest.builder().visibility(PlaceVisibility.UNPUBLISHED).build();
+        PartnerHomestaySummaryDto result = PartnerHomestaySummaryDto.builder().id(21L).build();
+        when(homestays.updateStatus(principal, 21L, request)).thenReturn(result);
+
+        var outcome = service.updateStatus(principal, 21L, request);
+
+        assertFalse(outcome.isPending());
+        assertSame(result, outcome.saved());
+        verify(requests, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Xác nhận nghiệp vụ: xin chuyển NCC quản lý tạo yêu cầu TRANSFER chờ duyệt, KHÔNG tự đổi provider")
+    void requestTransfer_createsPendingRequest() {
+        Provider target = Provider.builder().id(99L).name("NCC B").status(ProviderStatus.ACTIVE).build();
+        when(providerRepository.findById(99L)).thenReturn(Optional.of(target));
+
+        SubmittedDto pending = service.requestTransfer(principal, 21L, 99L);
+
+        assertEquals(ChangeRequestStatus.PENDING, pending.status());
+        assertEquals(12L, place.getProvider().getId(), "Chưa đổi NCC quản lý cho tới khi Admin duyệt");
+        PartnerChangeRequest request = saved();
+        assertEquals(ChangeTargetType.HOMESTAY, request.getTargetType());
+        assertEquals(ChangeOperation.TRANSFER, request.getOperation());
+        assertEquals(12L, ((Number) request.getBeforeData().get("providerId")).longValue());
+        assertEquals(99L, ((Number) request.getPayload().get("providerId")).longValue());
+    }
+
+    @Test
+    @DisplayName("Xin chuyển: NCC đích trùng NCC hiện tại hoặc không hoạt động đều bị từ chối, không tạo yêu cầu")
+    void requestTransfer_rejectsInvalidTarget() {
+        assertEquals(400, assertThrows(ResponseStatusException.class,
+                () -> service.requestTransfer(principal, 21L, 12L)).getStatusCode().value());
+
+        Provider suspended = Provider.builder().id(50L).name("NCC C").status(ProviderStatus.SUSPENDED).build();
+        when(providerRepository.findById(50L)).thenReturn(Optional.of(suspended));
+        assertEquals(400, assertThrows(ResponseStatusException.class,
+                () -> service.requestTransfer(principal, 21L, 50L)).getStatusCode().value());
+
+        verify(requests, never()).save(any());
     }
 }

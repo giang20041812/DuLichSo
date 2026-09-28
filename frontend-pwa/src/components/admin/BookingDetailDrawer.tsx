@@ -80,19 +80,22 @@ export default function BookingDetailDrawer({ booking, scope, onClose, onChanged
   const base = detail?.booking ?? booking;
   const b = statusOverride ? { ...base, status: statusOverride.status, closeReason: statusOverride.closeReason ?? base.closeReason } : base;
 
-  /** Đổi trạng thái đơn (Xác nhận / Từ chối / Hoàn tiền) qua API của Admin hoặc Đối tác. */
+  /**
+   * Đổi trạng thái đơn (Xác nhận / Từ chối / Hoàn tiền) — CHỈ dành cho Đối tác (NCC).
+   * MON-BR-03/04: Admin không được xác nhận/từ chối/hủy Booking thay NCC, kể cả khi xem ở cổng quản trị;
+   * hàm này chỉ thực sự gọi API khi scope === 'partner' (canDecide/canRefund bên dưới đã khóa theo scope).
+   */
   const handleUpdateStatus = async (newStatus: BookingStatus, reason?: string) => {
+    if (scope !== 'partner') return;
     setUpdating(true);
     setActionMsg(null);
     try {
-      const updateFn = scope === 'partner' ? partnerBookingService.updateStatus : adminService.updateBookingStatus;
-      await updateFn(b.id, newStatus, reason);
+      await partnerBookingService.updateStatus(b.id, newStatus, reason);
       setStatusOverride({ status: newStatus, closeReason: reason });
       setRejectOpen(false);
       setRejectReason('');
       setActionMsg({ type: 'success', text: `Đã đổi trạng thái đơn sang: ${STATUS_LABEL[newStatus]}` });
       onChanged?.();
-      if (scope === 'admin') void load();
     } catch (err: unknown) {
       setActionMsg({ type: 'error', text: getApiErrorMessage(err, 'Cập nhật trạng thái thất bại. Vui lòng thử lại.') });
     } finally {
@@ -100,7 +103,8 @@ export default function BookingDetailDrawer({ booking, scope, onClose, onChanged
     }
   };
 
-  const canDecide = b.status === 'PENDING' || b.status === 'AWAITING_PAYMENT';
+  // MON-BR-03/04: Admin chỉ xem Booking (kể cả tab "Thông tin đơn"), không có quyền xác nhận/từ chối/hoàn tiền.
+  const canDecide = scope === 'partner' && (b.status === 'PENDING' || b.status === 'AWAITING_PAYMENT');
 
   const copyCode = async () => {
     try {

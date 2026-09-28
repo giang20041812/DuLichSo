@@ -3,7 +3,11 @@
  * Khớp com.dulichso.bookingapi.dto.ChangeRequestDtos và entity PartnerChangeRequest (backend-api).
  */
 export type ChangeTargetType = 'HOMESTAY' | 'ROOM_TYPE' | 'ROOM_PRICE';
-export type ChangeOperation = 'CREATE' | 'UPDATE' | 'DELETE';
+/**
+ * PUBLISH: HOM-MGT-BR-04 — NCC xin đưa Homestay từ chưa công khai sang PUBLISHED lần đầu, chờ Admin duyệt.
+ * TRANSFER: xác nhận nghiệp vụ (2026-09-28) — NCC hiện tại xin chuyển Homestay sang NCC khác quản lý, chờ Admin duyệt.
+ */
+export type ChangeOperation = 'CREATE' | 'UPDATE' | 'DELETE' | 'PUBLISH' | 'TRANSFER';
 export type ChangeRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
 
 /** Phản hồi 202 khi thay đổi được gửi chờ duyệt thay vì ghi trực tiếp (SubmittedDto). */

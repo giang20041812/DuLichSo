@@ -37,7 +37,6 @@ import type {
   AccountSearchParams,
   TravelerSearchParams,
 } from '../types/admin';
-import type { BookingStatus } from '../types/booking';
 import type { CashflowReport, CashflowSearchParams } from '../types/cashflow';
 import type { AuditLogItem, AuditLogSearchParams } from '../types/auditLog';
 import type { AdminReview, AdminReviewSearchParams, ReviewModerationAction } from '../types/adminReview';
@@ -309,10 +308,8 @@ export const adminService = {
     return res.data;
   },
 
-  async updateBookingStatus(id: number, status: BookingStatus, reason?: string): Promise<AdminBookingDto> {
-    const res = await axios.put<AdminBookingDto>(`${API_BASE}/bookings/${id}/status`, { status, reason }, getAuthHeaders());
-    return res.data;
-  },
+  // MON-BR-03/04: cố ý KHÔNG có updateBookingStatus ở đây — Admin chỉ được xem Booking, không được tự đổi trạng thái
+  // thay NCC. Đổi trạng thái Booking là việc của NCC (partnerBookingService) hoặc hệ thống thanh toán/hết hạn.
 
   async getPlacesSummary(): Promise<PlaceVerificationSummary> {
     const res = await axios.get<PlaceVerificationSummary>(`${API_BASE}/places/summary`, getAuthHeaders());

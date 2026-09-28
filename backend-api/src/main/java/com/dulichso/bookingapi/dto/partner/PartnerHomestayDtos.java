@@ -78,6 +78,15 @@ public class PartnerHomestayDtos {
         private PlaceOperationStatus operationStatus;
     }
 
+    /** Xác nhận nghiệp vụ (2026-09-28): NCC xin chuyển Homestay sang NCC khác quản lý — chờ Admin duyệt. */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class TransferRequest {
+        private Long targetProviderId;
+    }
+
     @Data
     @NoArgsConstructor
     @AllArgsConstructor

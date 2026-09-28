@@ -36,11 +36,14 @@ class AdminAccountServiceTest {
     @Mock
     private com.dulichso.bookingapi.repository.ProviderRepository providerRepository;
 
+    @Mock
+    private ProviderLockCascadeService providerLockCascadeService;
+
     private AdminAccountService service;
 
     @BeforeEach
     void setUp() {
-        service = new AdminAccountService(accountRepository, passwordEncoder, auditLogService, providerRepository);
+        service = new AdminAccountService(accountRepository, passwordEncoder, auditLogService, providerRepository, providerLockCascadeService);
     }
 
     @Test
@@ -121,7 +124,7 @@ class AdminAccountServiceTest {
                 .status(AccountStatus.ACTIVE)
                 .build();
 
-        when(accountRepository.findById(1L)).thenReturn(Optional.of(acc));
+        when(accountRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(acc));
 
         UpdateAccountStatusRequest req = UpdateAccountStatusRequest.builder()
                 .status(AccountStatus.INACTIVE)
@@ -141,7 +144,7 @@ class AdminAccountServiceTest {
                 .status(AccountStatus.ACTIVE)
                 .build();
 
-        when(accountRepository.findById(2L)).thenReturn(Optional.of(acc));
+        when(accountRepository.findByIdForUpdate(2L)).thenReturn(Optional.of(acc));
         when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         UpdateAccountStatusRequest req = UpdateAccountStatusRequest.builder()
@@ -159,7 +162,7 @@ class AdminAccountServiceTest {
     @DisplayName("updateAccountStatus: Giữ nguyên trạng thái thì không thu hồi phiên")
     void updateAccountStatus_SameStatus_KeepsSessions() {
         Account acc = Account.builder().id(2L).email("u2@taybactrails.vn").status(AccountStatus.ACTIVE).build();
-        when(accountRepository.findById(2L)).thenReturn(Optional.of(acc));
+        when(accountRepository.findByIdForUpdate(2L)).thenReturn(Optional.of(acc));
         when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         service.updateAccountStatus(2L, UpdateAccountStatusRequest.builder().status(AccountStatus.ACTIVE).build(), 1L);
@@ -170,7 +173,7 @@ class AdminAccountServiceTest {
     @DisplayName("updateAccountStatus: Khoá tài khoản bắt buộc có lý do")
     void updateAccountStatus_LockWithoutReason_Rejected() {
         Account acc = Account.builder().id(2L).email("u2@taybactrails.vn").status(AccountStatus.ACTIVE).build();
-        when(accountRepository.findById(2L)).thenReturn(Optional.of(acc));
+        when(accountRepository.findByIdForUpdate(2L)).thenReturn(Optional.of(acc));
 
         UpdateAccountStatusRequest req = UpdateAccountStatusRequest.builder().status(AccountStatus.INACTIVE).build();
         assertThrows(IllegalArgumentException.class, () -> service.updateAccountStatus(2L, req, 1L));
@@ -178,11 +181,44 @@ class AdminAccountServiceTest {
     }
 
     @Test
+    @DisplayName("updateAccountStatus: Khoá tài khoản NCC (PROVIDER) phải hủy các Booking đang chờ NCC duyệt (ACC-BR-08)")
+    void updateAccountStatus_LockProvider_CascadesPendingBookings() {
+        com.dulichso.bookingapi.entity.Provider provider = com.dulichso.bookingapi.entity.Provider.builder().id(12L).build();
+        Account acc = Account.builder().id(2L).email("ncc@x.vn").role(AccountRole.PROVIDER)
+                .status(AccountStatus.ACTIVE).provider(provider).build();
+        when(accountRepository.findByIdForUpdate(2L)).thenReturn(Optional.of(acc));
+        when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(providerLockCascadeService.cancelPendingBookings(provider)).thenReturn(3);
+
+        UpdateAccountStatusRequest req = UpdateAccountStatusRequest.builder()
+                .status(AccountStatus.INACTIVE).reason("NCC ngừng hoạt động").build();
+        AccountDto dto = service.updateAccountStatus(2L, req, 1L);
+
+        assertEquals(AccountStatus.INACTIVE, dto.getStatus());
+        verify(providerLockCascadeService, times(1)).cancelPendingBookings(provider);
+        verify(auditLogService, times(1)).record(eq(1L), eq("UPDATE_ACCOUNT_STATUS"), eq("Account"), eq(2L), anyString(),
+                anyMap(), argThat(m -> Integer.valueOf(3).equals(m.get("cancelledPendingBookings"))));
+    }
+
+    @Test
+    @DisplayName("updateAccountStatus: Mở lại tài khoản NCC không được gọi hủy Booking")
+    void updateAccountStatus_UnlockProvider_DoesNotCascade() {
+        com.dulichso.bookingapi.entity.Provider provider = com.dulichso.bookingapi.entity.Provider.builder().id(12L).build();
+        Account acc = Account.builder().id(2L).email("ncc@x.vn").role(AccountRole.PROVIDER)
+                .status(AccountStatus.INACTIVE).provider(provider).build();
+        when(accountRepository.findByIdForUpdate(2L)).thenReturn(Optional.of(acc));
+        when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.updateAccountStatus(2L, UpdateAccountStatusRequest.builder().status(AccountStatus.ACTIVE).build(), 1L);
+        verify(providerLockCascadeService, never()).cancelPendingBookings(any());
+    }
+
+    @Test
     @DisplayName("updateAccountRole: PROVIDER -> ADMIN, bỏ liên kết NCC, thu hồi phiên và ghi audit")
     void updateAccountRole_providerToAdmin() {
         Account acc = Account.builder().id(2L).email("p@x.vn").role(AccountRole.PROVIDER).status(AccountStatus.ACTIVE)
                 .provider(com.dulichso.bookingapi.entity.Provider.builder().id(12L).build()).build();
-        when(accountRepository.findById(2L)).thenReturn(Optional.of(acc));
+        when(accountRepository.findByIdForUpdate(2L)).thenReturn(Optional.of(acc));
         when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         AccountDto dto = service.updateAccountRole(2L, UpdateAccountRoleRequest.builder().role(AccountRole.ADMIN).reason("Bổ nhiệm").build(), 1L);
@@ -197,7 +233,7 @@ class AdminAccountServiceTest {
     @DisplayName("updateAccountRole: ADMIN -> PROVIDER cần NCC hợp lệ và chưa có tài khoản")
     void updateAccountRole_adminToProvider() {
         Account acc = Account.builder().id(2L).email("a@x.vn").role(AccountRole.ADMIN).status(AccountStatus.ACTIVE).build();
-        when(accountRepository.findById(2L)).thenReturn(Optional.of(acc));
+        when(accountRepository.findByIdForUpdate(2L)).thenReturn(Optional.of(acc));
         when(accountRepository.countByRoleAndStatus(AccountRole.ADMIN, AccountStatus.ACTIVE)).thenReturn(5L);
 
         UpdateAccountRoleRequest noProvider = UpdateAccountRoleRequest.builder().role(AccountRole.PROVIDER).reason("Chuyển bộ phận").build();
@@ -221,7 +257,7 @@ class AdminAccountServiceTest {
     @DisplayName("updateAccountRole: chặn tự đổi quyền, thiếu lý do, cùng quyền và hạ quyền Admin cuối cùng")
     void updateAccountRole_guards() {
         Account lastAdmin = Account.builder().id(2L).email("a@x.vn").role(AccountRole.ADMIN).status(AccountStatus.ACTIVE).build();
-        when(accountRepository.findById(2L)).thenReturn(Optional.of(lastAdmin));
+        when(accountRepository.findByIdForUpdate(2L)).thenReturn(Optional.of(lastAdmin));
 
         UpdateAccountRoleRequest ok = UpdateAccountRoleRequest.builder().role(AccountRole.PROVIDER).providerId(12L).reason("Lý do").build();
         assertThrows(IllegalStateException.class, () -> service.updateAccountRole(2L, ok, 2L));

@@ -45,6 +45,7 @@ public class BookingServiceImpl implements BookingService {
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
     private final com.dulichso.bookingapi.service.NotificationService notificationService;
     private final com.dulichso.bookingapi.service.CloudflareImagesService cloudflareImagesService;
+    private final AccountRepository accountRepository;
 
     private static final SecureRandom RANDOM = new SecureRandom();
 
@@ -79,6 +80,16 @@ public class BookingServiceImpl implements BookingService {
 
         if (place.getProvider() == null) {
             throw new IllegalStateException("Chỗ nghỉ chưa được liên kết với nhà cung cấp (Provider).");
+        }
+        // ACC-BR-07: NCC ngừng hoạt động (Provider) hoặc tài khoản đăng nhập của NCC bị khóa (Account) đều
+        // phải chặn Booking mới cho các Homestay của NCC đó — hai trạng thái độc lập, phải kiểm tra cả hai.
+        if (place.getProvider().getStatus() != com.dulichso.bookingapi.entity.enums.ProviderStatus.ACTIVE) {
+            throw new IllegalStateException("Nhà cung cấp hiện không hoạt động, không thể đặt phòng.");
+        }
+        boolean providerAccountLocked = accountRepository.findByProviderIdOrderByIdAsc(place.getProvider().getId()).stream()
+                .findFirst().map(acc -> acc.getStatus() != com.dulichso.bookingapi.entity.enums.AccountStatus.ACTIVE).orElse(false);
+        if (providerAccountLocked) {
+            throw new IllegalStateException("Nhà cung cấp hiện không hoạt động, không thể đặt phòng.");
         }
 
         int requestedRooms = request.getRoomCount();
@@ -1037,36 +1048,5 @@ public class BookingServiceImpl implements BookingService {
         return "VJ-" + System.currentTimeMillis();
     }
 
-    @Override
-    @Transactional
-    public BookingResponseDto updateBookingStatus(Long bookingId, BookingStatus newStatus, String reason, Long actorAccountId) {
-        Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn đặt phòng với ID: " + bookingId));
 
-        if (newStatus == BookingStatus.CONFIRMED) {
-            booking.setStatus(BookingStatus.CONFIRMED);
-            booking.setConfirmedAt(LocalDateTime.now());
-            try {
-                notificationService.notifyBookingStatusChange(booking, BookingStatus.CONFIRMED, reason);
-            } catch (Exception ex) {
-                log.warn("Không thể gửi thông báo CONFIRMED: {}", ex.getMessage());
-            }
-        } else if (newStatus == BookingStatus.REJECTED) {
-            booking.setStatus(BookingStatus.REJECTED);
-            booking.setClosedAt(LocalDateTime.now());
-            booking.setCloseReason(reason != null && !reason.isBlank() ? reason : "Đối tác/Quản lý từ chối đơn đặt phòng.");
-            try {
-                notificationService.notifyBookingStatusChange(booking, BookingStatus.REJECTED, reason);
-            } catch (Exception ex) {
-                log.warn("Không thể gửi thông báo REJECTED: {}", ex.getMessage());
-            }
-        } else {
-            booking.setStatus(newStatus);
-        }
-
-        Booking saved = bookingRepository.save(booking);
-        int nights = (int) ChronoUnit.DAYS.between(saved.getCheckIn(), saved.getCheckOut());
-        BigDecimal unitPrice = saved.getRoomType().getBasePrice() != null ? saved.getRoomType().getBasePrice() : BigDecimal.ZERO;
-        return mapToResponseDto(saved, saved.getPlace(), saved.getRoomType(), unitPrice, nights);
-    }
 }

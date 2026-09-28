@@ -150,8 +150,12 @@ export default function PartnerHomestayEditPage() {
     setNotice(null);
     try {
       const result = await updateHomestayStatus(Number(id), request);
-      setForm(prev => ({ ...prev, visibility: result.visibility, operationStatus: result.operationStatus, isReadyToPublish: result.isReadyToPublish, alertNote: result.alertNote }));
-      setNotice({ tone: 'success', text: done });
+      if (isSubmittedChange(result)) {
+        setNotice({ tone: 'info', text: result.message });
+      } else {
+        setForm(prev => ({ ...prev, visibility: result.visibility, operationStatus: result.operationStatus, isReadyToPublish: result.isReadyToPublish, alertNote: result.alertNote }));
+        setNotice({ tone: 'success', text: done });
+      }
     } catch (error: unknown) { setNotice({ tone: 'error', text: homestayError(error) }); }
     finally { setSaving(false); }
   }

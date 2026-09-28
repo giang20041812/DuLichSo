@@ -3,6 +3,9 @@ package com.dulichso.bookingapi.service;
 import com.dulichso.bookingapi.dto.ChangeRequestDtos.ChangeRequestSummaryDto;
 import com.dulichso.bookingapi.dto.ChangeRequestDtos.SubmittedDto;
 import com.dulichso.bookingapi.dto.partner.PartnerHomestayDtos.PartnerHomestayDetailDto;
+import com.dulichso.bookingapi.dto.partner.PartnerHomestayDtos.PartnerHomestaySummaryDto;
+import com.dulichso.bookingapi.dto.partner.PartnerHomestayDtos.UpdateStatusRequest;
+import com.dulichso.bookingapi.entity.enums.PlaceVisibility;
 import com.dulichso.bookingapi.dto.partner.PartnerRoomDtos.PriceDto;
 import com.dulichso.bookingapi.dto.partner.PartnerRoomDtos.PriceInput;
 import com.dulichso.bookingapi.dto.partner.PartnerRoomDtos.RoomDto;
@@ -10,10 +13,13 @@ import com.dulichso.bookingapi.dto.partner.PartnerRoomDtos.RoomInput;
 import com.dulichso.bookingapi.entity.Account;
 import com.dulichso.bookingapi.entity.PartnerChangeRequest;
 import com.dulichso.bookingapi.entity.Place;
+import com.dulichso.bookingapi.entity.Provider;
 import com.dulichso.bookingapi.entity.enums.ChangeOperation;
 import com.dulichso.bookingapi.entity.enums.ChangeRequestStatus;
 import com.dulichso.bookingapi.entity.enums.ChangeTargetType;
+import com.dulichso.bookingapi.entity.enums.ProviderStatus;
 import com.dulichso.bookingapi.repository.PartnerChangeRequestRepository;
+import com.dulichso.bookingapi.repository.ProviderRepository;
 import com.dulichso.bookingapi.security.UserPrincipal;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,8 +40,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Phía NCC của quy trình duyệt thay đổi: với Homestay đang công khai, sửa thông tin/loại phòng/giá không ghi vào dữ liệu chính thức
- * mà tạo yêu cầu PENDING để Admin duyệt. Homestay chưa công khai (nháp/gỡ) vẫn ghi trực tiếp như trước.
+ * Phía NCC của quy trình duyệt thay đổi. Xác nhận nghiệp vụ (2026-09-28): sửa THÔNG TIN Homestay luôn ghi
+ * trực tiếp (kể cả khi đã PUBLISHED, không phân biệt sửa nhỏ/lớn). Loại phòng/giá của Homestay đang công khai
+ * vẫn tạo yêu cầu PENDING chờ Admin duyệt như trước; Homestay chưa công khai vẫn ghi trực tiếp cho mọi loại.
+ * Hai việc luôn bắt buộc qua Admin duyệt bất kể trạng thái công khai: lần đầu xuất bản (HOM-MGT-BR-04, xem
+ * {@link #updateStatus}) và chuyển NCC quản lý (xem {@link #requestTransfer}).
  */
 @Service
 @RequiredArgsConstructor
@@ -44,10 +53,15 @@ public class PartnerChangeService {
     private static final TypeReference<Map<String, Object>> MAP = new TypeReference<>() {};
     static final String PENDING_MESSAGE =
             "Homestay đang công khai nên thay đổi đã được gửi cho quản trị viên duyệt. Dữ liệu hiện hành chưa thay đổi cho đến khi được duyệt.";
+    static final String PUBLISH_PENDING_MESSAGE =
+            "Yêu cầu xuất bản đã được gửi cho quản trị viên duyệt (HOM-MGT-BR-04). Homestay sẽ hiển thị công khai sau khi được duyệt.";
+    static final String TRANSFER_PENDING_MESSAGE =
+            "Yêu cầu chuyển NCC quản lý đã được gửi cho quản trị viên duyệt. Homestay vẫn do bạn quản lý cho đến khi được duyệt.";
 
     private final PartnerHomestayService homestays;
     private final PartnerRoomService rooms;
     private final PartnerChangeRequestRepository requests;
+    private final ProviderRepository providers;
     private final ObjectMapper mapper;
 
     /** Kết quả một thao tác lưu: hoặc đã ghi trực tiếp ({@code saved}) hoặc đã gửi chờ duyệt ({@code pending}). */
@@ -55,16 +69,15 @@ public class PartnerChangeService {
         public boolean isPending() { return pending != null; }
     }
 
+    /**
+     * Xác nhận nghiệp vụ (2026-09-28): sửa thông tin Homestay luôn ghi trực tiếp — kể cả khi đã PUBLISHED,
+     * không phân biệt sửa nhỏ/lớn, không cần Admin duyệt lại. (Trước đây Homestay đã công khai phải qua yêu
+     * cầu chờ duyệt; điều đó vẫn áp dụng cho lần đầu xuất bản và chuyển NCC quản lý, không áp dụng cho sửa
+     * thông tin thông thường nữa.)
+     */
     @Transactional
     public Outcome<PartnerHomestayDetailDto> saveHomestay(UserPrincipal principal, Long id, PartnerHomestayDetailDto dto) {
-        Account actor = homestays.actor(principal, true);
-        Place place = homestays.owned(id, actor, false);
-        if (!PartnerHomestayService.isPublic(place)) return new Outcome<>(homestays.saveHomestayDetail(principal, id, dto), null);
-        homestays.validateInput(dto);
-        Map<String, Object> before = ChangeRequestDiff.pick(ChangeTargetType.HOMESTAY, toMap(homestays.detailOf(place)));
-        Map<String, Object> after = ChangeRequestDiff.pick(ChangeTargetType.HOMESTAY, toMap(dto));
-        requireChange(ChangeTargetType.HOMESTAY, before, after);
-        return new Outcome<>(null, submit(actor, place, ChangeTargetType.HOMESTAY, null, null, ChangeOperation.UPDATE, after, before));
+        return new Outcome<>(homestays.saveHomestayDetail(principal, id, dto), null);
     }
 
     @Transactional
@@ -110,6 +123,43 @@ public class PartnerChangeService {
         return submit(actor, place, ChangeTargetType.ROOM_PRICE, priceId, roomId, ChangeOperation.DELETE, null, before);
     }
 
+    /**
+     * HOM-MGT-BR-04: cập nhật trạng thái hiển thị/vận hành. Lần đầu đưa Homestay sang PUBLISHED phải gửi yêu
+     * cầu chờ Admin duyệt (dữ liệu hiện hành chưa đổi); các trạng thái khác (ngừng hiển thị, mở/tạm đóng) vẫn
+     * ghi trực tiếp như trước.
+     */
+    @Transactional
+    public Outcome<PartnerHomestaySummaryDto> updateStatus(UserPrincipal principal, Long id, UpdateStatusRequest request) {
+        Account actor = homestays.actor(principal, true);
+        Place place = homestays.owned(id, actor, false);
+        boolean firstPublish = request.getVisibility() == PlaceVisibility.PUBLISHED && place.getVisibility() != PlaceVisibility.PUBLISHED;
+        if (!firstPublish) return new Outcome<>(homestays.updateStatus(principal, id, request), null);
+        if (!homestays.isReadyToPublish(place))
+            throw bad("Cần có tên, địa chỉ, mô tả, số điện thoại, ảnh đại diện và loại phòng trước khi xuất bản.");
+        Map<String, Object> before = Map.of("visibility", place.getVisibility().name());
+        Map<String, Object> after = Map.of("visibility", PlaceVisibility.PUBLISHED.name());
+        SubmittedDto pending = submit(actor, place, ChangeTargetType.HOMESTAY, null, null, ChangeOperation.PUBLISH, after, before, PUBLISH_PENDING_MESSAGE);
+        return new Outcome<>(null, pending);
+    }
+
+    /**
+     * Xác nhận nghiệp vụ (2026-09-28): NCC hiện tại xin chuyển Homestay sang một NCC khác quản lý — luôn phải
+     * qua Admin duyệt (không tự chuyển trực tiếp), bất kể Homestay đang công khai hay chưa.
+     */
+    @Transactional
+    public SubmittedDto requestTransfer(UserPrincipal principal, Long placeId, Long targetProviderId) {
+        Account actor = homestays.actor(principal, true);
+        Place place = homestays.owned(placeId, actor, false);
+        if (targetProviderId == null) throw bad("Vui lòng chọn nhà cung cấp nhận chuyển.");
+        if (targetProviderId.equals(place.getProvider().getId())) throw bad("Nhà cung cấp đích phải khác nhà cung cấp hiện tại.");
+        Provider target = providers.findById(targetProviderId)
+                .orElseThrow(() -> bad("Không tìm thấy nhà cung cấp với ID: " + targetProviderId));
+        if (target.getStatus() != ProviderStatus.ACTIVE) throw bad("Nhà cung cấp nhận chuyển hiện không hoạt động.");
+        Map<String, Object> before = Map.of("providerId", place.getProvider().getId(), "providerName", place.getProvider().getName());
+        Map<String, Object> after = Map.of("providerId", target.getId(), "providerName", target.getName());
+        return submit(actor, place, ChangeTargetType.HOMESTAY, null, null, ChangeOperation.TRANSFER, after, before, TRANSFER_PENDING_MESSAGE);
+    }
+
     /** Các yêu cầu của chính NCC (mọi Homestay của NCC), mới nhất trước. */
     public Page<ChangeRequestSummaryDto> list(UserPrincipal principal, ChangeRequestStatus status, Long placeId, int page, int size) {
         Long providerId = homestays.actor(principal, false).getProvider().getId();
@@ -148,6 +198,11 @@ public class PartnerChangeService {
 
     private SubmittedDto submit(Account actor, Place place, ChangeTargetType type, Long targetId, Long roomTypeId,
                                 ChangeOperation operation, Map<String, Object> payload, Map<String, Object> before) {
+        return submit(actor, place, type, targetId, roomTypeId, operation, payload, before, PENDING_MESSAGE);
+    }
+
+    private SubmittedDto submit(Account actor, Place place, ChangeTargetType type, Long targetId, Long roomTypeId,
+                                ChangeOperation operation, Map<String, Object> payload, Map<String, Object> before, String message) {
         // Yêu cầu mới thay thế yêu cầu đang chờ trước đó cho cùng đối tượng; tạo mới nhiều đối tượng thì không thay thế nhau.
         if (type == ChangeTargetType.HOMESTAY || targetId != null) {
             for (PartnerChangeRequest old : requests.findOpen(ChangeRequestStatus.PENDING, place.getId(), type, targetId, roomTypeId)) {
@@ -159,7 +214,7 @@ public class PartnerChangeService {
         PartnerChangeRequest saved = requests.save(PartnerChangeRequest.builder()
                 .provider(place.getProvider()).place(place).targetType(type).targetId(targetId).roomTypeId(roomTypeId)
                 .operation(operation).payload(payload).beforeData(before).submittedBy(actor).build());
-        return new SubmittedDto(saved.getId(), saved.getStatus(), PENDING_MESSAGE);
+        return new SubmittedDto(saved.getId(), saved.getStatus(), message);
     }
 
     private PriceDto currentPrice(Account actor, Long placeId, Long roomId, Long priceId) {

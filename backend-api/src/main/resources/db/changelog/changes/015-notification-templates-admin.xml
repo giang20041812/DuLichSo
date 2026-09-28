@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+  <!--
+    ACC-BR-08: khi Admin khóa tài khoản đăng nhập của NCC, các Booking đang chờ NCC duyệt (PENDING) của NCC đó
+    bị hệ thống tự động hủy — khách phải được báo kết quả.
+    REV-BR-17: khi Admin gỡ (xóa) một đánh giá đã đăng, khách hàng viết đánh giá đó phải được thông báo.
+    Xác nhận nghiệp vụ (2026-09-28): Booking/đánh giá bị hủy/gỡ do lỗi từ phía NCC/hệ thống — thông báo cho
+    khách phải có lời xin lỗi, nêu rõ nguyên nhân, diễn đạt lịch sự và không đổ lỗi cho khách.
+  -->
+  <changeSet id="015-notification-templates-admin" author="claude">
+    <sql>
+      INSERT IGNORE INTO notification_template (code, channel, subject, body_template, is_active) VALUES
+        ('BOOKING_CANCELLED_PROVIDER_LOCKED', 'SMS', NULL, 'DuLichSo: Rat tiec, dat phong {{booking_code}} cua ban da bi huy do tai khoan Nha cung cap hien khong con hoat dong. Chung toi xin loi vi su bat tien nay.', TRUE),
+        ('REVIEW_REMOVED_CUSTOMER', 'IN_APP', 'Đánh giá của bạn đã bị gỡ', 'Đánh giá của bạn cho {{homestay_name}} đã bị gỡ. Lý do: {{reason}}. Chúng tôi xin lỗi vì sự bất tiện này, rất mong bạn thông cảm.', TRUE);
+    </sql>
+  </changeSet>
+</databaseChangeLog>

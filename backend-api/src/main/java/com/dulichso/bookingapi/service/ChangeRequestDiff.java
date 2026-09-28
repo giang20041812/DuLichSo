@@ -62,6 +62,27 @@ final class ChangeRequestDiff {
 
     /** Danh sách trường có thay đổi giữa nội dung cũ và mới của một yêu cầu. */
     static List<FieldChangeDto> changes(PartnerChangeRequest request) {
+        // HOM-MGT-BR-04: yêu cầu xuất bản không nằm trong danh sách trường whitelist của HOMESTAY (visibility
+        // không phải trường NCC được sửa nội dung) — hiển thị riêng một dòng "Trạng thái hiển thị".
+        if (request.getOperation() == ChangeOperation.PUBLISH) {
+            Map<String, Object> before = request.getBeforeData();
+            Map<String, Object> after = request.getPayload();
+            String oldValue = before == null ? "" : norm(before.get("visibility"));
+            String newValue = after == null ? "" : norm(after.get("visibility"));
+            List<FieldChangeDto> out = new ArrayList<>();
+            if (!oldValue.equals(newValue)) out.add(new FieldChangeDto("visibility", "Trạng thái hiển thị", oldValue, newValue));
+            return out;
+        }
+        // Chuyển NCC: cũng không nằm trong whitelist trường HOMESTAY — hiển thị riêng một dòng "Nhà cung cấp quản lý".
+        if (request.getOperation() == ChangeOperation.TRANSFER) {
+            Map<String, Object> before = request.getBeforeData();
+            Map<String, Object> after = request.getPayload();
+            String oldValue = before == null ? "" : norm(before.get("providerName"));
+            String newValue = after == null ? "" : norm(after.get("providerName"));
+            List<FieldChangeDto> out = new ArrayList<>();
+            if (!oldValue.equals(newValue)) out.add(new FieldChangeDto("providerId", "Nhà cung cấp quản lý", oldValue, newValue));
+            return out;
+        }
         Map<String, String> labels = fieldsOf(request.getTargetType());
         Map<String, Object> before = request.getBeforeData();
         Map<String, Object> after = request.getPayload();
@@ -121,6 +142,11 @@ final class ChangeRequestDiff {
     static String summary(PartnerChangeRequest request) {
         if (request.getOperation() == ChangeOperation.DELETE) return "Xóa " + targetName(request);
         if (request.getOperation() == ChangeOperation.CREATE) return "Tạo mới " + targetName(request);
+        if (request.getOperation() == ChangeOperation.PUBLISH) return "Yêu cầu xuất bản " + targetName(request);
+        if (request.getOperation() == ChangeOperation.TRANSFER) {
+            Object providerName = request.getPayload() == null ? null : request.getPayload().get("providerName");
+            return "Chuyển quản lý sang " + (providerName == null ? "NCC khác" : providerName);
+        }
         return changes(request).stream().map(FieldChangeDto::label).collect(Collectors.joining(", "));
     }
 

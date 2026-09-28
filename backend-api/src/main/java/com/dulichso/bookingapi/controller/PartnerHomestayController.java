@@ -48,9 +48,21 @@ public class PartnerHomestayController {
         return outcome.isPending() ? ResponseEntity.accepted().body(outcome.pending()) : ResponseEntity.ok(outcome.saved());
     }
 
+    /** HOM-MGT-BR-04: lần đầu xuất bản trả 202 + yêu cầu chờ duyệt; các trạng thái khác ghi trực tiếp (200). */
     @PatchMapping("/{id}/status")
-    public PartnerHomestaySummaryDto status(@AuthenticationPrincipal UserPrincipal principal, @PathVariable Long id,
-            @RequestBody UpdateStatusRequest request) { return service.updateStatus(principal, id, request); }
+    public ResponseEntity<Object> status(@AuthenticationPrincipal UserPrincipal principal, @PathVariable Long id,
+            @RequestBody UpdateStatusRequest request) {
+        var outcome = changes.updateStatus(principal, id, request);
+        return outcome.isPending() ? ResponseEntity.accepted().body(outcome.pending()) : ResponseEntity.ok(outcome.saved());
+    }
+
+    /** Xác nhận nghiệp vụ (2026-09-28): xin chuyển Homestay sang NCC khác quản lý — luôn chờ Admin duyệt (202). */
+    @PostMapping("/{id}/transfer-request")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public com.dulichso.bookingapi.dto.ChangeRequestDtos.SubmittedDto transfer(@AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long id, @RequestBody TransferRequest request) {
+        return changes.requestTransfer(principal, id, request.getTargetProviderId());
+    }
 
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<Map<String, String>> error(ResponseStatusException ex) {
