@@ -31,6 +31,7 @@ public class AdminReviewController {
     @GetMapping
     public ResponseEntity<Page<ReviewDto>> search(
             @RequestParam(required = false) ReviewStatus status,
+            @RequestParam(required = false) Boolean processed,
             @RequestParam(required = false) Long placeId,
             @RequestParam(required = false) Long providerId,
             @RequestParam(required = false) Integer rating,
@@ -39,7 +40,7 @@ public class AdminReviewController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(service.search(status, placeId, providerId, rating, keyword, from, to, page, size));
+        return ResponseEntity.ok(service.search(status, processed, placeId, providerId, rating, keyword, from, to, page, size));
     }
 
     @GetMapping("/{id}")

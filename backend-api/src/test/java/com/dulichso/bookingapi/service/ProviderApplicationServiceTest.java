@@ -5,6 +5,7 @@ import com.dulichso.bookingapi.entity.Account;
 import com.dulichso.bookingapi.entity.ProviderApplication;
 import com.dulichso.bookingapi.entity.enums.ProviderApplicationStatus;
 import com.dulichso.bookingapi.repository.AccountRepository;
+import com.dulichso.bookingapi.repository.ProviderApplicationRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,15 +26,18 @@ import static org.mockito.Mockito.*;
 class ProviderApplicationServiceTest {
     @Mock EntityManager em;
     @Mock AccountRepository accounts;
+    @Mock ProviderApplicationRepository applications;
+    @Mock NotificationRecorder notifications;
     final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
     ProviderApplicationService service;
     TypedQuery<ProviderApplication> pendingQuery;
 
     @BeforeEach @SuppressWarnings("unchecked") void setup() {
-        service = new ProviderApplicationService(em, accounts, encoder);
+        service = new ProviderApplicationService(em, accounts, applications, encoder, notifications);
         pendingQuery = mock(TypedQuery.class, RETURNS_SELF);
         lenient().when(pendingQuery.getResultStream()).thenAnswer(i -> Stream.empty());
         lenient().when(em.createQuery(anyString(), eq(ProviderApplication.class))).thenReturn(pendingQuery);
+        lenient().when(applications.existsByBusinessLicenseNoAndStatusNot(anyString(), eq(ProviderApplicationStatus.REJECTED))).thenReturn(false);
     }
 
     private RegisterInput input() {
@@ -49,6 +53,9 @@ class ProviderApplicationServiceTest {
         assertEquals("0912345678", saved.getContactPhone());
         assertNotEquals("matkhau123", saved.getPasswordHash());
         assertTrue(encoder.matches("matkhau123", saved.getPasswordHash()));
+        // Admin được báo có hồ sơ đăng ký mới.
+        verify(notifications).toAdmins(eq("ADMIN_NEW_PROVIDER_APPLICATION"), eq("ProviderApplication"), any(),
+                contains("HTX Mù Cang Chải"), eq("applications"));
     }
 
     @Test void registerRejectsPhoneOfExistingAccount() {
@@ -59,6 +66,12 @@ class ProviderApplicationServiceTest {
 
     @Test void registerRejectsDuplicatePendingApplication() {
         when(pendingQuery.getResultStream()).thenAnswer(i -> Stream.of(ProviderApplication.builder().id(3L).build()));
+        assertEquals(409, assertThrows(ResponseStatusException.class, () -> service.register(input())).getStatusCode().value());
+        verify(em, never()).persist(any());
+    }
+
+    @Test void registerRejectsDuplicateBusinessLicenseNo() {
+        when(applications.existsByBusinessLicenseNoAndStatusNot("GP-01", ProviderApplicationStatus.REJECTED)).thenReturn(true);
         assertEquals(409, assertThrows(ResponseStatusException.class, () -> service.register(input())).getStatusCode().value());
         verify(em, never()).persist(any());
     }

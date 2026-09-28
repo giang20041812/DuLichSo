@@ -47,6 +47,9 @@ app:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000,https://du-lich-so-o5a9-jx5r27akq-du-lich-so.vercel.app}
   # Tài khoản mẫu QA (admin@taybactrails.vn / ncc@taybactrails.vn...) — CHỈ bật khi dev. Production phải để false.
   qa-mock-accounts: ${APP_QA_MOCK_ACCOUNTS:false}
+  # Nạp dữ liệu mẫu cho các màn Admin còn trống (hồ sơ NCC, yêu cầu chuyển NCC, đánh giá, thông báo) để xem thử giao diện.
+  # Chỉ nạp vào bảng còn trống, chạy lại không đè dữ liệu thật. Đặt false khi chạy dữ liệu thật.
+  seed-demo-data: ${APP_SEED_DEMO_DATA:true}
   # NFR-PRI-02: thời hạn lưu giữ dữ liệu theo từng loại; job dọn chạy mỗi ngày. Booking/đánh giá/tài khoản không tự xóa.
   retention:
     enabled: ${RETENTION_ENABLED:true}

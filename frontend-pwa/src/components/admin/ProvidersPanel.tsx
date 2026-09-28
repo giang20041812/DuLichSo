@@ -1,11 +1,14 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
-import { Building2, Check, Copy, Eye, EyeOff, KeyRound, Plus } from 'lucide-react';
+import { Building2, Check, ChevronRight, Copy, Eye, EyeOff, Inbox, KeyRound, Plus } from 'lucide-react';
 import { adminService } from '@/services/adminService';
+import { useAdminPermission } from '@/hooks/useAdminPermission';
 import type { AdminProviderSummaryDto, ProviderAccountDto, ProviderStatus } from '@/types/admin';
-import { FilterSearch, RefreshButton, TableFooter, UnderlineTabs, type TabItem } from './AdminFilters';
+import { FilterSearch, RefreshButton, TableFooter } from './AdminFilters';
+import StatusFilter, { type StatusFilterItem } from './StatusFilter';
+import { STATUS_COLOR } from './statusColor';
+import { useUrlStatus } from '@/hooks/useUrlStatus';
 import { StatusBadge } from './StatusBadge';
 import { PROVIDER_STATUS, actionButtonClass } from './statusStyles';
-import ProviderApplicationsPanel from './ProviderApplicationsPanel';
 
 interface ProvidersPanelProps {
   providers: AdminProviderSummaryDto[];
@@ -15,7 +18,22 @@ interface ProvidersPanelProps {
   onCreate: () => void;
   onChangeStatus: (id: number, name: string, status: ProviderStatus) => void;
   notify: (type: 'success' | 'error', text: string) => void;
+  /** Số hồ sơ đăng ký NCC đang chờ duyệt (null = chưa biết); hiển thị dải nhắc dẫn sang mục "Hồ sơ NCC mới". */
+  pendingApplications?: number | null;
+  onOpenApplications?: () => void;
 }
+
+/**
+ * Tab lọc của trang Đối tác: "Hoạt động" = ProviderStatus.ACTIVE; "Bị khóa" = SUSPENDED (đình chỉ) hoặc TERMINATED (chấm dứt)
+ * — backend không có trạng thái "bị khóa" riêng cho đối tác nên gộp hai trạng thái không hoạt động này.
+ */
+type ProviderFilter = 'ACTIVE' | 'LOCKED';
+const PROVIDER_FILTER_ITEMS: StatusFilterItem<ProviderFilter>[] = [
+  { value: 'ACTIVE', label: 'Hoạt động', tone: STATUS_COLOR.green },
+  { value: 'LOCKED', label: 'Bị khóa', tone: STATUS_COLOR.red },
+];
+const PROVIDER_FILTER_VALUES = PROVIDER_FILTER_ITEMS.map((i) => i.value);
+const providerFilterOf = (status: ProviderStatus): ProviderFilter => (status === 'ACTIVE' ? 'ACTIVE' : 'LOCKED');
 
 const th = 'px-3 py-2.5';
 const PAGE_SIZE = 15;
@@ -33,58 +51,44 @@ function generatePassword(): string {
   return out.join('');
 }
 
-export default function ProvidersPanel({ providers, loading, error, onReload, onCreate, onChangeStatus, notify }: ProvidersPanelProps) {
+export default function ProvidersPanel({
+  providers,
+  loading,
+  error,
+  onReload,
+  onCreate,
+  onChangeStatus,
+  notify,
+  pendingApplications,
+  onOpenApplications,
+}: ProvidersPanelProps) {
+  // Cấp 3 chỉ xem danh sách; tạo / đổi trạng thái NCC từ cấp 2 (backend cũng chặn theo cấp).
+  const canOperate = useAdminPermission().can('operate');
   const [keyword, setKeyword] = useState('');
-  const [status, setStatus] = useState<ProviderStatus | ''>('');
+  const [status, setStatusUrl] = useUrlStatus<ProviderFilter>(PROVIDER_FILTER_VALUES, '');
   const [openId, setOpenId] = useState<number | null>(null);
   const [page, setPage] = useState(0);
-  // Tab "Hồ sơ đăng ký": hồ sơ NCC mới chờ Admin thẩm định (FR-AD-16).
-  const [showApplications, setShowApplications] = useState(false);
-  const [pendingApplications, setPendingApplications] = useState<number | null>(null);
-  const [applicationsReload, setApplicationsReload] = useState(0);
 
-  useEffect(() => {
-    let alive = true;
-    adminService
-      .getPendingProviderApplicationCount()
-      .then((n) => {
-        if (alive) setPendingApplications(n);
-      })
-      .catch(() => {
-        if (alive) setPendingApplications(null);
-      });
-    return () => {
-      alive = false;
-    };
-  }, [applicationsReload, showApplications]);
-
-  const counts = useMemo(() => {
-    const c: Record<ProviderStatus, number> = { ACTIVE: 0, SUSPENDED: 0, TERMINATED: 0 };
-    providers.forEach((p) => {
-      c[p.status] += 1;
-    });
-    return c;
-  }, [providers]);
-
-  const statusTabs: TabItem<ProviderStatus | 'APPLICATIONS'>[] = [
-    { value: '', label: 'Tất cả', count: providers.length },
-    ...(Object.keys(PROVIDER_STATUS) as ProviderStatus[]).map((s) => ({
-      value: s,
-      label: PROVIDER_STATUS[s].label,
-      count: counts[s],
-      tone: PROVIDER_STATUS[s].tone,
-    })),
-    { value: 'APPLICATIONS', label: 'Hồ sơ đăng ký', count: pendingApplications, tone: 'warning' },
-  ];
-
-  const rows = useMemo(() => {
+  const matchesSearch = useMemo(() => {
     const k = keyword.trim().toLowerCase();
-    return providers.filter(
-      (p) =>
-        (!status || p.status === status) &&
-        (!k || [p.name, p.contactName, p.contactPhone, p.contactEmail, p.address].some((v) => v?.toLowerCase().includes(k))),
-    );
-  }, [providers, keyword, status]);
+    return (p: AdminProviderSummaryDto) =>
+      !k || [p.name, p.contactName, p.contactPhone, p.contactEmail, p.address].some((v) => v?.toLowerCase().includes(k));
+  }, [keyword]);
+
+  // Số đếm từng tab tính trên các đối tác khớp ô tìm kiếm hiện tại.
+  const counts = useMemo(() => {
+    const found = providers.filter(matchesSearch);
+    return {
+      '': found.length,
+      ACTIVE: found.filter((p) => providerFilterOf(p.status) === 'ACTIVE').length,
+      LOCKED: found.filter((p) => providerFilterOf(p.status) === 'LOCKED').length,
+    };
+  }, [providers, matchesSearch]);
+
+  const rows = useMemo(
+    () => providers.filter((p) => (!status || providerFilterOf(p.status) === status) && matchesSearch(p)),
+    [providers, status, matchesSearch],
+  );
 
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages - 1);
@@ -92,40 +96,45 @@ export default function ProvidersPanel({ providers, loading, error, onReload, on
 
   return (
     <section className="rounded-lg border border-border bg-white shadow-sm">
-      <UnderlineTabs
+      {onOpenApplications && !!pendingApplications && (
+        <button
+          type="button"
+          onClick={onOpenApplications}
+          className="group flex w-full items-center gap-2.5 border-b border-sun/30 bg-sun/10 px-4 py-2.5 text-left text-xs text-amber-700 transition-colors hover:bg-sun/20"
+        >
+          <Inbox className="h-4 w-4 shrink-0" />
+          <span className="flex-1">
+            Có <strong>{pendingApplications}</strong> hồ sơ đăng ký NCC mới đang chờ duyệt — đối tác chỉ xuất hiện ở danh sách này sau khi được duyệt.
+          </span>
+          <span className="flex items-center gap-1 font-semibold">
+            Xử lý ngay <ChevronRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+          </span>
+        </button>
+      )}
+
+      <StatusFilter
         ariaLabel="Trạng thái đối tác"
-        items={statusTabs}
-        value={showApplications ? 'APPLICATIONS' : status}
+        items={PROVIDER_FILTER_ITEMS}
+        value={status}
+        counts={counts}
         onChange={(v) => {
-          setShowApplications(v === 'APPLICATIONS');
-          if (v !== 'APPLICATIONS') {
-            setStatus(v);
-            setPage(0);
-          }
+          setStatusUrl(v);
+          setPage(0);
         }}
       />
-
-      {showApplications ? (
-        <ProviderApplicationsPanel
-          notify={notify}
-          onChanged={(approved) => {
-            setApplicationsReload((n) => n + 1);
-            if (approved) onReload();
-          }}
-        />
-      ) : (
-      <>
 
       <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2.5">
         <FilterSearch value={keyword} onChange={(v) => { setKeyword(v); setPage(0); }} placeholder="Tìm theo tên đối tác, người liên hệ, SĐT, email..." />
         <RefreshButton loading={loading} onClick={onReload} />
-        <button
-          type="button"
-          onClick={onCreate}
-          className="ml-auto flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-semibold text-white shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary-600 hover:shadow-[var(--shadow-teal)]"
-        >
-          <Plus className="h-4 w-4" /> Tạo đối tác mới
-        </button>
+        {canOperate && (
+          <button
+            type="button"
+            onClick={onCreate}
+            className="ml-auto flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-semibold text-white shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary-600 hover:shadow-[var(--shadow-teal)]"
+          >
+            <Plus className="h-4 w-4" /> Tạo đối tác mới
+          </button>
+        )}
       </div>
 
       {error && (
@@ -183,17 +192,17 @@ export default function ProvidersPanel({ providers, loading, error, onReload, on
                         >
                           {open ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                         </button>
-                        {p.status !== 'ACTIVE' && (
+                        {canOperate && p.status !== 'ACTIVE' && (
                           <button type="button" onClick={() => onChangeStatus(p.id, p.name, 'ACTIVE')} className={actionButtonClass('success')}>
                             Kích hoạt
                           </button>
                         )}
-                        {p.status !== 'SUSPENDED' && (
+                        {canOperate && p.status !== 'SUSPENDED' && (
                           <button type="button" onClick={() => onChangeStatus(p.id, p.name, 'SUSPENDED')} className={actionButtonClass('warning')}>
                             Đình chỉ
                           </button>
                         )}
-                        {p.status !== 'TERMINATED' && (
+                        {canOperate && p.status !== 'TERMINATED' && (
                           <button type="button" onClick={() => onChangeStatus(p.id, p.name, 'TERMINATED')} className={actionButtonClass('danger')}>
                             Chấm dứt
                           </button>
@@ -226,15 +235,13 @@ export default function ProvidersPanel({ providers, loading, error, onReload, on
         activeCount={[keyword.trim(), status].filter(Boolean).length}
         onClear={() => {
           setKeyword('');
-          setStatus('');
+          setStatusUrl('');
           setPage(0);
         }}
         page={safePage}
         totalPages={totalPages}
         onPage={setPage}
       />
-      </>
-      )}
     </section>
   );
 }
@@ -243,6 +250,7 @@ type LoadState = { kind: 'loading' } | { kind: 'error' } | { kind: 'ready'; acco
 
 /** Khối "mắt": tên đăng nhập của các tài khoản NCC + cấp lại mật khẩu (mật khẩu mới chỉ hiện một lần). */
 function ProviderCredentials({ providerId, notify }: { providerId: number; notify: ProvidersPanelProps['notify'] }) {
+  const canOperate = useAdminPermission().can('operate');
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
   const [issued, setIssued] = useState<Record<number, string>>({});
   const [shown, setShown] = useState<Record<number, boolean>>({});
@@ -334,9 +342,11 @@ function ProviderCredentials({ providerId, notify }: { providerId: number; notif
               )}
               {pwd && <div className="mt-0.5 text-[11px] text-amber-700">Chỉ hiển thị một lần — rời trang là mất.</div>}
             </div>
-            <button type="button" disabled={busyId === acc.id} onClick={() => reset(acc)} className={`${actionButtonClass('brand')} justify-center disabled:opacity-50`}>
-              <KeyRound className="h-3 w-3" /> {busyId === acc.id ? 'Đang cấp...' : 'Cấp lại mật khẩu'}
-            </button>
+            {canOperate && (
+              <button type="button" disabled={busyId === acc.id} onClick={() => reset(acc)} className={`${actionButtonClass('brand')} justify-center disabled:opacity-50`}>
+                <KeyRound className="h-3 w-3" /> {busyId === acc.id ? 'Đang cấp...' : 'Cấp lại mật khẩu'}
+              </button>
+            )}
           </div>
         );
       })}

@@ -31,6 +31,8 @@ export interface AdminReview {
 
 export interface AdminReviewSearchParams {
   status?: AdminReviewStatus;
+  /** true = đã có quyết định kiểm duyệt (moderatedAt != null); false = chưa xử lý. */
+  processed?: boolean;
   placeId?: number;
   providerId?: number;
   rating?: number;

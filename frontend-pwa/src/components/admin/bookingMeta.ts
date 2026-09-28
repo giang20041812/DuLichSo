@@ -19,18 +19,32 @@ export const STATUS_LABEL: Record<BookingStatus, string> = {
   NO_SHOW: 'Khách không đến',
 };
 
+/** Màu theo nhóm trạng thái của trang Đặt phòng: Mới = lam · Đã xác nhận = xanh · Hoàn thành / Đã hủy = xám. */
 export const STATUS_TONE: Record<BookingStatus, StatusTone> = {
-  PENDING: 'warning',
+  PENDING: 'info',
   AWAITING_PAYMENT: 'info',
   CONFIRMED: 'success',
-  CHECKED_IN: 'info',
-  CHECKED_OUT: 'brand',
-  REFUNDED: 'warning',
-  COMPLETED: 'brand',
-  REJECTED: 'danger',
-  CANCELLED: 'danger',
+  CHECKED_IN: 'success',
+  CHECKED_OUT: 'neutral',
+  COMPLETED: 'neutral',
+  REFUNDED: 'neutral',
+  REJECTED: 'neutral',
+  CANCELLED: 'neutral',
   EXPIRED: 'neutral',
   NO_SHOW: 'neutral',
+};
+
+/**
+ * Nhóm trạng thái của tab lọc trang Đặt phòng (một tab gồm nhiều trạng thái thật trong DB):
+ *  Mới = PENDING + AWAITING_PAYMENT · Đã xác nhận = CONFIRMED + CHECKED_IN · Hoàn thành = CHECKED_OUT + COMPLETED ·
+ *  Đã hủy = CANCELLED + REJECTED + EXPIRED + NO_SHOW + REFUNDED.
+ */
+export type BookingGroup = 'NEW' | 'CONFIRMED' | 'DONE' | 'CANCELLED';
+export const BOOKING_GROUP_STATUSES: Record<BookingGroup, BookingStatus[]> = {
+  NEW: ['PENDING', 'AWAITING_PAYMENT'],
+  CONFIRMED: ['CONFIRMED', 'CHECKED_IN'],
+  DONE: ['CHECKED_OUT', 'COMPLETED'],
+  CANCELLED: ['CANCELLED', 'REJECTED', 'EXPIRED', 'NO_SHOW', 'REFUNDED'],
 };
 
 export const isPendingStatus = (s: BookingStatus) => s === 'PENDING' || s === 'AWAITING_PAYMENT';

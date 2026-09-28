@@ -26,6 +26,8 @@ export const AUDIT_ACTION: Record<string, { label: string; tone: StatusTone }> =
   BOOKING_MONITOR_VERIFICATION: { label: 'Ghi nhận xác minh đơn', tone: 'info' },
   BOOKING_MONITOR_OUTCOME: { label: 'Ghi nhận kết quả giám sát', tone: 'brand' },
   UPDATE_ACCOUNT_ROLE: { label: 'Đổi quyền tài khoản', tone: 'warning' },
+  UPDATE_ADMIN_LEVEL: { label: 'Đổi cấp quản trị viên', tone: 'warning' },
+  DELETE_PLACE: { label: 'Xóa điểm đến', tone: 'danger' },
   LOGIN_SUCCESS: { label: 'Đăng nhập', tone: 'success' },
   LOGIN_FAILED: { label: 'Đăng nhập thất bại', tone: 'danger' },
   LOGIN_BLOCKED: { label: 'Đăng nhập bị chặn', tone: 'warning' },

@@ -25,11 +25,25 @@ public class AdminAccountDtos {
         private String phone;
         private String fullName;
         private AccountRole role;
+        /** Cấp quản trị 1..3 (chỉ ADMIN; null với tài khoản khác). */
+        private Integer adminLevel;
         private AccountStatus status;
         private Long providerId;
         private String providerName;
         private LocalDateTime lastLoginAt;
         private LocalDateTime createdAt;
+    }
+
+    /** Đổi cấp quản trị viên (chỉ cấp 1 được gọi). */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class UpdateAdminLevelRequest {
+        @NotNull(message = "Cấp quản trị không được để trống")
+        private Integer adminLevel;
+        @Size(max = 500, message = "Lý do tối đa 500 ký tự")
+        private String reason;
     }
 
     @Data
@@ -50,6 +64,9 @@ public class AdminAccountDtos {
 
         @NotBlank(message = "Họ tên không được để trống")
         private String fullName;
+
+        /** Cấp quản trị 1..3; không nêu thì cấp 3 (ít quyền nhất). */
+        private Integer adminLevel;
     }
 
     @Data

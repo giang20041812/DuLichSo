@@ -2,9 +2,11 @@ package com.dulichso.bookingapi.service;
 
 import com.dulichso.bookingapi.dto.admin.AdminPlaceDtos.*;
 import com.dulichso.bookingapi.entity.Place;
+import com.dulichso.bookingapi.entity.enums.BookingStatus;
 import com.dulichso.bookingapi.entity.enums.CategoryKind;
 import com.dulichso.bookingapi.entity.enums.PlaceVerificationStatus;
 import com.dulichso.bookingapi.entity.enums.PlaceVisibility;
+import com.dulichso.bookingapi.repository.BookingRepository;
 import com.dulichso.bookingapi.repository.PlaceRepository;
 import com.dulichso.bookingapi.repository.PlaceSpecification;
 import org.springframework.data.domain.Page;
@@ -19,12 +21,47 @@ import java.util.Map;
 @Service
 public class AdminPlaceService {
 
+    /** Booking còn hiệu lực: điểm đến có đơn ở các trạng thái này thì không được xóa. */
+    static final java.util.Set<BookingStatus> ACTIVE_BOOKING_STATUSES = java.util.Set.of(
+            BookingStatus.PENDING, BookingStatus.AWAITING_PAYMENT, BookingStatus.CONFIRMED, BookingStatus.CHECKED_IN);
+
     private final PlaceRepository placeRepository;
     private final AuditLogService auditLogService;
+    private final BookingRepository bookingRepository;
 
-    public AdminPlaceService(PlaceRepository placeRepository, AuditLogService auditLogService) {
+    public AdminPlaceService(PlaceRepository placeRepository, AuditLogService auditLogService, BookingRepository bookingRepository) {
         this.placeRepository = placeRepository;
         this.auditLogService = auditLogService;
+        this.bookingRepository = bookingRepository;
+    }
+
+    /**
+     * Xóa mềm điểm đến (is_deleted = true, ẩn khỏi khách): bắt buộc lý do, tối đa 100 mục mỗi lần, ghi audit từng mục.
+     * Điểm đến còn đơn đặt phòng đang hiệu lực không được xóa; cả lô bị từ chối nếu có một mục vi phạm.
+     */
+    @Transactional
+    public int deletePlaces(java.util.List<Long> ids, String reason, Long callerAccountId) {
+        if (ids == null || ids.isEmpty()) throw new IllegalArgumentException("Chưa chọn điểm đến nào.");
+        if (reason == null || reason.isBlank()) throw new IllegalArgumentException("Vui lòng nhập lý do xóa điểm đến.");
+        java.util.List<Long> distinct = ids.stream().filter(java.util.Objects::nonNull).distinct().toList();
+        if (distinct.size() > 100) throw new IllegalArgumentException("Tối đa 100 điểm đến mỗi lần.");
+        String cleanReason = reason.trim().length() > 500 ? reason.trim().substring(0, 500) : reason.trim();
+        for (Long id : distinct) {
+            Place place = placeRepository.findById(id)
+                    .filter(p -> !Boolean.TRUE.equals(p.getIsDeleted()))
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy địa điểm với ID: " + id));
+            if (bookingRepository.existsByPlaceIdAndStatusIn(id, ACTIVE_BOOKING_STATUSES)) {
+                throw new IllegalStateException("Không thể xóa \"" + place.getName() + "\": điểm đến còn đơn đặt phòng đang hiệu lực.");
+            }
+            PlaceVisibility oldVisibility = place.getVisibility();
+            place.setIsDeleted(true);
+            place.setVisibility(PlaceVisibility.UNPUBLISHED);
+            placeRepository.save(place);
+            auditLogService.record(callerAccountId, "DELETE_PLACE", "Place", place.getId(), cleanReason,
+                    Map.of("visibility", oldVisibility.name(), "deleted", false),
+                    Map.of("visibility", PlaceVisibility.UNPUBLISHED.name(), "deleted", true, "name", place.getName()));
+        }
+        return distinct.size();
     }
 
     private static final java.util.Set<String> PLACE_SORT_FIELDS = java.util.Set.of("createdAt", "updatedAt", "name", "ratingAvg");

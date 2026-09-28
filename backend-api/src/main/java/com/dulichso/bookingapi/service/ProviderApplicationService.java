@@ -4,6 +4,7 @@ import com.dulichso.bookingapi.dto.ProviderApplicationDtos.*;
 import com.dulichso.bookingapi.entity.ProviderApplication;
 import com.dulichso.bookingapi.entity.enums.ProviderApplicationStatus;
 import com.dulichso.bookingapi.repository.AccountRepository;
+import com.dulichso.bookingapi.repository.ProviderApplicationRepository;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -23,22 +24,31 @@ import java.util.Optional;
 public class ProviderApplicationService {
     private final EntityManager em;
     private final AccountRepository accounts;
+    private final ProviderApplicationRepository applications;
     private final PasswordEncoder passwordEncoder;
+    private final NotificationRecorder notifications;
 
     @Transactional
     public RegisterResult register(RegisterInput input) {
         String phone = input.contactPhone().trim();
         String email = blankToNull(input.contactEmail());
+        String businessLicenseNo = input.businessLicenseNo().trim();
         if (identifierTaken(phone) || (email != null && identifierTaken(email)))
             throw conflict("Số điện thoại hoặc email đã được dùng cho một tài khoản đối tác.");
         if (pendingFor(phone).isPresent() || (email != null && pendingFor(email).isPresent()))
             throw conflict("Đã có hồ sơ đăng ký đang chờ duyệt với số điện thoại hoặc email này.");
+        // Giấy phép trùng với hồ sơ chưa bị từ chối (đang chờ duyệt hoặc đã duyệt) thì không cho gửi hồ sơ mới.
+        if (applications.existsByBusinessLicenseNoAndStatusNot(businessLicenseNo, ProviderApplicationStatus.REJECTED))
+            throw conflict("Số giấy phép/đăng ký kinh doanh này đã được dùng cho một hồ sơ khác.");
         ProviderApplication application = ProviderApplication.builder()
                 .businessName(input.businessName().trim()).contactName(input.contactName().trim())
                 .contactPhone(phone).contactEmail(email).address(input.address().trim())
-                .businessLicenseNo(blankToNull(input.businessLicenseNo())).description(blankToNull(input.description()))
+                .businessLicenseNo(businessLicenseNo).description(blankToNull(input.description()))
                 .passwordHash(passwordEncoder.encode(input.password())).createdAt(LocalDateTime.now()).build();
         em.persist(application);
+        notifications.toAdmins("ADMIN_NEW_PROVIDER_APPLICATION", "ProviderApplication", application.getId(),
+                "Nhà cung cấp \"" + application.getBusinessName() + "\" (" + application.getContactName() + ") vừa gửi hồ sơ đăng ký, đang chờ duyệt.",
+                "applications");
         return new RegisterResult(application.getId(), application.getStatus(),
                 "Đã gửi hồ sơ đăng ký. Quản trị viên sẽ thẩm định và bạn có thể đăng nhập bằng số điện thoại/email này sau khi hồ sơ được duyệt.");
     }

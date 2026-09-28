@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Eye, X } from 'lucide-react';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { adminService } from '@/services/adminService';
@@ -22,9 +22,23 @@ import {
   type TabItem,
 } from './AdminFilters';
 import { StatusBadge } from './StatusBadge';
+import StatusFilter, { type StatusFilterItem } from './StatusFilter';
+import { STATUS_COLOR } from './statusColor';
+import { useUrlStatus } from '@/hooks/useUrlStatus';
+import { useStatusCounts } from '@/hooks/useStatusCounts';
 import { actionButtonClass } from './statusStyles';
 import BookingDetailDrawer from './BookingDetailDrawer';
-import { ATTENTION_TONE, STATUS_LABEL, STATUS_TONE, fmtDate, fmtDateTime, isPendingStatus, vnd } from './bookingMeta';
+import {
+  ATTENTION_TONE,
+  BOOKING_GROUP_STATUSES,
+  STATUS_LABEL,
+  STATUS_TONE,
+  fmtDate,
+  fmtDateTime,
+  isPendingStatus,
+  vnd,
+  type BookingGroup,
+} from './bookingMeta';
 
 const PAGE_SIZE = 15;
 
@@ -50,9 +64,24 @@ const STATUS_ORDER: BookingStatus[] = [
   'NO_SHOW',
 ];
 
-/** Giá trị tab đặc biệt cho danh sách "Cần chú ý" (chỉ Admin). */
+/**
+ * Cổng Admin: tab gom nhóm trạng thái thật của đơn (BOOKING_GROUP_STATUSES). "Cần chú ý" là danh sách suy ra
+ * (không phải một trạng thái trong DB) nên đặt cuối dải tab.
+ */
 const ATTENTION_TAB = 'ATTENTION';
-type TabValue = BookingStatus | typeof ATTENTION_TAB;
+type AdminTab = BookingGroup | typeof ATTENTION_TAB;
+const ADMIN_TAB_ITEMS: StatusFilterItem<AdminTab>[] = [
+  { value: 'NEW', label: 'Mới', tone: STATUS_COLOR.blue },
+  { value: 'CONFIRMED', label: 'Đã xác nhận', tone: STATUS_COLOR.green },
+  { value: 'DONE', label: 'Hoàn thành', tone: STATUS_COLOR.gray },
+  { value: 'CANCELLED', label: 'Đã hủy', tone: STATUS_COLOR.gray },
+  { value: ATTENTION_TAB, label: 'Cần chú ý', tone: STATUS_COLOR.red },
+];
+const ADMIN_TAB_VALUES = ADMIN_TAB_ITEMS.map((i) => i.value);
+const GROUP_VALUES = ADMIN_TAB_VALUES.filter((v): v is BookingGroup => v !== ATTENTION_TAB);
+
+/** Nhóm chứa một trạng thái đơn (dùng khi mở từ drill-down báo cáo với đúng một trạng thái). */
+const groupOf = (s: BookingStatus): BookingGroup | '' => GROUP_VALUES.find((g) => BOOKING_GROUP_STATUSES[g].includes(s)) ?? '';
 
 /** Bộ lọc khởi tạo khi mở từ nơi khác (vd: drill-down từ báo cáo). */
 export interface BookingsPreset {
@@ -63,6 +92,8 @@ export interface BookingsPreset {
   createdTo?: string;
   /** Mô tả ngắn hiển thị cho người dùng, vd: "NCC Hello Mù Cang Chải · T9/2026". */
   label?: string;
+  /** Thời điểm chốt của báo cáo vừa drill-down (UC-AD-07): dữ liệu ở đây là hiện tại, có thể đã khác thời điểm đó. */
+  generatedAt?: string;
 }
 
 interface BookingsPanelProps {
@@ -73,7 +104,10 @@ interface BookingsPanelProps {
 
 export default function BookingsPanel({ scope = 'admin', preset }: BookingsPanelProps) {
   const [keyword, setKeyword] = useState('');
+  // Cổng NCC: bộ lọc trạng thái đơn lẻ. Cổng Admin: chỉ giữ trạng thái đơn lẻ khi mở từ drill-down báo cáo,
+  // còn lại dùng tab nhóm lưu trên URL (?status=).
   const [status, setStatus] = useState<BookingStatus | ''>(preset?.status ?? '');
+  const [adminTab, setAdminTab] = useUrlStatus<AdminTab>(ADMIN_TAB_VALUES, '');
   const [createdFrom, setCreatedFrom] = useState(preset?.createdFrom ?? '');
   const [createdTo, setCreatedTo] = useState(preset?.createdTo ?? '');
   const [checkInFrom, setCheckInFrom] = useState('');
@@ -81,9 +115,9 @@ export default function BookingsPanel({ scope = 'admin', preset }: BookingsPanel
   const [providerId, setProviderId] = useState<number | undefined>(preset?.providerId);
   const [placeId, setPlaceId] = useState<number | undefined>(preset?.placeId);
   const [presetLabel, setPresetLabel] = useState(preset?.label ?? '');
+  const [presetGeneratedAt, setPresetGeneratedAt] = useState(preset?.generatedAt ?? '');
   const [sort, setSort] = useState('createdAt:desc');
   const [page, setPage] = useState(0);
-  const [mode, setMode] = useState<'all' | 'attention'>('all');
 
   const [data, setData] = useState<PageResponse<AdminBookingDto> | null>(null);
   const [summary, setSummary] = useState<BookingStatusSummary | null>(null);
@@ -94,6 +128,12 @@ export default function BookingsPanel({ scope = 'admin', preset }: BookingsPanel
   const [selected, setSelected] = useState<AdminBookingDto | null>(null);
 
   const debouncedKeyword = useDebouncedValue(keyword);
+  const showingAttention = scope === 'admin' && adminTab === ATTENTION_TAB;
+  /** Các trạng thái thật gửi lên backend cho tab Admin đang chọn (trạng thái đơn lẻ từ drill-down được ưu tiên). */
+  const adminStatuses = useMemo<BookingStatus[] | undefined>(
+    () => (status ? [status] : adminTab && adminTab !== ATTENTION_TAB ? BOOKING_GROUP_STATUSES[adminTab] : undefined),
+    [status, adminTab],
+  );
   const activeCount = [debouncedKeyword, status, createdFrom || createdTo, checkInFrom || checkInTo, providerId, placeId].filter(Boolean).length;
 
   const resetPage = <T,>(setter: (v: T) => void) => (v: T) => {
@@ -119,13 +159,12 @@ export default function BookingsPanel({ scope = 'admin', preset }: BookingsPanel
     setLoading(true);
     setLoadError('');
     try {
-      if (scope === 'admin' && mode === 'attention') {
+      if (showingAttention) {
         setAttention(await adminService.getBookingAttention());
         return;
       }
       const params = {
         keyword: debouncedKeyword.trim() || undefined,
-        status: status || undefined,
         createdFrom: createdFrom || undefined,
         createdTo: createdTo || undefined,
         checkInFrom: checkInFrom || undefined,
@@ -136,17 +175,18 @@ export default function BookingsPanel({ scope = 'admin', preset }: BookingsPanel
         size: PAGE_SIZE,
       };
       if (scope === 'partner') {
-        const [list, counts] = await Promise.all([partnerBookingService.getBookings(params), partnerBookingService.getSummary()]);
-        setData(list);
-        setSummary(counts);
-      } else {
-        const [list, counts, att] = await Promise.all([
-          adminService.getBookings({ ...params, providerId, placeId }),
-          adminService.getBookingsSummary(),
-          adminService.getBookingAttention(),
+        const [list, counts] = await Promise.all([
+          partnerBookingService.getBookings({ ...params, status: status || undefined }),
+          partnerBookingService.getSummary(),
         ]);
         setData(list);
         setSummary(counts);
+      } else {
+        const [list, att] = await Promise.all([
+          adminService.getBookings({ ...params, statuses: adminStatuses, providerId, placeId }),
+          adminService.getBookingAttention(),
+        ]);
+        setData(list);
         setAttention(att);
       }
     } catch (err: unknown) {
@@ -154,33 +194,52 @@ export default function BookingsPanel({ scope = 'admin', preset }: BookingsPanel
     } finally {
       setLoading(false);
     }
-  }, [scope, mode, debouncedKeyword, status, createdFrom, createdTo, checkInFrom, checkInTo, providerId, placeId, sort, page]);
+  }, [scope, showingAttention, adminStatuses, debouncedKeyword, status, createdFrom, createdTo, checkInFrom, checkInTo, providerId, placeId, sort, page]);
 
   useEffect(() => {
     void load();
   }, [load, reload]);
 
-  const showingAttention = scope === 'admin' && mode === 'attention';
   const attentionCount = attention?.length ?? 0;
   const totalAll = summary ? STATUS_ORDER.reduce((a, s) => a + (summary[s] ?? 0), 0) : null;
 
-  const tabs: TabItem<TabValue>[] = [
+  /** Số lượng trên từng tab nhóm (Admin): áp dụng cùng từ khóa / ngày / NCC / điểm đến, chỉ khác nhóm trạng thái. */
+  const groupCounts = useStatusCounts(
+    scope === 'admin' ? GROUP_VALUES : [],
+    async (g) => {
+      if (scope !== 'admin') return 0;
+      const res = await adminService.getBookings({
+        keyword: debouncedKeyword.trim() || undefined,
+        statuses: g ? BOOKING_GROUP_STATUSES[g] : undefined,
+        createdFrom: createdFrom || undefined,
+        createdTo: createdTo || undefined,
+        checkInFrom: checkInFrom || undefined,
+        checkInTo: checkInTo || undefined,
+        providerId,
+        placeId,
+        page: 0,
+        size: 1,
+      });
+      return res.totalElements;
+    },
+    JSON.stringify([scope, debouncedKeyword.trim(), createdFrom, createdTo, checkInFrom, checkInTo, providerId, placeId]),
+    reload,
+  );
+  const counts = { ...groupCounts, [ATTENTION_TAB]: scope === 'admin' && attention ? attentionCount : null };
+
+  // Cổng NCC: mỗi trạng thái thật là một tab (giữ nguyên hành vi cũ).
+  const partnerTabs: TabItem<BookingStatus>[] = [
     { value: '', label: 'Tất cả', count: totalAll },
-    ...(scope === 'admin'
-      ? [{ value: ATTENTION_TAB as TabValue, label: 'Cần chú ý', count: attention ? attentionCount : null, tone: 'danger' as const }]
-      : []),
-    ...STATUS_ORDER.map((s) => ({ value: s as TabValue, label: STATUS_LABEL[s], count: summary ? summary[s] ?? 0 : null, tone: STATUS_TONE[s] })),
+    ...STATUS_ORDER.map((s) => ({ value: s, label: STATUS_LABEL[s], count: summary ? summary[s] ?? 0 : null, tone: STATUS_TONE[s] })),
   ];
-  const tabValue: TabValue | '' = showingAttention ? ATTENTION_TAB : status;
-  const onTab = (v: TabValue | '') => {
+  // Cổng Admin: chọn tab nhóm thì bỏ trạng thái đơn lẻ (nếu có) và về trang 1, giữ nguyên các bộ lọc khác.
+  const onAdminTab = (v: AdminTab | '') => {
     setPage(0);
-    if (v === ATTENTION_TAB) {
-      setMode('attention');
-      return;
-    }
-    setMode('all');
-    setStatus(v);
+    setStatus('');
+    setAdminTab(v);
   };
+  // Đang mở từ drill-down với một trạng thái đơn lẻ: đánh dấu tab nhóm chứa trạng thái đó.
+  const adminTabValue: AdminTab | '' = status ? groupOf(status) : adminTab;
 
   const th = 'px-4 py-2.5';
   const td = 'px-4 py-2.5';
@@ -190,7 +249,19 @@ export default function BookingsPanel({ scope = 'admin', preset }: BookingsPanel
 
   return (
     <section className="rounded-lg border border-border bg-white shadow-sm">
-      <UnderlineTabs ariaLabel="Trạng thái đơn" items={tabs} value={tabValue} onChange={onTab} />
+      {scope === 'admin' ? (
+        <StatusFilter ariaLabel="Trạng thái đơn" items={ADMIN_TAB_ITEMS} value={adminTabValue} counts={counts} onChange={onAdminTab} />
+      ) : (
+        <UnderlineTabs
+          ariaLabel="Trạng thái đơn"
+          items={partnerTabs}
+          value={status}
+          onChange={(v) => {
+            setPage(0);
+            setStatus(v);
+          }}
+        />
+      )}
 
       {showingAttention ? (
         <div className="flex items-center justify-between gap-3 border-b border-border bg-danger/5 px-4 py-2.5 text-xs text-ink">
@@ -232,7 +303,7 @@ export default function BookingsPanel({ scope = 'admin', preset }: BookingsPanel
             <RefreshButton loading={loading} onClick={() => setReload((n) => n + 1)} />
           </div>
           {presetLabel && (
-            <span className="rise-in flex w-full items-center gap-2 text-xs">
+            <span className="rise-in flex w-full flex-wrap items-center gap-2 text-xs">
               <StatusBadge tone="brand">Đang lọc: {presetLabel}</StatusBadge>
               <button
                 type="button"
@@ -240,12 +311,18 @@ export default function BookingsPanel({ scope = 'admin', preset }: BookingsPanel
                   setProviderId(undefined);
                   setPlaceId(undefined);
                   setPresetLabel('');
+                  setPresetGeneratedAt('');
                   setPage(0);
                 }}
                 className="flex items-center gap-1 text-muted hover:text-danger"
               >
                 <X className="h-3.5 w-3.5" /> Bỏ lọc này
               </button>
+              {presetGeneratedAt && (
+                <span className="text-muted">
+                  · Dữ liệu hiện tại có thể khác thời điểm chốt báo cáo (chốt lúc {fmtDateTime(presetGeneratedAt)})
+                </span>
+              )}
             </span>
           )}
         </div>

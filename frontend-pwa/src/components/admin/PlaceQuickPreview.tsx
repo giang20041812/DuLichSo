@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { AlertTriangle, CheckCircle2, Eye, EyeOff, FilePenLine, MapPin, Star, X } from 'lucide-react';
 import { adminService } from '@/services/adminService';
+import { useAdminPermission } from '@/hooks/useAdminPermission';
 import { getApiErrorMessage } from '@/lib/apiError';
 import type { AdminPlaceDetailDto, AdminPlaceSummaryDto } from '@/types/admin';
 import { StatusBadge } from './StatusBadge';
@@ -21,6 +22,8 @@ const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString('vi-V
 
 /** Ngăn xem nhanh bên phải: Admin đọc chi tiết điểm đến và Duyệt / Yêu cầu bổ sung ngay. */
 export default function PlaceQuickPreview({ place, onClose, onApprove, onRequestUpdate, onToggleVisibility }: PlaceQuickPreviewProps) {
+  // Admin cấp 3 chỉ xem: không hiện nút duyệt / yêu cầu bổ sung / ẩn.
+  const canOperate = useAdminPermission().can('operate');
   const [detail, setDetail] = useState<AdminPlaceDetailDto | null>(null);
   const [error, setError] = useState('');
 
@@ -153,6 +156,7 @@ export default function PlaceQuickPreview({ place, onClose, onApprove, onRequest
           )}
         </div>
 
+        {canOperate && (
         <footer className="flex flex-wrap items-center gap-2 border-t border-border bg-canvas/60 px-5 py-3">
           {p.verification !== 'VERIFIED' && (
             <button
@@ -182,6 +186,7 @@ export default function PlaceQuickPreview({ place, onClose, onApprove, onRequest
             {p.visibility === 'PUBLISHED' ? 'Ẩn' : 'Công khai'}
           </button>
         </footer>
+        )}
       </aside>
     </div>
     </OverlayPortal>

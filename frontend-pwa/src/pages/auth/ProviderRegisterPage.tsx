@@ -67,8 +67,8 @@ export default function ProviderRegisterPage() {
           <Field label="Địa chỉ cơ sở" required>
             <input className={input} required maxLength={500} value={form.address} onChange={(e) => set('address', e.target.value)} />
           </Field>
-          <Field label="Số giấy phép / đăng ký kinh doanh">
-            <input className={input} maxLength={64} value={form.businessLicenseNo} onChange={(e) => set('businessLicenseNo', e.target.value)} />
+          <Field label="Số giấy phép / đăng ký kinh doanh" required>
+            <input className={input} required maxLength={64} value={form.businessLicenseNo} onChange={(e) => set('businessLicenseNo', e.target.value)} />
           </Field>
           <Field label="Giới thiệu cơ sở (số phòng, loại hình, kinh nghiệm đón khách...)">
             <textarea className={`${input} h-auto py-2`} rows={3} maxLength={5000} value={form.description} onChange={(e) => set('description', e.target.value)} />

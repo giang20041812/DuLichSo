@@ -43,3 +43,15 @@ export interface ProviderApplicationSearchParams {
 export interface PendingApplicationCount {
   pending: number;
 }
+
+/** BulkFailureDto — lỗi khi xử lý 1 hồ sơ trong yêu cầu duyệt/từ chối hàng loạt. */
+export interface ProviderApplicationBulkFailure {
+  id: number;
+  message: string;
+}
+
+/** BulkActionResultDto — mỗi hồ sơ xử lý độc lập, hồ sơ lỗi không chặn các hồ sơ còn lại. */
+export interface ProviderApplicationBulkResult {
+  succeededIds: number[];
+  failed: ProviderApplicationBulkFailure[];
+}

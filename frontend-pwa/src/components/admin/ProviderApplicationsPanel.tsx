@@ -1,20 +1,26 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import axios from 'axios';
 import { AlertTriangle, CheckCircle2, X, XCircle } from 'lucide-react';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useAdminPermission } from '@/hooks/useAdminPermission';
 import { adminService } from '@/services/adminService';
 import { getApiErrorMessage } from '@/lib/apiError';
 import type { PageResponse } from '@/types/admin';
 import type { ProviderApplicationDetail, ProviderApplicationStatus, ProviderApplicationSummary } from '@/types/providerApplication';
 import {
   CompactDateRange,
-  CompactSelect,
   FilterSearch,
   ReasonDialog,
   RefreshButton,
+  SortSelect,
   TableFooter,
-  type SelectOption,
+  type SortOption,
 } from './AdminFilters';
 import { StatusBadge, type StatusTone } from './StatusBadge';
+import StatusFilter, { type StatusFilterItem } from './StatusFilter';
+import { STATUS_COLOR } from './statusColor';
+import { useUrlStatus } from '@/hooks/useUrlStatus';
+import { useStatusCounts } from '@/hooks/useStatusCounts';
 import { actionButtonClass } from './statusStyles';
 import OverlayPortal from './OverlayPortal';
 
@@ -28,21 +34,34 @@ const PAGE_SIZE = 15;
 
 const STATUS_LABEL: Record<ProviderApplicationStatus, string> = { PENDING: 'Chờ duyệt', APPROVED: 'Đã duyệt', REJECTED: 'Đã từ chối' };
 const STATUS_TONE: Record<ProviderApplicationStatus, StatusTone> = { PENDING: 'warning', APPROVED: 'success', REJECTED: 'danger' };
-const STATUS_OPTIONS: SelectOption<ProviderApplicationStatus>[] = (Object.keys(STATUS_LABEL) as ProviderApplicationStatus[]).map((s) => ({
-  value: s,
-  label: STATUS_LABEL[s],
-}));
+/** Tab trạng thái hồ sơ NCC = provider_application.status (mặc định "Chờ duyệt"). */
+const STATUS_ITEMS: StatusFilterItem<ProviderApplicationStatus>[] = [
+  { value: 'PENDING', label: STATUS_LABEL.PENDING, tone: STATUS_COLOR.yellow },
+  { value: 'APPROVED', label: STATUS_LABEL.APPROVED, tone: STATUS_COLOR.green },
+  { value: 'REJECTED', label: STATUS_LABEL.REJECTED, tone: STATUS_COLOR.red },
+];
+const STATUS_VALUES = STATUS_ITEMS.map((i) => i.value);
+const SORT_OPTIONS: SortOption[] = [
+  { value: 'asc', label: 'Cũ nhất trước' },
+  { value: 'desc', label: 'Mới nhất trước' },
+];
+const DEFAULT_SORT_DIR: 'asc' | 'desc' = 'asc';
 
 const fmtDateTime = (d?: string | null) => (d ? new Date(d).toLocaleString('vi-VN') : '—');
 
-type Decision = { type: 'approve' | 'reject'; application: ProviderApplicationSummary };
+type Decision =
+  | { type: 'approve' | 'reject'; kind: 'single'; application: ProviderApplicationSummary }
+  | { type: 'approve' | 'reject'; kind: 'bulk'; ids: number[] };
 
 /** Hồ sơ đăng ký NCC mới: Admin xem thông tin, thẩm định rồi Duyệt (tạo đối tác + tài khoản) hoặc Từ chối (bắt buộc lý do). */
 export default function ProviderApplicationsPanel({ notify, onChanged }: ProviderApplicationsPanelProps) {
+  // Admin cấp 3 chỉ xem; duyệt / từ chối từ cấp 2 (backend cũng chặn).
+  const canOperate = useAdminPermission().can('operate');
   const [keyword, setKeyword] = useState('');
-  const [status, setStatus] = useState<ProviderApplicationStatus | ''>('PENDING');
+  const [status, setStatus] = useUrlStatus<ProviderApplicationStatus>(STATUS_VALUES, 'PENDING');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>(DEFAULT_SORT_DIR);
   const [page, setPage] = useState(0);
 
   const [data, setData] = useState<PageResponse<ProviderApplicationSummary> | null>(null);
@@ -52,21 +71,25 @@ export default function ProviderApplicationsPanel({ notify, onChanged }: Provide
   const [openId, setOpenId] = useState<number | null>(null);
   const [decision, setDecision] = useState<Decision | null>(null);
   const [dialogError, setDialogError] = useState('');
+  // Hồ sơ đang chọn để duyệt/từ chối hàng loạt — chỉ áp dụng cho hồ sơ ở trạng thái Chờ duyệt.
+  const [selected, setSelected] = useState<number[]>([]);
 
   const debouncedKeyword = useDebouncedValue(keyword);
-  const activeCount = [debouncedKeyword, from || to, status === 'PENDING' ? '' : status].filter(Boolean).length;
+  const activeCount = [debouncedKeyword, from || to].filter(Boolean).length;
 
   const resetPage = <T,>(setter: (v: T) => void) => (v: T) => {
     setter(v);
     setPage(0);
+    setSelected([]);
   };
 
   const clearFilters = () => {
     setKeyword('');
-    setStatus('PENDING');
     setFrom('');
     setTo('');
+    setSortDir(DEFAULT_SORT_DIR);
     setPage(0);
+    setSelected([]);
   };
 
   const load = useCallback(async () => {
@@ -79,7 +102,7 @@ export default function ProviderApplicationsPanel({ notify, onChanged }: Provide
           keyword: debouncedKeyword.trim() || undefined,
           from: from || undefined,
           to: to || undefined,
-          sortDir: status === 'PENDING' ? 'asc' : 'desc',
+          sortDir,
           page,
           size: PAGE_SIZE,
         }),
@@ -89,50 +112,98 @@ export default function ProviderApplicationsPanel({ notify, onChanged }: Provide
     } finally {
       setLoading(false);
     }
-  }, [status, debouncedKeyword, from, to, page]);
+  }, [status, debouncedKeyword, from, to, sortDir, page]);
 
   useEffect(() => {
     void load();
   }, [load, reload]);
 
+  /** Số lượng trên từng tab: áp dụng cùng từ khóa / ngày gửi, chỉ khác trạng thái. */
+  const counts = useStatusCounts(
+    STATUS_VALUES,
+    async (s) =>
+      (
+        await adminService.getProviderApplications({
+          status: s || undefined,
+          keyword: debouncedKeyword.trim() || undefined,
+          from: from || undefined,
+          to: to || undefined,
+          page: 0,
+          size: 1,
+        })
+      ).totalElements,
+    JSON.stringify([debouncedKeyword.trim(), from, to]),
+    reload,
+  );
+
   const confirm = async (reason: string) => {
     if (!decision) return;
     if (decision.type === 'reject' && !reason) {
-      setDialogError('Vui lòng nhập lý do từ chối.');
+      setDialogError('Vui lòng nhập lý do từ chối');
       return;
     }
     try {
-      if (decision.type === 'approve') await adminService.approveProviderApplication(decision.application.id, reason || undefined);
-      else await adminService.rejectProviderApplication(decision.application.id, reason);
-      notify(
-        'success',
-        decision.type === 'approve' ? 'Đã duyệt hồ sơ, tài khoản đối tác đã được tạo.' : 'Đã từ chối hồ sơ và gửi phản hồi cho nhà cung cấp.',
-      );
-      const approved = decision.type === 'approve';
+      if (decision.kind === 'single') {
+        if (decision.type === 'approve') await adminService.approveProviderApplication(decision.application.id, reason || undefined);
+        else await adminService.rejectProviderApplication(decision.application.id, reason);
+        notify('success', decision.type === 'approve' ? 'Đã phê duyệt hồ sơ Nhà cung cấp' : 'Đã từ chối hồ sơ Nhà cung cấp');
+        onChanged(decision.type === 'approve');
+      } else {
+        const result =
+          decision.type === 'approve'
+            ? await adminService.bulkApproveProviderApplications(decision.ids, reason || undefined)
+            : await adminService.bulkRejectProviderApplications(decision.ids, reason);
+        const okCount = result.succeededIds.length;
+        const failCount = result.failed.length;
+        const failDetail = result.failed.map((f) => `#${f.id}: ${f.message}`).join(' · ');
+        if (failCount === 0) {
+          notify('success', decision.type === 'approve' ? `Đã phê duyệt ${okCount} hồ sơ Nhà cung cấp` : `Đã từ chối ${okCount} hồ sơ Nhà cung cấp`);
+        } else if (okCount > 0) {
+          notify('error', `Xử lý được ${okCount} hồ sơ, còn ${failCount} hồ sơ lỗi — ${failDetail}`);
+        } else {
+          notify('error', `Không xử lý được hồ sơ nào — ${failDetail}`);
+        }
+        if (okCount > 0) onChanged(decision.type === 'approve');
+        setSelected([]);
+      }
       setDecision(null);
       setDialogError('');
       setOpenId(null);
       setReload((n) => n + 1);
-      onChanged(approved);
     } catch (err: unknown) {
-      setDialogError(getApiErrorMessage(err, 'Không thể xử lý hồ sơ đăng ký.'));
+      if (axios.isAxiosError(err) && err.response?.status === 403) {
+        setDialogError('Không có quyền kiểm duyệt hồ sơ này');
+      } else {
+        setDialogError(getApiErrorMessage(err, 'Không thể xử lý hồ sơ đăng ký.'));
+      }
     }
   };
 
   const ask = (type: Decision['type'], application: ProviderApplicationSummary) => {
     setDialogError('');
-    setDecision({ type, application });
+    setDecision({ type, kind: 'single', application });
+  };
+
+  const askBulk = (type: Decision['type']) => {
+    setDialogError('');
+    setDecision({ type, kind: 'bulk', ids: selected });
   };
 
   const rows = data?.content ?? [];
+  // Chỉ hồ sơ Chờ duyệt mới chọn được để duyệt/từ chối hàng loạt.
+  const pendingRows = rows.filter((r) => r.status === 'PENDING');
+  const allSelected = pendingRows.length > 0 && pendingRows.every((r) => selected.includes(r.id));
+  const toggleAll = () => setSelected(allSelected ? [] : pendingRows.map((r) => r.id));
+  const toggleOne = (id: number) => setSelected((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
   const th = 'px-4 py-2.5';
   const td = 'px-4 py-2.5';
 
   return (
     <>
+      <StatusFilter ariaLabel="Trạng thái hồ sơ đăng ký" items={STATUS_ITEMS} value={status} counts={counts} onChange={resetPage(setStatus)} />
+
       <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2.5">
         <FilterSearch value={keyword} onChange={resetPage(setKeyword)} placeholder="Tìm theo tên cơ sở, người liên hệ, SĐT hoặc email..." />
-        <CompactSelect label="Trạng thái" value={status} options={STATUS_OPTIONS} onChange={resetPage(setStatus)} />
         <CompactDateRange
           label="Ngày gửi"
           from={from}
@@ -141,12 +212,45 @@ export default function ProviderApplicationsPanel({ notify, onChanged }: Provide
             setFrom(f);
             setTo(t);
             setPage(0);
+            setSelected([]);
           }}
         />
         <div className="ml-auto flex shrink-0 items-center gap-2">
+          <SortSelect
+            value={sortDir}
+            options={SORT_OPTIONS}
+            onChange={(v) => {
+              setSortDir(v === 'desc' ? 'desc' : 'asc');
+              setPage(0);
+              setSelected([]);
+            }}
+          />
           <RefreshButton loading={loading} onClick={() => setReload((n) => n + 1)} />
         </div>
       </div>
+
+      {canOperate && selected.length > 0 && (
+        <div className="rise-in flex flex-wrap items-center gap-2 border-b border-primary/20 bg-primary-50 px-4 py-2 text-xs">
+          <strong className="text-primary">Đã chọn {selected.length} hồ sơ</strong>
+          <button
+            type="button"
+            onClick={() => askBulk('approve')}
+            className="flex h-7 items-center gap-1 rounded-md bg-accent px-2.5 font-semibold text-white transition-colors hover:bg-accent-600"
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" /> Duyệt tất cả
+          </button>
+          <button
+            type="button"
+            onClick={() => askBulk('reject')}
+            className="flex h-7 items-center gap-1 rounded-md border border-danger/40 bg-white px-2.5 font-semibold text-danger transition-colors hover:bg-danger/5"
+          >
+            <XCircle className="h-3.5 w-3.5" /> Từ chối tất cả
+          </button>
+          <button type="button" onClick={() => setSelected([])} className="ml-auto flex items-center gap-1 text-muted hover:text-ink">
+            <X className="h-3.5 w-3.5" /> Bỏ chọn
+          </button>
+        </div>
+      )}
 
       {loadError && (
         <div role="alert" className="border-b border-danger/20 bg-danger/5 px-4 py-2.5 text-xs text-danger">
@@ -158,6 +262,18 @@ export default function ProviderApplicationsPanel({ notify, onChanged }: Provide
         <table className="w-full border-collapse text-left text-xs">
           <thead>
             <tr className="border-b border-border bg-canvas/60 text-[11px] font-semibold uppercase tracking-wide text-muted">
+              {canOperate && (
+                <th className={`${th} w-10`}>
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={toggleAll}
+                    disabled={pendingRows.length === 0}
+                    aria-label="Chọn tất cả hồ sơ chờ duyệt"
+                    className="accent-[var(--color-primary)] disabled:opacity-30"
+                  />
+                </th>
+              )}
               <th className={th}>Cơ sở đăng ký</th>
               <th className={th}>Liên hệ</th>
               <th className={th}>Gửi lúc</th>
@@ -166,8 +282,27 @@ export default function ProviderApplicationsPanel({ notify, onChanged }: Provide
             </tr>
           </thead>
           <tbody className="divide-y divide-border/70">
-            {rows.map((application) => (
-              <tr key={application.id} onClick={() => setOpenId(application.id)} className="cursor-pointer transition-colors duration-150 hover:bg-canvas">
+            {rows.map((application) => {
+              const isSel = selected.includes(application.id);
+              return (
+              <tr
+                key={application.id}
+                onClick={() => setOpenId(application.id)}
+                className={`cursor-pointer transition-colors duration-150 ${isSel ? 'bg-primary-50/60' : 'hover:bg-canvas'}`}
+              >
+                {canOperate && (
+                  <td className={td} onClick={(e) => e.stopPropagation()}>
+                    {application.status === 'PENDING' && (
+                      <input
+                        type="checkbox"
+                        checked={isSel}
+                        onChange={() => toggleOne(application.id)}
+                        aria-label={`Chọn ${application.businessName}`}
+                        className="accent-[var(--color-primary)]"
+                      />
+                    )}
+                  </td>
+                )}
                 <td className={td}>
                   <div className="max-w-[260px] truncate font-semibold text-ink-deep" title={application.businessName}>{application.businessName}</div>
                   <div className="max-w-[260px] truncate text-[11px] text-muted" title={application.address}>#{application.id} · {application.address}</div>
@@ -187,7 +322,7 @@ export default function ProviderApplicationsPanel({ notify, onChanged }: Provide
                     <button type="button" onClick={() => setOpenId(application.id)} className={actionButtonClass('brand')}>
                       Xem
                     </button>
-                    {application.status === 'PENDING' && (
+                    {canOperate && application.status === 'PENDING' && (
                       <>
                         <button type="button" onClick={() => ask('approve', application)} className={actionButtonClass('success')}>
                           Duyệt
@@ -200,7 +335,8 @@ export default function ProviderApplicationsPanel({ notify, onChanged }: Provide
                   </div>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
         {!loading && rows.length === 0 && !loadError && (
@@ -214,13 +350,17 @@ export default function ProviderApplicationsPanel({ notify, onChanged }: Provide
         onClear={clearFilters}
         page={page}
         totalPages={data?.totalPages ?? 0}
-        onPage={setPage}
+        onPage={(p) => {
+          setPage(p);
+          setSelected([]);
+        }}
       />
 
       {openId !== null && (
         <ApplicationDrawer
           key={openId}
           id={openId}
+          canOperate={canOperate}
           onClose={() => setOpenId(null)}
           onApprove={(application) => ask('approve', application)}
           onReject={(application) => ask('reject', application)}
@@ -229,14 +369,42 @@ export default function ProviderApplicationsPanel({ notify, onChanged }: Provide
 
       {decision && (
         <ReasonDialog
-          title={decision.type === 'approve' ? 'Duyệt hồ sơ đối tác' : 'Từ chối hồ sơ đối tác'}
+          title={
+            decision.kind === 'bulk'
+              ? decision.type === 'approve'
+                ? `Duyệt ${decision.ids.length} hồ sơ đối tác`
+                : `Từ chối ${decision.ids.length} hồ sơ đối tác`
+              : decision.type === 'approve'
+              ? 'Duyệt hồ sơ đối tác'
+              : 'Từ chối hồ sơ đối tác'
+          }
           description={
-            decision.type === 'approve'
+            decision.kind === 'bulk'
+              ? decision.type === 'approve'
+                ? `Hệ thống sẽ tạo đối tác và tài khoản đăng nhập cho ${decision.ids.length} hồ sơ đã chọn bằng thông tin và mật khẩu nhà cung cấp đã đăng ký. Hồ sơ không hợp lệ (đã xử lý, SĐT/email trùng...) sẽ được báo lỗi riêng, không ảnh hưởng các hồ sơ còn lại.`
+                : `${decision.ids.length} hồ sơ đã chọn sẽ bị từ chối cùng một lý do và nhà cung cấp được thông báo.`
+              : decision.type === 'approve'
               ? `Hệ thống sẽ tạo đối tác và tài khoản đăng nhập cho "${decision.application.businessName}" bằng thông tin và mật khẩu nhà cung cấp đã đăng ký.`
               : `Hồ sơ "${decision.application.businessName}" sẽ bị từ chối và nhà cung cấp được thông báo lý do. Nhà cung cấp có thể đăng ký lại.`
           }
-          confirmLabel={decision.type === 'approve' ? 'Duyệt hồ sơ' : 'Từ chối'}
+          confirmLabel={
+            decision.kind === 'bulk'
+              ? decision.type === 'approve'
+                ? `Duyệt ${decision.ids.length} hồ sơ`
+                : `Từ chối ${decision.ids.length} hồ sơ`
+              : decision.type === 'approve'
+              ? 'Duyệt hồ sơ'
+              : 'Từ chối'
+          }
           reasonRequired={decision.type === 'reject'}
+          reasonRequiredMessage="Vui lòng nhập lý do từ chối"
+          finalConfirm={
+            decision.type === 'reject'
+              ? decision.kind === 'bulk'
+                ? `Bạn sắp từ chối ${decision.ids.length} hồ sơ đăng ký nhà cung cấp cùng lúc. Các nhà cung cấp sẽ được báo kết quả kèm lý do và không thể hoàn tác thao tác này.`
+                : `Bạn sắp từ chối hồ sơ "${decision.application.businessName}". Nhà cung cấp sẽ được báo kết quả kèm lý do và không thể hoàn tác thao tác này.`
+              : undefined
+          }
           tone={decision.type === 'reject' ? 'danger' : 'primary'}
           error={dialogError}
           onCancel={() => setDecision(null)}
@@ -249,6 +417,7 @@ export default function ProviderApplicationsPanel({ notify, onChanged }: Provide
 
 interface ApplicationDrawerProps {
   id: number;
+  canOperate: boolean;
   onClose: () => void;
   onApprove: (application: ProviderApplicationSummary) => void;
   onReject: (application: ProviderApplicationSummary) => void;
@@ -264,7 +433,7 @@ function Field({ label, children, wide }: { label: string; children: ReactNode; 
 }
 
 /** Ngăn bên phải: thông tin hồ sơ đăng ký để thẩm định. */
-function ApplicationDrawer({ id, onClose, onApprove, onReject }: ApplicationDrawerProps) {
+function ApplicationDrawer({ id, canOperate, onClose, onApprove, onReject }: ApplicationDrawerProps) {
   const [detail, setDetail] = useState<ProviderApplicationDetail | null>(null);
   const [error, setError] = useState('');
 
@@ -360,7 +529,7 @@ function ApplicationDrawer({ id, onClose, onApprove, onReject }: ApplicationDraw
             )}
           </div>
 
-          {a?.status === 'PENDING' && (
+          {canOperate && a?.status === 'PENDING' && (
             <footer className="flex flex-wrap items-center gap-2 border-t border-border bg-canvas/60 px-5 py-3">
               {!taken && (
                 <button

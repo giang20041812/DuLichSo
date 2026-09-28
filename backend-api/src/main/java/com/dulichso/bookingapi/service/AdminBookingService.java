@@ -56,11 +56,20 @@ public class AdminBookingService {
      * @param place   lọc theo tên homestay/điểm đến
      * @param placeId lọc chính xác theo homestay (dùng khi drill-down từ báo cáo)
      */
-    @Transactional(readOnly = true)
     public Page<BookingDto> search(BookingStatus status, String keyword, String guest, String place, Long placeId,
                                    Long providerId, LocalDate checkInFrom, LocalDate checkInTo,
                                    LocalDate createdFrom, LocalDate createdTo,
                                    String sortBy, String sortDir, int page, int size) {
+        return searchByStatuses(status == null ? null : List.of(status), keyword, guest, place, placeId, providerId,
+                checkInFrom, checkInTo, createdFrom, createdTo, sortBy, sortDir, page, size);
+    }
+
+    /** Như {@code search} nhưng lọc theo một NHÓM trạng thái (vd: tab "Đã hủy" gồm hủy / từ chối / hết hạn...); null hoặc rỗng = mọi trạng thái. */
+    @Transactional(readOnly = true)
+    public Page<BookingDto> searchByStatuses(java.util.Collection<BookingStatus> statuses, String keyword, String guest, String place,
+                                             Long placeId, Long providerId, LocalDate checkInFrom, LocalDate checkInTo,
+                                             LocalDate createdFrom, LocalDate createdTo,
+                                             String sortBy, String sortDir, int page, int size) {
         String guestKw = guest != null && !guest.isBlank() ? guest.trim().toLowerCase() : null;
         String placeKw = place != null && !place.isBlank() ? place.trim().toLowerCase() : null;
         String kw = keyword != null && !keyword.isBlank() ? keyword.trim().toLowerCase() : null;
@@ -81,7 +90,7 @@ public class AdminBookingService {
             }
 
             List<Predicate> ps = new ArrayList<>();
-            if (status != null) ps.add(cb.equal(root.get("status"), status));
+            if (statuses != null && !statuses.isEmpty()) ps.add(root.get("status").in(statuses));
             if (providerId != null) ps.add(cb.equal(provider.get("id"), providerId));
             if (placeId != null) ps.add(cb.equal(placeJoin.get("id"), placeId));
             if (placeKw != null) {

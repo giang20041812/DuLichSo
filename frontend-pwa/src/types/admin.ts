@@ -22,11 +22,41 @@ export interface AdminAccountDto {
   /** null khi tài khoản chưa cập nhật họ tên. */
   fullName: string | null;
   role: AccountRole;
+  /** Cấp quản trị 1..3 — chỉ có với role ADMIN (khớp AccountDto.adminLevel ở backend). */
+  adminLevel?: AdminLevel | null;
   status: AccountStatus;
   providerId?: number;
   providerName?: string;
   lastLoginAt?: string;
   createdAt: string;
+}
+
+/** Cấp quản trị viên: 1 = cao nhất (toàn quyền) … 3 = thấp nhất (chỉ xem + kiểm duyệt đánh giá). */
+export type AdminLevel = 1 | 2 | 3;
+
+/** Khớp AdminNotificationDtos.NotificationItemDto (thông báo trong ứng dụng gửi cho Admin). */
+export interface AdminNotificationItem {
+  id: number;
+  title: string | null;
+  message: string | null;
+  /** Mục của cổng quản trị cần mở khi bấm thông báo (vd: "applications", "accounts"). */
+  target: string | null;
+  entityType: string | null;
+  entityId: number | null;
+  read: boolean;
+  createdAt: string;
+}
+
+/** Khớp AdminNotificationDtos.NotificationFeedDto */
+export interface AdminNotificationFeed {
+  items: AdminNotificationItem[];
+  unread: number;
+}
+
+/** Khớp AdminAccountDtos.UpdateAdminLevelRequest */
+export interface UpdateAdminLevelRequest {
+  adminLevel: AdminLevel;
+  reason?: string;
 }
 
 /** Khớp Spring Data Page<T> trả về từ backend-api. */
@@ -83,6 +113,8 @@ export interface CreateAdminAccountRequest {
   phone: string;
   password: string;
   fullName: string;
+  /** Không nêu thì backend gán cấp 3 (ít quyền nhất). */
+  adminLevel?: AdminLevel;
 }
 
 export interface UpdateAccountRequest {
@@ -316,6 +348,8 @@ export interface AdminBookingDto {
 
 export interface BookingSearchParams {
   status?: BookingStatus;
+  /** Nhiều trạng thái cùng lúc (cổng Admin: tab nhóm trạng thái). Được gửi lên thành `status=A,B,C`. */
+  statuses?: BookingStatus[];
   keyword?: string;
   /** Lọc theo khách: tên, SĐT hoặc email */
   guest?: string;
@@ -421,9 +455,11 @@ export interface ReportKpi {
   openBookings: number;
   lostBookings: number;
   bookingValue: number;
-  averageValue: number;
+  /** null = không đủ dữ liệu để tính (chưa có đơn xác nhận nào trong kỳ) — không tự quy về 0 (RPT-BR-02). */
+  averageValue: number | null;
   paidRevenue: number;
-  confirmationRate: number;
+  /** null = không đủ dữ liệu để tính (chưa có đơn nào trong kỳ) — không tự quy về 0 (RPT-BR-02). */
+  confirmationRate: number | null;
   /** null khi đang lọc theo một NCC */
   newProviders: number | null;
   newPlaces: number | null;
@@ -459,6 +495,8 @@ export interface AdminOverviewReport {
   to: string;
   providerId: number | null;
   granularity: 'DAY' | 'MONTH';
+  /** Thời điểm chốt số liệu (= cập nhật gần nhất, vì báo cáo luôn tính lại theo thời gian thực mỗi lần tải). */
+  generatedAt: string;
   kpi: ReportKpi;
   byStatus: { status: BookingStatus; count: number }[];
   series: ReportSeriesPoint[];

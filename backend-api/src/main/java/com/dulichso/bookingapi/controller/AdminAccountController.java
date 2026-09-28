@@ -104,6 +104,22 @@ public class AdminAccountController {
         return ResponseEntity.ok(adminAccountService.updateAccountRole(id, request, callerId));
     }
 
+    /** GET /api/v1/admin/accounts/me — thông tin và cấp quản trị của người đang đăng nhập (mọi ADMIN). */
+    @GetMapping("/me")
+    public ResponseEntity<AccountDto> me(@AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(adminAccountService.me(principal != null ? principal.accountId() : null));
+    }
+
+    /** PATCH /api/v1/admin/accounts/{id}/admin-level — đổi cấp quản trị viên (chỉ cấp 1). */
+    @PatchMapping("/{id}/admin-level")
+    public ResponseEntity<AccountDto> updateAdminLevel(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateAdminLevelRequest request,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        Long callerId = principal != null ? principal.accountId() : null;
+        return ResponseEntity.ok(adminAccountService.updateAdminLevel(id, request, callerId));
+    }
+
     /**
      * PATCH /api/v1/admin/accounts/{id}/reset-password
      * Đặt lại mật khẩu tài khoản.

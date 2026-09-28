@@ -25,7 +25,8 @@ import java.util.Map;
         AdminChangeRequestController.class,
         AdminProviderApplicationController.class,
         AdminCashflowController.class,
-        AdminReviewController.class
+        AdminReviewController.class,
+        AdminNotificationController.class
 })
 public class AdminExceptionHandler {
 

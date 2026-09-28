@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import SidebarLayout from '@/components/layout/SidebarLayout';
 import PartnerLayout from '@/components/partner/PartnerLayout';
+import AdminGuard from '@/components/admin/AdminGuard';
 import PartnerRoomsPage from '@/pages/partner/PartnerRoomsPage';
 import PartnerBookingProcessPage from '@/pages/partner/PartnerBookingProcessPage';
 import PartnerReviewsPage from '@/pages/partner/PartnerReviewsPage';
@@ -99,7 +100,14 @@ export function AppRoutes() {
       <Route path="register" element={<RegisterPage />} />
       <Route path="register/partner" element={<ProviderRegisterPage />} />
       <Route path="portal/suspended" element={<ProviderSuspendedPage />} />
-      <Route path="admin" element={<AdminDashboardPage />} />
+      <Route
+        path="admin"
+        element={
+          <AdminGuard>
+            <AdminDashboardPage />
+          </AdminGuard>
+        }
+      />
       <Route element={<PartnerLayout />}>
         <Route path="partner" element={<PartnerDashboardPage />} />
         <Route path="partner/bookings" element={<PartnerBookingsPage />} />

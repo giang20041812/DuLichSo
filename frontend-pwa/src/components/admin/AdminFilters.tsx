@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ArrowUpDown, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, RefreshCw, Search, X } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
+import { AlertTriangle, ArrowUpDown, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, RefreshCw, Search, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { StatusTone } from './StatusBadge';
 import OverlayPortal from './OverlayPortal';
@@ -106,14 +106,17 @@ export function UnderlineTabs<T extends string>({
   value,
   onChange,
   ariaLabel,
+  trailing,
 }: {
   items: TabItem<T>[];
   value: T | '';
   onChange: (v: T | '') => void;
   ariaLabel: string;
+  /** Phần phụ đặt cuối dải tab (vd: ô chọn "Khác" gom các trạng thái ít dùng). */
+  trailing?: ReactNode;
 }) {
   return (
-    <div role="tablist" aria-label={ariaLabel} className="flex gap-1 overflow-x-auto border-b border-border px-3">
+    <div role="tablist" aria-label={ariaLabel} className="flex items-stretch gap-1 overflow-x-auto border-b border-border px-3">
       {items.map((it) => {
         const active = it.value === value;
         const tone: StatusTone = it.tone ?? 'brand';
@@ -147,6 +150,7 @@ export function UnderlineTabs<T extends string>({
           </button>
         );
       })}
+      {trailing && <div className="ml-auto flex shrink-0 items-center pl-2">{trailing}</div>}
     </div>
   );
 }
@@ -545,12 +549,19 @@ export function Pagination({
   );
 }
 
-/** Hộp thoại xác nhận có ô nhập lý do (dùng khi khóa / từ chối / ẩn). */
+/**
+ * Hộp thoại xác nhận có ô nhập lý do (dùng khi khóa / từ chối / ẩn / xóa).
+ *
+ * `finalConfirm`: khi có, bấm nút xác nhận chưa gửi ngay mà chuyển sang bước "Xác nhận lần cuối" nêu rõ hậu quả
+ * và nhắc lại lý do; chỉ khi bấm xác nhận ở bước đó mới gọi `onConfirm`. "Quay lại" về bước nhập lý do, không ghi nhận gì.
+ */
 export function ReasonDialog({
   title,
   description,
   confirmLabel,
   reasonRequired,
+  reasonRequiredMessage = 'Vui lòng nhập lý do.',
+  finalConfirm,
   tone = 'danger',
   error,
   onCancel,
@@ -560,12 +571,74 @@ export function ReasonDialog({
   description: string;
   confirmLabel: string;
   reasonRequired: boolean;
+  /** Thông báo lỗi tại ô lý do khi bỏ trống (chỉ dùng cùng `finalConfirm`; nơi khác tự kiểm ở onConfirm). */
+  reasonRequiredMessage?: string;
+  /** Nội dung cảnh báo hậu quả ở bước xác nhận lần cuối; bỏ trống = xác nhận một bước như cũ. */
+  finalConfirm?: string;
   tone?: 'danger' | 'primary';
   error?: string;
   onCancel: () => void;
   onConfirm: (reason: string) => void;
 }) {
   const [reason, setReason] = useState('');
+  const [step, setStep] = useState<'form' | 'final'>('form');
+  const [localError, setLocalError] = useState('');
+
+  const submit = () => {
+    const trimmed = reason.trim();
+    if (!finalConfirm) {
+      onConfirm(trimmed);
+      return;
+    }
+    if (reasonRequired && !trimmed) {
+      setLocalError(reasonRequiredMessage);
+      return;
+    }
+    setLocalError('');
+    setStep('final');
+  };
+
+  const shownError = localError || error;
+
+  if (step === 'final' && finalConfirm) {
+    return (
+      <OverlayPortal>
+        <div className="fixed inset-0 z-[55] flex items-center justify-center bg-ink-deep/60 p-4 backdrop-blur-[2px]">
+          <div role="alertdialog" aria-modal="true" aria-label="Xác nhận lần cuối" className="flex w-full max-w-md flex-col gap-3 rounded-lg border border-border bg-white p-5 shadow-xl">
+            <div className="flex items-start gap-3">
+              <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${tone === 'danger' ? 'bg-danger/10 text-danger' : 'bg-primary-50 text-primary'}`}>
+                <AlertTriangle className="h-5 w-5" aria-hidden />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Xác nhận lần cuối</p>
+                <h3 className="font-display text-base font-bold text-ink-deep">{title}</h3>
+              </div>
+            </div>
+            <p className="text-xs leading-relaxed text-ink">{finalConfirm}</p>
+            {reason.trim() && (
+              <p className="rounded-md bg-canvas px-3 py-2 text-xs text-muted">
+                Lý do: <span className="text-ink">“{reason.trim()}”</span>
+              </p>
+            )}
+            {error && <p className="text-xs text-danger">{error}</p>}
+            <div className="flex justify-end gap-2 pt-1">
+              <button type="button" autoFocus onClick={() => setStep('form')} className="rounded-md px-4 py-2 text-xs font-medium text-muted hover:bg-hover">
+                Quay lại
+              </button>
+              <button
+                type="button"
+                onClick={() => onConfirm(reason.trim())}
+                className={`rounded-md px-4 py-2 text-xs font-semibold text-white ${tone === 'danger' ? 'bg-danger hover:opacity-90' : 'bg-primary hover:bg-primary-600'}`}
+              >
+                {confirmLabel}
+              </button>
+            </div>
+          </div>
+        </div>
+      </OverlayPortal>
+    );
+  }
+
   return (
     <OverlayPortal>
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-deep/60 p-4 backdrop-blur-[2px]">
@@ -579,17 +652,20 @@ export function ReasonDialog({
           id="reason-dialog-input"
           rows={3}
           value={reason}
-          onChange={(e) => setReason(e.target.value)}
+          onChange={(e) => {
+            setReason(e.target.value);
+            setLocalError('');
+          }}
           className="w-full rounded-md border border-border px-3 py-2 text-xs focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
         />
-        {error && <p className="text-xs text-danger">{error}</p>}
+        {shownError && <p className="text-xs text-danger">{shownError}</p>}
         <div className="flex justify-end gap-2 pt-1">
           <button type="button" onClick={onCancel} className="rounded-md px-4 py-2 text-xs font-medium text-muted hover:bg-hover">
             Hủy
           </button>
           <button
             type="button"
-            onClick={() => onConfirm(reason.trim())}
+            onClick={submit}
             className={`rounded-md px-4 py-2 text-xs font-semibold text-white ${
               tone === 'danger' ? 'bg-danger hover:opacity-90' : 'bg-primary hover:bg-primary-600'
             }`}

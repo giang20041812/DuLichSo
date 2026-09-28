@@ -294,4 +294,100 @@ class AdminAccountServiceTest {
         verify(accountRepository, times(1)).save(acc);
         verify(auditLogService, times(1)).record(eq(1L), eq("RESET_PASSWORD"), eq("Account"), eq(3L), anyString(), isNull(), anyMap());
     }
+
+    private static Account admin(long id, Integer level) {
+        return Account.builder().id(id).email("a" + id + "@taybactrails.vn").role(AccountRole.ADMIN).adminLevel(level)
+                .status(AccountStatus.ACTIVE).build();
+    }
+
+    @Test
+    @DisplayName("createAdminAccount: không nêu cấp thì gán cấp 3 (ít quyền nhất)")
+    void createAdminAccount_DefaultsToLowestLevel() {
+        CreateAdminAccountRequest req = CreateAdminAccountRequest.builder()
+                .email("l3@taybactrails.vn").phone("0981111111").password("Secret@123").fullName("Cấp ba").build();
+        when(passwordEncoder.encode(anyString())).thenReturn("hash");
+        when(accountRepository.save(any(Account.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        AccountDto dto = service.createAdminAccount(req, 1L);
+
+        assertEquals(3, dto.getAdminLevel());
+    }
+
+    @Test
+    @DisplayName("createAdminAccount: cấp ngoài 1..3 bị từ chối")
+    void createAdminAccount_InvalidLevelRejected() {
+        CreateAdminAccountRequest req = CreateAdminAccountRequest.builder()
+                .email("x@taybactrails.vn").password("Secret@123").fullName("X").adminLevel(4).build();
+        assertThrows(IllegalArgumentException.class, () -> service.createAdminAccount(req, 1L));
+    }
+
+    @Test
+    @DisplayName("updateAdminLevel: cấp 1 đổi cấp Admin khác và ghi audit")
+    void updateAdminLevel_Success() {
+        Account target = admin(2L, 3);
+        when(accountRepository.findByIdForUpdate(2L)).thenReturn(Optional.of(target));
+        when(accountRepository.save(any(Account.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        AccountDto dto = service.updateAdminLevel(2L, UpdateAdminLevelRequest.builder().adminLevel(2).reason("Lên vận hành").build(), 1L);
+
+        assertEquals(2, dto.getAdminLevel());
+        verify(auditLogService).record(eq(1L), eq("UPDATE_ADMIN_LEVEL"), eq("Account"), eq(2L), anyString(), anyMap(), anyMap());
+    }
+
+    @Test
+    @DisplayName("updateAdminLevel: không tự đổi cấp của chính mình")
+    void updateAdminLevel_SelfBlocked() {
+        when(accountRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(admin(1L, 1)));
+        assertThrows(IllegalStateException.class,
+                () -> service.updateAdminLevel(1L, UpdateAdminLevelRequest.builder().adminLevel(3).build(), 1L));
+    }
+
+    @Test
+    @DisplayName("updateAdminLevel: không hạ cấp quản trị viên cấp 1 đang hoạt động cuối cùng")
+    void updateAdminLevel_LastLevelOneProtected() {
+        when(accountRepository.findByIdForUpdate(2L)).thenReturn(Optional.of(admin(2L, 1)));
+        when(accountRepository.countActiveLevelOneAdmins()).thenReturn(1L);
+        assertThrows(IllegalStateException.class,
+                () -> service.updateAdminLevel(2L, UpdateAdminLevelRequest.builder().adminLevel(2).build(), 1L));
+    }
+
+    @Test
+    @DisplayName("updateAdminLevel: chỉ áp dụng cho tài khoản Admin")
+    void updateAdminLevel_ProviderRejected() {
+        Account provider = Account.builder().id(5L).role(AccountRole.PROVIDER).status(AccountStatus.ACTIVE).build();
+        when(accountRepository.findByIdForUpdate(5L)).thenReturn(Optional.of(provider));
+        assertThrows(IllegalArgumentException.class,
+                () -> service.updateAdminLevel(5L, UpdateAdminLevelRequest.builder().adminLevel(2).build(), 1L));
+    }
+
+    @Test
+    @DisplayName("resetPassword: Admin cấp 2 không được đặt lại mật khẩu của Admin (chống leo thang đặc quyền)")
+    void resetPassword_LevelTwoCannotTouchAdmin() {
+        when(accountRepository.findById(9L)).thenReturn(Optional.of(admin(9L, 1)));
+        when(accountRepository.findById(2L)).thenReturn(Optional.of(admin(2L, 2)));
+
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                () -> service.resetPassword(9L, ResetPasswordRequest.builder().newPassword("NewPass@123").build(), 2L));
+        verify(accountRepository, never()).save(any(Account.class));
+    }
+
+    @Test
+    @DisplayName("updateAccountStatus: Admin cấp 2 không được khóa Admin nhưng vẫn khóa được tài khoản NCC")
+    void updateAccountStatus_LevelTwoBlockedOnAdminOnly() {
+        when(accountRepository.findByIdForUpdate(9L)).thenReturn(Optional.of(admin(9L, 3)));
+        when(accountRepository.findById(2L)).thenReturn(Optional.of(admin(2L, 2)));
+        UpdateAccountStatusRequest lock = UpdateAccountStatusRequest.builder().status(AccountStatus.INACTIVE).reason("x").build();
+        assertThrows(org.springframework.web.server.ResponseStatusException.class, () -> service.updateAccountStatus(9L, lock, 2L));
+
+        Account provider = Account.builder().id(7L).role(AccountRole.PROVIDER).status(AccountStatus.ACTIVE).build();
+        when(accountRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(provider));
+        when(accountRepository.save(any(Account.class))).thenAnswer(inv -> inv.getArgument(0));
+        assertEquals(AccountStatus.INACTIVE, service.updateAccountStatus(7L, lock, 2L).getStatus());
+    }
+
+    @Test
+    @DisplayName("me: tài khoản QA không có trong DB được coi là cấp 1")
+    void me_MockAccountIsLevelOne() {
+        assertEquals(1, service.me(null).getAdminLevel());
+    }
 }

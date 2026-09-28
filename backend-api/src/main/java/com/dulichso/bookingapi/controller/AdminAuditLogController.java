@@ -35,9 +35,12 @@ public class AdminAuditLogController {
             @RequestParam(required = false) String entityType,
             @RequestParam(required = false) Long entityId,
             @RequestParam(required = false) String result,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) java.util.List<String> actionCodes,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(auditLogService.search(from, to, actor, actorId, action, entityType, entityId, result, page, size));
+        return ResponseEntity.ok(auditLogService.search(from, to, actor, actorId, action, entityType, entityId, result,
+                keyword, actionCodes, page, size));
     }
 
     @GetMapping("/{id}")

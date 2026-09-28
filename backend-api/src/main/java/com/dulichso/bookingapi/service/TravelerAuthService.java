@@ -25,13 +25,22 @@ public class TravelerAuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
     private final AuditLogService auditLogService;
+    private final NotificationRecorder notifications;
 
     public TravelerAuthService(TravelerRepository travelerRepository, PasswordEncoder passwordEncoder, JwtUtils jwtUtils,
-                               AuditLogService auditLogService) {
+                               AuditLogService auditLogService, NotificationRecorder notifications) {
         this.travelerRepository = travelerRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtils = jwtUtils;
         this.auditLogService = auditLogService;
+        this.notifications = notifications;
+    }
+
+    /** Báo cho các Admin biết có khách du lịch mới đăng ký (không làm hỏng đăng ký nếu gửi thông báo lỗi). */
+    private void notifyAdminsNewTraveler(Traveler traveler) {
+        String name = traveler.getFullName() != null && !traveler.getFullName().isBlank() ? traveler.getFullName() : traveler.getEmail();
+        notifications.toAdmins("ADMIN_NEW_TRAVELER", "Traveler", traveler.getId(),
+                "Khách \"" + name + "\" (" + traveler.getEmail() + ") vừa đăng ký tài khoản.", "accounts");
     }
 
     public record TravelerSession(String token, String email, String fullName, String picture, String phone) {}
@@ -87,6 +96,7 @@ public class TravelerAuthService {
                 .passwordHash(passwordEncoder.encode(password))
                 .lastLoginAt(LocalDateTime.now())
                 .build());
+        notifyAdminsNewTraveler(traveler);
         return session(traveler);
     }
 
@@ -129,10 +139,13 @@ public class TravelerAuthService {
         Traveler traveler = travelerRepository.findByEmailIgnoreCase(profile.email())
                 .orElseGet(() -> Traveler.builder().email(profile.email().toLowerCase()).build());
         assertActive(traveler);
+        boolean isNew = traveler.getId() == null;
         if (traveler.getFullName() == null) traveler.setFullName(profile.fullName());
         traveler.setPictureUrl(profile.picture());
         traveler.setLastLoginAt(LocalDateTime.now());
-        return session(travelerRepository.save(traveler));
+        Traveler saved = travelerRepository.save(traveler);
+        if (isNew) notifyAdminsNewTraveler(saved);
+        return session(saved);
     }
 
     private void assertActive(Traveler t) {

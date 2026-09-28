@@ -54,6 +54,8 @@ public class PortalAuthDtos {
         private String phone;
         private String fullName;
         private AccountRole role;
+        /** Cấp quản trị 1..3 (chỉ ADMIN). Giao diện dùng để ẩn/hiện chức năng; quyền thật được kiểm ở máy chủ. */
+        private Integer adminLevel;
         private AccountStatus status;
         private ProviderSummaryDto provider;
         private String redirectUrl;

@@ -46,6 +46,16 @@ public class AdminReviewService {
 
     public Page<ReviewDto> search(ReviewStatus status, Long placeId, Long providerId, Integer rating, String keyword,
                                   LocalDate from, LocalDate to, int page, int size) {
+        return search(status, null, placeId, providerId, rating, keyword, from, to, page, size);
+    }
+
+    /**
+     * @param processed true = đã được Admin kiểm duyệt (có moderated_at: giữ nguyên / ẩn / gỡ / khôi phục);
+     *                  false = chưa được kiểm duyệt lần nào (chờ xử lý); null = không lọc. Hệ thống chưa có cơ chế khách
+     *                  báo cáo vi phạm nên "chờ xử lý" nghĩa là chưa có quyết định kiểm duyệt nào.
+     */
+    public Page<ReviewDto> search(ReviewStatus status, Boolean processed, Long placeId, Long providerId, Integer rating, String keyword,
+                                  LocalDate from, LocalDate to, int page, int size) {
         if (from != null && to != null && to.isBefore(from)) {
             throw new IllegalArgumentException("Khoảng thời gian không hợp lệ: ngày kết thúc phải sau hoặc bằng ngày bắt đầu.");
         }
@@ -65,6 +75,7 @@ public class AdminReviewService {
             }
             List<Predicate> ps = new ArrayList<>();
             if (status != null) ps.add(cb.equal(root.get("status"), status));
+            if (processed != null) ps.add(processed ? cb.isNotNull(root.get("moderatedAt")) : cb.isNull(root.get("moderatedAt")));
             if (placeId != null) ps.add(cb.equal(place.get("id"), placeId));
             if (providerId != null) ps.add(cb.equal(place.get("provider").get("id"), providerId));
             if (rating != null) ps.add(cb.equal(root.get("rating"), rating.byteValue()));

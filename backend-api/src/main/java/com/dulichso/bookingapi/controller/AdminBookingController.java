@@ -69,7 +69,7 @@ public class AdminBookingController {
 
     @GetMapping
     public ResponseEntity<Page<BookingDto>> search(
-            @RequestParam(required = false) BookingStatus status,
+            @RequestParam(required = false) java.util.List<BookingStatus> status,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String guest,
             @RequestParam(required = false) String place,
@@ -83,7 +83,8 @@ public class AdminBookingController {
             @RequestParam(defaultValue = "desc") String sortDir,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(adminBookingService.search(status, keyword, guest, place, placeId, providerId,
+        // status nhận một hoặc nhiều giá trị phân tách bằng dấu phẩy (vd: status=PENDING,AWAITING_PAYMENT) để lọc theo nhóm.
+        return ResponseEntity.ok(adminBookingService.searchByStatuses(status, keyword, guest, place, placeId, providerId,
                 checkInFrom, checkInTo, createdFrom, createdTo, sortBy, sortDir, page, size));
     }
 

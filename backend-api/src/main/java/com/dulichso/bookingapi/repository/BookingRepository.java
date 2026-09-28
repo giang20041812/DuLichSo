@@ -11,6 +11,9 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, org.spr
     Optional<Booking> findByBookingCode(String bookingCode);
     boolean existsByBookingCode(String bookingCode);
 
+    /** Điểm đến có Booking ở một trong các trạng thái đã cho (vd: đang hiệu lực) hay không. */
+    boolean existsByPlaceIdAndStatusIn(Long placeId, java.util.Collection<com.dulichso.bookingapi.entity.enums.BookingStatus> statuses);
+
     /**
      * GMV (giá trị đặt phòng) theo tháng — mọi đơn CHƯA bị hủy/từ chối/hết hạn, không phụ thuộc đã thanh toán hay chưa.
      * Dùng làm số liệu tạm thay thế khi doanh thu đối soát (PaymentTransaction) = 0đ.

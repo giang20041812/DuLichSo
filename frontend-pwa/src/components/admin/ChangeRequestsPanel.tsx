@@ -15,12 +15,15 @@ import {
   type SelectOption,
 } from './AdminFilters';
 import { StatusBadge } from './StatusBadge';
+import StatusFilter, { type StatusFilterItem } from './StatusFilter';
+import { STATUS_COLOR } from './statusColor';
+import { useUrlStatus } from '@/hooks/useUrlStatus';
+import { useStatusCounts } from '@/hooks/useStatusCounts';
 import { actionButtonClass } from './statusStyles';
 import OverlayPortal from './OverlayPortal';
 import {
   CHANGE_OPERATION_LABEL,
   CHANGE_STATUS_LABEL,
-  CHANGE_STATUS_ORDER,
   CHANGE_STATUS_TONE,
   CHANGE_TARGET_LABEL,
   CHANGE_TARGET_ORDER,
@@ -33,7 +36,14 @@ interface ChangeRequestsPanelProps {
 }
 
 const PAGE_SIZE = 15;
-const STATUS_OPTIONS: SelectOption<ChangeRequestStatus>[] = CHANGE_STATUS_ORDER.map((s) => ({ value: s, label: CHANGE_STATUS_LABEL[s] }));
+/** Tab trạng thái yêu cầu thay đổi = change_request.status (mặc định "Chờ duyệt"). */
+const STATUS_ITEMS: StatusFilterItem<ChangeRequestStatus>[] = [
+  { value: 'PENDING', label: CHANGE_STATUS_LABEL.PENDING, tone: STATUS_COLOR.yellow },
+  { value: 'APPROVED', label: CHANGE_STATUS_LABEL.APPROVED, tone: STATUS_COLOR.green },
+  { value: 'REJECTED', label: CHANGE_STATUS_LABEL.REJECTED, tone: STATUS_COLOR.red },
+  { value: 'CANCELLED', label: CHANGE_STATUS_LABEL.CANCELLED, tone: STATUS_COLOR.gray },
+];
+const STATUS_VALUES = STATUS_ITEMS.map((i) => i.value);
 const TARGET_OPTIONS: SelectOption<ChangeTargetType>[] = [
   { value: '', label: 'Tất cả' },
   ...CHANGE_TARGET_ORDER.map((t) => ({ value: t, label: CHANGE_TARGET_LABEL[t] })),
@@ -46,7 +56,7 @@ type Decision = { type: 'approve' | 'reject'; request: ChangeRequestSummary };
 /** Danh sách yêu cầu thay đổi Homestay/phòng/giá của NCC: Admin xem nội dung cũ/mới rồi Duyệt hoặc Từ chối. */
 export default function ChangeRequestsPanel({ notify, onChanged }: ChangeRequestsPanelProps) {
   const [keyword, setKeyword] = useState('');
-  const [status, setStatus] = useState<ChangeRequestStatus | ''>('PENDING');
+  const [status, setStatus] = useUrlStatus<ChangeRequestStatus>(STATUS_VALUES, 'PENDING');
   const [targetType, setTargetType] = useState<ChangeTargetType | ''>('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
@@ -61,7 +71,7 @@ export default function ChangeRequestsPanel({ notify, onChanged }: ChangeRequest
   const [dialogError, setDialogError] = useState('');
 
   const debouncedKeyword = useDebouncedValue(keyword);
-  const activeCount = [debouncedKeyword, targetType, from || to, status === 'PENDING' ? '' : status].filter(Boolean).length;
+  const activeCount = [debouncedKeyword, targetType, from || to].filter(Boolean).length;
 
   const resetPage = <T,>(setter: (v: T) => void) => (v: T) => {
     setter(v);
@@ -70,7 +80,6 @@ export default function ChangeRequestsPanel({ notify, onChanged }: ChangeRequest
 
   const clearFilters = () => {
     setKeyword('');
-    setStatus('PENDING');
     setTargetType('');
     setFrom('');
     setTo('');
@@ -104,6 +113,25 @@ export default function ChangeRequestsPanel({ notify, onChanged }: ChangeRequest
     void load();
   }, [load, reload]);
 
+  /** Số lượng trên từng tab: áp dụng cùng từ khóa / đối tượng / ngày gửi, chỉ khác trạng thái. */
+  const counts = useStatusCounts(
+    STATUS_VALUES,
+    async (s) =>
+      (
+        await adminService.getChangeRequests({
+          status: s || undefined,
+          targetType: targetType || undefined,
+          keyword: debouncedKeyword.trim() || undefined,
+          from: from || undefined,
+          to: to || undefined,
+          page: 0,
+          size: 1,
+        })
+      ).totalElements,
+    JSON.stringify([debouncedKeyword.trim(), targetType, from, to]),
+    reload,
+  );
+
   const confirm = async (reason: string) => {
     if (!decision) return;
     if (decision.type === 'reject' && !reason) {
@@ -135,9 +163,10 @@ export default function ChangeRequestsPanel({ notify, onChanged }: ChangeRequest
 
   return (
     <>
+      <StatusFilter ariaLabel="Trạng thái yêu cầu thay đổi" items={STATUS_ITEMS} value={status} counts={counts} onChange={resetPage(setStatus)} />
+
       <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2.5">
         <FilterSearch value={keyword} onChange={resetPage(setKeyword)} placeholder="Tìm theo tên Homestay hoặc nhà cung cấp..." />
-        <CompactSelect label="Trạng thái" value={status} options={STATUS_OPTIONS} onChange={resetPage(setStatus)} />
         <CompactSelect label="Đối tượng" value={targetType} options={TARGET_OPTIONS} onChange={resetPage(setTargetType)} />
         <CompactDateRange
           label="Ngày gửi"
@@ -249,6 +278,12 @@ export default function ChangeRequestsPanel({ notify, onChanged }: ChangeRequest
           }
           confirmLabel={decision.type === 'approve' ? 'Duyệt và cập nhật' : 'Từ chối'}
           reasonRequired={decision.type === 'reject'}
+          reasonRequiredMessage="Vui lòng nhập lý do từ chối."
+          finalConfirm={
+            decision.type === 'reject'
+              ? `Bạn sắp từ chối yêu cầu thay đổi của "${decision.request.placeName}". Dữ liệu chính thức giữ nguyên, nhà cung cấp được báo kết quả và không thể hoàn tác thao tác này.`
+              : undefined
+          }
           tone={decision.type === 'reject' ? 'danger' : 'primary'}
           error={dialogError}
           onCancel={() => setDecision(null)}

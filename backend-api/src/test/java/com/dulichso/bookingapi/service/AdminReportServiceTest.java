@@ -62,17 +62,57 @@ class AdminReportServiceTest {
 
         assertEquals("DAY", r.granularity());
         assertEquals(5, r.series().size());
-        assertEquals(4, r.kpi().totalBookings());
+        // RPT-BR-04: "Tổng Booking" (nhóm Tất cả) loại Booking Đã hủy -> chỉ còn 3/4 dòng (không tính dòng CANCELLED).
+        assertEquals(3, r.kpi().totalBookings());
         assertEquals(2, r.kpi().confirmedBookings());
         assertEquals(1, r.kpi().openBookings());
+        // lostBookings là chỉ số riêng, vẫn tính cả Đã hủy (khác với Tổng Booking).
         assertEquals(1, r.kpi().lostBookings());
         assertEquals(0, BigDecimal.valueOf(1_500_000).compareTo(r.kpi().bookingValue()));
         assertEquals(0, BigDecimal.valueOf(750_000).compareTo(r.kpi().averageValue()));
-        assertEquals(50.0, r.kpi().confirmationRate());
+        // confirmed=2, total=3 (loại 1 dòng Đã hủy khỏi Tổng Booking) -> 2/3 ≈ 66.7%.
+        assertEquals(66.7, r.kpi().confirmationRate(), 0.0001);
         assertEquals(3L, r.kpi().newProviders());
         assertEquals("NCC A", r.topProviders().get(0).name());
         assertEquals("Homestay A", r.topPlaces().get(0).name());
         assertEquals(2, r.series().get(0).bookings());
+        // Booking Đã hủy trong ngày 2/9 bị loại khỏi "Tổng Booking" nên bucket ngày đó = 0 đơn.
+        assertEquals(0, r.series().get(1).bookings());
+        assertNotNull(r.generatedAt());
+    }
+
+    @Test
+    @DisplayName("overview: nhóm Hủy/từ chối/hết hạn vẫn tính đủ cả Đã hủy trong tổng của nhóm đó")
+    void overview_lostGroupIncludesCancelled() {
+        stubBookings(
+                row("2026-09-01T10:00:00", BookingStatus.CANCELLED, 300_000, 2, "NCC B", 20, "Homestay B"),
+                row("2026-09-02T09:00:00", BookingStatus.REJECTED, 100_000, 2, "NCC B", 20, "Homestay B"));
+
+        OverviewReport r = service.overview(LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 5), null, "LOST");
+
+        assertEquals(2, r.kpi().totalBookings());
+        assertEquals(2, r.kpi().lostBookings());
+    }
+
+    @Test
+    @DisplayName("overview: không có đơn xác nhận nào thì TB/đơn và tỷ lệ xác nhận là null (không tự quy về 0)")
+    void overview_insufficientDataForRatios() {
+        stubBookings(row("2026-09-01T10:00:00", BookingStatus.PENDING, 200_000, 2, "NCC B", 20, "Homestay B"));
+
+        OverviewReport r = service.overview(LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 5), null, "ALL");
+
+        assertNull(r.kpi().averageValue());
+        assertNotNull(r.kpi().confirmationRate());
+        assertEquals(0.0, r.kpi().confirmationRate(), 0.0001);
+    }
+
+    @Test
+    @DisplayName("overview: không có đơn nào trong kỳ thì tỷ lệ xác nhận cũng null")
+    void overview_noBookingsAtAllRateIsNull() {
+        stubBookings();
+        OverviewReport r = service.overview(LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 5), null, "ALL");
+        assertNull(r.kpi().confirmationRate());
+        assertNull(r.kpi().averageValue());
     }
 
     @Test
