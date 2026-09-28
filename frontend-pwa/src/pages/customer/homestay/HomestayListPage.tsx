@@ -253,7 +253,7 @@ export default function HomestayListPage() {
   );
 
   const paginatedHomestays = homestays;
-  const homestayDetailPath = (id: number) => {
+  const homestayDetailPath = (id: string) => {
     const query = searchParams.toString();
     return `/homestays/${id}${query ? `?${query}` : ''}`;
   };

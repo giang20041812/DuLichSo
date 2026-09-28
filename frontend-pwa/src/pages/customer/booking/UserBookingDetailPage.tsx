@@ -136,7 +136,7 @@ export default function UserBookingDetailPage() {
             <div>
               <span className="font-bold">Đang chờ chủ nhà xác nhận</span>
               <p className="text-xs text-sky-700 font-normal mt-0.5">
-                Chủ nhà có tối đa <strong>120 phút</strong> để duyệt đơn đặt phòng. Hạn xử lý: {booking.holdExpiresAt ? new Date(booking.holdExpiresAt).toLocaleString('vi-VN') : 'đang cập nhật'}.
+                Chủ nhà có tối đa <strong>120 phút</strong> để duyệt đơn đặt phòng. Hạn xử lý: {booking?.holdExpiresAt ? new Date(booking.holdExpiresAt).toLocaleString('vi-VN') : 'đang cập nhật'}.
               </p>
             </div>
           </div>
@@ -705,9 +705,9 @@ export default function UserBookingDetailPage() {
                 Chính sách & Quy định
               </h4>
               <p className="text-xs text-gray-600 leading-relaxed">
-                {booking.policySnapshot?.name ? (
+                {booking.policySnapshot?.policyName ? (
                   <span>
-                    Chính sách: <strong>{String(booking.policySnapshot.name)}</strong>
+                    Chính sách: <strong>{String(booking.policySnapshot.policyName)}</strong>
                     {Boolean(booking.policySnapshot.description) && (
                       <span className="block mt-1 text-gray-500">
                         {String(booking.policySnapshot.description)}

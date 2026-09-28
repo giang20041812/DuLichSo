@@ -100,6 +100,8 @@ export interface BookingPolicySnapshot {
   freeCancelCutoffHours?: number;
   refundType?: string;
   description?: string;
+  cancelReason?: string;
+  refundAmount?: number | string;
 }
 
 // DTO nhận về từ backend — field name khớp với BookingResponseDto.java
