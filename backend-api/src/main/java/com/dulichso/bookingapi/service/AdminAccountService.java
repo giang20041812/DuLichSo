@@ -20,15 +20,18 @@ public class AdminAccountService {
     private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
     private final com.dulichso.bookingapi.repository.ProviderRepository providerRepository;
+    private final ProviderLockCascadeService providerLockCascadeService;
 
     public AdminAccountService(AccountRepository accountRepository,
                                PasswordEncoder passwordEncoder,
                                AuditLogService auditLogService,
-                               com.dulichso.bookingapi.repository.ProviderRepository providerRepository) {
+                               com.dulichso.bookingapi.repository.ProviderRepository providerRepository,
+                               ProviderLockCascadeService providerLockCascadeService) {
         this.accountRepository = accountRepository;
         this.passwordEncoder = passwordEncoder;
         this.auditLogService = auditLogService;
         this.providerRepository = providerRepository;
+        this.providerLockCascadeService = providerLockCascadeService;
     }
 
     private static final java.util.Set<String> ACCOUNT_SORT_FIELDS = java.util.Set.of("createdAt", "lastLoginAt", "fullName", "email");
@@ -170,7 +173,9 @@ public class AdminAccountService {
 
     @Transactional
     public AccountDto updateAccountStatus(Long id, UpdateAccountStatusRequest request, Long callerAccountId) {
-        Account account = accountRepository.findById(id)
+        // Khóa ghi ngay khi đọc: 2 request đổi trạng thái cùng tài khoản gửi gần như đồng thời phải xử lý
+        // tuần tự, không được cùng đọc một trạng thái cũ rồi cùng ghi đè (double-submit).
+        Account account = accountRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản với ID: " + id));
 
         // BV-08 / AGENTS.md: Chặn không thể tự khoá chính tài khoản đang đăng nhập
@@ -184,10 +189,27 @@ public class AdminAccountService {
         }
 
         AccountStatus oldStatus = account.getStatus();
+        boolean changed = oldStatus != request.getStatus();
         account.setStatus(request.getStatus());
-        // NFR-SEC-03: đổi trạng thái là vô hiệu hóa mọi phiên đang có của tài khoản.
-        if (oldStatus != request.getStatus()) account.setTokenVersion(account.getTokenVersion() + 1);
+        // NFR-SEC-03: đổi trạng thái là vô hiệu hóa mọi phiên đang có của tài khoản. Giữ nguyên trạng thái
+        // (request trùng trạng thái hiện có, ví dụ do double-submit) thì không thu hồi phiên hay chạy lại
+        // hệ quả khóa NCC bên dưới.
+        if (changed) account.setTokenVersion(account.getTokenVersion() + 1);
         Account saved = accountRepository.save(account);
+
+        // ACC-BR-08/09: khóa tài khoản đăng nhập của NCC (PROVIDER, ACTIVE -> INACTIVE) phải tự động hủy các
+        // Booking đang chờ NCC duyệt (PENDING) của NCC đó và giải phóng phòng đang giữ — Booking đã xác nhận
+        // trở lên không bị đụng tới. Nhờ khóa ghi ở findByIdForUpdate phía trên, hai request khóa cùng tài
+        // khoản gần như đồng thời sẽ chạy tuần tự nên hệ quả này chỉ xảy ra đúng một lần (changed == true).
+        int cancelledBookings = 0;
+        if (changed && saved.getRole() == AccountRole.PROVIDER && saved.getStatus() == AccountStatus.INACTIVE
+                && saved.getProvider() != null) {
+            cancelledBookings = providerLockCascadeService.cancelPendingBookings(saved.getProvider());
+        }
+
+        java.util.Map<String, Object> after = new java.util.HashMap<>();
+        after.put("status", saved.getStatus().name());
+        if (cancelledBookings > 0) after.put("cancelledPendingBookings", cancelledBookings);
 
         auditLogService.record(
                 callerAccountId,
@@ -196,7 +218,7 @@ public class AdminAccountService {
                 saved.getId(),
                 request.getReason() != null ? request.getReason() : "Thay đổi trạng thái tài khoản",
                 Map.of("status", oldStatus.name()),
-                Map.of("status", saved.getStatus().name())
+                after
         );
 
         return mapToDto(saved);
@@ -208,7 +230,9 @@ public class AdminAccountService {
      */
     @Transactional
     public AccountDto updateAccountRole(Long id, UpdateAccountRoleRequest request, Long callerAccountId) {
-        Account account = accountRepository.findById(id)
+        // Khóa ghi ngay khi đọc — cùng lý do với updateAccountStatus: chống 2 request đổi quyền cùng tài
+        // khoản chạy chồng nhau làm sai điều kiện "không hạ quyền Admin cuối cùng".
+        Account account = accountRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản với ID: " + id));
         if (Objects.equals(callerAccountId, id)) {
             throw new IllegalStateException("Bạn không thể tự đổi quyền của chính mình");

@@ -49,6 +49,7 @@ class AdminChangeRequestServiceTest {
     @Mock PartnerHomestayService homestays;
     @Mock PartnerRoomService rooms;
     @Mock AuditLogService auditLogService;
+    @Mock com.dulichso.bookingapi.repository.ProviderRepository providerRepository;
 
     AdminChangeRequestService service;
     Provider provider;
@@ -59,7 +60,7 @@ class AdminChangeRequestServiceTest {
     @BeforeEach
     void setup() {
         ObjectMapper mapper = new ObjectMapper().findAndRegisterModules().disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        service = new AdminChangeRequestService(requests, accounts, homestays, rooms, auditLogService, mapper);
+        service = new AdminChangeRequestService(requests, accounts, homestays, rooms, auditLogService, mapper, providerRepository);
         provider = Provider.builder().id(12L).name("NCC A").status(ProviderStatus.ACTIVE).build();
         submitter = Account.builder().id(7L).fullName("Chủ nhà").role(AccountRole.PROVIDER).status(AccountStatus.ACTIVE).provider(provider).build();
         admin = Account.builder().id(1L).fullName("Admin").role(AccountRole.ADMIN).status(AccountStatus.ACTIVE).build();
@@ -191,6 +192,72 @@ class AdminChangeRequestServiceTest {
 
         assertThrows(IllegalStateException.class, () -> service.approve(9L, null, null));
         verify(homestays, never()).applyApproved(any(), anyLong(), any());
+    }
+
+    @Test
+    @DisplayName("HOM-MGT-BR-04: Approve yêu cầu xuất bản gọi applyPublish (không phải applyApproved)")
+    void approvePublish_callsApplyPublishNotApplyApproved() {
+        request(ChangeTargetType.HOMESTAY, ChangeOperation.PUBLISH, null, null,
+                Map.of("visibility", "PUBLISHED"), Map.of("visibility", "DRAFT"));
+
+        ChangeRequestDetailDto detail = service.approve(9L, 1L, "Đủ điều kiện");
+
+        verify(homestays).applyPublish(submitter, 21L);
+        verify(homestays, never()).applyApproved(any(), anyLong(), any());
+        assertEquals(ChangeRequestStatus.APPROVED, detail.summary().status());
+    }
+
+    @Test
+    @DisplayName("HOM-MGT-BR-04: yêu cầu xuất bản bị coi là stale khi Homestay không còn đủ điều kiện xuất bản")
+    void publishRequest_staleWhenNoLongerReady() {
+        request(ChangeTargetType.HOMESTAY, ChangeOperation.PUBLISH, null, null,
+                Map.of("visibility", "PUBLISHED"), Map.of("visibility", "DRAFT"));
+        when(homestays.isReadyToPublish(place)).thenReturn(true);
+        assertFalse(service.detail(9L).stale());
+
+        when(homestays.isReadyToPublish(place)).thenReturn(false);
+        assertTrue(service.detail(9L).stale(), "Mất điều kiện xuất bản (vd: xóa hết loại phòng) sau khi gửi yêu cầu phải bị coi là stale");
+    }
+
+    @Test
+    @DisplayName("Xác nhận nghiệp vụ: Approve yêu cầu chuyển NCC gọi applyTransfer với đúng NCC đích")
+    void approveTransfer_callsApplyTransferWithTargetProvider() {
+        Provider target = Provider.builder().id(99L).name("NCC B").status(ProviderStatus.ACTIVE).build();
+        when(providerRepository.findById(99L)).thenReturn(Optional.of(target));
+        request(ChangeTargetType.HOMESTAY, ChangeOperation.TRANSFER, null, null,
+                Map.of("providerId", 99L, "providerName", "NCC B"), Map.of("providerId", 12L, "providerName", "NCC A"));
+
+        ChangeRequestDetailDto detail = service.approve(9L, 1L, "Đã xác minh");
+
+        verify(homestays).applyTransfer(submitter, 21L, target);
+        verify(homestays, never()).applyApproved(any(), anyLong(), any());
+        assertEquals(ChangeRequestStatus.APPROVED, detail.summary().status());
+    }
+
+    @Test
+    @DisplayName("Approve chuyển NCC: NCC đích không còn ACTIVE thì bị từ chối, không áp dụng")
+    void approveTransfer_rejectsWhenTargetNoLongerActive() {
+        Provider target = Provider.builder().id(99L).name("NCC B").status(ProviderStatus.SUSPENDED).build();
+        when(providerRepository.findById(99L)).thenReturn(Optional.of(target));
+        request(ChangeTargetType.HOMESTAY, ChangeOperation.TRANSFER, null, null,
+                Map.of("providerId", 99L, "providerName", "NCC B"), Map.of("providerId", 12L, "providerName", "NCC A"));
+
+        assertThrows(IllegalStateException.class, () -> service.approve(9L, 1L, null));
+        verify(homestays, never()).applyTransfer(any(), anyLong(), any());
+    }
+
+    @Test
+    @DisplayName("Yêu cầu chuyển NCC bị coi là stale khi Homestay đã đổi NCC khác hoặc NCC đích không còn hoạt động")
+    void transferRequest_staleWhenProviderChangedOrTargetInactive() {
+        Provider target = Provider.builder().id(99L).name("NCC B").status(ProviderStatus.ACTIVE).build();
+        request(ChangeTargetType.HOMESTAY, ChangeOperation.TRANSFER, null, null,
+                Map.of("providerId", 99L, "providerName", "NCC B"), Map.of("providerId", 12L, "providerName", "NCC A"));
+        when(providerRepository.findById(99L)).thenReturn(Optional.of(target));
+        assertFalse(service.detail(9L).stale());
+
+        when(providerRepository.findById(99L)).thenReturn(Optional.of(
+                Provider.builder().id(99L).name("NCC B").status(ProviderStatus.SUSPENDED).build()));
+        assertTrue(service.detail(9L).stale(), "NCC đích không còn ACTIVE phải bị coi là stale");
     }
 
     @Test

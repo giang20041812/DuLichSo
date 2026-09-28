@@ -45,6 +45,7 @@ public class BookingServiceImpl implements BookingService {
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
     private final com.dulichso.bookingapi.service.NotificationService notificationService;
     private final com.dulichso.bookingapi.service.CloudflareImagesService cloudflareImagesService;
+    private final AccountRepository accountRepository;
 
     private static final SecureRandom RANDOM = new SecureRandom();
 
@@ -79,6 +80,16 @@ public class BookingServiceImpl implements BookingService {
 
         if (place.getProvider() == null) {
             throw new IllegalStateException("Chỗ nghỉ chưa được liên kết với nhà cung cấp (Provider).");
+        }
+        // ACC-BR-07: NCC ngừng hoạt động (Provider) hoặc tài khoản đăng nhập của NCC bị khóa (Account) đều
+        // phải chặn Booking mới cho các Homestay của NCC đó — hai trạng thái độc lập, phải kiểm tra cả hai.
+        if (place.getProvider().getStatus() != com.dulichso.bookingapi.entity.enums.ProviderStatus.ACTIVE) {
+            throw new IllegalStateException("Nhà cung cấp hiện không hoạt động, không thể đặt phòng.");
+        }
+        boolean providerAccountLocked = accountRepository.findByProviderIdOrderByIdAsc(place.getProvider().getId()).stream()
+                .findFirst().map(acc -> acc.getStatus() != com.dulichso.bookingapi.entity.enums.AccountStatus.ACTIVE).orElse(false);
+        if (providerAccountLocked) {
+            throw new IllegalStateException("Nhà cung cấp hiện không hoạt động, không thể đặt phòng.");
         }
 
         int requestedRooms = request.getRoomCount();

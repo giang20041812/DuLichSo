@@ -2,15 +2,17 @@ import type { LucideIcon } from 'lucide-react';
 import { Home, LogOut, X } from 'lucide-react';
 import { VietTrackLogoMark } from '@/components/ui/logo';
 
-export type SidebarBadgeTone = 'amber' | 'green';
+export type SidebarBadgeTone = 'amber' | 'green' | 'neutral';
 
 export interface SidebarItem<K extends string> {
   key: K;
   label: string;
   icon: LucideIcon;
   group: string;
-  /** Số đếm cảnh báo cạnh menu; null/0 thì ẩn. */
-  badge?: { count: number; tone: SidebarBadgeTone } | null;
+  /**
+   * Cạnh menu: số đếm cảnh báo (count, ẩn khi 0) hoặc nhãn chữ ngắn (text, vd: "Đang phát triển").
+   */
+  badge?: { count: number; tone: SidebarBadgeTone } | { text: string; tone: SidebarBadgeTone } | null;
 }
 
 interface AdminSidebarProps<K extends string> {
@@ -28,11 +30,13 @@ interface AdminSidebarProps<K extends string> {
 const BADGE: Record<SidebarBadgeTone, string> = {
   amber: 'bg-sun text-ink-deep',
   green: 'bg-accent text-white',
+  neutral: 'bg-canvas text-muted ring-1 ring-inset ring-border',
 };
 /** Badge trên mục đang chọn (nền teal đặc) chuyển sang nền trắng để vẫn đọc rõ. */
 const BADGE_ON_ACTIVE: Record<SidebarBadgeTone, string> = {
   amber: 'bg-white text-amber-700',
   green: 'bg-white text-primary',
+  neutral: 'bg-white text-muted',
 };
 
 const initials = (name?: string | null, email?: string | null) => {
@@ -111,7 +115,12 @@ export default function AdminSidebar<K extends string>({
                       >
                         <Icon className={`h-4 w-4 shrink-0 transition-colors ${isActive ? 'text-white' : 'text-primary'}`} />
                         <span className="flex-1 truncate">{label}</span>
-                        {badge && badge.count > 0 && (
+                        {badge && 'text' in badge && (
+                          <span className={`whitespace-nowrap rounded px-1.5 py-px text-[10px] font-bold ${isActive ? BADGE_ON_ACTIVE[badge.tone] : BADGE[badge.tone]}`}>
+                            {badge.text}
+                          </span>
+                        )}
+                        {badge && 'count' in badge && badge.count > 0 && (
                           <span className={`rounded px-1.5 py-px text-[10px] font-bold tabular-nums ${isActive ? BADGE_ON_ACTIVE[badge.tone] : BADGE[badge.tone]}`}>
                             {badge.count > 99 ? '99+' : badge.count}
                           </span>

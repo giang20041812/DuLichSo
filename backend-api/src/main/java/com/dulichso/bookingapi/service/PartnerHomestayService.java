@@ -103,14 +103,17 @@ public class PartnerHomestayService {
     }
 
     /**
-     * Ghi trực tiếp thông tin Homestay chưa công khai. Homestay đang PUBLISHED không được ghi trực tiếp:
-     * thay đổi phải qua yêu cầu chờ Admin duyệt (xem {@link PartnerChangeService}).
+     * Ghi trực tiếp thông tin Homestay (tên/địa chỉ/mô tả/liên hệ/tiện nghi/chính sách...). Xác nhận nghiệp vụ
+     * (2026-09-28): áp dụng cho cả Homestay đã PUBLISHED — NCC được sửa thông tin bất kỳ lúc nào, không cần
+     * Admin duyệt lại, không phân biệt sửa nhỏ/lớn. Khác với: (a) lần đầu xuất bản (HOM-MGT-BR-04) và
+     * (b) chuyển NCC quản lý Homestay — cả hai vẫn bắt buộc qua Admin duyệt (xem {@link #applyPublish},
+     * {@link #applyTransfer}). Loại phòng/giá vẫn theo cơ chế duyệt riêng khi Homestay đã công khai — xem
+     * {@link PartnerRoomService}.
      */
     @Transactional
     public PartnerHomestayDetailDto saveHomestayDetail(UserPrincipal principal, Long id, PartnerHomestayDetailDto dto) {
         Account account = actor(principal, true);
         Place place = owned(id, account, true);
-        requireNotPublic(place);
         validate(dto);
         apply(place, dto, account);
         repository.flush();
@@ -141,28 +144,67 @@ public class PartnerHomestayService {
                 "Homestay đang công khai: thay đổi phải gửi yêu cầu để quản trị viên duyệt.");
     }
 
-    /** Kiểm tra dữ liệu gửi lên (dùng khi NCC gửi yêu cầu để lỗi nhập liệu được báo ngay). */
-    void validateInput(PartnerHomestayDetailDto dto) {
-        validate(dto);
-    }
-
     /** Ảnh chụp chi tiết hiện tại của Homestay (dùng làm "nội dung cũ" khi so sánh). */
     @Transactional(readOnly = true)
     public PartnerHomestayDetailDto detailOf(Place place) {
         return detail(place);
     }
 
+    /**
+     * Cập nhật trực tiếp trạng thái hiển thị/vận hành. HOM-MGT-BR-04: NCC KHÔNG được tự đưa Homestay từ
+     * chưa công khai (DRAFT/UNPUBLISHED) sang PUBLISHED lần đầu bằng đường này — phải qua yêu cầu Admin duyệt
+     * (xem {@link PartnerChangeService#updateStatus} và {@link #applyPublish}). Ngừng hiển thị hoặc đổi trạng
+     * thái vận hành (mở/tạm đóng) không cần duyệt nên vẫn ghi trực tiếp như trước.
+     */
     @Transactional
     public PartnerHomestaySummaryDto updateStatus(UserPrincipal principal, Long id, UpdateStatusRequest request) {
         Account account = actor(principal, true);
         Place place = owned(id, account, true);
-        PartnerHomestayDetailDto detail = detail(place);
-        if (request.getVisibility() == PlaceVisibility.PUBLISHED && !detail.isReadyToPublish())
-            throw bad("Cần có tên, địa chỉ, mô tả, số điện thoại, ảnh đại diện và loại phòng trước khi xuất bản.");
+        if (request.getVisibility() == PlaceVisibility.PUBLISHED && place.getVisibility() != PlaceVisibility.PUBLISHED)
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Xuất bản Homestay lần đầu cần được quản trị viên duyệt.");
         if (request.getVisibility() == null && request.getOperationStatus() == null) throw bad("Chưa chọn trạng thái cần cập nhật.");
+        PartnerHomestayDetailDto detail = detail(place);
         if (request.getVisibility() != null) place.setVisibility(request.getVisibility());
         if (request.getOperationStatus() != null) place.setOperationStatus(request.getOperationStatus());
         place.setUpdatedBy(account);
+        repository.flush();
+        return summary(place, detail.getRoomTypesCount(), detail.getCoverImageUrl(), detail.getContactPhone());
+    }
+
+    /** HOM-MGT-BR-04: điều kiện đủ để công khai — dùng cả khi NCC tự kiểm tra trước khi gửi yêu cầu và khi Admin duyệt. */
+    boolean isReadyToPublish(Place place) {
+        return detail(place).isReadyToPublish();
+    }
+
+    /**
+     * Áp dụng việc chuyển NCC quản lý Homestay đã được Admin duyệt (xác nhận nghiệp vụ 2026-09-28). Chỉ gọi
+     * từ luồng duyệt yêu cầu thay đổi; {@code submitter} là tài khoản của NCC hiện tại (bên gửi yêu cầu) — dùng
+     * {@link #owned} để xác nhận ngay trước khi ghi rằng Homestay vẫn thuộc NCC đó (chưa bị chuyển đi/xóa bởi
+     * thao tác khác trong lúc chờ duyệt).
+     */
+    @Transactional
+    public PartnerHomestaySummaryDto applyTransfer(Account submitter, Long placeId, Provider target) {
+        Place place = owned(placeId, submitter, true);
+        place.setProvider(target);
+        place.setUpdatedBy(submitter);
+        repository.flush();
+        PartnerHomestayDetailDto detail = detail(place);
+        return summary(place, detail.getRoomTypesCount(), detail.getCoverImageUrl(), detail.getContactPhone());
+    }
+
+    /**
+     * Áp dụng lần đầu công khai đã được Admin duyệt (HOM-MGT-BR-04). Chỉ gọi từ luồng duyệt yêu cầu thay đổi
+     * ({@link com.dulichso.bookingapi.service.AdminChangeRequestService#approve}); NCC không tự gọi trực tiếp.
+     */
+    @Transactional
+    public PartnerHomestaySummaryDto applyPublish(Account submitter, Long placeId) {
+        Place place = owned(placeId, submitter, true);
+        if (!isReadyToPublish(place)) throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "Homestay không còn đủ điều kiện xuất bản (thiếu tên/địa chỉ/mô tả/số điện thoại/ảnh đại diện/loại phòng).");
+        PartnerHomestayDetailDto detail = detail(place);
+        place.setVisibility(PlaceVisibility.PUBLISHED);
+        place.setUpdatedBy(submitter);
         repository.flush();
         return summary(place, detail.getRoomTypesCount(), detail.getCoverImageUrl(), detail.getContactPhone());
     }

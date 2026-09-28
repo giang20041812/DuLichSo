@@ -25,6 +25,8 @@ export const CHANGE_OPERATION_LABEL: Record<ChangeOperation, string> = {
   CREATE: 'Tạo mới',
   UPDATE: 'Cập nhật',
   DELETE: 'Xóa',
+  PUBLISH: 'Xin xuất bản',
+  TRANSFER: 'Chuyển NCC quản lý',
 };
 
 export const CHANGE_STATUS_ORDER: ChangeRequestStatus[] = ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'];

@@ -24,8 +24,9 @@ export async function createPartnerHomestay(detail: PartnerHomestayDetailDto): P
 export async function savePartnerHomestayDetail(id: number, detail: PartnerHomestayDetailDto): Promise<PartnerHomestayDetailDto | SubmittedChange> {
   return (await axios.put<PartnerHomestayDetailDto | SubmittedChange>(`${API}/${id}`, detail, config())).data;
 }
-export async function updateHomestayStatus(id: number, request: UpdateStatusRequest): Promise<PartnerHomestaySummaryDto> {
-  return (await axios.patch<PartnerHomestaySummaryDto>(`${API}/${id}/status`, request, config())).data;
+/** HOM-MGT-BR-04: lần đầu xuất bản trả 202 + SubmittedChange (chờ Admin duyệt), các trạng thái khác ghi trực tiếp. */
+export async function updateHomestayStatus(id: number, request: UpdateStatusRequest): Promise<PartnerHomestaySummaryDto | SubmittedChange> {
+  return (await axios.patch<PartnerHomestaySummaryDto | SubmittedChange>(`${API}/${id}/status`, request, config())).data;
 }
 /** Gợi ý tọa độ từ địa chỉ (backend gọi OpenStreetMap Nominatim). */
 export async function geocodeAddress(address: string): Promise<GeocodeResult> {

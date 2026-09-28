@@ -106,4 +106,11 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, org.spr
             @org.springframework.data.repository.query.Param("startDate") java.time.LocalDate startDate,
             @org.springframework.data.repository.query.Param("endDate") java.time.LocalDate endDate
     );
+
+    /** ACC-BR-08: các đơn đang chờ NCC duyệt của một NCC — dùng khi tài khoản NCC bị Admin khóa, cần tự động hủy và giải phóng phòng. */
+    @org.springframework.data.jpa.repository.Query("""
+        SELECT b FROM Booking b JOIN FETCH b.roomType rt JOIN FETCH b.place p
+        WHERE b.provider.id = :providerId AND b.status = com.dulichso.bookingapi.entity.enums.BookingStatus.PENDING
+    """)
+    java.util.List<Booking> findPendingByProviderId(@org.springframework.data.repository.query.Param("providerId") Long providerId);
 }
