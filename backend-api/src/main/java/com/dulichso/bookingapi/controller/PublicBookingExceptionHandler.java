@@ -31,7 +31,7 @@ public class PublicBookingExceptionHandler {
     public ResponseEntity<Map<String, Object>> invalid(MethodArgumentNotValidException ex) {
         String message = ex.getBindingResult().getFieldErrors().stream()
                 .map(error -> error.getDefaultMessage())
-                .filter(message -> message != null && !message.isBlank())
+                .filter(defaultMessage -> defaultMessage != null && !defaultMessage.isBlank())
                 .findFirst()
                 .orElse("Dữ liệu gửi lên không hợp lệ.");
         return body(HttpStatus.BAD_REQUEST, message);
