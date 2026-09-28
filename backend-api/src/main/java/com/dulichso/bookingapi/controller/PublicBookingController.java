@@ -16,11 +16,11 @@ import org.springframework.web.bind.annotation.*;
 public class PublicBookingController {
 
     private final BookingService bookingService;
-    private final com.dulichso.bookingapi.service.CloudflareImagesService cloudflareService;
+    private final com.dulichso.bookingapi.service.MediaFacadeService mediaFacadeService;
 
     @GetMapping("/media/upload-config")
     public ResponseEntity<java.util.Map<String, Object>> getUploadConfig() {
-        return ResponseEntity.ok(cloudflareService.getUploadConfig());
+        return ResponseEntity.ok(mediaFacadeService.getActiveUploadConfig());
     }
 
     @PostMapping

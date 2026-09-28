@@ -9,32 +9,39 @@ export type MediaTarget = { placeId: number; roomId?: number };
 const base = ({ placeId, roomId }: MediaTarget) =>
   roomId == null ? `/api/v1/partner/homestays/${placeId}/media` : `/api/v1/partner/homestays/${placeId}/rooms/${roomId}/media`;
 
-interface CloudflareUploadConfig {
+interface CloudinaryUploadConfig {
   provider: string;
-  uploadUrl: string;
-  id: string;
+  cloudName: string;
+  apiKey: string;
+  timestamp: number;
+  signature: string;
 }
 
 /**
- * Upload ảnh qua Cloudflare Images Direct Creator Upload
+ * Upload ảnh qua Cloudinary
  */
-async function uploadToCloudflare(file: File): Promise<string> {
-  const cfg = (await axios.post<CloudflareUploadConfig>('/api/v1/partner/media/direct-upload', null, config())).data;
+async function uploadToCloudinary(file: File): Promise<{id: string, url: string}> {
+  const cfg = (await axios.post<CloudinaryUploadConfig>('/api/v1/partner/media/direct-upload', null, config())).data;
   
   const form = new FormData();
   form.append('file', file);
+  form.append('api_key', cfg.apiKey);
+  form.append('timestamp', cfg.timestamp.toString());
+  form.append('signature', cfg.signature);
   
-  const response = await fetch(cfg.uploadUrl, {
+  const uploadUrl = `https://api.cloudinary.com/v1_1/${cfg.cloudName}/image/upload`;
+  const response = await fetch(uploadUrl, {
     method: 'POST',
     body: form,
   });
   
   if (!response.ok) {
     const err = (await response.json().catch(() => ({}))) as any;
-    throw new Error(err?.errors?.[0]?.message || 'Lỗi khi tải ảnh lên dịch vụ lưu trữ.');
+    throw new Error(err?.error?.message || 'Lỗi khi tải ảnh lên dịch vụ lưu trữ.');
   }
   
-  return cfg.id;
+  const result = await response.json();
+  return { id: result.public_id, url: result.secure_url };
 }
 
 export const partnerMediaService = {
@@ -42,8 +49,8 @@ export const partnerMediaService = {
     return (await axios.get<MediaDto[]>(base(target), config())).data;
   },
   async upload(target: MediaTarget, file: File) {
-    const imageId = await uploadToCloudflare(file);
-    return (await axios.post<MediaDto[]>(base(target), { imageId }, config())).data;
+    const { id, url } = await uploadToCloudinary(file);
+    return (await axios.post<MediaDto[]>(base(target), { imageId: id, url }, config())).data;
   },
   async setCover(target: MediaTarget, mediaId: number) {
     return (await axios.put<MediaDto[]>(`${base(target)}/${mediaId}/cover`, null, config())).data;

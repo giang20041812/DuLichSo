@@ -14,6 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -41,12 +42,12 @@ class BookingServiceImplAccBr07Test {
     @Mock
     private AccountRepository accountRepository;
 
+    @InjectMocks
     private BookingServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new BookingServiceImpl(
-                null, null, null, placeRepository, roomTypeRepository, null, null, null, null, null, null, null, null, null, accountRepository);
+        // No manual initialization needed, @InjectMocks handles it
     }
 
     private CreateBookingRequest request() {

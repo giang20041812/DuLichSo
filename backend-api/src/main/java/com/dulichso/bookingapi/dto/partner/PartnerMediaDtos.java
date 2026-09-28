@@ -16,7 +16,7 @@ public final class PartnerMediaDtos {
 
     public record DirectUploadDto(String uploadUrl, String imageId, long maxFileBytes, List<String> allowedTypes) {} // deprecated for Cloudinary, but kept for signature matching if needed
 
-    public record AttachInput(@NotBlank @Size(max = 500) String imageId, @Size(max = 500) String caption) {}
+    public record AttachInput(@NotBlank @Size(max = 500) String imageId, @NotBlank @Size(max = 1000) String url, @Size(max = 500) String caption) {}
 
     public record MediaDto(Long mediaId, String url, MediaRole role, String caption, Integer sortOrder) {}
 }

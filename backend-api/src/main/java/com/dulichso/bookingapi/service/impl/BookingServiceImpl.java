@@ -44,7 +44,6 @@ public class BookingServiceImpl implements BookingService {
     private final BookingChangeRequestRepository bookingChangeRequestRepository;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
     private final com.dulichso.bookingapi.service.NotificationService notificationService;
-    private final com.dulichso.bookingapi.service.CloudflareImagesService cloudflareImagesService;
     private final AccountRepository accountRepository;
 
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -314,10 +313,7 @@ public class BookingServiceImpl implements BookingService {
                 if (imageId.startsWith("http")) {
                     validImageUrls.add(imageId);
                 } else {
-                    cloudflareImagesService.getImage(imageId).ifPresent(details -> {
-                        String url = com.dulichso.bookingapi.service.CloudflareImagesService.deliveryUrl(details);
-                        if (url != null) validImageUrls.add(url);
-                    });
+                    validImageUrls.add(imageId);
                 }
             }
         }
@@ -385,10 +381,7 @@ public class BookingServiceImpl implements BookingService {
                 if (imageId.startsWith("http")) {
                     validImageUrls.add(imageId);
                 } else {
-                    cloudflareImagesService.getImage(imageId).ifPresent(details -> {
-                        String url = com.dulichso.bookingapi.service.CloudflareImagesService.deliveryUrl(details);
-                        if (url != null) validImageUrls.add(url);
-                    });
+                    validImageUrls.add(imageId);
                 }
             }
             review.setImages(validImageUrls);

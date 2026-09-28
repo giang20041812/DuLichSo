@@ -77,10 +77,6 @@ app:
 gemini:
   api-key: ${GEMINI_API_KEY:your_default_key}
 
-cloudflare:
-  account-id: ${CLOUDFLARE_ACCOUNT_ID:your_default_account_id}
-  api-token: ${CLOUDFLARE_API_TOKEN:your_default_api_token}
-
 cloudinary:
   cloud-name: ${CLOUDINARY_CLOUD_NAME:kttdfqzj}
   api-key: ${CLOUDINARY_API_KEY:161718743596393}
