@@ -454,6 +454,17 @@ export default function SearchHub() {
       });
   }, []);
 
+  // Sync selected attractions from URL after dbAttractions is loaded
+  useEffect(() => {
+    const attractionsParam = searchParams.get('attractions');
+    if (attractionsParam && dbAttractions.length > 0) {
+      const ids = attractionsParam.split(',').map(id => parseInt(id, 10));
+      const selected = dbAttractions.filter(att => ids.includes(att.id));
+      setSelectedAttractions(selected);
+    }
+  }, [searchParams, dbAttractions]);
+
+
   // Click outside to close popover
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {

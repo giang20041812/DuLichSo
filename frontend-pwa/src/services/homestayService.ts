@@ -12,6 +12,7 @@ export interface HomestayFilterParams {
   district?: string;
   ward?: string;
   attractions?: string[];
+  keyword?: string;
 }
 
 export const fetchHomestays = async (params?: HomestayFilterParams): Promise<HomestayDto[]> => {
@@ -29,6 +30,9 @@ export const fetchHomestays = async (params?: HomestayFilterParams): Promise<Hom
     if (params?.ward) url.searchParams.append('ward', params.ward);
     if (params?.attractions && params.attractions.length > 0) {
       url.searchParams.append('attractions', params.attractions.join(','));
+    }
+    if (params?.keyword) {
+      url.searchParams.append('keyword', params.keyword);
     }
     if (params?.amenities && params.amenities.length > 0) {
       params.amenities.forEach(amenity => url.searchParams.append('amenities', amenity));

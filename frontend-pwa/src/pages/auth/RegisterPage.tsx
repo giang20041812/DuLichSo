@@ -163,23 +163,31 @@ export default function RegisterPage() {
       image={AUTH_IMAGES.register}
       title="Tạo tài khoản mới"
       subtitle="Đăng ký để khám phá homestay, nhận ưu đãi độc quyền và quản lý chuyến đi Tây Bắc của bạn."
-      footer={
-        <div className="flex flex-col items-center gap-3">
-          <div className="flex items-center gap-1.5 text-sm text-ink-light">
-            <span>Đã có tài khoản?</span>
-            <Link
-              to="/login"
-              className="font-bold text-primary hover:text-primary-600 hover:underline"
-            >
-              Đăng nhập ngay
-            </Link>
-          </div>
-          <p className="text-center text-xs text-muted">
-            Dành cho chủ Homestay & Đối tác: Vui lòng liên hệ Quản trị viên để được cấp tài khoản nhà cung cấp.
-          </p>
-        </div>
-      }
+      footer={null}
     >
+      <div className="mb-6 flex flex-col gap-3 rounded-md bg-primary-50 p-3 text-sm text-ink-deep border border-primary-100">
+        <div className="flex items-center justify-between">
+          <span>Đã có tài khoản?</span>
+          <Link
+            to="/login"
+            className="font-bold text-primary hover:text-primary-600 hover:underline"
+          >
+            Đăng nhập ngay
+          </Link>
+        </div>
+        <div className="h-px w-full bg-primary-200/50"></div>
+        <div className="flex items-center justify-between">
+          <span>Dành cho Đối tác:</span>
+          <Link
+            to="/register/partner"
+            className="font-bold text-primary hover:text-primary-600 hover:underline"
+          >
+            Đăng ký cung cấp
+          </Link>
+        </div>
+      </div>
+
+
       {/* Nút Google Đăng nhập phát một qua Firebase */}
       <GoogleSignInButton
         text="signup_with"

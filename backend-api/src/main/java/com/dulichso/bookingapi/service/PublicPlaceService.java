@@ -101,17 +101,17 @@ public class PublicPlaceService {
 
     @Transactional(readOnly = true)
     public Page<PlaceSummaryDto> getPlaces(CategoryKind kind, BigDecimal minPrice, BigDecimal maxPrice, BigDecimal minRating, List<String> amenities, LocalDate checkIn, LocalDate checkOut, Pageable pageable) {
-        return getPlaces(kind, minPrice, maxPrice, minRating, amenities, checkIn, checkOut, null, null, null, null, pageable);
+        return getPlaces(kind, minPrice, maxPrice, minRating, amenities, checkIn, checkOut, null, null, null, null, null, pageable);
     }
 
     @Transactional(readOnly = true)
     public Page<PlaceSummaryDto> getPlaces(CategoryKind kind, BigDecimal minPrice, BigDecimal maxPrice, BigDecimal minRating, List<String> amenities, LocalDate checkIn, LocalDate checkOut, String province, String ward, List<Long> attractionIds, Pageable pageable) {
-        return getPlaces(kind, minPrice, maxPrice, minRating, amenities, checkIn, checkOut, province, null, ward, attractionIds, pageable);
+        return getPlaces(kind, minPrice, maxPrice, minRating, amenities, checkIn, checkOut, province, null, ward, attractionIds, null, pageable);
     }
 
     @Transactional(readOnly = true)
-    public Page<PlaceSummaryDto> getPlaces(CategoryKind kind, BigDecimal minPrice, BigDecimal maxPrice, BigDecimal minRating, List<String> amenities, LocalDate checkIn, LocalDate checkOut, String province, String district, String ward, List<Long> attractionIds, Pageable pageable) {
-        Specification<Place> spec = PlaceSpecification.filterPublicPlaces(kind, minPrice, maxPrice, minRating, amenities, checkIn, checkOut, province, district, ward, attractionIds);
+    public Page<PlaceSummaryDto> getPlaces(CategoryKind kind, BigDecimal minPrice, BigDecimal maxPrice, BigDecimal minRating, List<String> amenities, LocalDate checkIn, LocalDate checkOut, String province, String district, String ward, List<Long> attractionIds, String keyword, Pageable pageable) {
+        Specification<Place> spec = PlaceSpecification.filterPublicPlaces(kind, minPrice, maxPrice, minRating, amenities, checkIn, checkOut, province, district, ward, attractionIds, keyword);
         
         Page<Place> placesPage = placeRepository.findAll(spec, pageable);
         

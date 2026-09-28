@@ -143,6 +143,28 @@ export default function PortalLoginPage() {
           </p>
         }
       >
+        <div className="mb-6 flex flex-col gap-3 rounded-md bg-primary-50 p-3 text-sm text-ink-deep border border-primary-100">
+          <div className="flex items-center justify-between">
+            <span>Chưa có tài khoản?</span>
+            <Link
+              to="/register"
+              className="font-bold text-primary hover:text-primary-600 hover:underline"
+            >
+              Đăng ký ngay
+            </Link>
+          </div>
+          <div className="h-px w-full bg-primary-200/50"></div>
+          <div className="flex items-center justify-between">
+            <span>Dành cho Đối tác:</span>
+            <Link
+              to="/register/partner"
+              className="font-bold text-primary hover:text-primary-600 hover:underline"
+            >
+              Đăng ký cung cấp
+            </Link>
+          </div>
+        </div>
+
         {/* Nút Đăng nhập phát một qua Google Firebase Popup */}
         <GoogleSignInButton
           text="signin_with"
@@ -292,16 +314,7 @@ export default function PortalLoginPage() {
             )}
           </button>
 
-          {/* Đặt lại nút đăng ký tài khoản vào form đăng nhập ở dưới cùng, cơ bản */}
-          <div className="pt-2 text-center text-xs text-muted">
-            Chưa có tài khoản?{' '}
-            <Link
-              to="/register"
-              className="font-semibold text-primary transition-colors hover:text-primary-600 hover:underline"
-            >
-              Đăng ký tài khoản
-            </Link>
-          </div>
+
         </form>
       </AuthShell>
 

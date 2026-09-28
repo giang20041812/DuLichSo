@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
 import SidebarLayout from '@/components/layout/SidebarLayout';
+import CustomerRoute from '@/components/layout/CustomerRoute';
 import PartnerLayout from '@/components/partner/PartnerLayout';
 import PartnerRoomsPage from '@/pages/partner/PartnerRoomsPage';
 import PartnerBookingProcessPage from '@/pages/partner/PartnerBookingProcessPage';
@@ -30,64 +31,68 @@ import {
   PartnerHomestayEditPage,
   DesignSystemPage,
   DownloadAppPage,
+  PartnerProfilePage,
 } from '@/pages';
 
 export function AppRoutes() {
   return (
     <Routes>
-      {/* Khung ứng dụng chính với Sidebar Layout */}
-      <Route element={<SidebarLayout />}>
-        <Route index element={<HomePage />} />
-        
-        {/* Navigation via Sidebar */}
-        <Route path="homestays" element={<HomestayListPage />} />
-        <Route path="homestays/:id" element={<HomestayDetailPage />} />
-        
-        {/* User Bookings Management */}
-        <Route path="bookings" element={<UserBookingListPage />} />
-        <Route path="my-bookings" element={<UserBookingListPage />} />
-        <Route path="bookings/:bookingCode" element={<UserBookingDetailPage />} />
-        
-        <Route path="experiences" element={<CultureFestivalPage />} />
-        <Route path="experiences/:slug" element={<FestivalDetailPage />} />
-        <Route path="festivals/:slug" element={<FestivalDetailPage />} />
-        <Route path="destinations" element={<DestinationListPage />} />
-        <Route path="destinations/:identifier" element={<PlaceDetailPage />} />
-        <Route path="places/:identifier" element={<PlaceDetailPage />} />
-        <Route path="restaurants" element={<RestaurantListPage />} />
-        <Route path="restaurants/:identifier" element={<PlaceDetailPage />} />
-        
-        {/* Profile / Other standard layout pages */}
-        <Route path="profile" element={<UtilityListPage />} /> {/* Placeholder for now */}
-        
-        {/* Keep existing routes but map them properly or leave for later phases */}
-        <Route path="culture" element={<CultureFestivalPage />} />
-        <Route path="culture/:slug" element={<FestivalDetailPage />} />
-        <Route path="explore" element={<CultureFestivalPage />} />
-        <Route path="explore/:slug" element={<FestivalDetailPage />} />
-        <Route path="food" element={<RestaurantListPage />} />
-        <Route path="food/:identifier" element={<PlaceDetailPage />} />
-        <Route path="tours" element={<CultureFestivalPage />} />
-        <Route path="transport" element={<TransportListPage />} />
-        <Route path="transport/:identifier" element={<PlaceDetailPage />} />
-        <Route path="services" element={<UtilityListPage />} />
-        <Route path="services/:identifier" element={<PlaceDetailPage />} />
-        <Route path="photo" element={<UtilityListPage />} />
-        <Route path="photo/:identifier" element={<PlaceDetailPage />} />
-        <Route path="rental" element={<UtilityListPage />} />
-        <Route path="rental/:identifier" element={<PlaceDetailPage />} />
-        <Route path="design-system" element={<DesignSystemPage />} />
-        <Route path="download" element={<DownloadAppPage />} />
-        <Route path="tai-app" element={<DownloadAppPage />} />
-        <Route path="cai-dat-app" element={<DownloadAppPage />} />
+      {/* Wrap all customer pages in CustomerRoute */}
+      <Route element={<CustomerRoute />}>
+        {/* Khung ứng dụng chính với Sidebar Layout */}
+        <Route element={<SidebarLayout />}>
+          <Route index element={<HomePage />} />
+          
+          {/* Navigation via Sidebar */}
+          <Route path="homestays" element={<HomestayListPage />} />
+          <Route path="homestays/:id" element={<HomestayDetailPage />} />
+          
+          {/* User Bookings Management */}
+          <Route path="bookings" element={<UserBookingListPage />} />
+          <Route path="my-bookings" element={<UserBookingListPage />} />
+          <Route path="bookings/:bookingCode" element={<UserBookingDetailPage />} />
+          
+          <Route path="experiences" element={<CultureFestivalPage />} />
+          <Route path="experiences/:slug" element={<FestivalDetailPage />} />
+          <Route path="festivals/:slug" element={<FestivalDetailPage />} />
+          <Route path="destinations" element={<DestinationListPage />} />
+          <Route path="destinations/:identifier" element={<PlaceDetailPage />} />
+          <Route path="places/:identifier" element={<PlaceDetailPage />} />
+          <Route path="restaurants" element={<RestaurantListPage />} />
+          <Route path="restaurants/:identifier" element={<PlaceDetailPage />} />
+          
+          {/* Profile / Other standard layout pages */}
+          <Route path="profile" element={<UtilityListPage />} /> {/* Placeholder for now */}
+          
+          {/* Keep existing routes but map them properly or leave for later phases */}
+          <Route path="culture" element={<CultureFestivalPage />} />
+          <Route path="culture/:slug" element={<FestivalDetailPage />} />
+          <Route path="explore" element={<CultureFestivalPage />} />
+          <Route path="explore/:slug" element={<FestivalDetailPage />} />
+          <Route path="food" element={<RestaurantListPage />} />
+          <Route path="food/:identifier" element={<PlaceDetailPage />} />
+          <Route path="tours" element={<CultureFestivalPage />} />
+          <Route path="transport" element={<TransportListPage />} />
+          <Route path="transport/:identifier" element={<PlaceDetailPage />} />
+          <Route path="services" element={<UtilityListPage />} />
+          <Route path="services/:identifier" element={<PlaceDetailPage />} />
+          <Route path="photo" element={<UtilityListPage />} />
+          <Route path="photo/:identifier" element={<PlaceDetailPage />} />
+          <Route path="rental" element={<UtilityListPage />} />
+          <Route path="rental/:identifier" element={<PlaceDetailPage />} />
+          <Route path="design-system" element={<DesignSystemPage />} />
+          <Route path="download" element={<DownloadAppPage />} />
+          <Route path="tai-app" element={<DownloadAppPage />} />
+          <Route path="cai-dat-app" element={<DownloadAppPage />} />
+        </Route>
+
+        {/* Trang Đặt phòng dùng layout độc lập, chỉ có Logo và Tên */}
+        <Route path="booking" element={<BookingPage />} />
+
+        {/* Dedicated Homestay, Room Availability & Fullscreen Map Routes (No Sidebar for fullscreen) */}
+        <Route path="homestay/:slug/map" element={<FullScreenMapPage />} />
+        <Route path="map" element={<FullScreenMapPage />} />
       </Route>
-
-      {/* Trang Đặt phòng dùng layout độc lập, chỉ có Logo và Tên */}
-      <Route path="booking" element={<BookingPage />} />
-
-      {/* Dedicated Homestay, Room Availability & Fullscreen Map Routes (No Sidebar for fullscreen) */}
-      <Route path="homestay/:slug/map" element={<FullScreenMapPage />} />
-      <Route path="map" element={<FullScreenMapPage />} />
 
       {/* UC-08 & UC-10: Admin & NCC Partner Portal Login, Dashboards & Homestay Management */}
       <Route path="admin/login" element={<PortalLoginPage />} />
@@ -106,6 +111,7 @@ export function AppRoutes() {
         <Route path="partner/homestay/create" element={<PartnerHomestayEditPage />} />
         <Route path="partner/homestay/:id/edit" element={<PartnerHomestayEditPage />} />
         <Route path="partner/homestay/:id/rooms" element={<PartnerRoomsPage />} />
+        <Route path="partner/profile" element={<PartnerProfilePage />} />
       </Route>
     </Routes>
   );

@@ -1,32 +1,9 @@
-package com.dulichso.bookingapi.service;
+import sys
 
-import com.dulichso.bookingapi.dto.partner.PartnerDashboardDtos.*;
-import com.dulichso.bookingapi.entity.Account;
-import com.dulichso.bookingapi.entity.Booking;
-import com.dulichso.bookingapi.entity.enums.BookingStatus;
-import com.dulichso.bookingapi.security.UserPrincipal;
-import jakarta.persistence.EntityManager;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+with open('src/main/java/com/dulichso/bookingapi/service/PartnerDashboardService.java', 'r', encoding='utf-8') as f:
+    content = f.read()
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.temporal.TemporalAdjusters;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-@Service
-@RequiredArgsConstructor
-public class PartnerDashboardService {
-    private final PartnerHomestayService homestays;
-    private final EntityManager em;
-
-    @Transactional(readOnly = true)
+new_method = """    @Transactional(readOnly = true)
     public PartnerDashboardSummaryDto getDashboardSummary(UserPrincipal principal, Integer year, Integer month, Long homestayId) {
         Account actor = homestays.actor(principal, false);
         Long providerId = actor.getProvider().getId();
@@ -77,42 +54,27 @@ public class PartnerDashboardService {
         if (homestayId != null) q4.setParameter("placeId", homestayId);
         Long totalReviews = q4.getSingleResult();
 
-        // 3. Status totals for the selected month
+        // 3. Status totals (YTD or all time) -> filtered by homestay? yes
         var q5 = em.createQuery(
-            "SELECT count(b) FROM Booking b WHERE b.provider.id = :pid" + placeFilter + " AND b.status IN :statuses AND b.createdAt >= :start AND b.createdAt <= :end", Long.class)
+            "SELECT count(b) FROM Booking b WHERE b.provider.id = :pid" + placeFilter + " AND b.status IN :statuses", Long.class)
             .setParameter("pid", providerId)
-            .setParameter("start", startOfMonth)
-            .setParameter("end", endOfMonth)
             .setParameter("statuses", List.of(BookingStatus.COMPLETED, BookingStatus.CHECKED_OUT));
         if (homestayId != null) q5.setParameter("placeId", homestayId);
         Long completedBookings = q5.getSingleResult();
 
         var q6 = em.createQuery(
-            "SELECT count(b) FROM Booking b WHERE b.provider.id = :pid" + placeFilter + " AND b.status IN :statuses AND b.createdAt >= :start AND b.createdAt <= :end", Long.class)
+            "SELECT count(b) FROM Booking b WHERE b.provider.id = :pid" + placeFilter + " AND b.status IN :statuses", Long.class)
             .setParameter("pid", providerId)
-            .setParameter("start", startOfMonth)
-            .setParameter("end", endOfMonth)
             .setParameter("statuses", List.of(BookingStatus.PENDING, BookingStatus.AWAITING_PAYMENT));
         if (homestayId != null) q6.setParameter("placeId", homestayId);
         Long pendingBookings = q6.getSingleResult();
 
         var q7 = em.createQuery(
-            "SELECT count(b) FROM Booking b WHERE b.provider.id = :pid" + placeFilter + " AND b.status IN :statuses AND b.createdAt >= :start AND b.createdAt <= :end", Long.class)
+            "SELECT count(b) FROM Booking b WHERE b.provider.id = :pid" + placeFilter + " AND b.status IN :statuses", Long.class)
             .setParameter("pid", providerId)
-            .setParameter("start", startOfMonth)
-            .setParameter("end", endOfMonth)
-            .setParameter("statuses", List.of(BookingStatus.CANCELLED, BookingStatus.EXPIRED, BookingStatus.NO_SHOW));
+            .setParameter("statuses", List.of(BookingStatus.CANCELLED, BookingStatus.REJECTED, BookingStatus.EXPIRED, BookingStatus.NO_SHOW));
         if (homestayId != null) q7.setParameter("placeId", homestayId);
         Long cancelledBookings = q7.getSingleResult();
-
-        var q7r = em.createQuery(
-            "SELECT count(b) FROM Booking b WHERE b.provider.id = :pid" + placeFilter + " AND b.status IN :statuses AND b.createdAt >= :start AND b.createdAt <= :end", Long.class)
-            .setParameter("pid", providerId)
-            .setParameter("start", startOfMonth)
-            .setParameter("end", endOfMonth)
-            .setParameter("statuses", List.of(BookingStatus.REJECTED));
-        if (homestayId != null) q7r.setParameter("placeId", homestayId);
-        Long rejectedBookings = q7r.getSingleResult();
 
         // 4. Revenue Trend (12 months of the selected year)
         var q8 = em.createQuery(
@@ -234,10 +196,19 @@ public class PartnerDashboardService {
                 .completedBookings(completedBookings != null ? completedBookings : 0)
                 .pendingBookings(pendingBookings != null ? pendingBookings : 0)
                 .cancelledBookings(cancelledBookings != null ? cancelledBookings : 0)
-                .rejectedBookings(rejectedBookings != null ? rejectedBookings : 0)
                 .statusTrend(statusTrend)
                 .revenueTrend(revenueTrend)
                 .recentBookings(recentBookings)
                 .build();
-    }
-}
+    }"""
+
+start_idx = content.find("    @Transactional(readOnly = true)")
+end_idx = content.find("    }\n}") + 5
+
+if start_idx != -1 and end_idx != -1:
+    new_content = content[:start_idx] + new_method + content[end_idx:]
+    with open('src/main/java/com/dulichso/bookingapi/service/PartnerDashboardService.java', 'w', encoding='utf-8') as f:
+        f.write(new_content)
+    print("Updated successfully")
+else:
+    print("Could not find bounds")

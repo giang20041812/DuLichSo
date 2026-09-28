@@ -551,6 +551,7 @@ export function ReasonDialog({
   description,
   confirmLabel,
   reasonRequired,
+  hideReason,
   tone = 'danger',
   error,
   onCancel,
@@ -560,6 +561,7 @@ export function ReasonDialog({
   description: string;
   confirmLabel: string;
   reasonRequired: boolean;
+  hideReason?: boolean;
   tone?: 'danger' | 'primary';
   error?: string;
   onCancel: () => void;
@@ -572,16 +574,20 @@ export function ReasonDialog({
       <div className="flex w-full max-w-md flex-col gap-3 rounded-lg border border-border bg-white p-5 shadow-xl">
         <h3 className="font-display text-base font-bold text-ink-deep">{title}</h3>
         <p className="text-xs leading-relaxed text-muted">{description}</p>
-        <label htmlFor="reason-dialog-input" className="text-xs font-semibold text-ink-deep">
-          Lý do {reasonRequired && <span className="text-danger">*</span>}
-        </label>
-        <textarea
-          id="reason-dialog-input"
-          rows={3}
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          className="w-full rounded-md border border-border px-3 py-2 text-xs focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-        />
+        {!hideReason && (
+          <>
+            <label htmlFor="reason-dialog-input" className="text-xs font-semibold text-ink-deep">
+              Lý do {reasonRequired && <span className="text-danger">*</span>}
+            </label>
+            <textarea
+              id="reason-dialog-input"
+              rows={3}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="w-full rounded-md border border-border px-3 py-2 text-xs focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
+          </>
+        )}
         {error && <p className="text-xs text-danger">{error}</p>}
         <div className="flex justify-end gap-2 pt-1">
           <button type="button" onClick={onCancel} className="rounded-md px-4 py-2 text-xs font-medium text-muted hover:bg-hover">

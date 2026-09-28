@@ -152,18 +152,7 @@ export default function UserBookingDetailPage() {
             </div>
           </div>
         );
-      case 'REFUNDED':
-        return (
-          <div className="flex items-center gap-2 p-3 bg-purple-50 border border-purple-200 rounded-md text-purple-800 text-xs sm:text-sm font-semibold">
-            <CreditCard className="w-5 h-5 text-purple-600 shrink-0" />
-            <div>
-              <span className="font-bold">Đơn đặt phòng đã được hoàn tiền</span>
-              <p className="text-xs text-purple-700 font-normal mt-0.5">
-                Số tiền hoàn đã được xử lý và chuyển trả vào tài khoản theo đúng chính sách hoàn hủy.
-              </p>
-            </div>
-          </div>
-        );
+
       case 'PENDING':
         return (
           <div className="flex items-center gap-2 p-3 bg-sky-50 border border-sky-200 rounded-md text-sky-800 text-xs sm:text-sm font-semibold">
@@ -171,7 +160,7 @@ export default function UserBookingDetailPage() {
             <div>
               <span className="font-bold">Đang chờ chủ nhà xác nhận</span>
               <p className="text-xs text-sky-700 font-normal mt-0.5">
-                Chủ nhà có tối đa <strong>120 phút</strong> để duyệt đơn đặt phòng. Quá thời gian này đơn sẽ tự động bị hủy.
+                Chủ nhà có tối đa <strong>24 giờ</strong> để duyệt đơn đặt phòng. Quá thời gian này đơn sẽ tự động bị hủy.
               </p>
             </div>
           </div>

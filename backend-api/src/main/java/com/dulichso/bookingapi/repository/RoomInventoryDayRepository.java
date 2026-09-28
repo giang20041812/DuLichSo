@@ -21,4 +21,18 @@ public interface RoomInventoryDayRepository extends JpaRepository<RoomInventoryD
             @Param("roomTypeId") Long roomTypeId,
             @Param("stayDate") LocalDate stayDate
     );
+
+    @Query("SELECT r FROM RoomInventoryDay r WHERE r.id.roomTypeId = :roomTypeId AND r.id.stayDate >= :startDate AND r.id.stayDate <= :endDate AND r.stopSell = true")
+    java.util.List<RoomInventoryDay> findDisabledDaysByRoomTypeAndDateRange(
+            @Param("roomTypeId") Long roomTypeId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
+
+    @Query("SELECT r FROM RoomInventoryDay r WHERE r.roomType.place.id = :placeId AND r.id.stayDate >= :startDate AND r.id.stayDate <= :endDate AND r.stopSell = true")
+    java.util.List<RoomInventoryDay> findDisabledDaysByPlaceAndDateRange(
+            @Param("placeId") Long placeId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
 }

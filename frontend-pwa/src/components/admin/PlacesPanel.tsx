@@ -425,6 +425,7 @@ export default function PlacesPanel({ notify }: PlacesPanelProps) {
           description={`Áp dụng cho: ${pending.label}.`}
           confirmLabel="Xác nhận"
           reasonRequired={reasonRequired}
+          hideReason={!reasonRequired}
           tone={reasonRequired ? 'danger' : 'primary'}
           error={dialogError}
           onCancel={() => setPending(null)}

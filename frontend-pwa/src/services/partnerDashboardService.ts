@@ -10,7 +10,8 @@ export interface PartnerDashboardSummaryDto {
   completedBookings: number;
   pendingBookings: number;
   cancelledBookings: number;
-
+  rejectedBookings: number;
+  statusTrend: DailyStatusPoint[];
   revenueTrend: MonthlyRevenuePoint[];
   recentBookings: RecentBookingDto[];
 }
@@ -20,6 +21,13 @@ export interface MonthlyRevenuePoint {
   month: number;
   totalAmount: number;
   transactionCount: number;
+}
+
+export interface DailyStatusPoint {
+  date: string;
+  completed: number;
+  pending: number;
+  cancelled: number;
 }
 
 export interface RecentBookingDto {
@@ -39,7 +47,12 @@ const config = () => {
 };
 
 export const partnerDashboardService = {
-  getSummary: async (): Promise<PartnerDashboardSummaryDto> => {
-    return (await axios.get<PartnerDashboardSummaryDto>(`${API}/summary`, config())).data;
+  getSummary: async (year?: number, month?: number, homestayId?: number): Promise<PartnerDashboardSummaryDto> => {
+    const params = new URLSearchParams();
+    if (year) params.append('year', year.toString());
+    if (month) params.append('month', month.toString());
+    if (homestayId) params.append('homestayId', homestayId.toString());
+    const query = params.toString();
+    return (await axios.get<PartnerDashboardSummaryDto>(`${API}/summary${query ? `?${query}` : ''}`, config())).data;
   }
 };

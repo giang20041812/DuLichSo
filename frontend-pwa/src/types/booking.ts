@@ -6,11 +6,11 @@ export type BookingStatus =
   | 'CHECKED_IN'
   | 'CHECKED_OUT'
   | 'COMPLETED'
-  | 'REFUNDED'
   | 'CANCELLED'
   | 'REJECTED'
   | 'EXPIRED'
-  | 'NO_SHOW';
+  | 'NO_SHOW'
+  | 'REFUNDED';
 
 export interface CancelBookingRequest {
   reason: string;

@@ -1,14 +1,11 @@
-export interface CloudinaryUploadConfig {
+export interface CloudflareUploadConfig {
   provider: string;
-  cloudName: string;
-  apiKey: string;
-  timestamp: number;
-  signature: string;
+  uploadUrl: string;
+  id: string;
 }
 
 /**
- * Uploads an image file to Cloudinary using signed parameters from the backend.
- * Falls back to direct unsigned/signed upload if backend endpoint is available.
+ * Uploads an image file to Cloudflare Images using direct creator upload URL from the backend.
  */
 export async function uploadReviewImageToCloudinary(file: File): Promise<string> {
   // 1. Get upload config from backend
@@ -17,22 +14,19 @@ export async function uploadReviewImageToCloudinary(file: File): Promise<string>
     throw new Error('Không thể lấy cấu hình tải ảnh từ hệ thống.');
   }
 
-  const config = (await res.json()) as CloudinaryUploadConfig;
-  const { cloudName, apiKey, timestamp, signature } = config;
+  const config = (await res.json()) as CloudflareUploadConfig;
+  const { uploadUrl, id } = config;
 
-  if (!cloudName || !apiKey || !signature) {
-    throw new Error('Cấu hình Cloudinary không hợp lệ.');
+  if (!uploadUrl || !id) {
+    throw new Error('Cấu hình Cloudflare không hợp lệ.');
   }
 
-  // 2. Prepare FormData for Cloudinary
+  // 2. Prepare FormData
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('api_key', apiKey);
-  formData.append('timestamp', timestamp.toString());
-  formData.append('signature', signature);
 
-  // 3. Upload directly to Cloudinary
-  const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+  // 3. Upload directly to Cloudflare
+  const uploadRes = await fetch(uploadUrl, {
     method: 'POST',
     body: formData,
   });
@@ -40,9 +34,9 @@ export async function uploadReviewImageToCloudinary(file: File): Promise<string>
   if (!uploadRes.ok) {
     let errMsg = `Upload ảnh thất bại (HTTP ${uploadRes.status})`;
     try {
-      const errJson = (await uploadRes.json()) as { error?: { message?: string } };
-      if (errJson.error?.message) {
-        errMsg = errJson.error.message;
+      const errJson = (await uploadRes.json()) as any;
+      if (errJson?.errors?.[0]?.message) {
+        errMsg = errJson.errors[0].message;
       }
     } catch {
       // ignore
@@ -50,11 +44,5 @@ export async function uploadReviewImageToCloudinary(file: File): Promise<string>
     throw new Error(errMsg);
   }
 
-  const data = (await uploadRes.json()) as { secure_url?: string; url?: string };
-  const finalUrl = data.secure_url || data.url;
-  if (!finalUrl) {
-    throw new Error('Dịch vụ Cloudinary không trả về liên kết ảnh.');
-  }
-
-  return finalUrl;
+  return id;
 }

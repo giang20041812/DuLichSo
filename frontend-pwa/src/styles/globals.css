@@ -155,6 +155,10 @@
     color: var(--color-ink-deep);
   }
 
+  .partner-workspace h1, .partner-workspace h2 {
+    font-family: var(--font-display);
+  }
+
   h3, h4, h5, h6 {
     font-family: var(--font-display);
     font-weight: 800;

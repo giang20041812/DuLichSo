@@ -155,6 +155,22 @@ export default function BookingPage() {
   const [bookedDates, setBookedDates] = useState<BookedDateRangeDto[]>([]);
 
   useEffect(() => {
+    // Ngăn Admin/Provider truy cập trang khách hàng
+    const rawPortal = localStorage.getItem('portal_user');
+    if (rawPortal) {
+      try {
+        const user = JSON.parse(rawPortal);
+        if (user && (user.role === 'ADMIN' || user.role === 'PROVIDER')) {
+          window.location.href = user.role === 'ADMIN' ? '/admin' : '/partner';
+        }
+      } catch (e) {
+        console.error('Lỗi khi đọc portal_user', e);
+      }
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  useEffect(() => {
     if (navState?.roomTypeId) {
       fetchBookedDatesByRoom(navState.roomTypeId)
         .then((data) => {

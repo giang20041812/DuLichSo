@@ -5,6 +5,7 @@ import { partnerBookingService } from '@/services/partnerBookingService';
 import { homestayError } from '@/services/partnerHomestayService';
 import { BOOKING_STATUS_LABEL, BOOKING_STATUS_TONE } from '@/lib/bookingStatus';
 import ConfirmDialog, { type ConfirmRequest } from '@/components/partner/ConfirmDialog';
+import { PageHeader } from '@/components/partner/PartnerUI';
 import type { BookingCheckLevel, BookingRoomOptionDto, PartnerBookingDetailDto, StayAction } from '@/types/booking';
 
 const vnd = (n?: number | null) => (n == null ? '—' : new Intl.NumberFormat('vi-VN').format(n) + 'đ');
@@ -56,25 +57,36 @@ export default function PartnerBookingProcessPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 pb-8">
-      <Link to="/partner/bookings" className="flex w-fit items-center gap-2 text-sm text-primary"><ArrowLeft size={16} /> Đơn đặt phòng</Link>
+      <PageHeader breadcrumbs={[{ label: 'Bảng điều khiển', to: '/partner' }, { label: 'Đơn đặt phòng', to: '/partner/bookings' }, { label: booking.bookingCode }]} />
 
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs text-muted">{booking.placeName} · Đặt lúc {dateTime(booking.createdAt)}</p>
-          <h1 className="mt-1 flex flex-wrap items-center gap-3 font-display text-2xl font-bold text-ink-deep">
+          <h1 className="mt-1 flex flex-wrap items-center gap-3  text-2xl font-bold text-ink-deep">
             <span className="font-mono">{booking.bookingCode}</span>
             <span className={pill(BOOKING_STATUS_TONE[booking.status])}>{BOOKING_STATUS_LABEL[booking.status]}</span>
           </h1>
         </div>
-        {booking.status === 'PENDING' && booking.holdExpiresAt && (
-          <p className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${booking.canAccept ? 'border-sun/40 bg-sun-light/30 text-ink' : 'border-danger/30 bg-danger/5 text-danger'}`}>
-            <Clock size={16} /> {booking.canAccept ? 'Cần xử lý trước' : 'Đã quá hạn xử lý lúc'} {dateTime(booking.holdExpiresAt)}
-          </p>
-        )}
       </div>
 
-      <div className="grid items-start gap-5 lg:grid-cols-3">
-        <div className="flex flex-col gap-5 lg:col-span-2">
+      <div className={`grid items-start gap-5 ${booking.checks?.length ? 'lg:grid-cols-12' : 'lg:grid-cols-3'}`}>
+        {/* Left column: Kiểm tra yêu cầu */}
+        {(booking.checks?.length ?? 0) > 0 && (
+          <div className="flex flex-col gap-5 lg:sticky lg:top-4 lg:col-span-2">
+            <div className="flex flex-col gap-2.5 px-1 pb-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted">Kiểm tra yêu cầu</p>
+              {booking.checks.map((c) => (
+                <div key={c.code} className="flex items-center gap-2.5 text-sm">
+                  <span className="shrink-0">{CHECK_STYLE[c.level].icon}</span>
+                  <p className="font-semibold text-ink-deep">{c.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Middle column: Thông tin chính */}
+        <div className={`flex flex-col gap-5 ${booking.checks?.length ? 'lg:col-span-6' : 'lg:col-span-2'}`}>
           <Section title="Thông tin yêu cầu đặt phòng">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
@@ -98,28 +110,7 @@ export default function PartnerBookingProcessPage() {
                 <StickyNote className="mt-0.5 h-4 w-4 shrink-0 text-muted" /> {booking.guestNote}
               </p>
             ) : <p className="text-sm text-muted">Khách không để lại ghi chú.</p>}
-            {booking.serviceItems.length > 0 && (
-              <div>
-                <p className="mb-1.5 text-xs font-semibold text-muted">Dịch vụ khách muốn dùng kèm</p>
-                <ul className="flex flex-col gap-1 text-sm">
-                  {booking.serviceItems.map((s, i) => <li key={`${s.serviceName}-${i}`}>• {s.serviceName}{s.note ? <span className="text-muted"> — {s.note}</span> : null}</li>)}
-                </ul>
-              </div>
-            )}
           </Section>
-
-          {booking.checks.length > 0 && (
-            <Section title="Kiểm tra yêu cầu">
-              <ul className="flex flex-col gap-2">
-                {booking.checks.map((c) => (
-                  <li key={c.code} className={`flex items-start gap-3 rounded-md border p-3 ${CHECK_STYLE[c.level].tone}`}>
-                    <span className="mt-0.5 shrink-0">{CHECK_STYLE[c.level].icon}</span>
-                    <div><p className="text-sm font-semibold text-ink-deep">{c.label}</p><p className="text-xs text-muted">{c.detail}</p></div>
-                  </li>
-                ))}
-              </ul>
-            </Section>
-          )}
 
           <Section title="Giá và điều kiện áp dụng">
             {booking.nightPrices.length > 0 && (
@@ -142,6 +133,22 @@ export default function PartnerBookingProcessPage() {
               </div>
             ) : <p className="text-sm text-muted">Đơn không kèm chính sách hủy.</p>}
           </Section>
+
+          {(booking.serviceItems?.length ?? 0) > 0 && (
+            <Section title="Dịch vụ tư vấn đã chọn">
+              <ul className="flex flex-col gap-2.5 text-sm">
+                {booking.serviceItems.map((s, i) => (
+                  <li key={`${s.serviceName}-${i}`} className="flex items-start gap-2.5">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                    <div>
+                      <p className="font-medium text-ink-deep">{s.serviceName}</p>
+                      {s.note && <p className="text-xs text-muted">{s.note}</p>}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          )}
 
           {booking.infoRequests.length > 0 && (
             <Section title="Yêu cầu bổ sung thông tin">
@@ -173,7 +180,8 @@ export default function PartnerBookingProcessPage() {
           )}
         </div>
 
-        <div className="lg:sticky lg:top-4">
+        {/* Right column: Decision / Result panel */}
+        <div className={`flex flex-col gap-5 lg:sticky lg:top-4 ${booking.checks?.length ? 'lg:col-span-4' : 'lg:col-span-1'}`}>
           {booking.canAccept || booking.canReject
             ? <DecisionPanel key={`${booking.id}-${booking.status}-${booking.infoRequests.length}`} booking={booking} onDone={setBooking} />
             : <ResultPanel booking={booking} onDone={setBooking} />}
@@ -202,7 +210,14 @@ function DecisionPanel({ booking, onDone }: { booking: PartnerBookingDetailDto; 
 
   return (
     <section className="flex flex-col gap-4 rounded-lg border border-border bg-surface p-5 shadow-[var(--shadow-card)]">
-      <h2 className="font-semibold text-primary">Xử lý yêu cầu</h2>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="font-semibold text-primary">Xử lý yêu cầu</h2>
+        {booking.status === 'PENDING' && booking.holdExpiresAt && (
+          <div className={`flex items-center gap-1.5 rounded text-xs font-semibold ${booking.canAccept ? 'text-warning' : 'text-danger'}`}>
+            <Clock size={14} /> {booking.canAccept ? 'Xử lý trước' : 'Quá hạn lúc'} {dateTime(booking.holdExpiresAt)}
+          </div>
+        )}
+      </div>
       <div className="grid grid-cols-3 gap-1 rounded-md bg-canvas p-1 text-xs font-semibold sm:text-sm">
         <button type="button" disabled={!booking.canAccept} onClick={() => setMode('accept')} className={`rounded px-2 py-1.5 transition-colors disabled:opacity-40 ${mode === 'accept' ? 'bg-surface text-primary shadow-xs' : 'text-muted'}`}>Chấp nhận</button>
         <button type="button" onClick={() => setMode('info')} className={`rounded px-2 py-1.5 transition-colors ${mode === 'info' ? 'bg-surface text-secondary-700 shadow-xs' : 'text-muted'}`}>Hỏi thêm</button>

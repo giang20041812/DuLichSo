@@ -4,7 +4,7 @@ import {
   Bell, 
   CheckCircle2, 
   XCircle, 
-  RotateCcw, 
+
   CheckCheck, 
   BellOff, 
   ExternalLink,
@@ -162,13 +162,7 @@ export default function NotificationBell({ isSolid }: NotificationBellProps) {
             Bị từ chối
           </span>
         );
-      case 'REFUNDED':
-        return (
-          <span className="inline-flex items-center gap-1 rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">
-            <RotateCcw className="h-3 w-3 text-amber-600" />
-            Đã hoàn tiền
-          </span>
-        );
+
       default:
         return null;
     }
@@ -180,8 +174,7 @@ export default function NotificationBell({ isSolid }: NotificationBellProps) {
         return <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />;
       case 'REJECTED':
         return <XCircle className="h-4 w-4 shrink-0 text-rose-600" />;
-      case 'REFUNDED':
-        return <RotateCcw className="h-4 w-4 shrink-0 text-amber-600" />;
+
       default:
         return <Sparkles className="h-4 w-4 shrink-0 text-[var(--color-primary)]" />;
     }
@@ -270,7 +263,6 @@ export default function NotificationBell({ isSolid }: NotificationBellProps) {
                 const bookingStatus = item.bookingStatus || (item.payload?.bookingStatus as string | undefined);
                 const isConfirmed = bookingStatus === 'CONFIRMED';
                 const isRejected = bookingStatus === 'REJECTED';
-                const isRefunded = bookingStatus === 'REFUNDED';
 
                 return (
                   <div
@@ -282,8 +274,6 @@ export default function NotificationBell({ isSolid }: NotificationBellProps) {
                           ? 'bg-emerald-50/40'
                           : isRejected
                           ? 'bg-rose-50/40'
-                          : isRefunded
-                          ? 'bg-amber-50/40'
                           : 'bg-[#edfbf7]/50'
                         : 'bg-white'
                     }`}

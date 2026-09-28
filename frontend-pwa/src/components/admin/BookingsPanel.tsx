@@ -43,7 +43,6 @@ const STATUS_ORDER: BookingStatus[] = [
   'CHECKED_IN',
   'CHECKED_OUT',
   'COMPLETED',
-  'REFUNDED',
   'CANCELLED',
   'REJECTED',
   'EXPIRED',

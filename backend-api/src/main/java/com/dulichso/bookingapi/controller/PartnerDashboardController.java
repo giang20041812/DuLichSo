@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -16,7 +17,11 @@ public class PartnerDashboardController {
     private final PartnerDashboardService service;
 
     @GetMapping("/summary")
-    public PartnerDashboardSummaryDto getSummary(@AuthenticationPrincipal UserPrincipal principal) {
-        return service.getDashboardSummary(principal);
+    public PartnerDashboardSummaryDto getSummary(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Long homestayId) {
+        return service.getDashboardSummary(principal, year, month, homestayId);
     }
 }

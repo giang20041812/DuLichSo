@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import * as Dialog from '@radix-ui/react-dialog';
 import {
-  BedDouble, CalendarDays, DoorOpen, Image as ImageIcon, Maximize2, Pencil, Plus, Search, Tag, Trash2, Users, X,
+  BedDouble, CalendarDays, DoorOpen, Maximize2, Pencil, Plus, Search, Trash2, Users, X,
 } from 'lucide-react';
 import type { PartnerRoom, PartnerRoomInput, RoomPrice, RoomPriceInput, RoomQuote } from '@/types/room';
 import type { HomestayOptionsDto } from '@/types/partner';
@@ -20,11 +20,9 @@ const localDate = (offset: number) => { const d = new Date(); d.setDate(d.getDat
 const bedsText = (room: PartnerRoom) => room.beds.length ? room.beds.map(b => `${b.quantity} ${b.bedType.toLowerCase()}`).join(', ') : 'Chưa khai báo giường';
 const toInput = (room: PartnerRoom): PartnerRoomInput => ({ ...room, description: room.description ?? '', viewDescription: room.viewDescription ?? '' });
 
-type WorkTab = 'calendar' | 'prices' | 'photos' | 'quote';
+type WorkTab = 'calendar' | 'quote';
 const WORK_TABS: TabItem<WorkTab>[] = [
   { id: 'calendar', label: 'Lịch phòng', icon: CalendarDays },
-  { id: 'prices', label: 'Giá theo mùa', icon: Tag },
-  { id: 'photos', label: 'Ảnh phòng', icon: ImageIcon },
   { id: 'quote', label: 'Kiểm tra phòng trống', icon: Search },
 ];
 
@@ -69,7 +67,8 @@ export default function PartnerRoomsPage() {
 
   return (
     <div className="flex flex-col gap-6 pb-10">
-      <PageHeader back={{ to: '/partner/homestays', label: 'Homestay của tôi' }} eyebrow="Phòng & giá"
+      <PageHeader 
+        breadcrumbs={[{ label: 'Bảng điều khiển', to: '/partner' }, { label: 'Cơ sở lưu trú', to: '/partner/homestays' }, { label: 'Phòng & giá' }]}
         title="Phòng, giá và lịch bán" description="Khai báo từng loại phòng, đặt giá theo mùa và quản lý số phòng mở bán mỗi ngày."
         actions={<>
           {homestays.length > 1 && (
@@ -93,23 +92,23 @@ export default function PartnerRoomsPage() {
             const active = room.id === selectedId;
             return (
               <article key={room.id} onClick={() => setSelectedId(room.id)}
-                className={`group flex cursor-pointer flex-col gap-3 rounded-lg border bg-surface p-4 shadow-[var(--shadow-card)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[var(--shadow-card-hover)] ${active ? 'border-primary ring-2 ring-primary/15' : 'border-primary/10 hover:border-primary/30'}`}>
+                className={`group flex cursor-pointer flex-col gap-3 rounded-lg border bg-surface p-4 transition-all duration-200 ${active ? 'border-primary/40 bg-primary/5' : 'border-border hover:border-primary/30'}`}>
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <h3 className="truncate font-display text-base font-bold text-ink-deep">{room.name}</h3>
+                    <h3 className="truncate text-base font-bold text-ink-deep">{room.name}</h3>
                     <p className="truncate text-xs text-muted">{room.viewDescription || 'Chưa khai báo view'}</p>
                   </div>
                   <Pill tone={room.status === 'ACTIVE' ? 'accent' : 'neutral'}>{room.status === 'ACTIVE' ? 'Mở bán' : 'Ngừng bán'}</Pill>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs text-ink">
-                  <span className="flex items-center gap-1.5"><DoorOpen className="h-3.5 w-3.5 text-primary" />{room.totalRoomCount} phòng</span>
-                  <span className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-primary" />{room.maxOccupancy} khách/phòng</span>
-                  <span className="flex items-center gap-1.5"><Maximize2 className="h-3.5 w-3.5 text-primary" />{room.areaSqm ? `${room.areaSqm} m²` : '— m²'}</span>
-                  <span className="flex items-center gap-1.5 truncate"><BedDouble className="h-3.5 w-3.5 shrink-0 text-primary" /><span className="truncate">{bedsText(room)}</span></span>
+                  <span className="flex items-center gap-1.5"><DoorOpen className="h-3.5 w-3.5 text-primary/80" />{room.totalRoomCount} phòng</span>
+                  <span className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-primary/80" />{room.maxOccupancy} khách/phòng</span>
+                  <span className="flex items-center gap-1.5"><Maximize2 className="h-3.5 w-3.5 text-primary/80" />{room.areaSqm ? `${room.areaSqm} m²` : '— m²'}</span>
+                  <span className="flex items-center gap-1.5 truncate"><BedDouble className="h-3.5 w-3.5 shrink-0 text-primary/80" /><span className="truncate">{bedsText(room)}</span></span>
                 </div>
                 <div className="mt-auto flex items-end justify-between gap-2 border-t border-primary/10 pt-3">
                   <div>
-                    <p className="font-display text-lg font-extrabold text-ink-deep">{vnd(room.basePrice)}<span className="text-xs font-medium text-muted"> /đêm</span></p>
+                    <p className=" text-lg font-extrabold text-ink-deep">{vnd(room.basePrice)}<span className="text-xs font-medium text-muted"> /đêm</span></p>
                     {room.weekendPrice ? <p className="text-[11px] text-muted">Cuối tuần {vnd(room.weekendPrice)}</p> : null}
                   </div>
                   <button type="button" aria-label={`Sửa ${room.name}`} className={ui.iconBtn}
@@ -126,13 +125,11 @@ export default function PartnerRoomsPage() {
       {selected && (
         <section className={`${ui.card} flex flex-col gap-4 p-5`}>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Đang quản lý</p><h2 className="font-display text-lg font-bold text-ink-deep">{selected.name}</h2></div>
+            <div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Đang quản lý</p><h2 className=" text-lg font-bold text-ink-deep">{selected.name}</h2></div>
             <span className="text-xs text-muted">{selected.totalRoomCount} phòng · giá cơ bản {vnd(selected.basePrice)}</span>
           </div>
           <Tabs tabs={WORK_TABS} value={tab} onChange={setTab} />
           {tab === 'calendar' && <RoomInventoryCalendar key={`cal-${selected.id}`} placeId={placeId} room={selected} />}
-          {tab === 'prices' && <SeasonalPrices key={`price-${selected.id}`} placeId={placeId} room={selected} />}
-          {tab === 'photos' && <MediaManager key={`photo-${selected.id}`} target={{ placeId, roomId: selected.id }} title={`Ảnh phòng ${selected.name}`} />}
           {tab === 'quote' && <AvailabilityCheck key={`quote-${selected.id}`} placeId={placeId} room={selected} />}
         </section>
       )}
@@ -177,7 +174,7 @@ function RoomEditor({ placeId, options, editor, onClose, onSaved }: {
         <Dialog.Overlay className="fixed inset-0 z-50 bg-ink-deep/40" />
         <Dialog.Content aria-describedby={undefined} className="fixed inset-y-0 right-0 z-50 flex w-full max-w-xl flex-col bg-surface shadow-[var(--shadow-lg)]">
           <header className="flex items-center justify-between border-b border-primary/10 px-5 py-4">
-            <Dialog.Title className="font-display text-lg font-bold text-ink-deep">{editor?.id ? 'Sửa loại phòng' : 'Loại phòng mới'}</Dialog.Title>
+            <Dialog.Title className=" text-lg font-bold text-ink-deep">{editor?.id ? 'Sửa loại phòng' : 'Loại phòng mới'}</Dialog.Title>
             <Dialog.Close aria-label="Đóng" className={ui.iconBtn}><X className="h-5 w-5" /></Dialog.Close>
           </header>
           <form className="flex min-h-0 flex-1 flex-col" onSubmit={(e) => { e.preventDefault(); void save(); }}>
@@ -241,9 +238,20 @@ function RoomEditor({ placeId, options, editor, onClose, onSaved }: {
                 <input type="checkbox" className="h-4 w-4 accent-[var(--color-primary)]" checked={form.status === 'ACTIVE'} onChange={e => set('status', e.target.checked ? 'ACTIVE' : 'INACTIVE')} />
                 <span><b>Mở bán</b> loại phòng này <span className="text-muted">(bỏ chọn để tạm ẩn, không nhận đặt mới)</span></span>
               </label>
-              {editor?.id == null
-                ? <p className="text-[11px] leading-relaxed text-muted">Ảnh phòng tải lên ở tab <b>Ảnh phòng</b> sau khi lưu loại phòng.</p>
-                : <p className="text-[11px] leading-relaxed text-muted">Đổi giá chỉ áp dụng cho đơn đặt mới; đơn đã đặt giữ nguyên giá. Số phòng theo từng ngày chỉnh ở tab Lịch phòng.</p>}
+              {editor?.id == null ? (
+                <p className="text-[11px] leading-relaxed text-muted">Vui lòng lưu loại phòng trước khi thêm ảnh và giá theo mùa.</p>
+              ) : (
+                <>
+                  <div className="flex flex-col gap-3 border-t border-primary/10 pt-5">
+                    <p className="text-xs font-bold uppercase tracking-wide text-muted">Ảnh phòng</p>
+                    <MediaManager target={{ placeId, roomId: editor.id }} title={`Ảnh phòng ${form.name}`} />
+                  </div>
+                  <div className="flex flex-col gap-3 border-t border-primary/10 pt-5">
+                    <p className="text-xs font-bold uppercase tracking-wide text-muted">Giá theo mùa</p>
+                    <SeasonalPrices placeId={placeId} room={{ id: editor.id, ...form } as unknown as PartnerRoom} />
+                  </div>
+                </>
+              )}
             </fieldset>
             <footer className="flex justify-end gap-2 border-t border-primary/10 bg-canvas/60 px-5 py-3">
               <Dialog.Close type="button" className={ui.btnGhost}>Hủy</Dialog.Close>
@@ -350,7 +358,7 @@ function AvailabilityCheck({ placeId, room }: { placeId: number; room: PartnerRo
             <p className={`text-sm font-bold ${quote.suitable ? 'text-accent-700' : 'text-danger'}`}>{quote.suitable ? 'Có thể đáp ứng yêu cầu này' : 'Không đủ phòng hoặc sức chứa'}</p>
             <p className="text-xs text-muted">Còn ít nhất {quote.availableRooms} phòng trống trong suốt khoảng ngày · tối đa {room.maxOccupancy} khách/phòng</p>
           </div>
-          <p className="font-display text-xl font-extrabold text-ink-deep">{vnd(quote.totalAmount)}</p>
+          <p className=" text-xl font-extrabold text-ink-deep">{vnd(quote.totalAmount)}</p>
         </div>
       )}
     </div>

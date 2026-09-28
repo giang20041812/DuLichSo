@@ -1,4 +1,4 @@
-export type NotificationBookingStatus = 'CONFIRMED' | 'REJECTED' | 'REFUNDED';
+export type NotificationBookingStatus = 'CONFIRMED' | 'REJECTED';
 
 export interface NotificationPayload {
   title?: string;

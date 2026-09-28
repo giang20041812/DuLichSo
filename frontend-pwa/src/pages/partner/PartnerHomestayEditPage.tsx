@@ -40,6 +40,7 @@ export default function PartnerHomestayEditPage() {
   const navigate = useNavigate();
   const invalidId = id != null && (!Number.isSafeInteger(Number(id)) || Number(id) <= 0);
   const [form, setForm] = useState<PartnerHomestayDetailDto>(EMPTY);
+  const [initialForm, setInitialForm] = useState<PartnerHomestayDetailDto | null>(null);
   const [options, setOptions] = useState<HomestayOptionsDto>({ regions: [], amenities: [] });
   const [loading, setLoading] = useState(!invalidId);
   const [loadError, setLoadError] = useState('');
@@ -49,12 +50,13 @@ export default function PartnerHomestayEditPage() {
   const [geo, setGeo] = useState<{ busy: boolean; text: string; ok: boolean }>({ busy: false, text: '', ok: true });
   const [logKey, setLogKey] = useState(0);
   const [activeTab, setActiveTab] = useState<TabId>('info');
+  const [mapLink, setMapLink] = useState('');
 
   useEffect(() => {
     if (invalidId) return;
     let active = true;
     Promise.all([fetchHomestayOptions(), id ? fetchPartnerHomestayDetail(Number(id)) : Promise.resolve({ ...EMPTY })])
-      .then(([catalog, detail]) => { if (active) { setOptions(catalog); setForm(detail); setLoadError(''); } })
+      .then(([catalog, detail]) => { if (active) { setOptions(catalog); setForm(detail); setInitialForm(detail); setLoadError(''); } })
       .catch((error: unknown) => { if (active) setLoadError(homestayError(error)); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
@@ -82,6 +84,48 @@ export default function PartnerHomestayEditPage() {
       setGeo({ busy: false, text: homestayError(error), ok: false });
     }
   }
+
+  const handleMapLinkChange = (url: string) => {
+    setMapLink(url);
+    const latLngMatch = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+    const exclamationMatch = url.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+    const qMatch = url.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/) || url.match(/[?&]ll=(-?\d+\.\d+),(-?\d+\.\d+)/);
+    
+    let lat: number | null = null;
+    let lng: number | null = null;
+    
+    if (latLngMatch) {
+      lat = Number(latLngMatch[1]);
+      lng = Number(latLngMatch[2]);
+    } else if (exclamationMatch) {
+      lat = Number(exclamationMatch[1]);
+      lng = Number(exclamationMatch[2]);
+    } else if (qMatch) {
+      lat = Number(qMatch[1]);
+      lng = Number(qMatch[2]);
+    }
+
+    const placeMatch = url.match(/\/place\/([^/@?]+)/);
+    
+    if (lat !== null || placeMatch) {
+      setForm(prev => {
+        const next = { ...prev };
+        if (lat !== null && lng !== null) {
+          next.latitude = lat;
+          next.longitude = lng;
+        }
+        if (placeMatch && placeMatch[1]) {
+          try {
+            next.address = decodeURIComponent(placeMatch[1].replace(/\+/g, ' '));
+          } catch (e) {
+            // ignore malformed URI
+          }
+        }
+        return next;
+      });
+      setGeo({ busy: false, text: 'Đã trích xuất thông tin từ link Google Map.', ok: true });
+    }
+  };
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -143,19 +187,43 @@ export default function PartnerHomestayEditPage() {
   ];
 
   const isFormTab = FORM_TABS.includes(activeTab);
+  const isDirty = initialForm ? JSON.stringify(form) !== JSON.stringify(initialForm) : false;
+  const isComplete = doneCount === checklist.length;
+  const canSave = id ? isDirty : isComplete;
 
   return (
     <div className="flex flex-col gap-6 pb-8">
       <PageHeader
-        back={{ to: '/partner/homestays', label: 'Homestay của tôi' }}
-        eyebrow={[form.cooperativeName, form.code].filter(Boolean).join(' · ') || (id ? 'Homestay' : 'Homestay mới')}
-        title={id ? form.name || 'Chỉnh sửa Homestay' : 'Tạo Homestay mới'}
+        breadcrumbs={[
+          { label: 'Bảng điều khiển', to: '/partner' },
+          { label: 'Cơ sở lưu trú', to: '/partner/homestays' },
+          { label: id ? form.name || 'Chỉnh sửa Homestay' : 'Tạo Homestay mới' }
+        ]}
+        title={id ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <span>{form.name || 'Chỉnh sửa Homestay'}</span>
+            <div className="flex items-center gap-2 mt-1 sm:mt-0">
+              <button type="button" disabled={saving} onClick={() => void changeStatus({ visibility: published ? 'UNPUBLISHED' : 'PUBLISHED' }, published ? 'Đã ngừng hiển thị Homestay.' : 'Đã xuất bản Homestay.')}
+                className={`group inline-flex items-center gap-1.5 rounded-sm border px-2 py-0.5 text-[12px] font-bold transition-all duration-200 ${published ? 'bg-primary-50 text-primary border-primary/20 hover:border-primary/40' : 'bg-sun-light text-ink-deep border-sun/30 hover:border-sun/50'}`}>
+                {published ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                {published ? 'Đang hiển thị' : 'Bản nháp'}
+              </button>
+              
+              <button type="button" disabled={saving} onClick={() => void changeStatus({ operationStatus: operating ? 'TEMP_CLOSED' : 'OPERATING' }, operating ? 'Đã tạm đóng cửa Homestay.' : 'Homestay đã mở lại.')}
+                className={`group inline-flex items-center gap-1.5 rounded-sm border px-2 py-0.5 text-[12px] font-bold transition-all duration-200 ${operating ? 'bg-accent-50 text-accent-700 border-accent/30 hover:border-accent/50' : 'bg-danger/10 text-danger border-danger/20 hover:border-danger/40'}`}>
+                {operating ? <Unlock className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
+                {operating ? 'Đang đón khách' : 'Tạm đóng cửa'}
+              </button>
+            </div>
+          </div>
+        ) : 'Tạo Homestay mới'}
         description={id ? 'Cập nhật thông tin hiển thị với khách và thiết lập vận hành.' : 'Điền thông tin cơ bản rồi lưu bản nháp. Sau đó bạn thêm ảnh, phòng và dịch vụ.'}
         actions={id && !loading && !loadError ? <>
-          <Pill tone={published ? 'primary' : 'sun'}>{published ? 'Đang hiển thị' : 'Bản nháp'}</Pill>
-          <Pill tone={operating ? 'accent' : 'danger'}>{operating ? 'Đang đón khách' : 'Tạm đóng cửa'}</Pill>
-          <Link to={`/partner/homestay/${id}/rooms`} className={ui.btnOutline}><BedDouble className="h-4 w-4" />Phòng & lịch phòng</Link>
-        </> : undefined} />
+          <Link to={`/partner/homestay/${id}/rooms`} className="flex items-center justify-center gap-1.5 rounded-md border border-primary/30 bg-primary/5 px-3 py-1.5 text-[11px] font-semibold text-primary-700 hover:bg-primary/10"><BedDouble className="h-3.5 w-3.5" />Phòng & lịch</Link>
+          <button type="submit" form="homestay-edit-form" disabled={saving || !canSave} className="flex items-center justify-center gap-1.5 rounded-md bg-coral/90 px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-coral disabled:cursor-not-allowed disabled:opacity-50"><Save className="h-3.5 w-3.5" />{saving ? 'Đang lưu...' : 'Yêu cầu duyệt thay đổi'}</button>
+        </> : (!id && !loading && !loadError ? <>
+          <button type="submit" form="homestay-edit-form" disabled={saving || !canSave} className="flex items-center justify-center gap-1.5 rounded-md bg-coral/90 px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-coral disabled:cursor-not-allowed disabled:opacity-50"><Save className="h-3.5 w-3.5" />{saving ? 'Đang lưu...' : 'Tạo bản nháp'}</button>
+        </> : undefined)} />
 
       {invalidId ? <Alert tone="error">Mã Homestay không hợp lệ.</Alert>
         : loading ? <LoadingBlock label="Đang tải thông tin..." rows={3} />
@@ -163,41 +231,21 @@ export default function PartnerHomestayEditPage() {
           <Alert tone="error" action={<button type="button" className={ui.btnGhost} onClick={() => { setLoading(true); setLoadError(''); setRetry(n => n + 1); }}>Thử lại</button>}>{loadError}</Alert>
         ) : (
           <>
-            {id && doneCount < checklist.length && (
-              <section className="flex flex-col gap-3 rounded-lg border border-sun/30 bg-gradient-to-r from-sun-light/60 to-surface p-5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-sm font-bold text-ink-deep">Hoàn thiện hồ sơ để khách dễ chọn hơn</p>
-                  <span className="text-xs font-semibold text-muted">{doneCount}/{checklist.length} mục</span>
-                </div>
-                <div className="h-1.5 overflow-hidden rounded-sm bg-surface"><div className="h-full rounded-sm bg-sun transition-all duration-500" style={{ width: `${(doneCount / checklist.length) * 100}%` }} /></div>
-                <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {checklist.map(item => (
-                    <li key={item.label} className="flex items-center gap-2 text-sm">
-                      {item.done ? <CheckCircle2 className="h-4 w-4 shrink-0 text-accent-600" /> : <Circle className="h-4 w-4 shrink-0 text-muted" />}
-                      {item.done ? <span className="text-muted line-through">{item.label}</span>
-                        : <button type="button" className="font-semibold text-ink-deep underline-offset-2 hover:text-primary hover:underline" onClick={() => openTab(item.tab)}>{item.label}</button>}
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
-
-            <div className="flex flex-col gap-6 md:flex-row md:items-start">
-              <nav aria-label="Các mục thông tin" className="-mx-1 flex shrink-0 gap-1 overflow-x-auto px-1 pb-1 md:sticky md:top-20 md:mx-0 md:w-60 md:flex-col md:overflow-visible md:px-0 md:pb-0">
-                {tabs.map(({ id: tabId, label, icon: Icon, hint }) => {
+            <div className="flex flex-col gap-6">
+              <nav role="tablist" aria-label="Các mục thông tin" className="-mx-1 flex gap-1 overflow-x-auto border-b border-primary/10 px-1 scrollbar-hide">
+                {tabs.map(({ id: tabId, label, icon: Icon }) => {
                   const active = activeTab === tabId;
+                  const items = checklist.filter(c => c.tab === tabId);
+                  const hasItems = items.length > 0;
+                  const isDone = hasItems && items.every(c => c.done);
+
                   return (
-                    <button key={tabId} type="button" aria-current={active ? 'page' : undefined} onClick={() => openTab(tabId)}
-                      className={`group flex shrink-0 items-center gap-3 rounded-md border px-3 py-2.5 text-left transition-all duration-200 ${active ? 'border-primary/20 bg-surface shadow-[var(--shadow-card)]' : 'border-transparent hover:bg-surface/70'}`}>
-                      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors duration-200 ${active ? 'bg-primary text-white shadow-[var(--shadow-teal)]' : 'bg-primary-50 text-primary group-hover:bg-primary/10'}`}>
-                        <Icon className="h-4 w-4" />
-                      </span>
-                      <span className="min-w-0">
-                        <span className={`flex items-center gap-1.5 whitespace-nowrap text-sm font-semibold ${active ? 'text-ink-deep' : 'text-ink'}`}>
-                          {label}{tabDone(tabId) && <CheckCircle2 aria-label="Đã đủ" className="h-3.5 w-3.5 text-accent-600" />}
-                        </span>
-                        <span className="hidden truncate text-[11px] text-muted md:block">{hint}</span>
-                      </span>
+                    <button key={tabId} type="button" role="tab" aria-selected={active} onClick={() => openTab(tabId)}
+                      className={`relative flex shrink-0 items-center gap-2 px-3 py-2.5 text-sm font-semibold transition-colors duration-200 ${active ? 'text-primary' : 'text-muted hover:text-ink'}`}>
+                      <Icon className="h-4 w-4" />
+                      <span className="whitespace-nowrap">{label}</span>
+                      {hasItems && (isDone ? <CheckCircle2 className="h-4 w-4 text-accent-600" /> : <Circle className="h-4 w-4 text-muted/50" />)}
+                      <span className={`absolute inset-x-2 -bottom-px h-0.5 rounded-sm bg-primary transition-opacity duration-200 ${active ? 'opacity-100' : 'opacity-0'}`} />
                     </button>
                   );
                 })}
@@ -207,7 +255,7 @@ export default function PartnerHomestayEditPage() {
                 {!isFormTab && notice && <NoticeBar notice={notice} onClose={() => setNotice(null)} />}
 
                 {isFormTab && (
-                  <form onSubmit={save} className="flex flex-col gap-5">
+                  <form id="homestay-edit-form" onSubmit={save} className="flex flex-col gap-5">
                     <fieldset disabled={saving} className="flex flex-col gap-5">
                       {activeTab === 'info' && (
                         <Card title="Thông tin chung" icon={Info} description="Tên và mô tả là thứ khách đọc đầu tiên. Viết ngắn gọn, nêu điểm đặc biệt của nơi ở.">
@@ -228,6 +276,9 @@ export default function PartnerHomestayEditPage() {
 
                       {activeTab === 'address' && (
                         <Card title="Địa chỉ và tiếp cận" icon={MapPin} description="Nhập địa chỉ, hệ thống tự lấy tọa độ để hiện Homestay trên bản đồ.">
+                          <Field label="Link Google Map" hint="Dán link Google Map để tự động trích xuất kinh độ, vĩ độ">
+                            <input className={ui.input} type="url" value={mapLink} onChange={e => handleMapLinkChange(e.target.value)} placeholder="https://www.google.com/maps/place/..." />
+                          </Field>
                           <Field label="Địa chỉ" required hint="Rời khỏi ô này để tự lấy tọa độ khi chưa có.">
                             <input className={ui.input} required maxLength={500} value={form.address} onChange={e => set('address', e.target.value)} onBlur={() => void locate(true)} placeholder="Số nhà / thôn, xã, huyện, tỉnh" />
                           </Field>
@@ -309,13 +360,13 @@ export default function PartnerHomestayEditPage() {
                         </>
                       )}
 
-                      <div className="sticky bottom-0 z-10 -mx-1 flex flex-col gap-3 rounded-lg border border-primary/10 bg-surface/95 px-4 py-3 shadow-[var(--shadow-card-hover)] backdrop-blur sm:flex-row sm:items-center">
-                        <div className="min-w-0 flex-1">
-                          {notice ? <NoticeBar notice={notice} onClose={() => setNotice(null)} />
-                            : <p className="text-xs text-muted">{id ? 'Nút lưu áp dụng cho cả 4 mục Thông tin, Vị trí, Tiện nghi và Chính sách.' : 'Homestay mới được lưu dưới dạng bản nháp, chưa hiển thị với khách.'}</p>}
+                      {notice && (
+                        <div className="sticky bottom-0 z-10 -mx-1 flex flex-col gap-3 rounded-lg border border-primary/10 bg-surface/95 px-4 py-3 shadow-[var(--shadow-card-hover)] backdrop-blur sm:flex-row sm:items-center">
+                          <div className="min-w-0 flex-1">
+                            <NoticeBar notice={notice} onClose={() => setNotice(null)} />
+                          </div>
                         </div>
-                        <button type="submit" disabled={saving} className={`${ui.btnPrimary} shrink-0`}><Save className="h-4 w-4" />{saving ? 'Đang lưu...' : id ? 'Lưu thay đổi' : 'Tạo bản nháp'}</button>
-                      </div>
+                      )}
                     </fieldset>
                   </form>
                 )}

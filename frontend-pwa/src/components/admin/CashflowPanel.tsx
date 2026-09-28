@@ -136,7 +136,7 @@ export default function CashflowPanel({ onDrill }: CashflowPanelProps) {
       )}
 
       {totals && (
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 border-b border-border bg-canvas/60 px-4 py-2.5 text-xs sm:grid-cols-5">
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 border-b border-border bg-canvas/60 px-4 py-2.5 text-xs sm:grid-cols-3">
           <div>
             <dt className="text-[10px] font-semibold uppercase tracking-wide text-muted">Booking đã thu</dt>
             <dd className="font-semibold tabular-nums text-ink-deep">{totals.paidBookings}</dd>
@@ -144,14 +144,6 @@ export default function CashflowPanel({ onDrill }: CashflowPanelProps) {
           <div>
             <dt className="text-[10px] font-semibold uppercase tracking-wide text-muted">Tổng thu</dt>
             <dd className="font-semibold tabular-nums text-ink-deep">{vnd.format(totals.paidAmount)}</dd>
-          </div>
-          <div>
-            <dt className="text-[10px] font-semibold uppercase tracking-wide text-muted">Đã hoàn</dt>
-            <dd className="font-semibold tabular-nums text-ink-deep">{vnd.format(totals.refundedAmount)}</dd>
-          </div>
-          <div>
-            <dt className="text-[10px] font-semibold uppercase tracking-wide text-muted">Chờ hoàn</dt>
-            <dd className="font-semibold tabular-nums text-amber-700">{vnd.format(totals.pendingRefundAmount)}</dd>
           </div>
           <div>
             <dt className="text-[10px] font-semibold uppercase tracking-wide text-muted">Ròng</dt>
@@ -168,8 +160,6 @@ export default function CashflowPanel({ onDrill }: CashflowPanelProps) {
               {activeLevel === 'PLACE' && <th className={th}>Nhà cung cấp</th>}
               <th className={`${th} text-right`}>Booking đã thu</th>
               <th className={`${th} text-right`}>Thu</th>
-              <th className={`${th} text-right`}>Hoàn</th>
-              <th className={`${th} text-right`}>Chờ hoàn</th>
               <th className={`${th} text-right`}>Ròng</th>
             </tr>
           </thead>
@@ -198,8 +188,6 @@ export default function CashflowPanel({ onDrill }: CashflowPanelProps) {
                 )}
                 <td className={`${td} text-right tabular-nums text-ink`}>{row.paidBookings}</td>
                 <td className={`${td} text-right tabular-nums text-ink-deep`}>{vnd.format(row.paidAmount)}</td>
-                <td className={`${td} text-right tabular-nums text-ink`}>{vnd.format(row.refundedAmount)}</td>
-                <td className={`${td} text-right tabular-nums text-amber-700`}>{vnd.format(row.pendingRefundAmount)}</td>
                 <td className={`${td} text-right font-semibold tabular-nums ${row.netAmount < 0 ? 'text-danger' : 'text-primary'}`}>{vnd.format(row.netAmount)}</td>
               </tr>
             ))}

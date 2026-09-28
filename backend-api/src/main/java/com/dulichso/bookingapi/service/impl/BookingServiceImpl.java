@@ -44,6 +44,7 @@ public class BookingServiceImpl implements BookingService {
     private final BookingChangeRequestRepository bookingChangeRequestRepository;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
     private final com.dulichso.bookingapi.service.NotificationService notificationService;
+    private final com.dulichso.bookingapi.service.CloudflareImagesService cloudflareImagesService;
 
     private static final SecureRandom RANDOM = new SecureRandom();
 
@@ -147,7 +148,7 @@ public class BookingServiceImpl implements BookingService {
 
         // 7. Tạo bản ghi Booking
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime holdExpiry = now.plusHours(12); // Hết hạn giữ phòng sau 12h nếu không được xác nhận
+        LocalDateTime holdExpiry = now.plusHours(24); // Hết hạn giữ phòng sau 24h nếu không được xác nhận
 
         Booking booking = Booking.builder()
                 .bookingCode(bookingCode)
@@ -296,12 +297,26 @@ public class BookingServiceImpl implements BookingService {
 
         Place place = booking.getPlace();
 
+        List<String> validImageUrls = new ArrayList<>();
+        if (request.getImages() != null) {
+            for (String imageId : request.getImages()) {
+                if (imageId.startsWith("http")) {
+                    validImageUrls.add(imageId);
+                } else {
+                    cloudflareImagesService.getImage(imageId).ifPresent(details -> {
+                        String url = com.dulichso.bookingapi.service.CloudflareImagesService.deliveryUrl(details);
+                        if (url != null) validImageUrls.add(url);
+                    });
+                }
+            }
+        }
+
         Review review = Review.builder()
                 .place(place)
                 .booking(booking)
                 .rating(request.getRating())
                 .content(request.getContent() != null ? request.getContent().trim() : "")
-                .images(request.getImages() != null ? request.getImages() : Collections.emptyList())
+                .images(validImageUrls)
                 .status(com.dulichso.bookingapi.entity.enums.ReviewStatus.VISIBLE)
                 .editableUntil(checkoutDate != null ? checkoutDate.plusDays(14).atTime(23, 59, 59) : LocalDateTime.now().plusDays(14))
                 .createdAt(LocalDateTime.now())
@@ -354,7 +369,18 @@ public class BookingServiceImpl implements BookingService {
         review.setRating(newRating);
         review.setContent(request.getContent() != null ? request.getContent().trim() : "");
         if (request.getImages() != null) {
-            review.setImages(request.getImages());
+            List<String> validImageUrls = new ArrayList<>();
+            for (String imageId : request.getImages()) {
+                if (imageId.startsWith("http")) {
+                    validImageUrls.add(imageId);
+                } else {
+                    cloudflareImagesService.getImage(imageId).ifPresent(details -> {
+                        String url = com.dulichso.bookingapi.service.CloudflareImagesService.deliveryUrl(details);
+                        if (url != null) validImageUrls.add(url);
+                    });
+                }
+            }
+            review.setImages(validImageUrls);
         }
         review.setUpdatedAt(LocalDateTime.now());
         Review saved = reviewRepository.save(review);
@@ -439,7 +465,7 @@ public class BookingServiceImpl implements BookingService {
         Booking booking = bookingRepository.findByBookingCode(bookingCode)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn đặt phòng với mã: " + bookingCode));
 
-        if (booking.getStatus() == BookingStatus.CANCELLED || booking.getStatus() == BookingStatus.REFUNDED) {
+        if (booking.getStatus() == BookingStatus.CANCELLED) {
             throw new IllegalStateException("Đơn đặt phòng này đã được hủy trước đó.");
         }
         if (booking.getStatus() == BookingStatus.COMPLETED) {
@@ -468,23 +494,10 @@ public class BookingServiceImpl implements BookingService {
         booking.setCloseReason(reason != null && !reason.isBlank() ? reason : "Khách yêu cầu hủy phòng");
         booking.setClosedByActor(ActorType.CUSTOMER);
 
-        if (booking.getStatus() == BookingStatus.CONFIRMED && hoursBeforeCheckIn >= freeCancelCutoff) {
-            booking.setStatus(BookingStatus.REFUNDED);
-            snapshot.put("refundAmount", booking.getTotalAmount());
-            snapshot.put("refundStatus", "APPROVED_FULL");
-        } else {
-            booking.setStatus(BookingStatus.CANCELLED);
-        }
+        booking.setStatus(BookingStatus.CANCELLED);
         booking.setPolicySnapshot(snapshot);
 
         Booking saved = bookingRepository.save(booking);
-        if (saved.getStatus() == BookingStatus.REFUNDED) {
-            try {
-                notificationService.notifyBookingStatusChange(saved, BookingStatus.REFUNDED, reason);
-            } catch (Exception ex) {
-                log.warn("Không thể gửi thông báo REFUNDED cho booking {}: {}", saved.getBookingCode(), ex.getMessage());
-            }
-        }
         int nights = (int) ChronoUnit.DAYS.between(saved.getCheckIn(), saved.getCheckOut());
         BigDecimal unitPrice = saved.getRoomType().getBasePrice() != null ? saved.getRoomType().getBasePrice() : BigDecimal.ZERO;
         return mapToResponseDto(saved, saved.getPlace(), saved.getRoomType(), unitPrice, nights);
@@ -593,7 +606,7 @@ public class BookingServiceImpl implements BookingService {
         Booking booking = bookingRepository.findByBookingCode(bookingCode)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn đặt phòng với mã: " + bookingCode));
 
-        if (booking.getStatus() == BookingStatus.PENDING) {
+        if (booking.getStatus() == BookingStatus.PENDING || booking.getStatus() == BookingStatus.AWAITING_PAYMENT) {
             // Trường hợp PENDING: Được phép thay đổi trực tiếp
             applyDirectBookingChanges(booking, request);
             Booking saved = bookingRepository.save(booking);
@@ -602,15 +615,6 @@ public class BookingServiceImpl implements BookingService {
             BigDecimal unitPrice = saved.getRoomType().getBasePrice() != null ? saved.getRoomType().getBasePrice() : BigDecimal.ZERO;
             return mapToResponseDto(saved, saved.getPlace(), saved.getRoomType(), unitPrice, nights);
         } else if (booking.getStatus() == BookingStatus.CONFIRMED) {
-            // Trường hợp CONFIRMED: Tạo yêu cầu gửi nhà quản lý duyệt
-            String serviceItemsJson = null;
-            if (request.getServiceItems() != null && !request.getServiceItems().isEmpty()) {
-                try {
-                    serviceItemsJson = objectMapper.writeValueAsString(request.getServiceItems());
-                } catch (Exception e) {
-                    log.error("Lỗi serialize serviceItems: {}", e.getMessage());
-                }
-            }
 
             BookingChangeRequest changeReq = BookingChangeRequest.builder()
                     .booking(booking)
@@ -624,7 +628,6 @@ public class BookingServiceImpl implements BookingService {
                     .roomCount(request.getRoomCount() != null ? request.getRoomCount() : booking.getRoomCount())
                     .guestCount(request.getGuestCount() != null ? request.getGuestCount() : booking.getGuestCount())
                     .reason(request.getReason() != null ? request.getReason().trim() : "Khách yêu cầu đổi thông tin đơn phòng")
-                    .serviceItemsJson(serviceItemsJson)
                     .createdAt(LocalDateTime.now())
                     .build();
 
@@ -739,20 +742,7 @@ public class BookingServiceImpl implements BookingService {
 
         booking.setGuestCount(newGuestCount);
 
-        // Cập nhật các dịch vụ tư vấn đính kèm (nếu có gửi lên)
-        if (request.getServiceItems() != null) {
-            booking.getServiceItems().clear();
-            for (CreateBookingRequest.ServiceItemRequest itemReq : request.getServiceItems()) {
-                BookingServiceItem item = BookingServiceItem.builder()
-                        .booking(booking)
-                        .serviceName(itemReq.getServiceName())
-                        .serviceCode(itemReq.getServiceCode())
-                        .note(itemReq.getNote())
-                        .isIncluded(itemReq.getIsIncluded() != null ? itemReq.getIsIncluded() : true)
-                        .build();
-                booking.getServiceItems().add(item);
-            }
-        }
+
     }
 
     @Override
@@ -868,28 +858,6 @@ public class BookingServiceImpl implements BookingService {
             if (changeReq.getGuestNote() != null) booking.setGuestNote(changeReq.getGuestNote());
             if (changeReq.getGuestCount() != null) booking.setGuestCount(changeReq.getGuestCount());
 
-            // Áp dụng cập nhật serviceItems nếu có lưu trong change request
-            if (changeReq.getServiceItemsJson() != null && !changeReq.getServiceItemsJson().isBlank()) {
-                try {
-                    List<CreateBookingRequest.ServiceItemRequest> reqItems = objectMapper.readValue(
-                            changeReq.getServiceItemsJson(),
-                            new com.fasterxml.jackson.core.type.TypeReference<List<CreateBookingRequest.ServiceItemRequest>>() {}
-                    );
-                    booking.getServiceItems().clear();
-                    for (CreateBookingRequest.ServiceItemRequest itemReq : reqItems) {
-                        BookingServiceItem item = BookingServiceItem.builder()
-                                .booking(booking)
-                                .serviceName(itemReq.getServiceName())
-                                .serviceCode(itemReq.getServiceCode())
-                                .note(itemReq.getNote())
-                                .isIncluded(itemReq.getIsIncluded() != null ? itemReq.getIsIncluded() : true)
-                                .build();
-                        booking.getServiceItems().add(item);
-                    }
-                } catch (Exception e) {
-                    log.error("Lỗi parse serviceItemsJson khi quản lý duyệt change request {}: {}", changeRequestId, e.getMessage());
-                }
-            }
 
             bookingRepository.save(booking);
         } else {
@@ -913,13 +881,25 @@ public class BookingServiceImpl implements BookingService {
         LocalDate end = endDate != null ? endDate : LocalDate.now().plusMonths(3);
 
         java.util.List<Booking> bookings = bookingRepository.findActiveBookingsByRoomTypeAndDateRange(roomTypeId, start, end);
-        return bookings.stream().map(b -> com.dulichso.bookingapi.dto.BookedDateRangeDto.builder()
+        java.util.List<com.dulichso.bookingapi.dto.BookedDateRangeDto> bookedRanges = bookings.stream().map(b -> com.dulichso.bookingapi.dto.BookedDateRangeDto.builder()
                 .roomTypeId(b.getRoomType().getId())
                 .checkIn(b.getCheckIn())
                 .checkOut(b.getCheckOut())
                 .roomCount(b.getRoomCount())
                 .build()
         ).collect(java.util.stream.Collectors.toList());
+
+        java.util.List<com.dulichso.bookingapi.dto.BookedDateRangeDto> disabledRanges = roomInventoryDayRepository.findDisabledDaysByRoomTypeAndDateRange(roomTypeId, start, end)
+                .stream().map(inv -> com.dulichso.bookingapi.dto.BookedDateRangeDto.builder()
+                        .roomTypeId(inv.getId().getRoomTypeId())
+                        .checkIn(inv.getId().getStayDate())
+                        .checkOut(inv.getId().getStayDate().plusDays(1))
+                        .roomCount(inv.getTotalRooms() != null ? inv.getTotalRooms() : 999)
+                        .build()
+                ).collect(java.util.stream.Collectors.toList());
+
+        bookedRanges.addAll(disabledRanges);
+        return bookedRanges;
     }
 
     @Override
@@ -929,13 +909,25 @@ public class BookingServiceImpl implements BookingService {
         LocalDate end = endDate != null ? endDate : LocalDate.now().plusMonths(3);
 
         java.util.List<Booking> bookings = bookingRepository.findActiveBookingsByPlaceAndDateRange(placeId, start, end);
-        return bookings.stream().map(b -> com.dulichso.bookingapi.dto.BookedDateRangeDto.builder()
+        java.util.List<com.dulichso.bookingapi.dto.BookedDateRangeDto> bookedRanges = bookings.stream().map(b -> com.dulichso.bookingapi.dto.BookedDateRangeDto.builder()
                 .roomTypeId(b.getRoomType().getId())
                 .checkIn(b.getCheckIn())
                 .checkOut(b.getCheckOut())
                 .roomCount(b.getRoomCount())
                 .build()
         ).collect(java.util.stream.Collectors.toList());
+
+        java.util.List<com.dulichso.bookingapi.dto.BookedDateRangeDto> disabledRanges = roomInventoryDayRepository.findDisabledDaysByPlaceAndDateRange(placeId, start, end)
+                .stream().map(inv -> com.dulichso.bookingapi.dto.BookedDateRangeDto.builder()
+                        .roomTypeId(inv.getId().getRoomTypeId())
+                        .checkIn(inv.getId().getStayDate())
+                        .checkOut(inv.getId().getStayDate().plusDays(1))
+                        .roomCount(inv.getTotalRooms() != null ? inv.getTotalRooms() : 999)
+                        .build()
+                ).collect(java.util.stream.Collectors.toList());
+
+        bookedRanges.addAll(disabledRanges);
+        return bookedRanges;
     }
 
     @Override
@@ -1067,15 +1059,6 @@ public class BookingServiceImpl implements BookingService {
                 notificationService.notifyBookingStatusChange(booking, BookingStatus.REJECTED, reason);
             } catch (Exception ex) {
                 log.warn("Không thể gửi thông báo REJECTED: {}", ex.getMessage());
-            }
-        } else if (newStatus == BookingStatus.REFUNDED) {
-            booking.setStatus(BookingStatus.REFUNDED);
-            booking.setClosedAt(LocalDateTime.now());
-            booking.setCloseReason(reason != null && !reason.isBlank() ? reason : "Hoàn tiền đơn đặt phòng.");
-            try {
-                notificationService.notifyBookingStatusChange(booking, BookingStatus.REFUNDED, reason);
-            } catch (Exception ex) {
-                log.warn("Không thể gửi thông báo REFUNDED: {}", ex.getMessage());
             }
         } else {
             booking.setStatus(newStatus);

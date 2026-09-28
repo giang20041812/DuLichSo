@@ -44,10 +44,6 @@ class AdminCashflowServiceTest {
                 row(10L, "Ecolodge", 1L, "NCC Một", 2L, "3000000"),
                 row(11L, "Homestay B", 1L, "NCC Một", 1L, "1000000"),
                 row(20L, "Hello MCC", 2L, "NCC Hai", 1L, "2000000")));
-        lenient().when(refunds.sumProcessedByPlace(eq(RefundStatus.PROCESSED), any(LocalDateTime.class), any(LocalDateTime.class), any())).thenReturn(rows(
-                refundRow(10L, "Ecolodge", 1L, "NCC Một", "500000")));
-        lenient().when(refunds.sumByStatusPerPlace(eq(RefundStatus.PENDING), any())).thenReturn(rows(
-                refundRow(20L, "Hello MCC", 2L, "NCC Hai", "200000")));
     }
 
     private static List<Object[]> rows(Object[]... rows) {
@@ -58,9 +54,6 @@ class AdminCashflowServiceTest {
         return new Object[]{placeId, place, providerId, provider, bookings, new BigDecimal(amount)};
     }
 
-    private static Object[] refundRow(long placeId, String place, long providerId, String provider, String amount) {
-        return new Object[]{placeId, place, providerId, provider, new BigDecimal(amount)};
-    }
 
     @Test
     @DisplayName("Theo NCC: gộp các Homestay, net = thu - hoàn, chờ hoàn không bị trừ vào net")
@@ -73,12 +66,10 @@ class AdminCashflowServiceTest {
         assertEquals("NCC Một", one.name());
         assertEquals(3L, one.paidBookings());
         assertEquals(0, new BigDecimal("4000000").compareTo(one.paidAmount()));
-        assertEquals(0, new BigDecimal("500000").compareTo(one.refundedAmount()));
-        assertEquals(0, new BigDecimal("3500000").compareTo(one.netAmount()));
+        assertEquals(0, new BigDecimal("4000000").compareTo(one.netAmount()));
         CashflowRowDto two = rows.get(1);
         assertEquals(0, new BigDecimal("2000000").compareTo(two.netAmount()));
-        assertEquals(0, new BigDecimal("200000").compareTo(two.pendingRefundAmount()));
-        assertEquals(0, new BigDecimal("5500000").compareTo(report.totals().netAmount()));
+        assertEquals(0, new BigDecimal("6000000").compareTo(report.totals().netAmount()));
         assertEquals(0, new BigDecimal("6000000").compareTo(report.totals().paidAmount()));
         assertEquals(4L, report.totals().paidBookings());
     }
@@ -107,20 +98,9 @@ class AdminCashflowServiceTest {
         assertEquals(3, page.rows().getTotalElements());
         assertEquals(2, page.rows().getTotalPages());
         assertEquals(1, page.rows().getContent().size());
-        assertEquals(0, new BigDecimal("5500000").compareTo(page.totals().netAmount()), "Tổng không phụ thuộc trang");
+        assertEquals(0, new BigDecimal("6000000").compareTo(page.totals().netAmount()), "Tổng không phụ thuộc trang");
     }
 
-    @Test
-    @DisplayName("Chỉ có hoàn tiền mà không có thu trong kỳ: vẫn hiện dòng với net âm")
-    void refundOnlyPlace_showsNegativeNet() {
-        when(payments.sumPaidByPlace(any(), any(), any(), any())).thenReturn(new ArrayList<>());
-        when(refunds.sumByStatusPerPlace(any(), any())).thenReturn(new ArrayList<>());
-
-        CashflowReportDto report = service.report(FROM, TO, CashflowLevel.PLACE, null, null, "net", "asc", 0, 20);
-
-        assertEquals(1, report.rows().getTotalElements());
-        assertEquals(0, new BigDecimal("-500000").compareTo(report.rows().getContent().get(0).netAmount()));
-    }
 
     @Test
     @DisplayName("Truyền providerId xuống truy vấn; mặc định kỳ là đầu tháng đến hôm nay")
@@ -138,15 +118,13 @@ class AdminCashflowServiceTest {
     void invalidRange_rejected() {
         assertThrows(IllegalArgumentException.class, () -> service.report(TO, FROM, null, null, null, null, null, 0, 20));
         assertThrows(IllegalArgumentException.class, () -> service.report(LocalDate.of(2020, 1, 1), LocalDate.of(2026, 1, 1), null, null, null, null, null, 0, 20));
-        verifyNoInteractions(payments, refunds);
+        verifyNoInteractions(payments);
     }
 
     @Test
     @DisplayName("Không có giao dịch nào: trả danh sách rỗng, tổng bằng 0")
     void noData_emptyReport() {
         when(payments.sumPaidByPlace(any(), any(), any(), isNull())).thenReturn(new ArrayList<>());
-        when(refunds.sumProcessedByPlace(any(), any(), any(), isNull())).thenReturn(new ArrayList<>());
-        when(refunds.sumByStatusPerPlace(any(), isNull())).thenReturn(new ArrayList<>());
 
         CashflowReportDto report = service.report(FROM, TO, CashflowLevel.PROVIDER, null, null, "net", "desc", 0, 20);
 

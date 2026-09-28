@@ -24,7 +24,9 @@ public class PartnerDashboardDtos {
         private long completedBookings;
         private long pendingBookings;
         private long cancelledBookings;
+        private long rejectedBookings;
 
+        private List<DailyStatusPoint> statusTrend;
         private List<MonthlyRevenuePoint> revenueTrend;
         private List<RecentBookingDto> recentBookings;
     }
@@ -51,5 +53,16 @@ public class PartnerDashboardDtos {
         private java.time.LocalDate checkInDate;
         private BigDecimal totalAmount;
         private String status;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class DailyStatusPoint {
+        private java.time.LocalDate date;
+        private long completed;
+        private long pending;
+        private long cancelled;
     }
 }

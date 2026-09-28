@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bell, AlertCircle, Edit3, XCircle } from 'lucide-react';
+import { Bell, AlertCircle, Edit3, XCircle, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 type Notification = {
   id: string;
-  type: 'NEW_BOOKING' | 'CHANGE_REQUEST' | 'CANCELLED';
+  type: 'NEW_BOOKING' | 'CHANGE_REQUEST' | 'CHANGE_APPROVED' | 'CANCELLED';
   title: string;
   time: string;
   read: boolean;
@@ -44,6 +44,7 @@ export default function PartnerNotificationDropdown() {
     switch (type) {
       case 'NEW_BOOKING': return <AlertCircle className="h-5 w-5 text-primary" />;
       case 'CHANGE_REQUEST': return <Edit3 className="h-5 w-5 text-sun" />;
+      case 'CHANGE_APPROVED': return <CheckCircle2 className="h-5 w-5 text-success" />;
       case 'CANCELLED': return <XCircle className="h-5 w-5 text-danger" />;
     }
   };

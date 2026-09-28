@@ -20,7 +20,7 @@ import {
   RefreshCw,
   Home,
   Check,
-  CreditCard,
+
   Ban
 } from 'lucide-react';
 import { getCurrentCustomer } from '@/services/authService';
@@ -41,7 +41,6 @@ const STATUS_FILTERS: { key: string; label: string }[] = [
   { key: 'CHECKED_IN', label: 'Đang lưu trú' },
   { key: 'CHECKED_OUT', label: 'Đã trả phòng' },
   { key: 'COMPLETED', label: 'Đã hoàn thành' },
-  { key: 'REFUNDED', label: 'Đã hoàn tiền' },
   { key: 'CANCELLED', label: 'Đã hủy' },
 ];
 
@@ -224,12 +223,7 @@ export default function UserBookingListPage() {
             <Sparkles className="w-3.5 h-3.5 text-[var(--color-sun)]" /> Hoàn thành
           </span>
         );
-      case 'REFUNDED':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-sm bg-purple-50 text-purple-700 border border-purple-200">
-            <CreditCard className="w-3.5 h-3.5 text-purple-600" /> Đã hoàn tiền
-          </span>
-        );
+
       case 'CANCELLED':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-sm bg-rose-50 text-rose-700 border border-rose-200">
@@ -269,9 +263,7 @@ export default function UserBookingListPage() {
     );
     setToastMessage({
       type: 'success',
-      text: `Đã hủy đơn #${updated.bookingCode} thành công ${
-        updated.status === 'REFUNDED' ? 'và hoàn tiền theo chính sách.' : '.'
-      }`,
+      text: `Đã hủy đơn #${updated.bookingCode} thành công.`,
     });
   };
 

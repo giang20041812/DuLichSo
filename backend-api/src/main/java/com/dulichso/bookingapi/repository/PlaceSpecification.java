@@ -34,10 +34,19 @@ public class PlaceSpecification {
             String province,
             String district,
             String ward,
-            List<Long> attractionIds) {
+            List<Long> attractionIds,
+            String keyword) {
             
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
+            
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                String pattern = "%" + keyword.toLowerCase().trim() + "%";
+                Predicate nameMatch = cb.like(cb.lower(root.get("name")), pattern);
+                Predicate descMatch = cb.like(cb.lower(root.get("description")), pattern);
+                Predicate addressMatch = cb.like(cb.lower(root.get("address")), pattern);
+                predicates.add(cb.or(nameMatch, descMatch, addressMatch));
+            }
             
             // 1. Default filters for public view
             predicates.add(cb.equal(root.get("visibility"), PlaceVisibility.PUBLISHED));

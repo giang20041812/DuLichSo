@@ -4,20 +4,29 @@ import { AlertTriangle, ArrowLeft, CheckCircle2, Info, type LucideIcon } from 'l
 import { ui } from '@/lib/partnerUi';
 
 /** Tiêu đề trang NCC: dòng nhỏ viết hoa, tiêu đề lớn, mô tả, nút hành động bên phải. */
-export function PageHeader({ eyebrow, title, description, back, actions }: {
-  eyebrow?: string; title: ReactNode; description?: ReactNode; back?: { to: string; label: string }; actions?: ReactNode;
+export function PageHeader({ title, description, back, actions, breadcrumbs }: {
+  title: ReactNode; description?: ReactNode; back?: { to: string; label: string }; actions?: ReactNode; breadcrumbs?: { label: string; to?: string }[];
 }) {
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
+      {breadcrumbs && breadcrumbs.length > 0 && (
+        <nav aria-label="Breadcrumb" className="flex items-center text-[11px] font-semibold text-muted">
+          {breadcrumbs.map((bc, i) => (
+             <span key={i} className="flex items-center">
+               {i > 0 && <span className="mx-1.5 opacity-50">/</span>}
+               {bc.to ? <Link to={bc.to} className="hover:text-ink">{bc.label}</Link> : <span className="text-ink">{bc.label}</span>}
+             </span>
+          ))}
+        </nav>
+      )}
       {back && (
-        <Link to={back.to} className="group inline-flex w-fit items-center gap-1.5 text-sm font-semibold text-primary">
+        <Link to={back.to} className="group inline-flex w-fit items-center gap-1.5 text-sm font-semibold text-ink-deep hover:text-ink">
           <ArrowLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-0.5" /> {back.label}
         </Link>
       )}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
-          {eyebrow && <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-primary">{eyebrow}</p>}
-          <h1 className="font-display text-2xl font-extrabold tracking-tight text-ink-deep sm:text-3xl">{title}</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight text-ink-deep sm:text-3xl">{title}</h1>
           {description && <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted">{description}</p>}
         </div>
         {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
@@ -86,7 +95,7 @@ export function EmptyState({ icon: Icon, title, description, action }: { icon: L
   return (
     <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-primary/20 bg-surface px-6 py-10 text-center">
       <span className="flex h-12 w-12 items-center justify-center rounded-md bg-primary-50 text-primary"><Icon className="h-6 w-6" /></span>
-      <p className="font-display text-base font-bold text-ink-deep">{title}</p>
+      <p className=" text-base font-bold text-ink-deep">{title}</p>
       {description && <p className="max-w-sm text-xs leading-relaxed text-muted">{description}</p>}
       {action}
     </div>

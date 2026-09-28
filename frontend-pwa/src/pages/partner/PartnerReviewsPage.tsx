@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { MessageSquare, Star } from 'lucide-react';
+import { MessageSquare, Star, Filter as FilterIcon } from 'lucide-react';
 import { partnerReviewService } from '@/services/partnerReviewService';
 import { fetchPartnerHomestays, homestayError } from '@/services/partnerHomestayService';
 import type { PartnerReviewDto } from '@/types/partner';
@@ -36,32 +36,59 @@ export default function PartnerReviewsPage() {
   const byPlace = reviews.filter((r) => placeId === '' || r.placeId === placeId);
   const unreplied = byPlace.filter((r) => !r.providerReply).length;
   const shown = byPlace.filter((r) => filter === 'all' || (filter === 'replied' ? !!r.providerReply : !r.providerReply));
-  const avg = byPlace.length ? byPlace.reduce((s, r) => s + r.rating, 0) / byPlace.length : 0;
+  const getPlaceAvg = (pId: number | '') => {
+    const pReviews = reviews.filter((r) => pId === '' || r.placeId === pId);
+    return pReviews.length ? (pReviews.reduce((s, r) => s + r.rating, 0) / pReviews.length).toFixed(1) : '—';
+  };
   const update = (next: PartnerReviewDto) => setReviews((list) => list.map((r) => (r.id === next.id ? next : r)));
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader eyebrow="Chăm sóc khách hàng" title="Đánh giá của khách"
-        description="Phản hồi của bạn hiện công khai ngay dưới đánh giá trên trang Homestay. Trả lời nhanh và lịch sự giúp tạo thiện cảm với khách sau." />
+      <PageHeader
+        breadcrumbs={[{ label: 'Bảng điều khiển', to: '/partner' }, { label: 'Đánh giá của khách' }]}
+        title="Đánh giá của khách"
+        description="Phản hồi của bạn hiện công khai ngay dưới đánh giá trên trang Homestay. Trả lời nhanh và lịch sự giúp tạo thiện cảm với khách sau."
+        actions={
+          <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-4">
+            {/* Filter Form */}
+            {places.length > 1 && (
+              <div className="flex items-center gap-2">
+                <FilterIcon className="h-4 w-4 text-muted" />
+                <select 
+                  value={placeId} 
+                  onChange={(e) => setPlaceId(e.target.value === '' ? '' : Number(e.target.value))}
+                  className="h-9 px-3 text-sm border border-border rounded-md bg-white focus:outline-none focus:border-primary font-semibold min-w-[200px]"
+                >
+                  <option value="">Tất cả homestay</option>
+                  {places.map(([id, name]) => (
+                    <option key={id} value={id}>{name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Stat label="Tổng đánh giá" value={String(byPlace.length)} />
-        <Stat label="Điểm trung bình" value={byPlace.length ? `${avg.toFixed(1)} / 5` : '—'} highlight />
-        <Stat label="Chưa phản hồi" value={String(unreplied)} />
-      </div>
+            {/* Rating */}
+            <div className={`flex items-center gap-2 shrink-0 pl-2 ${places.length > 1 ? 'sm:border-l sm:border-border' : ''}`}>
+              <div className="flex h-8 w-8 items-center justify-center rounded-md border border-sun/30 bg-sun/10 text-sun-700">
+                <Star className="h-4 w-4" />
+              </div>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-lg font-bold leading-none text-ink-deep">{getPlaceAvg(placeId)}{getPlaceAvg(placeId) !== '—' ? '/5' : ''}</span>
+                <span className="text-sm text-muted font-medium">({byPlace.length} đánh giá)</span>
+              </div>
+            </div>
+          </div>
+        }
+      />
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
+
+
+      <div className="mb-2">
         <Tabs<Filter> value={filter} onChange={setFilter} tabs={[
           { id: 'unreplied', label: 'Chưa phản hồi', badge: unreplied },
           { id: 'replied', label: 'Đã phản hồi' },
           { id: 'all', label: 'Tất cả' },
         ]} />
-        {places.length > 1 && (
-          <select aria-label="Lọc theo Homestay" className={`${ui.select} w-auto min-w-[200px]`} value={placeId} onChange={(e) => setPlaceId(e.target.value === '' ? '' : Number(e.target.value))}>
-            <option value="">Tất cả Homestay</option>
-            {places.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
-          </select>
-        )}
       </div>
 
       {error && <Alert tone="error">{error}</Alert>}
@@ -91,10 +118,10 @@ function ReviewCard({ review, onChange }: { review: PartnerReviewDto; onChange: 
   }
 
   return (
-    <article className={`flex flex-col gap-3 p-5 ${ui.card} ${ui.cardHover}`}>
+    <article className="group flex flex-col gap-4 p-5 rounded-lg border border-border bg-surface transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm hover:border-primary/30">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-start gap-3">
-          <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary-50 font-display text-sm font-bold text-primary">
+          <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary-50  text-sm font-bold text-primary">
             {review.guestName.trim().charAt(0).toUpperCase() || '?'}
           </span>
           <div>
@@ -135,11 +162,3 @@ function ReviewCard({ review, onChange }: { review: PartnerReviewDto; onChange: 
   );
 }
 
-function Stat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
-  return (
-    <div className={`${ui.card} ${ui.cardHover} p-4 sm:p-5`}>
-      <p className="text-xs font-medium text-muted">{label}</p>
-      <p className={`mt-1 flex items-center gap-1.5 font-display text-3xl font-extrabold tabular-nums ${highlight ? 'text-sun' : 'text-ink-deep'}`}>{highlight && <Star className="h-6 w-6 fill-sun text-sun" />}{value}</p>
-    </div>
-  );
-}

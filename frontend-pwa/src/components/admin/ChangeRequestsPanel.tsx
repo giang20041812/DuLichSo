@@ -249,6 +249,7 @@ export default function ChangeRequestsPanel({ notify, onChanged }: ChangeRequest
           }
           confirmLabel={decision.type === 'approve' ? 'Duyệt và cập nhật' : 'Từ chối'}
           reasonRequired={decision.type === 'reject'}
+          hideReason={decision.type === 'approve'}
           tone={decision.type === 'reject' ? 'danger' : 'primary'}
           error={dialogError}
           onCancel={() => setDecision(null)}

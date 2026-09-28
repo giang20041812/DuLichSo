@@ -32,6 +32,7 @@ export { default as PartnerDashboardPage } from './partner/PartnerDashboardPage'
 export { default as PartnerHomestaysPage } from './partner/PartnerHomestaysPage';
 export { default as PartnerBookingsPage } from './partner/PartnerBookingsPage';
 export { default as PartnerHomestayEditPage } from './partner/PartnerHomestayEditPage';
+export { default as PartnerProfilePage } from './partner/PartnerProfilePage';
 
 // System & Design
 export { default as DesignSystemPage } from './system/DesignSystemPage';

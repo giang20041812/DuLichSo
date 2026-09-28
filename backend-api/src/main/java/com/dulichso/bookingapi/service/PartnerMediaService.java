@@ -23,16 +23,16 @@ import static com.dulichso.bookingapi.dto.partner.PartnerMediaDtos.MAX_IMAGES_PE
  */
 @Service @RequiredArgsConstructor @Transactional(readOnly = true)
 public class PartnerMediaService {
-    static final String STORAGE_PREFIX = "cloudinary:";
+    static final String STORAGE_PREFIX = "cloudflare:";
     
     private final PartnerHomestayService homestays;
     private final PartnerRoomService rooms;
-    private final CloudinaryService cloudinary;
+    private final CloudflareImagesService cloudflare;
     private final EntityManager em;
 
     public Map<String, Object> directUpload(UserPrincipal principal) {
-        homestays.actor(principal, true);
-        return cloudinary.getUploadConfig();
+        Account actor = homestays.actor(principal, true);
+        return cloudflare.getUploadConfig();
     }
 
     // ------------------------------------------------------------ Homestay
@@ -132,14 +132,21 @@ public class PartnerMediaService {
     // ------------------------------------------------------------ helpers
 
     private MediaAsset verifiedAsset(AttachInput input, Account actor) {
-        String url = input.imageId();
-        if (url == null || url.isBlank()) throw bad("URL ảnh không hợp lệ.");
+        String imageId = input.imageId();
+        if (imageId == null || imageId.isBlank()) throw bad("Mã ảnh không hợp lệ.");
         
-        String key = STORAGE_PREFIX + url;
+        String key = STORAGE_PREFIX + imageId;
         if (!em.createQuery("select m from MediaAsset m where m.storageKey=:key", MediaAsset.class).setParameter("key", key).getResultList().isEmpty())
             throw bad("Ảnh này đã được sử dụng.");
             
-        MediaAsset asset = MediaAsset.builder().storageKey(key).publicUrl(url).mimeType(mimeType(url)).uploadedBy(actor.getId()).build();
+        var detailsOpt = cloudflare.getImage(imageId);
+        if (detailsOpt.isEmpty()) throw bad("Ảnh chưa được tải lên hệ thống hoặc mã ảnh không hợp lệ.");
+        var details = detailsOpt.get();
+        
+        String url = CloudflareImagesService.deliveryUrl(details);
+        if (url == null) throw bad("Không lấy được đường dẫn ảnh.");
+            
+        MediaAsset asset = MediaAsset.builder().storageKey(key).publicUrl(url).mimeType(mimeType(details.filename())).uploadedBy(actor.getId()).build();
         em.persist(asset);
         return asset;
     }

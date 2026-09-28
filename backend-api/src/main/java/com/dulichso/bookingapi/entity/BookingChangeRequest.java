@@ -40,8 +40,6 @@ public class BookingChangeRequest {
     @Column(name = "guest_note", columnDefinition = "TEXT")
     private String guestNote;
 
-    @Column(name = "service_items_json", columnDefinition = "json")
-    private String serviceItemsJson;
 
     @Column(name = "check_in")
     private LocalDate checkIn;

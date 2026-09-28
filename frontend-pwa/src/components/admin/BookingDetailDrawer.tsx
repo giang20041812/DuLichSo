@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { AlertTriangle, Check, CheckCircle2, ClipboardCheck, Copy, FileText, Mail, Phone, RotateCcw, SearchCheck, Send, ShieldAlert, StickyNote, X, XCircle } from 'lucide-react';
+import { AlertTriangle, Check, CheckCircle2, ClipboardCheck, Copy, FileText, Mail, Phone, SearchCheck, Send, ShieldAlert, StickyNote, X, XCircle } from 'lucide-react';
 import { adminService } from '@/services/adminService';
 import { partnerBookingService } from '@/services/partnerBookingService';
 import { getApiErrorMessage } from '@/lib/apiError';
@@ -101,7 +101,6 @@ export default function BookingDetailDrawer({ booking, scope, onClose, onChanged
   };
 
   const canDecide = b.status === 'PENDING' || b.status === 'AWAITING_PAYMENT';
-  const canRefund = b.status === 'CONFIRMED';
 
   const copyCode = async () => {
     try {
@@ -329,7 +328,7 @@ export default function BookingDetailDrawer({ booking, scope, onClose, onChanged
             </div>
           )}
         </div>
-        {(canDecide || canRefund || actionMsg) && (
+        {(canDecide || actionMsg) && (
           <footer className="border-t border-border bg-canvas/60 px-5 py-3">
             {actionMsg && (
               <p
@@ -397,20 +396,7 @@ export default function BookingDetailDrawer({ booking, scope, onClose, onChanged
                   </button>
                 </div>
               ))}
-            {canRefund && (
-              <button
-                type="button"
-                disabled={updating}
-                onClick={() => {
-                  if (window.confirm(`Duyệt hoàn tiền cho đơn ${b.bookingCode}?`)) {
-                    void handleUpdateStatus('REFUNDED', 'Quản lý duyệt hoàn tiền theo chính sách');
-                  }
-                }}
-                className="flex h-9 w-full items-center justify-center gap-1.5 rounded-md border border-sun/60 bg-white px-3 text-xs font-semibold text-amber-700 transition-colors hover:bg-sun/10 disabled:opacity-50"
-              >
-                <RotateCcw className="h-4 w-4" /> {updating ? 'Đang cập nhật...' : 'Duyệt hoàn tiền cho đơn'}
-              </button>
-            )}
+
           </footer>
         )}
       </aside>

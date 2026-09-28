@@ -7,6 +7,8 @@ import { fetchPartnerHomestays, homestayError } from '@/services/partnerHomestay
 import { BOOKING_STATUS_LABEL, BOOKING_STATUS_TONE } from '@/lib/bookingStatus';
 import type { AdminBookingDto, BookingStatusSummary, PageResponse } from '@/types/admin';
 import type { BookingStatus } from '@/types/booking';
+import { Tabs } from '@/components/partner/PartnerUI';
+import PartnerDateRangePicker from '@/components/partner/PartnerDateRangePicker';
 
 const PAGE_SIZE = 15;
 const vnd = (n?: number | null) => (n == null ? '—' : new Intl.NumberFormat('vi-VN').format(n) + 'đ');
@@ -57,13 +59,17 @@ export default function PartnerBookingList() {
 
   const refresh = (change: () => void) => { setLoading(true); change(); };
 
-  const handleQuickAction = async (bookingId: number, currentStatus: BookingStatus) => {
+  const handleQuickAction = async (bookingId: number, currentStatus: BookingStatus, actionType: 'APPROVE' | 'REJECT' | 'CHECK_IN' | 'CHECK_OUT' = 'APPROVE') => {
     try {
-      if (currentStatus === 'PENDING') {
+      if (currentStatus === 'PENDING' && actionType === 'APPROVE') {
         await partnerBookingService.accept(bookingId, { roomTypeId: null, note: 'Xác nhận nhanh từ danh sách' });
-      } else if (currentStatus === 'CONFIRMED') {
+      } else if (currentStatus === 'PENDING' && actionType === 'REJECT') {
+        const reason = window.prompt('Nhập lý do từ chối (bắt buộc):', 'Hết phòng hoặc không thể tiếp nhận');
+        if (!reason) return; // Cancelled
+        await partnerBookingService.reject(bookingId, { reason });
+      } else if (currentStatus === 'CONFIRMED' && actionType === 'CHECK_IN') {
         await partnerBookingService.stayAction(bookingId, { action: 'CHECK_IN', note: 'Check-in nhanh' });
-      } else if (currentStatus === 'CHECKED_IN') {
+      } else if (currentStatus === 'CHECKED_IN' && actionType === 'CHECK_OUT') {
         await partnerBookingService.stayAction(bookingId, { action: 'CHECK_OUT', note: 'Check-out nhanh' });
       }
       setReload(n => n + 1);
@@ -93,29 +99,26 @@ export default function PartnerBookingList() {
           {homestays.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
         </select>
 
-        <div className="flex items-center gap-2">
-          <label className="text-sm text-muted">Từ:</label>
-          <input type="date" className="h-9 rounded-md border border-border bg-surface px-3 text-sm focus:border-primary focus:outline-none"
-            value={checkInFrom} onChange={(e) => refresh(() => { setCheckInFrom(e.target.value); setPage(0); })} />
-        </div>
-        <div className="flex items-center gap-2">
-          <label className="text-sm text-muted">Đến:</label>
-          <input type="date" className="h-9 rounded-md border border-border bg-surface px-3 text-sm focus:border-primary focus:outline-none"
-            value={checkInTo} onChange={(e) => refresh(() => { setCheckInTo(e.target.value); setPage(0); })} />
-        </div>
+        <PartnerDateRangePicker 
+          checkInFrom={checkInFrom} 
+          checkInTo={checkInTo} 
+          onChange={(from, to) => refresh(() => { setCheckInFrom(from); setCheckInTo(to); setPage(0); })} 
+        />
 
         <button type="button" onClick={() => refresh(() => setReload((n) => n + 1))} aria-label="Tải lại" className="flex h-9 w-9 items-center justify-center rounded-md border border-border text-muted hover:text-primary">
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-1.5">
-        {(['', ...STATUSES] as const).map((s) => (
-          <button key={s || 'all'} type="button" onClick={() => refresh(() => { setStatus(s); setPage(0); setReload(n => n + 1); })}
-            className={`rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors duration-200 ${status === s ? 'border-primary bg-primary text-white' : 'border-border text-ink hover:border-primary'}`}>
-            {s ? BOOKING_STATUS_LABEL[s] : 'Tất cả'}{s && summary ? ` (${summary[s] ?? 0})` : ''}
-          </button>
-        ))}
+      <div className="-mx-1 px-1">
+        <Tabs<BookingStatus | ''> 
+          value={status} 
+          onChange={(s) => refresh(() => { setStatus(s); setPage(0); setReload(n => n + 1); })} 
+          tabs={[
+            { id: '', label: 'Tất cả', badge: summary ? Object.values(summary).reduce((a, b) => a + b, 0) : undefined },
+            ...STATUSES.map(s => ({ id: s, label: BOOKING_STATUS_LABEL[s], badge: summary?.[s] }))
+          ]} 
+        />
       </div>
 
       {error && <p role="alert" className="rounded-md border border-danger/30 bg-danger/5 p-3 text-sm text-danger">{error}</p>}
@@ -127,6 +130,7 @@ export default function PartnerBookingList() {
               <th className={th}>Mã đặt</th><th className={th}>Khách hàng</th><th className={th}>Homestay / Phòng</th>
               <th className={th}>Lưu trú</th><th className={`${th} text-right`}>Tổng tiền</th><th className={th}>Trạng thái</th>
               <th className={th}>Ngày đặt</th><th className={`${th} text-right`}>Thao tác</th>
+              <th className={`${th} w-10 text-center`}></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -142,26 +146,31 @@ export default function PartnerBookingList() {
                 <td className={`${th} text-right`}>
                   <div className="flex items-center justify-end gap-2">
                     {b.status === 'PENDING' && (
-                      <button onClick={() => handleQuickAction(b.id, b.status)} className="rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-emerald-600">
-                        Duyệt
-                      </button>
+                      <>
+                        <button onClick={() => handleQuickAction(b.id, b.status, 'APPROVE')} className="rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-emerald-600">
+                          Duyệt
+                        </button>
+                        <button onClick={() => handleQuickAction(b.id, b.status, 'REJECT')} className="rounded-md bg-danger px-3 py-1.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-danger/80">
+                          Từ chối
+                        </button>
+                      </>
                     )}
                     {b.status === 'CONFIRMED' && (
-                      <button onClick={() => handleQuickAction(b.id, b.status)} className="rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-emerald-600">
+                      <button onClick={() => handleQuickAction(b.id, b.status, 'CHECK_IN')} className="rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-emerald-600">
                         Check-in
                       </button>
                     )}
                     {b.status === 'CHECKED_IN' && (
-                      <button onClick={() => handleQuickAction(b.id, b.status)} className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-primary-hover">
+                      <button onClick={() => handleQuickAction(b.id, b.status, 'CHECK_OUT')} className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-primary-hover">
                         Check-out
                       </button>
                     )}
-                    <Link to={`/partner/bookings/${b.id}`} className={ACTIONABLE.includes(b.status)
-                      ? 'inline-block whitespace-nowrap rounded-md bg-coral px-3 py-1.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-coral-hover'
-                      : 'inline-block whitespace-nowrap rounded-md border border-border px-3 py-1.5 text-xs font-semibold text-primary transition-colors duration-200 hover:border-primary'}>
-                      {ACTIONABLE.includes(b.status) ? 'Xử lý' : 'Xem'}
-                    </Link>
                   </div>
+                </td>
+                <td className={`${th} text-center`}>
+                  <Link to={`/partner/bookings/${b.id}`} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted transition-colors hover:bg-canvas hover:text-primary" title="Xem chi tiết">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </Link>
                 </td>
               </tr>
             ))}

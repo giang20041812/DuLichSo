@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  Search,
   ArrowUpDown,
   RotateCcw,
   Map,
@@ -80,6 +81,7 @@ export default function HomestayListPage() {
   const [homestays, setHomestays] = useState<HomestayDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<'recommended' | 'price_asc' | 'price_desc' | 'rating_desc'>('recommended');
+  const [keywordInput, setKeywordInput] = useState('');
 
   // Khởi tạo filters từ URL params
   const [filters, setFilters] = useState<HomestayFilterParams>(() => {
@@ -94,6 +96,7 @@ export default function HomestayListPage() {
     const district = searchParams.get('district');
     const ward = searchParams.get('ward');
     const attractionsStr = searchParams.get('attractions');
+    const keywordStr = searchParams.get('keyword');
 
     if (checkIn) initialFilters.checkIn = checkIn;
     if (checkOut) initialFilters.checkOut = checkOut;
@@ -105,6 +108,7 @@ export default function HomestayListPage() {
     if (district) initialFilters.district = district;
     if (ward) initialFilters.ward = ward;
     if (attractionsStr) initialFilters.attractions = attractionsStr.split(',');
+    if (keywordStr) initialFilters.keyword = keywordStr;
 
     return initialFilters;
   });
@@ -154,6 +158,7 @@ export default function HomestayListPage() {
       if (newFilters.district) newParams.set('district', newFilters.district); else newParams.delete('district');
       if (newFilters.ward) newParams.set('ward', newFilters.ward); else newParams.delete('ward');
       if (newFilters.attractions && newFilters.attractions.length > 0) newParams.set('attractions', newFilters.attractions.join(',')); else newParams.delete('attractions');
+      if (newFilters.keyword) newParams.set('keyword', newFilters.keyword); else newParams.delete('keyword');
 
       setSearchParams(newParams, { replace: true });
       return newFilters;
@@ -179,6 +184,7 @@ export default function HomestayListPage() {
     const district = searchParams.get('district');
     const ward = searchParams.get('ward');
     const attractionsStr = searchParams.get('attractions');
+    const keywordStr = searchParams.get('keyword');
 
     setFilters({
       checkIn: checkIn || undefined,
@@ -191,7 +197,9 @@ export default function HomestayListPage() {
       district: district || undefined,
       ward: ward || undefined,
       attractions: attractionsStr ? attractionsStr.split(',') : undefined,
+      keyword: keywordStr || undefined,
     });
+    setKeywordInput(keywordStr || '');
   }, [searchParams]);
 
   useEffect(() => {
@@ -243,6 +251,41 @@ export default function HomestayListPage() {
             <RotateCcw className="w-3 h-3" /> Đặt lại
           </button>
         )}
+      </div>
+
+      {/* 0. Tìm kiếm theo tên/địa chỉ */}
+      <div className="p-4 border-b border-gray-100 bg-white">
+        <h4 className="font-bold text-[var(--color-ink-deep)] mb-3 text-sm flex items-center justify-between">
+          <span className="flex items-center gap-1.5">
+            <Search className="w-3.5 h-3.5 text-[var(--color-primary)]" /> Tìm kiếm chỗ nghỉ
+          </span>
+        </h4>
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Tên, địa chỉ, mô tả..."
+            className="w-full h-10 pl-9 pr-8 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] transition-all placeholder-gray-400"
+            value={keywordInput}
+            onChange={(e) => setKeywordInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleFilterChange({ keyword: keywordInput || undefined });
+              }
+            }}
+          />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          {keywordInput && (
+            <button
+              onClick={() => {
+                setKeywordInput('');
+                handleFilterChange({ keyword: undefined });
+              }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* 1. Tiện nghi phòng ngủ (Room Scope) */}

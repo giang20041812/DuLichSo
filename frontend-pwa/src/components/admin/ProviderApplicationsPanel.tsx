@@ -237,6 +237,7 @@ export default function ProviderApplicationsPanel({ notify, onChanged }: Provide
           }
           confirmLabel={decision.type === 'approve' ? 'Duyệt hồ sơ' : 'Từ chối'}
           reasonRequired={decision.type === 'reject'}
+          hideReason={decision.type === 'approve'}
           tone={decision.type === 'reject' ? 'danger' : 'primary'}
           error={dialogError}
           onCancel={() => setDecision(null)}

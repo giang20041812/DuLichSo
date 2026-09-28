@@ -36,9 +36,7 @@ public class AdminReportService {
     static final Set<BookingStatus> REVENUE_STATUSES = Set.of(BookingStatus.CONFIRMED, BookingStatus.CHECKED_IN,
             BookingStatus.CHECKED_OUT, BookingStatus.COMPLETED);
     static final Set<BookingStatus> OPEN_STATUSES = Set.of(BookingStatus.PENDING, BookingStatus.AWAITING_PAYMENT);
-    static final Set<BookingStatus> LOST_STATUSES =
-            Set.of(BookingStatus.REJECTED, BookingStatus.CANCELLED, BookingStatus.EXPIRED, BookingStatus.NO_SHOW,
-                    BookingStatus.REFUNDED);
+    static final Set<BookingStatus> LOST_STATUSES = Set.of(BookingStatus.REJECTED, BookingStatus.CANCELLED, BookingStatus.EXPIRED, BookingStatus.NO_SHOW);
     static final int MAX_RANGE_DAYS = 366 * 3;
     static final int DAILY_MAX_DAYS = 62;
     static final int TOP_LIMIT = 5;

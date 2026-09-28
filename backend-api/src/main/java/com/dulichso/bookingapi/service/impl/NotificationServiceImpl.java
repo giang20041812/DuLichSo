@@ -33,7 +33,7 @@ public class NotificationServiceImpl implements NotificationService {
     @Transactional
     public NotificationDto notifyBookingStatusChange(Booking booking, BookingStatus newStatus, String reason) {
         if (booking == null || newStatus == null) return null;
-        if (newStatus != BookingStatus.CONFIRMED && newStatus != BookingStatus.REJECTED && newStatus != BookingStatus.REFUNDED) {
+        if (newStatus != BookingStatus.CONFIRMED && newStatus != BookingStatus.REJECTED) {
             return null;
         }
 
@@ -46,18 +46,11 @@ public class NotificationServiceImpl implements NotificationService {
             templateCode = "BOOKING_CONFIRMED";
             title = "Đặt phòng đã được xác nhận";
             message = "Đơn đặt phòng " + booking.getBookingCode() + " tại " + placeName + " đã được xác nhận thành công. Chúc bạn có kỳ nghỉ tuyệt vời!";
-        } else if (newStatus == BookingStatus.REJECTED) {
+        } else {
             templateCode = "BOOKING_REJECTED";
             title = "Đơn đặt phòng bị từ chối";
             String reasonText = (reason != null && !reason.isBlank()) ? (" Lý do: " + reason.trim()) : "";
             message = "Rất tiếc, đơn đặt phòng " + booking.getBookingCode() + " tại " + placeName + " đã bị từ chối." + reasonText;
-        } else {
-            templateCode = "BOOKING_REFUNDED";
-            title = "Hoàn tiền đặt phòng thành công";
-            String amountStr = booking.getTotalAmount() != null
-                    ? (" Số tiền hoàn: " + String.format(Locale.GERMANY, "%,d", booking.getTotalAmount().longValue()) + " VND.")
-                    : "";
-            message = "Đơn đặt phòng " + booking.getBookingCode() + " tại " + placeName + " đã được xử lý hoàn tiền thành công." + amountStr;
         }
 
         NotificationTemplate template = ensureTemplateExists(templateCode, title, message);

@@ -40,8 +40,5 @@ public class UpdateBookingDetailsRequest {
      */
     private String reason;
 
-    /**
-     * Danh sách dịch vụ tư vấn đã chọn / cập nhật
-     */
-    private java.util.List<CreateBookingRequest.ServiceItemRequest> serviceItems;
+
 }

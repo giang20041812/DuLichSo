@@ -22,6 +22,7 @@ import { VietTrackLogoMark } from "../ui/logo";
 import { getCurrentCustomer, clearAllAuthSession, type CurrentCustomer } from "@/services/authService";
 import NotificationBell from "./NotificationBell";
 import { hasHeroOverlay } from "@/lib/routeUtils";
+import RecentBookingTag from "./RecentBookingTag";
 
 interface HeaderProps {
   isSidebarOpen?: boolean;
@@ -388,6 +389,9 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
             })}
           </nav>
         </div>
+
+        {/* Recent Booking Tag */}
+        <RecentBookingTag />
       </header>
 
       {/* Modal: Thông tin cá nhân */}
