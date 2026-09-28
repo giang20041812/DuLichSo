@@ -17,6 +17,7 @@ import java.util.List;
 @Service @RequiredArgsConstructor @Transactional(readOnly = true)
 public class PartnerReviewService {
     private final PartnerHomestayService homestays;
+    private final NotificationService notificationService;
     private final EntityManager em;
 
     /** UC-NCC-09 (REV-BR-19): chỉ các đánh giá hợp lệ và đang công khai của Homestay thuộc NCC. */
@@ -41,6 +42,9 @@ public class PartnerReviewService {
         review.setProviderReply(reply);
         review.setProviderReplyAt(LocalDateTime.now());
         review.setProviderReplyBy(actor.getId());
+        if (review.getBooking() != null) {
+            notificationService.notifyReviewReply(review.getBooking(), reply);
+        }
         return toDto(review);
     }
 

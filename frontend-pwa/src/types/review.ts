@@ -5,6 +5,8 @@ export interface ReviewDto {
   rating: number;
   content: string;
   images?: string[];
+  providerReply?: string | null;
+  providerReplyAt?: string | null;
   guestName: string;
   createdAt: string;
   editableUntil?: string;

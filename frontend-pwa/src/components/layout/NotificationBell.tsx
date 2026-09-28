@@ -183,6 +183,20 @@ export default function NotificationBell({ isSolid }: NotificationBellProps) {
             Đã hủy
           </span>
         );
+      case 'EXPIRED':
+        return (
+          <span className="inline-flex items-center gap-1 rounded-sm border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold text-rose-700">
+            <XCircle className="h-3 w-3 text-rose-600" />
+            Quá hạn
+          </span>
+        );
+      case 'REVIEW_REPLY':
+        return (
+          <span className="inline-flex items-center gap-1 rounded-sm border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
+            <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+            Phản hồi mới
+          </span>
+        );
 
       default:
         return null;
@@ -201,6 +215,10 @@ export default function NotificationBell({ isSolid }: NotificationBellProps) {
         return <XCircle className="h-4 w-4 shrink-0 text-rose-600" />;
       case 'CANCELLED':
         return <XCircle className="h-4 w-4 shrink-0 text-rose-600" />;
+      case 'EXPIRED':
+        return <XCircle className="h-4 w-4 shrink-0 text-rose-600" />;
+      case 'REVIEW_REPLY':
+        return <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />;
 
       default:
         return <Sparkles className="h-4 w-4 shrink-0 text-[var(--color-primary)]" />;
@@ -288,8 +306,8 @@ export default function NotificationBell({ isSolid }: NotificationBellProps) {
             {filteredList.length > 0 ? (
               filteredList.map((item) => {
                 const bookingStatus = item.bookingStatus || (item.payload?.bookingStatus as string | undefined);
-                const isConfirmed = bookingStatus === 'CONFIRMED';
-                const isRejected = bookingStatus === 'REJECTED';
+                const isPositive = bookingStatus === 'CONFIRMED' || bookingStatus === 'CHANGE_APPROVED' || bookingStatus === 'REVIEW_REPLY';
+                const isNegative = ['REJECTED', 'CHANGE_REJECTED', 'CANCELLED', 'EXPIRED', 'NO_SHOW'].includes(bookingStatus ?? '');
 
                 return (
                   <div
@@ -297,9 +315,9 @@ export default function NotificationBell({ isSolid }: NotificationBellProps) {
                     onClick={() => void handleClickItem(item)}
                     className={`flex items-start gap-3 p-3 transition-colors cursor-pointer hover:bg-gray-50 ${
                       !item.isRead
-                        ? isConfirmed
+                          ? isPositive
                           ? 'bg-emerald-50/40'
-                          : isRejected
+                          : isNegative
                           ? 'bg-rose-50/40'
                           : 'bg-[#edfbf7]/50'
                         : 'bg-white'

@@ -134,6 +134,41 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     @Transactional
+    public NotificationDto notifyReviewReply(Booking booking, String providerReply) {
+        if (booking == null || providerReply == null || providerReply.isBlank()) return null;
+
+        String placeName = booking.getPlace() != null ? booking.getPlace().getName() : "Homestay";
+        String title = "Nhà cung cấp đã phản hồi đánh giá";
+        String message = "NCC tại " + placeName + " đã phản hồi đánh giá của bạn cho đơn "
+                + booking.getBookingCode() + ".";
+        NotificationTemplate template = ensureTemplateExists("REVIEW_PROVIDER_REPLY", title, message);
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("title", title);
+        payload.put("message", message);
+        payload.put("bookingCode", booking.getBookingCode());
+        payload.put("bookingStatus", "REVIEW_REPLY");
+        payload.put("placeName", placeName);
+        payload.put("isRead", false);
+
+        Notification saved = notificationRepository.save(Notification.builder()
+                .template(template)
+                .channel(NotificationChannel.IN_APP)
+                .recipientType(RecipientType.CUSTOMER)
+                .recipientEmail(booking.getGuestEmail())
+                .recipientPhone(booking.getGuestPhone())
+                .relatedEntityType("review")
+                .relatedEntityId(booking.getId())
+                .payload(payload)
+                .status(NotificationStatus.SENT)
+                .createdAt(LocalDateTime.now())
+                .sentAt(LocalDateTime.now())
+                .build());
+        return mapToDto(saved);
+    }
+
+    @Override
+    @Transactional
     public List<NotificationDto> getNotificationsForCustomer(String email, String phone, Long accountId) {
         String safeEmail = (email != null && !email.isBlank()) ? email.trim() : null;
         String safePhone = (phone != null && !phone.isBlank()) ? phone.trim() : null;

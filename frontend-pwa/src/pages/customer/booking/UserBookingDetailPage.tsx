@@ -143,11 +143,15 @@ export default function UserBookingDetailPage() {
         );
       case 'CANCELLED':
       case 'REJECTED':
+      case 'EXPIRED':
+      case 'NO_SHOW':
         return (
           <div className="flex items-center gap-2 p-3 bg-rose-50 border border-rose-200 rounded-md text-rose-800 text-xs sm:text-sm font-semibold">
             <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
             <div>
-              <span className="font-bold">Đơn đặt phòng đã bị hủy / từ chối</span>
+                <span className="font-bold">
+                  {status === 'EXPIRED' ? 'Đơn đặt phòng đã hết hạn' : status === 'NO_SHOW' ? 'Không ghi nhận nhận phòng' : 'Đơn đặt phòng đã bị hủy / từ chối'}
+                </span>
               <p className="text-xs text-rose-700 font-normal mt-0.5">
                 Phòng đã được nhả lại trên hệ thống. Nếu có thắc mắc, vui lòng liên hệ bộ phận hỗ trợ.
               </p>
@@ -204,6 +208,10 @@ export default function UserBookingDetailPage() {
   const isCompleted = booking.status === 'CHECKED_OUT' || booking.status === 'COMPLETED';
   const pendingChangeRequest = booking.changeRequests?.find((request) => request.status === 'PENDING');
   const canRequestChange = ['PENDING', 'CONFIRMED'].includes(booking.status) && !pendingChangeRequest;
+  const reviewDeadline = new Date(`${booking.checkOut}T23:59:59`);
+  reviewDeadline.setDate(reviewDeadline.getDate() + 14);
+  const reviewDeadlineValid = !Number.isNaN(reviewDeadline.getTime());
+  const reviewExpired = booking.status === 'COMPLETED' && !existingReview && reviewDeadlineValid && new Date() > reviewDeadline;
 
   return (
     <div className="min-h-screen bg-[#F6FAF8] pb-20">
@@ -246,6 +254,34 @@ export default function UserBookingDetailPage() {
         {/* Khối đánh giá nếu hoàn thành */}
         {isCompleted && (
           <div className="bg-white rounded-lg border border-gray-200/90 p-5 shadow-xs">
+            {existingReview?.providerReply && (
+              <div className="mb-4 flex items-start gap-3 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-emerald-800">
+                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+                <div className="text-xs leading-relaxed">
+                  <p className="font-bold">Nhà cung cấp đã phản hồi đánh giá của bạn</p>
+                  <p className="mt-1">{existingReview.providerReply}</p>
+                  {existingReview.providerReplyAt && <p className="mt-1 text-[11px] text-emerald-700">{new Date(existingReview.providerReplyAt).toLocaleString('vi-VN')}</p>}
+                </div>
+              </div>
+            )}
+            {!existingReview && booking.status !== 'COMPLETED' && (
+              <div className="mb-4 flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-900">
+                <Clock className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                <div className="text-xs leading-relaxed">
+                  <p className="font-bold">Đánh giá sẽ mở sau khi đơn hoàn tất</p>
+                  <p className="mt-1">Đơn hiện đang ở trạng thái đã trả phòng. Hệ thống sẽ cho phép đánh giá khi booking chuyển sang Hoàn tất.</p>
+                </div>
+              </div>
+            )}
+            {reviewExpired && (
+              <div className="mb-4 flex items-start gap-3 rounded-md border border-rose-200 bg-rose-50 p-3 text-rose-800">
+                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
+                <div className="text-xs leading-relaxed">
+                  <p className="font-bold">Đã quá thời hạn đánh giá</p>
+                  <p className="mt-1">Bạn chỉ có thể gửi đánh giá trong vòng 14 ngày sau ngày trả phòng. Hạn cuối: {reviewDeadline.toLocaleDateString('vi-VN')}.</p>
+                </div>
+              </div>
+            )}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2">
@@ -261,7 +297,7 @@ export default function UserBookingDetailPage() {
                 </p>
               </div>
 
-              {!existingReview ? (
+              {!existingReview && !reviewExpired && booking.status === 'COMPLETED' ? (
                 <button
                   type="button"
                   onClick={() => setIsReviewModalOpen(true)}
