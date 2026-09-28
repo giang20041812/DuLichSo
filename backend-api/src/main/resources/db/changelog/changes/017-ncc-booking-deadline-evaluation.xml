@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+  <!-- UC-NCC-06/08 (BOOK-BR-11/12): hạn phản hồi của NCC = 120 phút trong khung giờ xử lý của Homestay, được chốt một lần cho mỗi đơn. -->
+  <changeSet id="017-booking-response-deadline" author="huy">
+    <createTable tableName="booking_response_deadline">
+      <column name="booking_id" type="BIGINT UNSIGNED"><constraints primaryKey="true" nullable="false" referencedTableName="booking" referencedColumnNames="id" foreignKeyName="fk_brd_booking" deleteCascade="true"/></column>
+      <column name="due_at" type="DATETIME"><constraints nullable="false"/></column>
+      <column name="created_at" type="DATETIME" defaultValueComputed="CURRENT_TIMESTAMP"><constraints nullable="false"/></column>
+    </createTable>
+    <createIndex tableName="booking_response_deadline" indexName="idx_brd_due"><column name="due_at"/></createIndex>
+  </changeSet>
+
+  <!-- UC-NCC-08 luồng phụ 2: báo khách khi đơn hết hạn vì NCC không phản hồi kịp. -->
+  <changeSet id="017-booking-expired-template" author="huy">
+    <sql>
+      INSERT IGNORE INTO notification_template (code, channel, subject, body_template, is_active) VALUES
+        ('BOOKING_EXPIRED_CUSTOMER', 'SMS', NULL, 'DuLichSo: Don {{booking_code}} da het han vi chu nha chua phan hoi kip. Phong da duoc tra lai.', TRUE);
+    </sql>
+  </changeSet>
+
+  <!-- UC-NCC-07: kết quả đánh giá khả năng đáp ứng Booking (mỗi đơn giữ kết quả mới nhất). -->
+  <changeSet id="017-booking-evaluation" author="huy">
+    <createTable tableName="booking_evaluation">
+      <column name="booking_id" type="BIGINT UNSIGNED"><constraints primaryKey="true" nullable="false" referencedTableName="booking" referencedColumnNames="id" foreignKeyName="fk_bev_booking" deleteCascade="true"/></column>
+      <column name="conclusion" type="VARCHAR(20)"><constraints nullable="false"/></column>
+      <column name="special_request_result" type="VARCHAR(1000)"/>
+      <column name="note" type="VARCHAR(1000)"/>
+      <column name="evaluated_by" type="BIGINT UNSIGNED"><constraints referencedTableName="account" referencedColumnNames="id" foreignKeyName="fk_bev_account"/></column>
+      <column name="evaluated_at" type="DATETIME"><constraints nullable="false"/></column>
+    </createTable>
+  </changeSet>
+</databaseChangeLog>

@@ -5,8 +5,8 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { partnerBookingService } from '@/services/partnerBookingService';
 import { fetchPartnerHomestays, homestayError } from '@/services/partnerHomestayService';
 import { BOOKING_STATUS_LABEL, BOOKING_STATUS_TONE } from '@/lib/bookingStatus';
-import type { AdminBookingDto, BookingStatusSummary, PageResponse } from '@/types/admin';
-import type { BookingStatus } from '@/types/booking';
+import type { BookingStatusSummary, PageResponse } from '@/types/admin';
+import type { BookingStatus, PartnerBookingRowDto } from '@/types/booking';
 import { Tabs } from '@/components/partner/PartnerUI';
 import PartnerDateRangePicker from '@/components/partner/PartnerDateRangePicker';
 
@@ -16,7 +16,19 @@ const date = (d?: string | null) => (d ? new Date(d).toLocaleDateString('vi-VN')
 const dateTime = (d?: string | null) => (d ? new Date(d).toLocaleString('vi-VN') : '—');
 const STATUSES = Object.keys(BOOKING_STATUS_LABEL) as BookingStatus[];
 
-/** FR-NCC-11: danh sách yêu cầu đặt phòng của nhà cung cấp; đơn chờ xử lý có nút mở màn hình xử lý. */
+/** Hạn phản hồi còn lại (UC-NCC-06, BOOK-BR-11): 120 phút trong khung giờ xử lý của Homestay. */
+function DueCell({ dueAt }: { dueAt: string | null }) {
+  if (!dueAt) return <span className="text-muted">—</span>;
+  const minutes = Math.floor((new Date(dueAt).getTime() - new Date().getTime()) / 60000);
+  if (minutes < 0) return <span className="font-semibold text-danger">Quá hạn</span>;
+  return (
+    <span className={minutes <= 30 ? 'font-semibold text-coral-hover' : 'text-ink'}>
+      Còn {minutes} phút<span className="block text-[11px] text-muted">{dateTime(dueAt)}</span>
+    </span>
+  );
+}
+
+/** UC-NCC-06: danh sách yêu cầu Booking của NCC, mặc định lọc "Chờ NCC xác nhận"; đơn chờ mở màn hình xử lý 3 bước. */
 export default function PartnerBookingList() {
   const [keyword, setKeyword] = useState('');
   const [status, setStatus] = useState<BookingStatus | ''>('PENDING');
@@ -25,7 +37,7 @@ export default function PartnerBookingList() {
   const [checkInTo, setCheckInTo] = useState('');
   const [page, setPage] = useState(0);
   const [reload, setReload] = useState(0);
-  const [data, setData] = useState<PageResponse<AdminBookingDto> | null>(null);
+  const [data, setData] = useState<PageResponse<PartnerBookingRowDto> | null>(null);
   const [summary, setSummary] = useState<BookingStatusSummary | null>(null);
   const [homestays, setHomestays] = useState<{ id: number; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,15 +69,10 @@ export default function PartnerBookingList() {
 
   const refresh = (change: () => void) => { setLoading(true); change(); };
 
-  const handleQuickAction = async (bookingId: number, currentStatus: BookingStatus, actionType: 'APPROVE' | 'REJECT' | 'CHECK_IN' | 'CHECK_OUT' = 'APPROVE') => {
+  // Đơn chờ xử lý không có thao tác nhanh: UC-NCC-07/08 bắt buộc đánh giá và xem lại trước khi chấp nhận/từ chối.
+  const handleQuickAction = async (bookingId: number, currentStatus: BookingStatus, actionType: 'CHECK_IN' | 'CHECK_OUT') => {
     try {
-      if (currentStatus === 'PENDING' && actionType === 'APPROVE') {
-        await partnerBookingService.accept(bookingId, { roomTypeId: null, note: 'Xác nhận nhanh từ danh sách' });
-      } else if (currentStatus === 'PENDING' && actionType === 'REJECT') {
-        const reason = window.prompt('Nhập lý do từ chối (bắt buộc):', 'Hết phòng hoặc không thể tiếp nhận');
-        if (!reason) return; // Cancelled
-        await partnerBookingService.reject(bookingId, { reason });
-      } else if (currentStatus === 'CONFIRMED' && actionType === 'CHECK_IN') {
+      if (currentStatus === 'CONFIRMED' && actionType === 'CHECK_IN') {
         await partnerBookingService.stayAction(bookingId, { action: 'CHECK_IN', note: 'Check-in nhanh' });
       } else if (currentStatus === 'CHECKED_IN' && actionType === 'CHECK_OUT') {
         await partnerBookingService.stayAction(bookingId, { action: 'CHECK_OUT', note: 'Check-out nhanh' });
@@ -127,7 +134,7 @@ export default function PartnerBookingList() {
             <tr className="border-b border-border bg-canvas font-semibold text-muted">
               <th className={th}>Mã đặt</th><th className={th}>Khách hàng</th><th className={th}>Homestay / Phòng</th>
               <th className={th}>Lưu trú</th><th className={`${th} text-right`}>Tổng tiền</th><th className={th}>Trạng thái</th>
-              <th className={th}>Ngày đặt</th><th className={`${th} text-right`}>Thao tác</th>
+              <th className={th}>Ngày đặt</th><th className={th}>Hạn phản hồi</th><th className={`${th} text-right`}>Thao tác</th>
               <th className={`${th} w-10 text-center`}></th>
             </tr>
           </thead>
@@ -141,17 +148,13 @@ export default function PartnerBookingList() {
                 <td className={`${th} text-right font-semibold text-ink-deep`}>{vnd(b.totalAmount)}</td>
                 <td className={th}><span className={`rounded-sm border px-2 py-0.5 text-[10px] font-bold ${BOOKING_STATUS_TONE[b.status]}`}>{BOOKING_STATUS_LABEL[b.status]}</span></td>
                 <td className={`${th} text-muted`}>{dateTime(b.createdAt)}</td>
+                <td className={th}>{b.status === 'PENDING' ? <DueCell dueAt={b.responseDueAt} /> : <span className="text-muted">—</span>}</td>
                 <td className={`${th} text-right`}>
                   <div className="flex items-center justify-end gap-2">
                     {b.status === 'PENDING' && (
-                      <>
-                        <button onClick={() => handleQuickAction(b.id, b.status, 'APPROVE')} className="rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-emerald-600">
-                          Duyệt
-                        </button>
-                        <button onClick={() => handleQuickAction(b.id, b.status, 'REJECT')} className="rounded-md bg-danger px-3 py-1.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-danger/80">
-                          Từ chối
-                        </button>
-                      </>
+                      <Link to={`/partner/bookings/${b.id}`} className="rounded-md bg-coral px-3 py-1.5 text-xs font-semibold text-white shadow-[var(--shadow-coral)] transition-colors duration-200 hover:bg-coral-hover">
+                        Xử lý
+                      </Link>
                     )}
                     {b.status === 'CONFIRMED' && (
                       <button onClick={() => handleQuickAction(b.id, b.status, 'CHECK_IN')} className="rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-emerald-600">
@@ -174,7 +177,7 @@ export default function PartnerBookingList() {
             ))}
           </tbody>
         </table>
-        {!loading && rows.length === 0 && !error && <div className="py-10 text-center text-xs text-muted">Không có đơn đặt phòng nào.</div>}
+        {!loading && rows.length === 0 && !error && <div className="py-10 text-center text-xs text-muted">Không có yêu cầu Booking phù hợp.</div>}
       </div>
 
       {(data?.totalPages ?? 0) > 1 && (

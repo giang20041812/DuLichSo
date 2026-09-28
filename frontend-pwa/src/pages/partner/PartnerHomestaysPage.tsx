@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { fetchPartnerHomestays, updateHomestayStatus, homestayError } from '@/services/partnerHomestayService';
+import { isSubmittedChange } from '@/services/changeRequestService';
 import type {
   PartnerHomestaySummaryDto,
   PartnerHomestayStatsDto,
@@ -85,12 +86,12 @@ export default function PartnerHomestaysPage() {
     setBusyId(homestay.id);
     setNotice(null);
     try {
-      await updateHomestayStatus(homestay.id, { visibility: next });
+      const result = await updateHomestayStatus(homestay.id, { visibility: next });
       load();
-      setNotice({
-        tone: 'success',
-        text: next === 'PUBLISHED' ? `Đã xuất bản “${homestay.name}”. Khách có thể tìm thấy ngay.` : `Đã ngừng hiển thị “${homestay.name}”.`,
-      });
+      // UC-NCC-02: xuất bản lần đầu được gửi cho Admin duyệt; chưa tự động nhận Booking.
+      setNotice(isSubmittedChange(result)
+        ? { tone: 'info', text: `“${homestay.name}”: ${result.message}` }
+        : { tone: 'success', text: next === 'PUBLISHED' ? `Đã xuất bản “${homestay.name}”.` : `Đã ngừng hiển thị “${homestay.name}”.` });
     } catch (error) {
       setNotice({ tone: 'error', text: homestayError(error) });
     } finally {
@@ -182,7 +183,8 @@ function HomestayCard({ homestay, busy, onToggle, onNavigate }: {
   const published = homestay.visibility === 'PUBLISHED';
   const draft = homestay.visibility === 'DRAFT';
   const operating = homestay.operationStatus === 'OPERATING';
-  const canToggle = published || homestay.isReadyToPublish;
+  const pendingPublish = homestay.pendingPublish;
+  const canToggle = published || (homestay.isReadyToPublish && !pendingPublish);
   const needsWork = !published && !homestay.isReadyToPublish;
   const editUrl = `/partner/homestay/${homestay.id}/edit`;
   const priceText = homestay.priceRefMin == null
@@ -204,6 +206,7 @@ function HomestayCard({ homestay, busy, onToggle, onNavigate }: {
           <span className={`rounded-md border bg-surface/90 px-2 py-1 text-[10px] font-bold backdrop-blur-sm ${published ? 'border-primary/40 text-primary-700' : draft ? 'border-sun/50 text-sun-700' : 'border-border text-muted'}`}>
             {published ? 'Đang hiển thị' : draft ? 'Bản nháp' : 'Ngừng hiển thị'}
           </span>
+          {pendingPublish && <span className="flex items-center gap-1 rounded-md border border-secondary/50 bg-surface/90 px-2 py-1 text-[10px] font-bold text-secondary-700 backdrop-blur-sm"><Clock className="h-3 w-3" />Homestay đang chờ duyệt</span>}
           {!operating && <span className="flex items-center gap-1 rounded-md border border-danger/40 bg-surface/90 px-2 py-1 text-[10px] font-bold text-danger backdrop-blur-sm"><AlertTriangle className="h-3 w-3" />Tạm đóng cửa</span>}
         </span>
         <span className="absolute bottom-2.5 left-3 right-3 truncate text-xs font-semibold text-white">{homestay.code}</span>
@@ -254,7 +257,7 @@ function HomestayCard({ homestay, busy, onToggle, onNavigate }: {
               : <span className="flex items-center gap-1 text-ink-deep">{operating && <><CheckCircle2 className="h-3.5 w-3.5 text-accent-600" />Đang nhận khách</>}</span>}
             {canToggle && (
               <button type="button" disabled={busy} onClick={onToggle} className="flex items-center gap-1 text-muted hover:text-ink">
-                {published ? <><EyeOff className="h-3.5 w-3.5" />{busy ? 'Đang xử lý...' : 'Ngừng hiển thị'}</> : <><Eye className="h-3.5 w-3.5 text-primary/80" />{busy ? 'Đang xử lý...' : 'Xuất bản'}</>}
+                {published ? <><EyeOff className="h-3.5 w-3.5" />{busy ? 'Đang xử lý...' : 'Ngừng hiển thị'}</> : <><Eye className="h-3.5 w-3.5 text-primary/80" />{busy ? 'Đang xử lý...' : 'Gửi duyệt xuất bản'}</>}
               </button>
             )}
           </div>

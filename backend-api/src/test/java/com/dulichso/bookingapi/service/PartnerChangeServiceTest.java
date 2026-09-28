@@ -224,7 +224,7 @@ class PartnerChangeServiceTest {
     @DisplayName("HOM-MGT-BR-04: lần đầu xuất bản (đủ điều kiện) tạo yêu cầu PUBLISH chờ duyệt, KHÔNG tự set PUBLISHED")
     void firstPublish_readyToPublish_createsPendingPublishRequest() {
         place.setVisibility(PlaceVisibility.DRAFT);
-        when(homestays.isReadyToPublish(place)).thenReturn(true);
+        when(homestays.missingForPublish(place)).thenReturn(List.of());
 
         var outcome = service.updateStatus(principal, 21L, UpdateStatusRequest.builder().visibility(PlaceVisibility.PUBLISHED).build());
 
@@ -241,7 +241,7 @@ class PartnerChangeServiceTest {
     @DisplayName("HOM-MGT-BR-04: lần đầu xuất bản nhưng chưa đủ điều kiện thì từ chối, không tạo yêu cầu")
     void firstPublish_notReady_rejectedWithoutRequest() {
         place.setVisibility(PlaceVisibility.DRAFT);
-        when(homestays.isReadyToPublish(place)).thenReturn(false);
+        when(homestays.missingForPublish(place)).thenReturn(List.of("ảnh chung"));
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> service.updateStatus(principal, 21L,
                 UpdateStatusRequest.builder().visibility(PlaceVisibility.PUBLISHED).build()));

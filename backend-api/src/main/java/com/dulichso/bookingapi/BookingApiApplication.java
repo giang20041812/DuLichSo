@@ -39,7 +39,7 @@ public class BookingApiApplication {
 							continue;
 						}
 						int eqIdx = line.indexOf('=');
-						if (eqIdx > 0) {
+						if (eqIdx > 0) {		
 							String key = line.substring(0, eqIdx).trim();
 							String value = line.substring(eqIdx + 1).trim();
 							// Only set if not already set in System properties or environment

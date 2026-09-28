@@ -52,6 +52,22 @@ public class PartnerHomestayRepository {
                 Object[].class).setParameter("ids", ids).getResultList();
     }
 
+    /** UC-NCC-02/03: số loại phòng đủ điều kiện nhận Booking (đang mở bán, giá > 0, có ít nhất 1 ảnh phòng) theo Homestay. */
+    public List<Object[]> sellableRoomCounts(List<Long> ids) {
+        if (ids.isEmpty()) return List.of();
+        return em.createQuery("""
+                select r.place.id, count(r) from RoomType r
+                where r.place.id in :ids and r.status = 'ACTIVE' and r.basePrice > 0
+                  and exists (select m from RoomTypeMedia m where m.roomType = r)
+                group by r.place.id""", Object[].class).setParameter("ids", ids).getResultList();
+    }
+
+    public List<HomestayProfile> profiles(List<Long> ids) {
+        if (ids.isEmpty()) return List.of();
+        return em.createQuery("select h from HomestayProfile h left join fetch h.currentPolicy where h.placeId in :ids",
+                HomestayProfile.class).setParameter("ids", ids).getResultList();
+    }
+
     public List<Region> regions() {
         return em.createQuery("select r from Region r where r.isActive = true order by r.path, r.name", Region.class).getResultList();
     }

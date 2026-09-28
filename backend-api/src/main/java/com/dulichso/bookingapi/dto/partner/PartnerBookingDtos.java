@@ -1,8 +1,13 @@
 package com.dulichso.bookingapi.dto.partner;
 
+import com.dulichso.bookingapi.dto.partner.PartnerRoomDtos.InventoryDto;
+import com.dulichso.bookingapi.entity.BookingEvaluation.Conclusion;
 import com.dulichso.bookingapi.entity.enums.ActorType;
+import com.dulichso.bookingapi.service.AdminBookingService.BookingDto;
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.dulichso.bookingapi.entity.enums.BookingStatus;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -45,9 +50,23 @@ public final class PartnerBookingDtos {
                                    List<InfoRequestDto> infoRequests,
                                    List<CheckDto> checks, List<RoomOptionDto> roomOptions,
                                    boolean canAccept, boolean canReject, boolean canRequestInfo,
-                                   List<StayAction> stayActions) {}
+                                   List<StayAction> stayActions,
+                                   LocalDateTime responseDueAt, boolean overdue,
+                                   List<InventoryDto> availability, EvaluationDto evaluation, boolean canEvaluate) {}
 
-    /** roomTypeId null = giữ nguyên loại phòng khách đã chọn. note: phản hồi yêu cầu đặc biệt / điều kiện gửi khách. */
+    /**
+     * UC-NCC-07: kết luận đánh giá khả năng đáp ứng. specialRequestResult bắt buộc khi khách có yêu cầu đặc biệt.
+     * Phương án phòng luôn là phương án khách đã chọn; muốn đổi phòng/ngày/giá thì kết luận NEEDS_ADJUSTMENT và đề xuất cho khách.
+     */
+    public record EvaluationInput(@NotNull Conclusion conclusion, @Size(max = 1000) String specialRequestResult, @Size(max = 1000) String note) {}
+
+    /** stale = dữ liệu loại phòng đã đổi sau khi đánh giá, phải kiểm tra lại trước khi quyết định. */
+    public record EvaluationDto(Conclusion conclusion, String specialRequestResult, String note, LocalDateTime evaluatedAt, boolean stale) {}
+
+    /** Một dòng danh sách đơn của NCC: dữ liệu chung + hạn phản hồi (UC-NCC-06). */
+    public record BookingRowDto(@JsonUnwrapped BookingDto booking, LocalDateTime responseDueAt) {}
+
+    /** roomTypeId: chỉ được null hoặc đúng loại phòng khách đã chọn (UC-NCC-08: NCC không tự đổi sản phẩm). note: lời nhắn gửi khách. */
     public record AcceptInput(Long roomTypeId, @Size(max = 500) String note) {}
 
     public record RejectInput(@NotBlank @Size(max = 500) String reason) {}

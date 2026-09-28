@@ -89,7 +89,9 @@ export interface PartnerRoomInput {
 export interface PartnerRoom extends PartnerRoomInput { id: number; placeId: number }
 export interface RoomPriceInput { name: string; periodStart: string; periodEnd: string; price: number }
 export interface RoomPrice extends RoomPriceInput { id: number }
-export interface RoomInventoryInput { startDate: string; endDate: string; totalRooms: number; stopSell: boolean; reason?: string }
+/** UC-NCC-04 luồng phụ 6: giá trị NCC đã thấy trên lịch, để backend phát hiện dữ liệu đã bị sửa đồng thời. */
+export interface RoomInventoryExpectedDay { stayDate: string; totalRooms: number; stopSell: boolean }
+export interface RoomInventoryInput { startDate: string; endDate: string; totalRooms: number; stopSell: boolean; reason?: string; expected?: RoomInventoryExpectedDay[] }
 export interface RoomInventoryDay {
   stayDate: string; totalRooms: number; heldRooms: number; confirmedRooms: number; availableRooms: number; stopSell: boolean; price: number;
   blockReason: string | null;

@@ -106,15 +106,22 @@ export default function PartnerReviewsPage() {
 }
 
 function ReviewCard({ review, onChange }: { review: PartnerReviewDto; onChange: (r: PartnerReviewDto) => void }) {
-  const [editing, setEditing] = useState(!review.providerReply);
+  // UC-NCC-09: NCC chọn đánh giá và bấm "Phản hồi" mới mở vùng nhập; "Hủy" đóng vùng nhập, không đăng nội dung.
+  const [editing, setEditing] = useState(false);
   const [text, setText] = useState(review.providerReply ?? '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [done, setDone] = useState('');
 
-  async function run(action: () => Promise<PartnerReviewDto>, keepEditing: boolean) {
-    setBusy(true); setError('');
-    try { const next = await action(); onChange(next); setText(next.providerReply ?? ''); setEditing(keepEditing); }
+  async function run(action: () => Promise<PartnerReviewDto>, success: string) {
+    setBusy(true); setError(''); setDone('');
+    try { const next = await action(); onChange(next); setText(next.providerReply ?? ''); setEditing(false); setDone(success); }
     catch (e: unknown) { setError(homestayError(e)); } finally { setBusy(false); }
+  }
+
+  function post() {
+    if (!text.trim()) { setError('Vui lòng nhập nội dung phản hồi'); return; }
+    void run(() => partnerReviewService.reply(review.id, text.trim()), 'Đã đăng phản hồi');
   }
 
   return (
@@ -130,7 +137,6 @@ function ReviewCard({ review, onChange }: { review: PartnerReviewDto; onChange: 
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {review.status === 'HIDDEN' && <span className="rounded-sm border border-border bg-canvas px-2 py-0.5 text-[11px] font-bold text-muted">Đang ẩn</span>}
           <span className="flex items-center gap-0.5" aria-label={`${review.rating} sao`}>
             {[1, 2, 3, 4, 5].map((n) => <Star key={n} className={`h-4 w-4 ${n <= review.rating ? 'fill-sun text-sun' : 'text-border'}`} />)}
           </span>
@@ -139,12 +145,19 @@ function ReviewCard({ review, onChange }: { review: PartnerReviewDto; onChange: 
       <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink">{review.content || <span className="text-muted">Khách không để lại nội dung.</span>}</p>
 
       {error && <Alert tone="error">{error}</Alert>}
+      {done && <Alert tone="success">{done}</Alert>}
+      {!editing && !review.providerReply && (
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs text-muted">Chưa phản hồi</span>
+          <button type="button" className={ui.btnOutline} onClick={() => { setEditing(true); setDone(''); }}><MessageSquare className="h-4 w-4" />Phản hồi</button>
+        </div>
+      )}
       {editing ? (
-        <form className="flex flex-col gap-2 border-l-2 border-primary pl-3" onSubmit={(e) => { e.preventDefault(); void run(() => partnerReviewService.reply(review.id, text.trim()), false); }}>
-          <textarea aria-label="Nội dung phản hồi" className={ui.textarea} rows={3} required maxLength={2000} disabled={busy} value={text} onChange={(e) => setText(e.target.value)} placeholder="Cảm ơn khách, giải đáp góp ý hoặc chia sẻ cải thiện của bạn..." />
+        <form className="flex flex-col gap-2 border-l-2 border-primary pl-3" onSubmit={(e) => { e.preventDefault(); post(); }}>
+          <textarea aria-label="Nội dung phản hồi" className={ui.textarea} rows={3} maxLength={2000} disabled={busy} value={text} onChange={(e) => setText(e.target.value)} placeholder="Cảm ơn khách, giải đáp góp ý hoặc chia sẻ cải thiện của bạn..." />
           <div className="flex items-center gap-2">
             <button disabled={busy || !text.trim()} className={ui.btnPrimary}>{busy ? 'Đang lưu...' : 'Đăng phản hồi'}</button>
-            {review.providerReply && <button type="button" disabled={busy} onClick={() => { setEditing(false); setText(review.providerReply ?? ''); }} className={ui.btnGhost}>Hủy</button>}
+            <button type="button" disabled={busy} onClick={() => { setEditing(false); setError(''); setText(review.providerReply ?? ''); }} className={ui.btnGhost}>Hủy</button>
             <span className="ml-auto text-xs text-muted">{text.length}/2000</span>
           </div>
         </form>
@@ -153,8 +166,8 @@ function ReviewCard({ review, onChange }: { review: PartnerReviewDto; onChange: 
           <p className="flex items-center gap-2 text-xs font-semibold text-primary"><MessageSquare className="h-3.5 w-3.5" /> Phản hồi của bạn · {dateTime(review.providerReplyAt)}</p>
           <p className="whitespace-pre-wrap text-sm text-ink">{review.providerReply}</p>
           <div className="flex gap-3 text-xs font-semibold">
-            <button type="button" disabled={busy} onClick={() => setEditing(true)} className="text-primary hover:underline">Sửa</button>
-            <button type="button" disabled={busy} onClick={() => void run(() => partnerReviewService.removeReply(review.id), true)} className="text-danger hover:underline">Gỡ phản hồi</button>
+            <button type="button" disabled={busy} onClick={() => { setEditing(true); setDone(''); }} className="text-primary hover:underline">Sửa</button>
+            <button type="button" disabled={busy} onClick={() => void run(() => partnerReviewService.removeReply(review.id), 'Đã gỡ phản hồi')} className="text-danger hover:underline">Gỡ phản hồi</button>
           </div>
         </div>
       )}

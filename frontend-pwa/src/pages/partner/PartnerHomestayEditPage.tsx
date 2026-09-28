@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import * as Dialog from '@radix-ui/react-dialog';
 import {
   BedDouble, CheckCircle2, Circle, ClipboardList, Clock, Eye, EyeOff, History, Image as ImageIcon, Info, LocateFixed, Lock,
   MapPin, Save, ScrollText, Settings2, Sparkles, Unlock, X, type LucideIcon,
@@ -19,6 +20,7 @@ import PartnerServicesPanel from '@/components/partner/PartnerServicesPanel';
 import MediaManager from '@/components/partner/MediaManager';
 import HomestayClosurePanel from '@/components/partner/HomestayClosurePanel';
 import HomestayChangeLogPanel from '@/components/partner/HomestayChangeLogPanel';
+import ConfirmDialog, { type ConfirmRequest } from '@/components/partner/ConfirmDialog';
 import { Alert, Card, Field, LoadingBlock, PageHeader } from '@/components/partner/PartnerUI';
 import { ui } from '@/lib/partnerUi';
 
@@ -51,6 +53,8 @@ export default function PartnerHomestayEditPage() {
   const [logKey, setLogKey] = useState(0);
   const [activeTab, setActiveTab] = useState<TabId>('info');
   const [mapLink, setMapLink] = useState('');
+  const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
+  const [preview, setPreview] = useState(false);
 
   useEffect(() => {
     if (invalidId) return;
@@ -127,9 +131,24 @@ export default function PartnerHomestayEditPage() {
     }
   };
 
-  async function save(event: FormEvent<HTMLFormElement>) {
+  /** UC-NCC-05: đổi chính sách hủy tạo phiên bản mới; Booking đã tạo giữ điều kiện cũ. */
+  const policyChanged = !!initialForm && !!initialForm.policyVersion && (
+    initialForm.policyName !== form.policyName || initialForm.cancellationPolicy !== form.cancellationPolicy
+    || initialForm.freeCancelCutoffHours !== form.freeCancelCutoffHours || initialForm.refundOnLateCancel !== form.refundOnLateCancel);
+
+  function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (saving || loading || loadError) return;
+    if (policyChanged) {
+      setConfirm({ title: 'Lưu phiên bản chính sách mới?', confirmLabel: 'Lưu chính sách', tone: 'primary',
+        body: <>Chính sách mới không thay đổi Booking đã tạo. Các đơn đã đặt vẫn áp dụng điều kiện khách đã xem và xác nhận; phiên bản mới áp dụng cho đơn đặt từ thời điểm lưu.</>,
+        onConfirm: () => void persist() });
+      return;
+    }
+    void persist();
+  }
+
+  async function persist() {
     setSaving(true);
     setNotice(null);
     try {
@@ -138,10 +157,24 @@ export default function PartnerHomestayEditPage() {
         if (isSubmittedChange(saved)) navigate('/partner/homestays', { replace: true, state: { notice: saved.message } });
         else navigate(`/partner/homestay/${saved.id}/edit`, { replace: true });
       } else {
-        setNotice(isSubmittedChange(saved) ? { tone: 'info', text: saved.message } : { tone: 'success', text: 'Đã lưu thay đổi.' });
+        if (isSubmittedChange(saved)) setNotice({ tone: 'info', text: saved.message });
+        else {
+          setForm(saved); setInitialForm(saved);
+          setNotice({ tone: 'success', text: policyChanged ? 'Đã cập nhật chính sách lưu trú' : 'Đã lưu thông tin Homestay' });
+        }
       }
-    } catch (error: unknown) { setNotice({ tone: 'error', text: homestayError(error) }); }
+    } catch (error: unknown) {
+      const message = homestayError(error);
+      setNotice({ tone: 'error', text: /403|quyền/i.test(message) ? 'Không có quyền cập nhật Homestay này' : message });
+    }
     finally { setSaving(false); }
+  }
+
+  /** UC-NCC-02 nút Hủy: quay lại danh sách, không lưu thay đổi chưa gửi. */
+  function cancel() {
+    if (!isDirty) { navigate('/partner/homestays'); return; }
+    setConfirm({ title: 'Bỏ các thay đổi chưa lưu?', confirmLabel: 'Bỏ thay đổi', tone: 'danger',
+      body: <>Các thông tin bạn vừa sửa sẽ không được lưu. Thông tin hiện hành của Homestay giữ nguyên.</>, onConfirm: () => navigate('/partner/homestays') });
   }
 
   async function changeStatus(request: UpdateStatusRequest, done: string) {
@@ -152,6 +185,7 @@ export default function PartnerHomestayEditPage() {
       const result = await updateHomestayStatus(Number(id), request);
       if (isSubmittedChange(result)) {
         setNotice({ tone: 'info', text: result.message });
+        setForm(prev => ({ ...prev, pendingPublish: true, alertNote: 'Homestay đang chờ duyệt' }));
       } else {
         setForm(prev => ({ ...prev, visibility: result.visibility, operationStatus: result.operationStatus, isReadyToPublish: result.isReadyToPublish, alertNote: result.alertNote }));
         setNotice({ tone: 'success', text: done });
@@ -188,6 +222,8 @@ export default function PartnerHomestayEditPage() {
 
   const isFormTab = FORM_TABS.includes(activeTab);
   const isDirty = initialForm ? JSON.stringify(form) !== JSON.stringify(initialForm) : false;
+  const missing = form.missingForPublish ?? [];
+  const pendingPublish = !!form.pendingPublish;
   const isComplete = doneCount === checklist.length;
   const canSave = id ? isDirty : isComplete;
 
@@ -208,6 +244,7 @@ export default function PartnerHomestayEditPage() {
                 {published ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
                 {published ? 'Đang hiển thị' : 'Bản nháp'}
               </button>
+              {pendingPublish && <span className="inline-flex items-center gap-1.5 rounded-sm border border-secondary/40 bg-secondary-50 px-2 py-0.5 text-[12px] font-bold text-secondary-700"><Clock className="h-3.5 w-3.5" />Homestay đang chờ duyệt</span>}
               
               <button type="button" disabled={saving} onClick={() => void changeStatus({ operationStatus: operating ? 'TEMP_CLOSED' : 'OPERATING' }, operating ? 'Đã tạm đóng cửa Homestay.' : 'Homestay đã mở lại.')}
                 className={`group inline-flex items-center gap-1.5 rounded-sm border px-2 py-0.5 text-[12px] font-bold transition-all duration-200 ${operating ? 'bg-accent-50 text-accent-700 border-accent/30 hover:border-accent/50' : 'bg-danger/10 text-danger border-danger/20 hover:border-danger/40'}`}>
@@ -220,8 +257,10 @@ export default function PartnerHomestayEditPage() {
         description={id ? 'Cập nhật thông tin hiển thị với khách và thiết lập vận hành.' : 'Điền thông tin cơ bản rồi lưu bản nháp. Sau đó bạn thêm ảnh, phòng và dịch vụ.'}
         actions={id && !loading && !loadError ? <>
           <Link to={`/partner/homestay/${id}/rooms`} className="flex items-center justify-center gap-1.5 rounded-md border border-primary/30 bg-primary/5 px-3 py-1.5 text-[11px] font-semibold text-primary-700 hover:bg-primary/10"><BedDouble className="h-3.5 w-3.5" />Phòng & lịch</Link>
-          <button type="submit" form="homestay-edit-form" disabled={saving || !canSave} className="flex items-center justify-center gap-1.5 rounded-md bg-coral/90 px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-coral disabled:cursor-not-allowed disabled:opacity-50"><Save className="h-3.5 w-3.5" />{saving ? 'Đang lưu...' : 'Yêu cầu duyệt thay đổi'}</button>
+          <button type="button" onClick={cancel} disabled={saving} className="flex items-center justify-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-[11px] font-semibold text-muted hover:bg-canvas hover:text-ink">Hủy</button>
+          <button type="submit" form="homestay-edit-form" disabled={saving || !canSave} className="flex items-center justify-center gap-1.5 rounded-md bg-coral/90 px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-coral disabled:cursor-not-allowed disabled:opacity-50"><Save className="h-3.5 w-3.5" />{saving ? 'Đang lưu...' : 'Lưu'}</button>
         </> : (!id && !loading && !loadError ? <>
+          <button type="button" onClick={cancel} disabled={saving} className="flex items-center justify-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-[11px] font-semibold text-muted hover:bg-canvas hover:text-ink">Hủy</button>
           <button type="submit" form="homestay-edit-form" disabled={saving || !canSave} className="flex items-center justify-center gap-1.5 rounded-md bg-coral/90 px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-coral disabled:cursor-not-allowed disabled:opacity-50"><Save className="h-3.5 w-3.5" />{saving ? 'Đang lưu...' : 'Tạo bản nháp'}</button>
         </> : undefined)} />
 
@@ -231,6 +270,11 @@ export default function PartnerHomestayEditPage() {
           <Alert tone="error" action={<button type="button" className={ui.btnGhost} onClick={() => { setLoading(true); setLoadError(''); setRetry(n => n + 1); }}>Thử lại</button>}>{loadError}</Alert>
         ) : (
           <>
+            {id && !published && (pendingPublish
+              ? <Alert tone="info">Homestay đang chờ duyệt. Quản trị viên duyệt xong thì Homestay mới được công khai và nhận Booking.</Alert>
+              : missing.length > 0
+                ? <Alert tone="error">Chưa đủ điều kiện công khai/nhận Booking. Còn thiếu: <b>{missing.join(', ')}</b>. Loại phòng, giá và ảnh phòng khai báo ở trang <Link to={`/partner/homestay/${id}/rooms`} className="font-semibold underline">Phòng & lịch</Link>.</Alert>
+                : <Alert tone="success">Hồ sơ đã đủ điều kiện. Vào tab Vận hành và bấm “Gửi duyệt xuất bản” để quản trị viên duyệt.</Alert>)}
             <div className="flex flex-col gap-6">
               <nav role="tablist" aria-label="Các mục thông tin" className="-mx-1 flex gap-1 overflow-x-auto border-b border-primary/10 px-1 scrollbar-hide">
                 {tabs.map(({ id: tabId, label, icon: Icon }) => {
@@ -347,7 +391,8 @@ export default function PartnerHomestayEditPage() {
                           <ProcessingWindowCard start={form.processingStartTime ?? ''} end={form.processingEndTime ?? ''}
                             onChange={(start, end) => setForm(prev => ({ ...prev, processingStartTime: start, processingEndTime: end }))} />
                           <Card title="Chính sách hủy phòng" icon={ScrollText}
-                            description={`${form.policyVersion ? `Phiên bản hiện tại: ${form.policyVersion}. ` : ''}Thay đổi chính sách sẽ tạo phiên bản mới; đơn đã đặt giữ nguyên chính sách cũ.`}>
+                            actions={<button type="button" className={ui.btnGhost} onClick={() => setPreview(true)}><Eye className="h-4 w-4" />Xem trước</button>}
+                            description={`${form.policyVersion ? `Phiên bản hiện tại: ${form.policyVersion}${form.policyEffectiveFrom ? ` · áp dụng từ ${new Date(form.policyEffectiveFrom).toLocaleString('vi-VN')}` : ''}. ` : ''}Thay đổi chính sách sẽ tạo phiên bản mới; Booking đã tạo giữ nguyên điều kiện cũ.`}>
                             <Field label="Tên chính sách"><input className={ui.input} maxLength={255} required={!!form.cancellationPolicy.trim()} value={form.policyName ?? ''} onChange={e => set('policyName', e.target.value)} placeholder="VD: Linh hoạt" /></Field>
                             <Field label="Nội dung chính sách"><textarea className={ui.textarea} rows={4} maxLength={10000} required={!!form.policyVersion || !!form.policyName?.trim() || form.freeCancelCutoffHours != null || form.refundOnLateCancel != null} value={form.cancellationPolicy} onChange={e => set('cancellationPolicy', e.target.value)} /></Field>
                             <div className="grid gap-4 sm:grid-cols-2">
@@ -389,10 +434,10 @@ export default function PartnerHomestayEditPage() {
                         <StatusCard
                           title="Hiển thị trên web"
                           on={published}
-                          text={published ? 'Khách có thể tìm thấy và đặt Homestay này.' : form.isReadyToPublish ? 'Đang là bản nháp. Hồ sơ đã đủ điều kiện để xuất bản.' : 'Đang là bản nháp, không hiển thị với khách.'}
+                          text={published ? 'Khách có thể tìm thấy và đặt Homestay này.' : pendingPublish ? 'Homestay đang chờ duyệt; chưa nhận Booking.' : form.isReadyToPublish ? 'Hồ sơ đã đủ điều kiện. Gửi duyệt để quản trị viên xem xét trước khi công khai.' : `Chưa đủ điều kiện công khai. Còn thiếu: ${missing.join(', ')}.`}
                           button={published
                             ? <button type="button" disabled={saving} className={ui.btnOutline} onClick={() => void changeStatus({ visibility: 'UNPUBLISHED' }, 'Đã ngừng hiển thị Homestay.')}><EyeOff className="h-4 w-4" />Ngừng hiển thị</button>
-                            : <button type="button" disabled={saving} className={ui.btnPrimary} onClick={() => void changeStatus({ visibility: 'PUBLISHED' }, 'Đã xuất bản Homestay.')}><Eye className="h-4 w-4" />Xuất bản</button>} />
+                            : <button type="button" disabled={saving || pendingPublish || !form.isReadyToPublish} className={ui.btnPrimary} onClick={() => void changeStatus({ visibility: 'PUBLISHED' }, 'Đã xuất bản Homestay.')}><Eye className="h-4 w-4" />{pendingPublish ? 'Đang chờ duyệt' : 'Gửi duyệt xuất bản'}</button>} />
                         <StatusCard
                           title="Trạng thái đón khách"
                           on={operating}
@@ -416,7 +461,45 @@ export default function PartnerHomestayEditPage() {
             </div>
           </>
         )}
+      <ConfirmDialog request={confirm} onClose={() => setConfirm(null)} />
+      <PolicyPreview open={preview} onClose={() => setPreview(false)} form={form} />
     </div>
+  );
+}
+
+/** UC-NCC-05 "Xem trước": chính sách theo cách khách sẽ xem trước khi đặt phòng. */
+function PolicyPreview({ open, onClose, form }: { open: boolean; onClose: () => void; form: PartnerHomestayDetailDto }) {
+  const rows: [string, string | null | undefined][] = [
+    ['Nhận phòng', form.checkInFrom ? `Từ ${form.checkInFrom}` : null],
+    ['Trả phòng', form.checkOutUntil ? `Trước ${form.checkOutUntil}` : null],
+    ['Chính sách hủy', form.cancellationPolicy ? `${form.policyName ? form.policyName + ': ' : ''}${form.cancellationPolicy}${form.freeCancelCutoffHours != null ? ` (hủy miễn phí trước ${form.freeCancelCutoffHours} giờ; hủy muộn: ${form.refundOnLateCancel === 'FULL_REFUND' ? 'hoàn toàn bộ' : 'không hoàn tiền'})` : ''}` : null],
+    ['Trẻ em', form.childrenPolicy],
+    ['Thú cưng', form.petsPolicy],
+    ['Số khách', form.guestPolicy],
+    ['Phụ thu', form.surchargeNote],
+    ['Nội quy', form.houseRules],
+  ];
+  return (
+    <Dialog.Root open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-ink-deep/40" />
+        <Dialog.Content aria-describedby={undefined} className="fixed left-1/2 top-1/2 z-50 flex max-h-[85vh] w-[min(560px,92vw)] -translate-x-1/2 -translate-y-1/2 flex-col rounded-lg bg-surface shadow-[var(--shadow-lg)]">
+          <header className="flex items-center justify-between border-b border-primary/10 px-5 py-4">
+            <Dialog.Title className="font-display text-lg font-bold text-ink-deep">Chính sách lưu trú (khách sẽ thấy)</Dialog.Title>
+            <Dialog.Close aria-label="Đóng" className={ui.iconBtn}><X className="h-5 w-5" /></Dialog.Close>
+          </header>
+          <dl className="flex flex-col divide-y divide-border overflow-y-auto px-5 py-2 text-sm">
+            {rows.map(([k, v]) => (
+              <div key={k} className="grid grid-cols-[110px_1fr] gap-3 py-2.5">
+                <dt className="font-semibold text-ink-deep">{k}</dt>
+                <dd className={`whitespace-pre-wrap ${v?.trim() ? 'text-ink' : 'italic text-danger'}`}>{v?.trim() || (k === 'Nhận phòng' || k === 'Trả phòng' || k === 'Chính sách hủy' ? 'Chưa khai báo — bắt buộc để nhận Booking' : 'Chưa khai báo')}</dd>
+              </div>
+            ))}
+          </dl>
+          <footer className="border-t border-primary/10 px-5 py-3 text-xs text-muted">Xem trước dựa trên nội dung đang nhập, chưa lưu.</footer>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
 

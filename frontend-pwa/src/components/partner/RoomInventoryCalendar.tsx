@@ -70,10 +70,16 @@ export default function RoomInventoryCalendar({ placeId, room, onChanged }: { pl
     const totalRooms = mode === 'broken' ? room.totalRoomCount - broken : room.totalRoomCount;
     setBusy(true); setError(''); setMessage('');
     try {
-      await api.inventory(placeId, room.id, { startDate: selection.from, endDate: addDays(selection.to, 1), totalRooms, stopSell: mode === 'close', reason: mode === 'open' ? undefined : reason.trim() });
-      setMessage(mode === 'open' ? 'Đã mở bán lại các ngày đã chọn.' : 'Đã cập nhật lịch phòng.');
+      // UC-NCC-04 luồng phụ 6: gửi kèm giá trị đang thấy để backend phát hiện dữ liệu đã bị sửa đồng thời.
+      const expected = selectedDays.map((d) => ({ stayDate: d.stayDate, totalRooms: d.totalRooms, stopSell: d.stopSell }));
+      await api.inventory(placeId, room.id, { startDate: selection.from, endDate: addDays(selection.to, 1), totalRooms, stopSell: mode === 'close', reason: mode === 'open' ? undefined : reason.trim(), expected });
+      setMessage('Đã cập nhật giá và tình trạng phòng');
       setSelection(null); setReason(''); setLoading(true); setReload((n) => n + 1); onChanged?.();
-    } catch (e: unknown) { setError(homestayError(e)); }
+    } catch (e: unknown) {
+      const text = homestayError(e);
+      setError(text);
+      if (text.includes('Dữ liệu đã thay đổi')) { setSelection(null); setLoading(true); setReload((n) => n + 1); }
+    }
     finally { setBusy(false); }
   }
 
@@ -92,6 +98,7 @@ export default function RoomInventoryCalendar({ placeId, room, onChanged }: { pl
         <span className="flex items-center gap-1"><i className="h-3 w-3 rounded-sm bg-sun-light" /> Có phòng hỏng / giảm phòng</span>
         <span className="flex items-center gap-1"><i className="h-3 w-3 rounded-sm bg-danger/15" /> Ngừng phục vụ</span>
         <span className="flex items-center gap-1"><i className="h-3 w-3 rounded-sm bg-primary-100" /> Đang chọn</span>
+        <span>“Còn x/y”: còn bán / phòng thực tế · “Giữ”: đơn chờ NCC · “XN”: đã xác nhận</span>
       </div>
       {error && <p role="alert" className="rounded-md border border-danger/30 bg-danger/5 p-2.5 text-sm text-danger">{error}</p>}
       {message && <p role="status" className="text-sm text-primary">{message}</p>}
@@ -110,7 +117,7 @@ export default function RoomInventoryCalendar({ placeId, room, onChanged }: { pl
               <span className={`font-semibold ${date === today ? 'text-primary' : 'text-ink-deep'}`}>{Number(date.slice(8))}</span>
               {d && (d.stopSell ? <span className="font-semibold text-danger">Ngừng</span>
                 : <span className="text-ink">Còn {d.availableRooms}/{d.totalRooms}</span>)}
-              {d && booked > 0 && <span className="text-muted">Đặt {booked}</span>}
+              {d && booked > 0 && <span className="text-muted" title={`Thực tế ${d.totalRooms} · đã giữ ${d.heldRooms} · đã xác nhận ${d.confirmedRooms} · còn bán ${d.availableRooms}`}>Giữ {d.heldRooms} · XN {d.confirmedRooms}</span>}
               {d && !d.stopSell && <span className="hidden text-muted sm:inline">{shortMoney(d.price)}</span>}
             </button>
           );

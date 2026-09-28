@@ -40,6 +40,26 @@ class PartnerReviewServiceTest {
         assertNull(service.removeReply(principal, 3L).providerReply());
     }
 
+    /** UC-NCC-09 luồng phụ 2: đánh giá đã bị ẩn/gỡ thì không đăng phản hồi công khai. */
+    @Test void cannotReplyToHiddenOrRemovedReview() {
+        when(em.find(Review.class, 3L)).thenReturn(review);
+        for (var status : java.util.List.of(com.dulichso.bookingapi.entity.enums.ReviewStatus.HIDDEN, com.dulichso.bookingapi.entity.enums.ReviewStatus.REMOVED)) {
+            review.setStatus(status);
+            var ex = assertThrows(ResponseStatusException.class, () -> service.reply(principal, 3L, new ReplyInput("Cảm ơn")));
+            assertEquals(409, ex.getStatusCode().value());
+        }
+        assertNull(review.getProviderReply());
+    }
+
+    /** UC-NCC-09 luồng phụ 5: gửi lặp cùng nội dung không ghi lại lần nữa. */
+    @Test void repeatedIdenticalReplyIsNotRewritten() {
+        when(em.find(Review.class, 3L)).thenReturn(review);
+        service.reply(principal, 3L, new ReplyInput("Cảm ơn bạn!"));
+        var firstAt = review.getProviderReplyAt();
+        service.reply(principal, 3L, new ReplyInput(" Cảm ơn bạn! "));
+        assertSame(firstAt, review.getProviderReplyAt());
+    }
+
     @Test void cannotReplyToReviewOfAnotherProvider() {
         review.getPlace().setProvider(Provider.builder().id(99L).build());
         when(em.find(Review.class, 3L)).thenReturn(review);

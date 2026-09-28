@@ -30,9 +30,9 @@ public class ProviderApplicationService {
         String phone = input.contactPhone().trim();
         String email = blankToNull(input.contactEmail());
         if (identifierTaken(phone) || (email != null && identifierTaken(email)))
-            throw conflict("Số điện thoại hoặc email đã được dùng cho một tài khoản đối tác.");
+            throw conflict("Thông tin đăng nhập đã được sử dụng. Vui lòng kiểm tra tài khoản đối tác đã có.");
         if (pendingFor(phone).isPresent() || (email != null && pendingFor(email).isPresent()))
-            throw conflict("Đã có hồ sơ đăng ký đang chờ duyệt với số điện thoại hoặc email này.");
+            throw conflict("Hồ sơ đang chờ xét duyệt với số điện thoại hoặc email này; không tạo hồ sơ trùng.");
         ProviderApplication application = ProviderApplication.builder()
                 .businessName(input.businessName().trim()).contactName(input.contactName().trim())
                 .contactPhone(phone).contactEmail(email).address(input.address().trim())
@@ -40,7 +40,21 @@ public class ProviderApplicationService {
                 .passwordHash(passwordEncoder.encode(input.password())).createdAt(LocalDateTime.now()).build();
         em.persist(application);
         return new RegisterResult(application.getId(), application.getStatus(),
-                "Đã gửi hồ sơ đăng ký. Quản trị viên sẽ thẩm định và bạn có thể đăng nhập bằng số điện thoại/email này sau khi hồ sơ được duyệt.");
+                "Đã tiếp nhận hồ sơ đăng ký Nhà cung cấp. Mã hồ sơ: " + application.getId()
+                        + ". Quản trị viên sẽ thẩm định; bạn đăng nhập được bằng số điện thoại/email này sau khi hồ sơ được duyệt.");
+    }
+
+    /** UC-NCC-01 "Xem trạng thái": tra cứu bằng mã hồ sơ + số điện thoại đã đăng ký. */
+    public StatusResult status(StatusInput input) {
+        ProviderApplication a = em.find(ProviderApplication.class, input.applicationId());
+        if (a == null || !a.getContactPhone().equals(input.contactPhone().trim()))
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy hồ sơ với mã và số điện thoại này.");
+        String label = switch (a.getStatus()) {
+            case PENDING -> "Hồ sơ đang chờ xét duyệt";
+            case APPROVED -> "Hồ sơ đã được duyệt — bạn có thể đăng nhập Cổng đối tác";
+            case REJECTED -> "Hồ sơ chưa được duyệt";
+        };
+        return new StatusResult(a.getId(), a.getBusinessName(), a.getStatus(), label, a.getReviewNote(), a.getCreatedAt(), a.getReviewedAt());
     }
 
     private boolean identifierTaken(String identifier) {return accounts.findByIdentifier(identifier).isPresent();}

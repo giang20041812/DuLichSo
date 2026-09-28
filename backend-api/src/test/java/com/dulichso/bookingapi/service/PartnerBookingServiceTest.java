@@ -36,6 +36,7 @@ class PartnerBookingServiceTest {
     @Mock EntityManager em;
     @Mock NotificationRecorder notifications;
     @Mock NotificationService notificationService;
+    @Mock ResponseDeadlineService deadlines;
     PartnerBookingService service;
     final UserPrincipal principal = new UserPrincipal(null, "provider@example.test", AccountRole.PROVIDER, null);
     Account account;
@@ -44,7 +45,7 @@ class PartnerBookingServiceTest {
     Booking booking;
 
     @BeforeEach void setup() {
-        service = new PartnerBookingService(homestays, bookings, nights, rooms, calendar, em, notifications, notificationService);
+        service = new PartnerBookingService(homestays, bookings, nights, rooms, calendar, em, notifications, notificationService, deadlines);
         Provider provider = Provider.builder().id(12L).build();
         account = Account.builder().id(7L).role(AccountRole.PROVIDER).provider(provider).build();
         place = Place.builder().id(21L).name("Homestay A").provider(provider).build();
@@ -55,6 +56,7 @@ class PartnerBookingServiceTest {
                 .guestName("Khách").guestPhone("0912345678").status(BookingStatus.PENDING)
                 .holdExpiresAt(LocalDateTime.now().plusHours(6)).totalAmount(new BigDecimal("800000")).policySnapshot(new HashMap<>()).build();
         lenient().when(homestays.actor(eq(principal), anyBoolean())).thenReturn(account);
+        lenient().when(deadlines.dueAt(any(ResponseDeadlineService.BookingRef.class))).thenReturn(LocalDateTime.now().plusMinutes(60));
         @SuppressWarnings("unchecked") TypedQuery<BookingStatusHistory> history = mock(TypedQuery.class, RETURNS_SELF);
         lenient().when(history.getResultStream()).thenAnswer(i -> Stream.empty());
         lenient().when(em.createQuery(anyString(), eq(BookingStatusHistory.class))).thenReturn(history);
@@ -76,7 +78,7 @@ class PartnerBookingServiceTest {
         assertEquals("Vui lòng cho biết giờ đến dự kiến", saved.getMessage());
         assertEquals(7L, saved.getRequestedBy());
         verify(notifications).toCustomer(eq("BOOKING_INFO_REQUESTED"), eq("0912345678"), isNull(), eq("booking"), eq(50L), anyMap());
-        verifyNoInteractions(calendar);
+        verify(calendar, never()).lockedDay(any(), any());
     }
 
     @Test void secondOpenInfoRequestIsRejected() {
@@ -96,7 +98,13 @@ class PartnerBookingServiceTest {
     }
 
     /** Khách thanh toán trực tiếp tại chỗ nghỉ: chấp nhận = xác nhận luôn, phòng chuyển từ đang giữ sang đã xác nhận. */
+    private void evaluated(BookingEvaluation.Conclusion conclusion) {
+        lenient().when(em.find(BookingEvaluation.class, 50L)).thenReturn(BookingEvaluation.builder().bookingId(50L)
+                .conclusion(conclusion).evaluatedAt(LocalDateTime.now().plusSeconds(1)).build());
+    }
+
     @Test void acceptConfirmsBookingAndMovesHeldRoomsToConfirmed() {
+        evaluated(BookingEvaluation.Conclusion.MEETS);
         when(bookings.findLockedById(50L)).thenReturn(Optional.of(booking));
         when(rooms.findLockedById(3L)).thenReturn(Optional.of(room));
         RoomInventoryDay first = RoomInventoryDay.builder().totalRooms(3).heldRooms(1).confirmedRooms(0).stopSell(false).build();
@@ -124,7 +132,7 @@ class PartnerBookingServiceTest {
     }
 
     @Test void acceptAfterDecisionDeadlineIsRejected() {
-        booking.setHoldExpiresAt(LocalDateTime.now().minusMinutes(1));
+        when(deadlines.dueAt(any(ResponseDeadlineService.BookingRef.class))).thenReturn(LocalDateTime.now().minusMinutes(1));
         when(bookings.findLockedById(50L)).thenReturn(Optional.of(booking));
         var ex = assertThrows(ResponseStatusException.class, () -> service.accept(principal, 50L, new AcceptInput(null, null)));
         assertEquals(409, ex.getStatusCode().value());
@@ -133,6 +141,7 @@ class PartnerBookingServiceTest {
     }
 
     @Test void acceptingStoppedOrMissingHeldInventoryIsRejected() {
+        evaluated(BookingEvaluation.Conclusion.MEETS);
         when(bookings.findLockedById(50L)).thenReturn(Optional.of(booking));
         when(rooms.findLockedById(3L)).thenReturn(Optional.of(room));
         var day=RoomInventoryDay.builder().totalRooms(3).heldRooms(1).confirmedRooms(0).stopSell(true).build();
@@ -176,49 +185,104 @@ class PartnerBookingServiceTest {
         verifyNoInteractions(calendar);
     }
 
-    @Test void acceptWithAlternativeRoomMovesHoldAndRepricesNights() {
-        RoomType larger = RoomType.builder().id(4L).place(place).name("Phòng gia đình").status("ACTIVE").maxOccupancy(4).totalRoomCount(2).build();
+    /** UC-NCC-08 luồng phụ 4: NCC không được tự đổi sản phẩm/giá để chấp nhận. */
+    @Test void acceptWithDifferentRoomIsRefusedWithoutTouchingInventory() {
+        evaluated(BookingEvaluation.Conclusion.MEETS);
         when(bookings.findLockedById(50L)).thenReturn(Optional.of(booking));
-        when(rooms.findLockedById(3L)).thenReturn(Optional.of(room));
-        when(rooms.findLockedById(4L)).thenReturn(Optional.of(larger));
-        LocalDate d1 = booking.getCheckIn(), d2 = d1.plusDays(1);
-        RoomInventoryDay oldA = RoomInventoryDay.builder().totalRooms(3).heldRooms(1).build();
-        RoomInventoryDay oldB = RoomInventoryDay.builder().totalRooms(3).heldRooms(1).build();
-        RoomInventoryDay newA = RoomInventoryDay.builder().totalRooms(2).heldRooms(0).confirmedRooms(1).build();
-        RoomInventoryDay newB = RoomInventoryDay.builder().totalRooms(2).heldRooms(0).confirmedRooms(0).build();
-        when(calendar.lockedDay(room, d1)).thenReturn(oldA);
-        when(calendar.lockedDay(room, d2)).thenReturn(oldB);
-        when(calendar.lockedDay(larger, d1)).thenReturn(newA);
-        when(calendar.lockedDay(larger, d2)).thenReturn(newB);
-        when(calendar.calendar(larger, d1, booking.getCheckOut())).thenReturn(List.of(
-                new InventoryDto(d1, 2, 1, 1, 0, false, new BigDecimal("600000"), null),
-                new InventoryDto(d2, 2, 1, 0, 1, false, new BigDecimal("700000"), null)));
-        when(nights.findByBookingId(50L)).thenReturn(List.of());
-
-        service.accept(principal, 50L, new AcceptInput(4L, null));
-
-        // Nhả phòng cũ; phòng mới được giữ rồi chuyển luôn sang đã xác nhận.
-        assertEquals(0, oldA.getHeldRooms());
-        assertEquals(0, oldB.getHeldRooms());
-        assertEquals(0, newA.getHeldRooms());
-        assertEquals(2, newA.getConfirmedRooms());
-        assertEquals(0, newB.getHeldRooms());
-        assertEquals(1, newB.getConfirmedRooms());
-        assertSame(larger, booking.getRoomType());
-        assertEquals(new BigDecimal("1300000"), booking.getTotalAmount());
-        assertEquals(BookingStatus.CONFIRMED, booking.getStatus());
-        verify(nights, times(2)).save(any(BookingNight.class));
+        assertEquals(400, assertThrows(ResponseStatusException.class, () -> service.accept(principal, 50L, new AcceptInput(4L, null))).getStatusCode().value());
+        assertSame(room, booking.getRoomType());
+        assertEquals(BookingStatus.PENDING, booking.getStatus());
+        verifyNoInteractions(calendar);
     }
 
-    @Test void alternativeRoomWithoutFreeRoomsIsRejected() {
-        RoomType other = RoomType.builder().id(4L).place(place).status("ACTIVE").maxOccupancy(2).totalRoomCount(1).build();
+    /** UC-NCC-07/08: phải có kết quả đánh giá "Đáp ứng" còn hiệu lực trước khi chấp nhận. */
+    @Test void acceptRequiresMeetsEvaluationThatIsNotStale() {
         when(bookings.findLockedById(50L)).thenReturn(Optional.of(booking));
         when(rooms.findLockedById(3L)).thenReturn(Optional.of(room));
-        when(rooms.findLockedById(4L)).thenReturn(Optional.of(other));
-        when(calendar.lockedDay(eq(room), any())).thenAnswer(i -> RoomInventoryDay.builder().totalRooms(3).heldRooms(1).build());
-        when(calendar.lockedDay(other, booking.getCheckIn())).thenReturn(RoomInventoryDay.builder().totalRooms(1).heldRooms(0).confirmedRooms(1).build());
-        assertEquals(409, assertThrows(ResponseStatusException.class, () -> service.accept(principal, 50L, new AcceptInput(4L, null))).getStatusCode().value());
+        assertEquals(409, assertThrows(ResponseStatusException.class, () -> service.accept(principal, 50L, new AcceptInput(null, null))).getStatusCode().value());
+        evaluated(BookingEvaluation.Conclusion.NEEDS_ADJUSTMENT);
+        assertEquals(409, assertThrows(ResponseStatusException.class, () -> service.accept(principal, 50L, new AcceptInput(null, null))).getStatusCode().value());
+        when(em.find(BookingEvaluation.class, 50L)).thenReturn(BookingEvaluation.builder().bookingId(50L)
+                .conclusion(BookingEvaluation.Conclusion.MEETS).evaluatedAt(LocalDateTime.now().minusHours(1)).build());
+        room.setUpdatedAt(LocalDateTime.now());
+        assertEquals(409, assertThrows(ResponseStatusException.class, () -> service.accept(principal, 50L, new AcceptInput(null, null))).getStatusCode().value());
+        assertEquals(BookingStatus.PENDING, booking.getStatus());
+        verifyNoInteractions(calendar);
+    }
+
+    private void noOpenInfoRequest() {
+        @SuppressWarnings("unchecked") TypedQuery<Long> open = mock(TypedQuery.class, RETURNS_SELF);
+        lenient().when(open.getSingleResult()).thenReturn(0L);
+        lenient().when(em.createQuery(anyString(), eq(Long.class))).thenReturn(open);
+    }
+
+    @Test void evaluationMeetsIsSavedWithoutChangingBookingStatus() {
+        noOpenInfoRequest();
+        when(bookings.findLockedById(50L)).thenReturn(Optional.of(booking));
+        when(rooms.findLockedById(3L)).thenReturn(Optional.of(room));
+        var result = service.evaluate(principal, 50L, new EvaluationInput(BookingEvaluation.Conclusion.MEETS, null, "  Đủ phòng  "));
+        assertEquals(BookingStatus.PENDING, result.status());
+        var captor = ArgumentCaptor.forClass(Object.class);
+        verify(em).persist(captor.capture());
+        BookingEvaluation saved = (BookingEvaluation) captor.getValue();
+        assertEquals(BookingEvaluation.Conclusion.MEETS, saved.getConclusion());
+        assertEquals("Đủ phòng", saved.getNote());
+        assertEquals(7L, saved.getEvaluatedBy());
+    }
+
+    @Test void evaluationNeedsSpecialRequestResultAndValidCapacity() {
+        noOpenInfoRequest();
+        booking.setGuestNote("Cần nôi em bé");
+        when(bookings.findLockedById(50L)).thenReturn(Optional.of(booking));
+        assertEquals(400, assertThrows(ResponseStatusException.class,
+                () -> service.evaluate(principal, 50L, new EvaluationInput(BookingEvaluation.Conclusion.MEETS, " ", null))).getStatusCode().value());
+        booking.setGuestCount(5);
+        when(rooms.findLockedById(3L)).thenReturn(Optional.of(room));
+        var ex = assertThrows(ResponseStatusException.class,
+                () -> service.evaluate(principal, 50L, new EvaluationInput(BookingEvaluation.Conclusion.MEETS, "Có nôi", null)));
+        assertEquals("Số khách vượt sức chứa phương án phòng.", ex.getReason());
         verify(em, never()).persist(any());
+    }
+
+    @Test void rejectAfterDeadlineIsRefused() {
+        when(deadlines.dueAt(any(ResponseDeadlineService.BookingRef.class))).thenReturn(LocalDateTime.now().minusSeconds(1));
+        when(bookings.findLockedById(50L)).thenReturn(Optional.of(booking));
+        assertEquals(409, assertThrows(ResponseStatusException.class, () -> service.reject(principal, 50L, new RejectInput("Hết phòng"))).getStatusCode().value());
+        verifyNoInteractions(calendar);
+    }
+
+    /** UC-NCC-08 luồng phụ 2: quá hạn thì hệ thống chuyển Hết hạn và trả phòng đã giữ đúng một lần. */
+    @Test void overduePendingBookingIsExpiredAndHoldReleased() {
+        @SuppressWarnings("unchecked") TypedQuery<Booking> pending = mock(TypedQuery.class, RETURNS_SELF);
+        when(pending.getResultList()).thenReturn(List.of(booking));
+        when(em.createQuery(anyString(), eq(Booking.class))).thenReturn(pending);
+        when(deadlines.dueAt(anyCollection())).thenReturn(Map.of(50L, LocalDateTime.now().minusMinutes(5)));
+        when(bookings.findLockedById(50L)).thenReturn(Optional.of(booking));
+        when(rooms.findLockedById(3L)).thenReturn(Optional.of(room));
+        RoomInventoryDay first = RoomInventoryDay.builder().totalRooms(3).heldRooms(1).build();
+        RoomInventoryDay second = RoomInventoryDay.builder().totalRooms(3).heldRooms(1).build();
+        when(calendar.lockedDay(room, booking.getCheckIn())).thenReturn(first);
+        when(calendar.lockedDay(room, booking.getCheckIn().plusDays(1))).thenReturn(second);
+
+        assertEquals(1, service.expireOverdue());
+        assertEquals(BookingStatus.EXPIRED, booking.getStatus());
+        assertEquals(ActorType.SYSTEM, booking.getClosedByActor());
+        assertEquals(0, first.getHeldRooms());
+        assertEquals(0, second.getHeldRooms());
+        assertEquals(ActorType.SYSTEM, capturedHistory().getActor());
+        // Chạy lại không trả phòng lần hai.
+        assertEquals(0, service.expireOverdue());
+        assertEquals(0, first.getHeldRooms());
+    }
+
+    @Test void bookingStillWithinDeadlineIsNotExpired() {
+        @SuppressWarnings("unchecked") TypedQuery<Booking> pending = mock(TypedQuery.class, RETURNS_SELF);
+        when(pending.getResultList()).thenReturn(List.of(booking));
+        when(em.createQuery(anyString(), eq(Booking.class))).thenReturn(pending);
+        when(deadlines.dueAt(anyCollection())).thenReturn(Map.of(50L, LocalDateTime.now().plusMinutes(5)));
+        assertEquals(0, service.expireOverdue());
+        assertEquals(BookingStatus.PENDING, booking.getStatus());
+        verifyNoInteractions(calendar);
     }
 
     // ---------------------------------------------------------------- vận hành lưu trú
