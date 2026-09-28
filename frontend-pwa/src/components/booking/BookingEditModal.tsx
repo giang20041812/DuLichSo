@@ -18,7 +18,7 @@ import {
   Search,
 } from 'lucide-react';
 import type { BookingResponseDto, UpdateBookingDetailsRequest, CheckAvailabilityResponse, BookedDateRangeDto } from '@/types/booking';
-import { updateBookingDetails, checkRoomAvailability, fetchBookedDatesByRoom } from '@/services/bookingService';
+import { updateBookingDetails, createChangeRequest, checkRoomAvailability, fetchBookedDatesByRoom } from '@/services/bookingService';
 import RoomAvailabilityCalendar from '@/components/homestay/RoomAvailabilityCalendar';
 
 interface BookingEditModalProps {
@@ -170,7 +170,9 @@ export default function BookingEditModal({
         serviceItems: booking.serviceItems || [],
       };
 
-      const updated = await updateBookingDetails(booking.bookingCode, payload);
+      const updated = isConfirmed
+        ? await createChangeRequest(booking.bookingCode, payload)
+        : await updateBookingDetails(booking.bookingCode, payload);
       onSuccess(updated);
       onClose();
     } catch (err: unknown) {

@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { fetchFestivals, FestivalDto } from '@/services/festivalService';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { CardSkeleton } from '@/components/ui/CardSkeleton';
+import { SakuraBlossomIcon } from '@/components/ui/SakuraBlossomIcon';
 import {
   Calendar,
   MapPin,
@@ -18,6 +20,21 @@ export default function CultureFestivalPage() {
   const [activeSeason, setActiveSeason] = useState<'ALL' | 'CURRENT' | 'SPRING' | 'AUTUMN'>('ALL');
 
   const currentMonth = new Date().getMonth() + 1;
+
+  const hasMonthInRange = (festival: FestivalDto, months: number[]) => {
+    if (!festival.suitableDateStart || !festival.suitableDateEnd) {
+      return false;
+    }
+
+    const startMonth = Number(festival.suitableDateStart.split('-')[1]);
+    const endMonth = Number(festival.suitableDateEnd.split('-')[1]);
+    return months.some(month => {
+      if (startMonth <= endMonth) {
+        return month >= startMonth && month <= endMonth;
+      }
+      return month >= startMonth || month <= endMonth;
+    });
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -36,9 +53,9 @@ export default function CultureFestivalPage() {
     if (activeSeason === 'CURRENT') {
       matchSeason = Boolean(f.isSuitableByTime || f.isCurrentSeason);
     } else if (activeSeason === 'AUTUMN') {
-      matchSeason = f.slug === 'mua-vang-kham-pha-ruong-bac-thang' || f.slug === 'mung-com-moi' || f.seasonNote.toLowerCase().includes('tháng 9') || f.seasonNote.toLowerCase().includes('tháng 10');
+      matchSeason = hasMonthInRange(f, [9, 10, 11]);
     } else if (activeSeason === 'SPRING') {
-      matchSeason = f.slug === 'hoa-to-day' || f.slug === 'festival-khen-mong' || f.slug === 'gau-tao' || f.seasonNote.toLowerCase().includes('xuân') || f.seasonNote.toLowerCase().includes('tháng 12');
+      matchSeason = hasMonthInRange(f, [12, 1, 2, 3]);
     }
 
     return matchSeason;
@@ -79,7 +96,7 @@ export default function CultureFestivalPage() {
 
         {/* 🌟 1. BANNER GỢI Ý ĐẶC BIỆT CHO THỜI ĐIỂM HIỆN TẠI (THÁNG 9 - 10) 🌟 */}
         {currentSeasonFestivals.length > 0 && (
-          <div className="mb-10 p-5 md:p-6 bg-gradient-to-br from-[#10b981]/10 via-[#06b6d4]/10 to-amber-500/10 rounded-xl border border-[#10b981]/30 shadow-sm relative overflow-hidden">
+          <div className="hidden mb-10 p-5 md:p-6 bg-gradient-to-br from-[#10b981]/10 via-[#06b6d4]/10 to-amber-500/10 rounded-xl border border-[#10b981]/30 shadow-sm relative overflow-hidden">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
               <div>
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500 text-white font-bold text-xs uppercase tracking-wider mb-2 shadow-xs">
@@ -200,19 +217,22 @@ export default function CultureFestivalPage() {
 
         {/* List of Festivals */}
         {loading ? (
-          <div className="flex items-center justify-center p-12 text-[var(--color-primary)] font-bold">
+          <>
+            <CardSkeleton count={6} layout="grid-2" imageHeight="h-52" />
+            <div className="hidden flex items-center justify-center p-12 text-[var(--color-primary)] font-bold">
             Đang tải dữ liệu lễ hội văn hóa...
-          </div>
+            </div>
+          </>
         ) : (
-          <div className="flex flex-col gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {filteredFestivals.map((fest) => (
               <div
                 key={fest.id}
                 id={`festival-${fest.slug}`}
-                className="bg-white border border-gray-200/90 rounded-lg overflow-hidden shadow-xs hover:shadow-md transition-all duration-300 flex flex-col lg:flex-row"
+                className="bg-white border border-gray-200/90 rounded-lg overflow-hidden shadow-xs hover:shadow-md transition-all duration-300 flex flex-col"
               >
                 {/* Image */}
-                <div className="relative w-full lg:w-[380px] h-[240px] lg:h-auto shrink-0 bg-gray-100 overflow-hidden">
+                <div className="relative w-full h-[220px] shrink-0 bg-gray-100 overflow-hidden">
                   <Link to={`/festivals/${fest.slug}`} className="block w-full h-full">
                     <img
                       src={fest.coverImageUrl}
@@ -225,7 +245,8 @@ export default function CultureFestivalPage() {
                       {fest.highlightTag}
                     </Badge>
                     {(fest.isSuitableByTime || fest.isCurrentSeason) && (
-                      <Badge className="bg-amber-500 text-white text-xs font-bold rounded-sm px-2.5 py-0.5 shadow-xs flex items-center gap-1">
+                      <Badge className="festival-season-badge bg-amber-500 text-white text-xs font-bold rounded-sm px-2.5 py-0.5 shadow-xs flex items-center gap-1 [&>svg:nth-child(2)]:hidden">
+                        <SakuraBlossomIcon className="w-3.5 h-3.5" />
                         <Flame className="w-3 h-3 fill-white" /> Thích hợp theo mùa
                       </Badge>
                     )}

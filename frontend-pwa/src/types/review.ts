@@ -1,6 +1,7 @@
 export interface ReviewDto {
   id: number;
   placeId: number;
+  bookingCode: string;
   rating: number;
   content: string;
   images?: string[];

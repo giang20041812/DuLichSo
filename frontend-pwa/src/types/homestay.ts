@@ -149,6 +149,7 @@ export interface HomestayDetailDto {
   name: string;
   description: string;
   kind: string;
+  operationStatus: PlaceOperationStatus;
   address: string;
   district?: string;
   latitude: number;
@@ -175,6 +176,8 @@ export interface HomestayDetailDto {
 export interface NearbyPlaceDto {
   id: number;
   name: string;
+  description?: string;
+  imageUrl?: string;
   kind: string;
   distance: number;
   latitude?: number;

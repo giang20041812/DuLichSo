@@ -23,7 +23,7 @@ export default function HomestayClosurePanel({ placeId, onChanged }: { placeId: 
     try {
       const { bookedDays } = await partnerRoomService.blockHomestay(placeId, { startDate: from, endDate: nextDay(to), stopSell, reason: stopSell ? reason.trim() : undefined });
       setMessage(stopSell
-        ? `Đã ngừng nhận khách từ ${from} đến ${to}.${bookedDays > 0 ? ` Có ${bookedDays} ngày-loại phòng đã có đơn — hãy liên hệ khách nếu cần.` : ''}`
+        ? `Đã ngừng nhận khách từ ${from} đến ${to}.${bookedDays > 0 ? ` Có ${bookedDays} ngày-loại phòng đã có đơn — các đơn hiện hữu vẫn được giữ nguyên.` : ''}`
         : `Đã mở lại nhận khách từ ${from} đến ${to}.`);
       if (stopSell) setReason('');
       onChanged?.();
@@ -49,7 +49,7 @@ export default function HomestayClosurePanel({ placeId, onChanged }: { placeId: 
         <div className="flex flex-wrap gap-2">
           <button type="button" disabled={invalid || !reason.trim()}
             onClick={() => setConfirm({ title: 'Ngừng phục vụ cả Homestay?', confirmLabel: 'Ngừng phục vụ', tone: 'danger',
-              body: <>Từ <b>{from}</b> đến hết <b>{to}</b>, mọi loại phòng ngừng nhận đặt mới.<br />Lý do: “{reason.trim()}”</>, onConfirm: () => void run(true) })}
+              body: <>Từ <b>{from}</b> đến hết <b>{to}</b>, mọi loại phòng ngừng nhận đặt mới; các đơn hiện hữu vẫn được giữ nguyên.<br />Lý do: “{reason.trim()}”</>, onConfirm: () => void run(true) })}
             className="rounded-md border border-danger px-4 py-2 text-sm font-semibold text-danger transition-colors duration-200 hover:bg-danger/5 disabled:opacity-50">
             Ngừng phục vụ các ngày này
           </button>

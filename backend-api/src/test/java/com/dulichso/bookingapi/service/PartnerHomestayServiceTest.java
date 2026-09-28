@@ -23,6 +23,7 @@ class PartnerHomestayServiceTest {
     @Mock PlaceContactRepository contacts;
     @Mock PlaceAmenityRepository amenities;
     @Mock PartnerChangeRequestRepository changeRequests;
+    @Mock BookingImpactService bookingImpact;
     PartnerHomestayService service;
     // JwtAuthenticationFilter supplies an identifier, not account/provider IDs.
     final UserPrincipal principal = new UserPrincipal(null, "provider@example.test", AccountRole.PROVIDER, null);
@@ -30,7 +31,7 @@ class PartnerHomestayServiceTest {
     Place place;
 
     @BeforeEach void setup() {
-        service = new PartnerHomestayService(repository, accounts, contacts, amenities, changeRequests);
+        service = new PartnerHomestayService(repository, accounts, contacts, amenities, changeRequests, bookingImpact);
         Provider provider = Provider.builder().id(12L).name("Nhà cung cấp A").build();
         account = Account.builder().id(7L).role(AccountRole.PROVIDER).provider(provider).build();
         place = Place.builder().id(21L).name("Homestay A").nameNorm("homestay a").description("Mô tả")

@@ -44,7 +44,16 @@ export function GoogleSignInButton({
 
     setIsLoading(true);
     try {
-      const idToken = await signInWithGooglePopup();
+      const idToken = await Promise.race([
+        signInWithGooglePopup(),
+        new Promise<never>((_, reject) => {
+          window.setTimeout(() => {
+            const error = new Error('Google popup closed');
+            Object.assign(error, { code: 'auth/popup-closed-by-user' });
+            reject(error);
+          }, 15000);
+        }),
+      ]);
       await onCredential(idToken);
     } catch (err: unknown) {
       // Người dùng tắt popup trước khi đăng nhập

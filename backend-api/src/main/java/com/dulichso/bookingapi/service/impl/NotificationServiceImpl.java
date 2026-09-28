@@ -33,7 +33,7 @@ public class NotificationServiceImpl implements NotificationService {
     @Transactional
     public NotificationDto notifyBookingStatusChange(Booking booking, BookingStatus newStatus, String reason) {
         if (booking == null || newStatus == null) return null;
-        if (newStatus != BookingStatus.CONFIRMED && newStatus != BookingStatus.REJECTED) {
+        if (newStatus != BookingStatus.CONFIRMED && newStatus != BookingStatus.REJECTED && newStatus != BookingStatus.CANCELLED) {
             return null;
         }
 
@@ -46,11 +46,16 @@ public class NotificationServiceImpl implements NotificationService {
             templateCode = "BOOKING_CONFIRMED";
             title = "Đặt phòng đã được xác nhận";
             message = "Đơn đặt phòng " + booking.getBookingCode() + " tại " + placeName + " đã được xác nhận thành công. Chúc bạn có kỳ nghỉ tuyệt vời!";
-        } else {
+        } else if (newStatus == BookingStatus.REJECTED) {
             templateCode = "BOOKING_REJECTED";
             title = "Đơn đặt phòng bị từ chối";
             String reasonText = (reason != null && !reason.isBlank()) ? (" Lý do: " + reason.trim()) : "";
             message = "Rất tiếc, đơn đặt phòng " + booking.getBookingCode() + " tại " + placeName + " đã bị từ chối." + reasonText;
+        } else {
+            templateCode = "BOOKING_CANCELLED_PROVIDER_LOCKED";
+            title = "Đơn đặt phòng đã bị hủy";
+            message = "Đơn đặt phòng " + booking.getBookingCode() + " tại " + placeName + " đã bị hủy do Homestay/NCC ngừng phục vụ." +
+                    ((reason == null || reason.isBlank()) ? "" : " Lý do: " + reason.trim());
         }
 
         NotificationTemplate template = ensureTemplateExists(templateCode, title, message);
@@ -85,6 +90,45 @@ public class NotificationServiceImpl implements NotificationService {
                 booking.getGuestEmail() != null ? booking.getGuestEmail() : booking.getGuestPhone(),
                 booking.getBookingCode(), newStatus);
 
+        return mapToDto(saved);
+    }
+
+    @Override
+    @Transactional
+    public NotificationDto notifyBookingChangeRequestDecision(Booking booking, boolean approved, String rejectionReason) {
+        if (booking == null) return null;
+
+        String title = approved ? "Yêu cầu thay đổi Booking đã được duyệt" : "Yêu cầu thay đổi Booking bị từ chối";
+        String message = approved
+                ? "Yêu cầu thay đổi của Booking " + booking.getBookingCode() + " đã được nhà cung cấp duyệt."
+                : "Yêu cầu thay đổi của Booking " + booking.getBookingCode() + " đã bị từ chối."
+                    + ((rejectionReason == null || rejectionReason.isBlank()) ? "" : " Lý do: " + rejectionReason.trim());
+        String templateCode = approved ? "BOOKING_CHANGE_APPROVED" : "BOOKING_CHANGE_REJECTED";
+        NotificationTemplate template = ensureTemplateExists(templateCode, title, message);
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("title", title);
+        payload.put("message", message);
+        payload.put("bookingCode", booking.getBookingCode());
+        payload.put("bookingStatus", approved ? "CHANGE_APPROVED" : "CHANGE_REJECTED");
+        payload.put("isRead", false);
+        if (!approved && rejectionReason != null && !rejectionReason.isBlank()) {
+            payload.put("rejectionReason", rejectionReason.trim());
+        }
+
+        Notification saved = notificationRepository.save(Notification.builder()
+                .template(template)
+                .channel(NotificationChannel.IN_APP)
+                .recipientType(RecipientType.CUSTOMER)
+                .recipientEmail(booking.getGuestEmail())
+                .recipientPhone(booking.getGuestPhone())
+                .relatedEntityType("booking_change_request")
+                .relatedEntityId(booking.getId())
+                .payload(payload)
+                .status(NotificationStatus.SENT)
+                .createdAt(LocalDateTime.now())
+                .sentAt(LocalDateTime.now())
+                .build());
         return mapToDto(saved);
     }
 

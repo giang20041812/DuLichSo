@@ -47,6 +47,7 @@ export interface PartnerHomestayPageResponse {
 export interface UpdateStatusRequest {
   visibility?: PlaceVisibility;
   operationStatus?: PlaceOperationStatus;
+  reason?: string;
 }
 
 export interface PartnerHomestayDetailDto {

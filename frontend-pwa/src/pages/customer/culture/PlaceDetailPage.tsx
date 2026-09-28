@@ -32,6 +32,7 @@ import {
   MessageCircle
 } from 'lucide-react';
 import { openGoogleMapsDirections } from '@/lib/mapUtils';
+import TikTokEmbedPlayer from '@/components/homestay/TikTokEmbedPlayer';
 
 
 
@@ -191,9 +192,11 @@ export default function PlaceDetailPage() {
     : [];
 
   // Coordinates
-  const lat = place.latitude || 21.8588;
-  const lng = place.longitude || 104.0845;
+  const hasCoordinates = Number.isFinite(place.latitude) && Number.isFinite(place.longitude);
+  const lat = hasCoordinates ? place.latitude : 21.8588;
+  const lng = hasCoordinates ? place.longitude : 104.0845;
   const addressText = place.address || (place.regionName ? `Khu vực ${place.regionName}, Mù Cang Chải, Yên Bái` : 'Huyện Mù Cang Chải, Tỉnh Yên Bái');
+  const tiktokContact = place.contacts.find((contact) => contact.channel === 'TIKTOK' && contact.value);
 
   // Markers for VietMap
   const markers: VietmapMarkerItem[] = [
@@ -373,6 +376,14 @@ export default function PlaceDetailPage() {
             </div>
           )}
 
+          {tiktokContact && (
+            <TikTokEmbedPlayer
+              url={tiktokContact.value}
+              homestayName={place.name}
+              className="w-full border-0 shadow-none"
+            />
+          )}
+
           {/* 1. Description */}
           <div className="bg-white rounded-lg border border-gray-200 p-5 md:p-6 shadow-xs">
             <div className="flex items-center gap-2 mb-3 pb-3 border-b border-gray-100">
@@ -499,15 +510,17 @@ export default function PlaceDetailPage() {
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={() => openGoogleMapsDirections(lat, lng, addressText || place.name)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-bold rounded-md border border-blue-200 hover:bg-blue-100 transition-colors shrink-0 cursor-pointer"
-                title="Chỉ đường từ vị trí của bạn"
-              >
-                <MapIcon className="w-3.5 h-3.5 text-blue-600" />
-                <span>Chỉ đường trên Google Maps</span>
-              </button>
+              {hasCoordinates && (
+                <button
+                  type="button"
+                  onClick={() => openGoogleMapsDirections(lat, lng, addressText || place.name)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-bold rounded-md border border-blue-200 hover:bg-blue-100 transition-colors shrink-0 cursor-pointer"
+                  title="Mở Google Maps để chọn điểm xuất phát"
+                >
+                  <MapIcon className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Chỉ đường trên Google Maps</span>
+                </button>
+              )}
             </div>
 
             {/* Address Info */}

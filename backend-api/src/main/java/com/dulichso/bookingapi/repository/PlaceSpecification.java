@@ -1,11 +1,10 @@
 package com.dulichso.bookingapi.repository;
 
 import com.dulichso.bookingapi.entity.Amenity;
-import com.dulichso.bookingapi.entity.Booking;
-import com.dulichso.bookingapi.entity.BookingNight;
 import com.dulichso.bookingapi.entity.Place;
 import com.dulichso.bookingapi.entity.PlaceAmenity;
 import com.dulichso.bookingapi.entity.RoomAmenity;
+import com.dulichso.bookingapi.entity.RoomInventoryDay;
 import com.dulichso.bookingapi.entity.RoomType;
 import com.dulichso.bookingapi.entity.enums.AmenityValue;
 import com.dulichso.bookingapi.entity.enums.CategoryKind;
@@ -35,7 +34,8 @@ public class PlaceSpecification {
             String district,
             String ward,
             List<Long> attractionIds,
-            String keyword) {
+            String keyword,
+            Integer guestCount) {
             
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -43,14 +43,26 @@ public class PlaceSpecification {
             if (keyword != null && !keyword.trim().isEmpty()) {
                 String pattern = "%" + keyword.toLowerCase().trim() + "%";
                 Predicate nameMatch = cb.like(cb.lower(root.get("name")), pattern);
-                Predicate descMatch = cb.like(cb.lower(root.get("description")), pattern);
-                Predicate addressMatch = cb.like(cb.lower(root.get("address")), pattern);
-                predicates.add(cb.or(nameMatch, descMatch, addressMatch));
+                predicates.add(nameMatch);
             }
             
             // 1. Default filters for public view
             predicates.add(cb.equal(root.get("visibility"), PlaceVisibility.PUBLISHED));
+            predicates.add(cb.equal(root.get("operationStatus"), com.dulichso.bookingapi.entity.enums.PlaceOperationStatus.OPERATING));
             predicates.add(cb.isFalse(root.get("isDeleted")));
+
+            if (guestCount != null) {
+                Subquery<Long> guestRoomSq = query.subquery(Long.class);
+                Root<RoomType> guestRoomRoot = guestRoomSq.from(RoomType.class);
+                guestRoomSq.select(cb.count(guestRoomRoot));
+                guestRoomSq.where(
+                        cb.equal(guestRoomRoot.get("place"), root),
+                        cb.equal(guestRoomRoot.get("status"), "ACTIVE"),
+                        cb.greaterThanOrEqualTo(guestRoomRoot.get("maxOccupancy"), guestCount),
+                        cb.greaterThan(guestRoomRoot.get("totalRoomCount"), 0)
+                );
+                predicates.add(cb.greaterThan(guestRoomSq, 0L));
+            }
             
             // 2. Date availability check (Nếu chỉ chọn checkIn thì kiểm tra đêm lưu trú checkIn đến checkIn + 1)
             LocalDate effectiveCheckIn = checkIn;
@@ -65,24 +77,36 @@ public class PlaceSpecification {
                 availableRtSq.select(cb.count(rtRoot));
                 
                 Predicate placeMatch = cb.equal(rtRoot.get("place"), root);
-                
-                Subquery<Integer> bookedSq = availableRtSq.subquery(Integer.class);
-                Root<BookingNight> bnRoot = bookedSq.from(BookingNight.class);
-                Join<BookingNight, Booking> bJoin = bnRoot.join("booking");
-                
-                bookedSq.select(cb.sum(bnRoot.get("roomCount")));
-                bookedSq.where(
-                    cb.equal(bJoin.get("roomType"), rtRoot),
-                    cb.greaterThanOrEqualTo(bnRoot.get("id").get("stayDate"), effectiveCheckIn),
-                    cb.lessThan(bnRoot.get("id").get("stayDate"), effectiveCheckOut),
-                    cb.notEqual(bJoin.get("status"), com.dulichso.bookingapi.entity.enums.BookingStatus.CANCELLED)
+
+                // RoomInventoryDay is the source of truth used by the booking flow.
+                // A missing row means the room has its default total capacity and no
+                // rooms are occupied yet. Reject a room type when any requested night
+                // is stop-sold or has no remaining inventory.
+                Subquery<Long> unavailableDaySq = availableRtSq.subquery(Long.class);
+                Root<RoomInventoryDay> inventoryRoot = unavailableDaySq.from(RoomInventoryDay.class);
+                jakarta.persistence.criteria.Expression<Integer> heldRooms = cb.coalesce(inventoryRoot.<Integer>get("heldRooms"), 0);
+                jakarta.persistence.criteria.Expression<Integer> confirmedRooms = cb.coalesce(inventoryRoot.<Integer>get("confirmedRooms"), 0);
+                jakarta.persistence.criteria.Expression<Integer> occupiedRooms = cb.sum(heldRooms, confirmedRooms);
+
+                unavailableDaySq.select(cb.literal(1L));
+                unavailableDaySq.where(
+                        cb.equal(inventoryRoot.get("roomType"), rtRoot),
+                        cb.greaterThanOrEqualTo(inventoryRoot.get("id").get("stayDate"), effectiveCheckIn),
+                        cb.lessThan(inventoryRoot.get("id").get("stayDate"), effectiveCheckOut),
+                        cb.or(
+                                cb.isTrue(inventoryRoot.get("stopSell")),
+                                cb.lessThanOrEqualTo(inventoryRoot.<Integer>get("totalRooms"), occupiedRooms)
+                        )
                 );
-                bookedSq.groupBy(bnRoot.get("id").get("stayDate"));
-                bookedSq.having(cb.greaterThanOrEqualTo(cb.sum(bnRoot.<Integer>get("roomCount")), rtRoot.<Integer>get("totalRoomCount")));
-                
-                Predicate isAvailable = cb.not(cb.exists(bookedSq));
-                
-                availableRtSq.where(placeMatch, isAvailable, cb.greaterThan(rtRoot.get("totalRoomCount"), 0));
+
+                Predicate isAvailable = cb.not(cb.exists(unavailableDaySq));
+
+                availableRtSq.where(
+                        placeMatch,
+                        cb.equal(rtRoot.get("status"), "ACTIVE"),
+                        isAvailable,
+                        cb.greaterThan(rtRoot.get("totalRoomCount"), 0)
+                );
                 
                 predicates.add(cb.greaterThan(availableRtSq, 0L));
             }
@@ -139,12 +163,42 @@ public class PlaceSpecification {
             }
             
             // 4. Price range
+            if (kind == CategoryKind.HOMESTAY || minPrice != null || maxPrice != null) {
+            Subquery<Long> activePricedRoomSq = query.subquery(Long.class);
+            Root<RoomType> activePricedRoomRoot = activePricedRoomSq.from(RoomType.class);
+            activePricedRoomSq.select(cb.count(activePricedRoomRoot));
+            activePricedRoomSq.where(
+                    cb.equal(activePricedRoomRoot.get("place"), root),
+                    cb.equal(activePricedRoomRoot.get("status"), "ACTIVE"),
+                    cb.isNotNull(activePricedRoomRoot.get("basePrice"))
+            );
+            predicates.add(cb.greaterThan(activePricedRoomSq, 0L));
+
             if (minPrice != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("priceRefMin"), minPrice));
+                Subquery<Long> cheaperRoomSq = query.subquery(Long.class);
+                Root<RoomType> cheaperRoomRoot = cheaperRoomSq.from(RoomType.class);
+                cheaperRoomSq.select(cb.count(cheaperRoomRoot));
+                cheaperRoomSq.where(
+                        cb.equal(cheaperRoomRoot.get("place"), root),
+                        cb.equal(cheaperRoomRoot.get("status"), "ACTIVE"),
+                        cb.isNotNull(cheaperRoomRoot.get("basePrice")),
+                        cb.lessThan(cheaperRoomRoot.get("basePrice"), minPrice)
+                );
+                predicates.add(cb.equal(cheaperRoomSq, 0L));
             }
-            
+
             if (maxPrice != null) {
-                predicates.add(cb.lessThanOrEqualTo(root.get("priceRefMin"), maxPrice));
+                Subquery<Long> affordableRoomSq = query.subquery(Long.class);
+                Root<RoomType> affordableRoomRoot = affordableRoomSq.from(RoomType.class);
+                affordableRoomSq.select(cb.count(affordableRoomRoot));
+                affordableRoomSq.where(
+                        cb.equal(affordableRoomRoot.get("place"), root),
+                        cb.equal(affordableRoomRoot.get("status"), "ACTIVE"),
+                        cb.isNotNull(affordableRoomRoot.get("basePrice")),
+                        cb.lessThanOrEqualTo(affordableRoomRoot.get("basePrice"), maxPrice)
+                );
+                predicates.add(cb.greaterThan(affordableRoomSq, 0L));
+            }
             }
             
             // 5. Rating

@@ -65,7 +65,9 @@ export default function RegisterPage() {
     }
 
     const trimmedPhone = phone.trim();
-    if (trimmedPhone && !VN_PHONE_REGEX.test(trimmedPhone)) {
+    if (!trimmedPhone) {
+      errs.phone = 'Vui lòng nhập số điện thoại.';
+    } else if (!VN_PHONE_REGEX.test(trimmedPhone)) {
       errs.phone = 'Số điện thoại không đúng định dạng (VD: 0912345678).';
     }
 
@@ -125,7 +127,7 @@ export default function RegisterPage() {
       const res = await travelerRegister({
         fullName: fullName.trim(),
         email: email.trim().toLowerCase(),
-        phone: phone.trim() || undefined,
+        phone: phone.trim(),
         password,
         confirmPassword,
       });
@@ -276,10 +278,10 @@ export default function RegisterPage() {
           )}
         </div>
 
-        {/* Số điện thoại (tùy chọn) */}
+        {/* Số điện thoại (bắt buộc) */}
         <div>
           <label htmlFor="phone" className="mb-1.5 flex items-center justify-between text-sm font-semibold text-ink-deep">
-            <span>Số điện thoại <span className="text-xs font-normal text-muted">(Không bắt buộc)</span></span>
+            <span>Số điện thoại <span className="text-danger">*</span></span>
             {phone && touched.phone && !errors.phone && (
               <span className="flex items-center gap-1 text-xs text-emerald-600">
                 <CheckCircle2 className="h-3.5 w-3.5" /> Hợp lệ

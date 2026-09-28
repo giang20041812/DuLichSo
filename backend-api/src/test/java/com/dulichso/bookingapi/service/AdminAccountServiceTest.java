@@ -37,13 +37,13 @@ class AdminAccountServiceTest {
     private com.dulichso.bookingapi.repository.ProviderRepository providerRepository;
 
     @Mock
-    private ProviderLockCascadeService providerLockCascadeService;
+    private BookingImpactService bookingImpactService;
 
     private AdminAccountService service;
 
     @BeforeEach
     void setUp() {
-        service = new AdminAccountService(accountRepository, passwordEncoder, auditLogService, providerRepository, providerLockCascadeService);
+        service = new AdminAccountService(accountRepository, passwordEncoder, auditLogService, providerRepository, bookingImpactService);
     }
 
     @Test

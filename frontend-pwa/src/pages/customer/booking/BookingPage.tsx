@@ -31,7 +31,7 @@ import {
   Lock
 } from 'lucide-react';
 import { BookingNavigationState, BookingResponseDto, BookingServiceItemDto, BookedDateRangeDto } from '@/types/booking';
-import { createBooking, saveUserBooking, fetchBookedDatesByPlace, fetchBookedDatesByRoom } from '@/services/bookingService';
+import { createBooking, saveUserBooking, fetchBookedDatesByPlace, fetchBookedDatesByRoom, quoteRoom } from '@/services/bookingService';
 import { fetchNearbyPlaces, getHomestayById } from '@/services/homestayService';
 import { getCurrentCustomer } from '@/services/authService';
 import { NearbyPlaceDto } from '@/types/homestay';
@@ -40,6 +40,7 @@ import { VietTrackLogoMark } from '@/components/ui/logo';
 import VietmapView from '@/components/map/VietmapView';
 import type { VietmapMarkerItem } from '@/types/integrations/vietmap';
 import RoomAvailabilityCalendar from '@/components/homestay/RoomAvailabilityCalendar';
+import { openGoogleMapsDirections } from '@/lib/mapUtils';
 
 // Helper tính khoảng cách Haversine chuẩn theo tọa độ GPS
 function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -587,6 +588,16 @@ export default function BookingPage() {
 
     setIsSubmitting(true);
     try {
+      const quote = await quoteRoom(navState.roomTypeId, checkIn, checkOut, roomCount, guestCount);
+      if (!quote.suitable || quote.availableRooms < roomCount) {
+        throw new Error('Phòng hoặc sức chứa không còn phù hợp với lựa chọn hiện tại.');
+      }
+      if (quote.totalAmount !== totalPrice) {
+        const accepted = window.confirm(
+          `Giá mới là ${quote.totalAmount.toLocaleString('vi-VN')}đ. Giá có thể đã thay đổi, bạn có xác nhận tiếp tục không?`
+        );
+        if (!accepted) return;
+      }
       const selectedRequests = (Object.entries(specialRequests) as [string, boolean][])
         .filter(([, v]) => v)
         .map(([k]) => k);
@@ -1262,22 +1273,33 @@ export default function BookingPage() {
                                   {item.displayDistance < 1 ? Math.round(item.displayDistance * 1000) + ' m' : item.displayDistance + ' km'}
                                 </span>
 
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenAddService(item)}
-                                  className={`w-7 h-7 rounded-md flex items-center justify-center transition-all cursor-pointer ${
-                                    isAdded
-                                      ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs'
-                                      : 'bg-[var(--color-primary-50)] text-[var(--color-primary)] border border-[var(--color-primary-200)] hover:bg-[var(--color-primary)] hover:text-white shadow-2xs'
-                                  }`}
-                                  title={isAdded ? 'Đã thêm vào booking (bấm để chỉnh sửa/hủy)' : 'Thêm tư vấn dịch vụ này vào booking'}
-                                >
-                                  {isAdded ? (
-                                    <Check className="w-3.5 h-3.5 stroke-[3]" />
-                                  ) : (
-                                    <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                                  )}
-                                </button>
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => openGoogleMapsDirections(item.latitude, item.longitude, `${item.address || ''} ${item.name}`)}
+                                    className="w-7 h-7 rounded-md flex items-center justify-center bg-white text-[var(--color-primary)] border border-[var(--color-primary-200)] hover:bg-[var(--color-primary)] hover:text-white transition-all cursor-pointer shadow-2xs"
+                                    title="Chỉ đường đến địa điểm này"
+                                    aria-label={`Chỉ đường đến ${item.name}`}
+                                  >
+                                    <MapIcon className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenAddService(item)}
+                                    className={`w-7 h-7 rounded-md flex items-center justify-center transition-all cursor-pointer ${
+                                      isAdded
+                                        ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs'
+                                        : 'bg-[var(--color-primary-50)] text-[var(--color-primary)] border border-[var(--color-primary-200)] hover:bg-[var(--color-primary)] hover:text-white shadow-2xs'
+                                    }`}
+                                    title={isAdded ? 'Đã thêm vào booking (bấm để chỉnh sửa/hủy)' : 'Thêm tư vấn dịch vụ này vào booking'}
+                                  >
+                                    {isAdded ? (
+                                      <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                    ) : (
+                                      <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                                    )}
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           </div>

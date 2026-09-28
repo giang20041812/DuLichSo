@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Bell, AlertCircle, Edit3, XCircle, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { partnerBookingService } from '@/services/partnerBookingService';
+import type { PartnerBookingRowDto } from '@/types/booking';
 
 type Notification = {
   id: string;
@@ -11,16 +13,55 @@ type Notification = {
   link: string;
 };
 
-// TODO: Fetch notifications from API when backend is ready
-const MOCK_NOTIFICATIONS: Notification[] = [];
-
 export default function PartnerNotificationDropdown() {
   const [open, setOpen] = useState(false);
-  const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
   const unreadCount = notifications.filter(n => !n.read).length;
+
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      try {
+        const [requests, pendingBookings] = await Promise.all([
+          partnerBookingService.getBookingChangeRequests(),
+          partnerBookingService.getBookings({ status: 'PENDING', page: 0, size: 100, sortBy: 'createdAt', sortDir: 'desc' }),
+        ]);
+        if (!active) return;
+        const newBookingNotifications = pendingBookings.content.map((booking: PartnerBookingRowDto) => ({
+          id: `new-booking-${booking.id}`,
+          type: 'NEW_BOOKING' as const,
+          title: `CÃ³ Ä‘Æ¡n má»›i cáº§n xá»­ lÃ½ #${booking.bookingCode}`,
+          time: new Date(booking.createdAt).toLocaleString('vi-VN'),
+          read: false,
+          link: `/partner/bookings/${booking.id}`,
+        }));
+        setNotifications([
+          ...newBookingNotifications,
+          ...requests
+          .filter((request) => request.status === 'PENDING')
+          .map((request) => ({
+            id: `booking-change-${request.id}`,
+            type: 'CHANGE_REQUEST' as const,
+            title: `Khách gửi yêu cầu đổi Booking #${request.bookingCode}`,
+            time: new Date(request.createdAt).toLocaleString('vi-VN'),
+            read: false,
+            link: '/partner/bookings',
+          })),
+        ]);
+      } catch {
+        if (active) setNotifications([]);
+      }
+    };
+    void load();
+    const timer = window.setInterval(() => void load(), 30000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {

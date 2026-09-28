@@ -24,15 +24,18 @@ public class AdminProviderService {
     private final AccountRepository accountRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
+    private final BookingImpactService bookingImpactService;
 
     public AdminProviderService(ProviderRepository providerRepository,
                                 AccountRepository accountRepository,
                                 PasswordEncoder passwordEncoder,
-                                AuditLogService auditLogService) {
+                                AuditLogService auditLogService,
+                                BookingImpactService bookingImpactService) {
         this.providerRepository = providerRepository;
         this.accountRepository = accountRepository;
         this.passwordEncoder = passwordEncoder;
         this.auditLogService = auditLogService;
+        this.bookingImpactService = bookingImpactService;
     }
 
     @Transactional(readOnly = true)
@@ -190,6 +193,10 @@ public class AdminProviderService {
         }
 
         ProviderStatus oldStatus = provider.getStatus();
+        if (request.getStatus() != ProviderStatus.ACTIVE && oldStatus == ProviderStatus.ACTIVE) {
+            bookingImpactService.cancelForProvider(provider.getId(),
+                    "Nhà cung cấp đã ngừng hoạt động: " + request.getReason().trim());
+        }
         provider.setStatus(request.getStatus());
         Provider saved = providerRepository.save(provider);
 

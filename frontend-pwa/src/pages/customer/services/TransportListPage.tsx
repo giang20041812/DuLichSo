@@ -23,6 +23,7 @@ import {
   Map
 } from 'lucide-react';
 import { openGoogleMapsDirections } from '@/lib/mapUtils';
+import { TikTokLogoIcon } from '@/components/homestay/TikTokEmbedPlayer';
 
 const CATEGORY_GROUPS = [
   { id: 'LOCAL_MOTO', label: 'Xe ôm bản địa vượt dốc', desc: 'Đồi Móng Ngựa, Mâm Xôi, Rừng Trúc, Ngã 3' },
@@ -441,7 +442,7 @@ export default function TransportListPage() {
                             {/* Contact Badges */}
                             <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-gray-100">
                               {t.contacts && t.contacts.length > 0 ? (
-                                t.contacts.map((contact, cIdx) => (
+                                t.contacts.filter((contact) => contact.channel !== 'TIKTOK').map((contact, cIdx) => (
                                   <a
                                     key={cIdx}
                                     href={contact.channel === 'PHONE' ? `tel:${contact.value.replace(/[^0-9+]/g, '')}` : '#'}
@@ -453,6 +454,18 @@ export default function TransportListPage() {
                                 ))
                               ) : (
                                 <span className="text-[11px] text-gray-400 italic">Liên hệ trực tiếp tại điểm đón hoặc homestay</span>
+                              )}
+                              {t.contacts?.find((contact) => contact.channel === 'TIKTOK') && (
+                                <a
+                                  href={t.contacts.find((contact) => contact.channel === 'TIKTOK')?.value}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-bold bg-neutral-900 text-white border border-neutral-700 hover:bg-neutral-800"
+                                  title="Xem video review TikTok"
+                                >
+                                  <TikTokLogoIcon className="w-3 h-3 text-white" />
+                                  <span>TikTok</span>
+                                </a>
                               )}
                             </div>
                           </div>
@@ -475,7 +488,7 @@ export default function TransportListPage() {
                               type="button"
                               onClick={() => openGoogleMapsDirections(t.latitude, t.longitude, `${t.address || ''} ${t.name}`)}
                               className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold border border-blue-200 transition-colors cursor-pointer"
-                              title="Chỉ đường từ vị trí của bạn"
+                              title="Mở Google Maps để chọn điểm xuất phát"
                             >
                               <Map className="w-3.5 h-3.5 text-blue-600" />
                               Chỉ đường

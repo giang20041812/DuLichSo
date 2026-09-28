@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Clock } from "lucide-react";
+import { Clock, X } from "lucide-react";
 import { getUserSavedBookings, fetchMyBookings } from "@/services/bookingService";
 import { getCurrentCustomer } from "@/services/authService";
 import { BookingResponseDto } from "@/types/booking";
@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 
 export default function RecentBookingTag() {
   const [latestBooking, setLatestBooking] = useState<BookingResponseDto | null>(null);
+  const [dismissed, setDismissed] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -63,7 +64,7 @@ export default function RecentBookingTag() {
     };
   }, []);
 
-  if (!latestBooking) return null;
+  if (!latestBooking || dismissed) return null;
 
   const getStatusLabel = (status: string) => {
     const map: Record<string, string> = {
@@ -120,6 +121,15 @@ export default function RecentBookingTag() {
         <div className={`px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${getStatusColor(latestBooking.status)}`}>
           {getStatusLabel(latestBooking.status)}
         </div>
+      </button>
+      <button
+        type="button"
+        onClick={() => setDismissed(true)}
+        aria-label="Đóng đơn đặt gần nhất"
+        title="Đóng"
+        className="ml-1 inline-flex items-center justify-center w-6 h-6 rounded-md text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors"
+      >
+        <X className="w-3.5 h-3.5" />
       </button>
     </div>
   );

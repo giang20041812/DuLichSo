@@ -86,6 +86,22 @@ export interface CheckAvailabilityResponse {
   message: string;
 }
 
+export interface BookingQuoteResponse {
+  roomTypeId: number;
+  availableRooms: number;
+  suitable: boolean;
+  totalAmount: number;
+}
+
+export interface BookingPolicySnapshot {
+  policyId?: number;
+  policyVersion?: number;
+  policyName?: string;
+  freeCancelCutoffHours?: number;
+  refundType?: string;
+  description?: string;
+}
+
 // DTO nhận về từ backend — field name khớp với BookingResponseDto.java
 export interface BookingResponseDto {
   id: number;
@@ -113,7 +129,7 @@ export interface BookingResponseDto {
   totalAmount: number;
   createdAt: string;       // ISO datetime
   holdExpiresAt: string;   // ISO datetime
-  policySnapshot: Record<string, unknown>;
+  policySnapshot: BookingPolicySnapshot;
   serviceItems?: BookingServiceItemDto[];
   changeRequests?: BookingChangeRequestDto[];
 }

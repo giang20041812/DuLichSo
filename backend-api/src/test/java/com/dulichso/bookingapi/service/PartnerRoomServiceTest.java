@@ -89,7 +89,8 @@ class PartnerRoomServiceTest {
 
     @Test void cannotReduceBelowRoomsAlreadyBookedOnAFutureDay() {
         stubSaveQueries(List.of(day(LocalDate.now().plusDays(1), 5, 2, 2)));
-        assertEquals(400, assertThrows(ResponseStatusException.class, () -> service.save(principal, 21L, 3L, input(3))).getStatusCode().value());
+        assertEquals(400, assertThrows(ResponseStatusException.class,
+                () -> service.save(principal, 21L, 3L, input(3))).getStatusCode().value());
         assertEquals(5, room.getTotalRoomCount());
     }
 

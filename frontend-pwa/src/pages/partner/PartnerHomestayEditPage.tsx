@@ -179,6 +179,11 @@ export default function PartnerHomestayEditPage() {
 
   async function changeStatus(request: UpdateStatusRequest, done: string) {
     if (!id || saving) return;
+    if (request.operationStatus === 'TEMP_CLOSED') {
+      const reason = window.prompt('Nhập lý do tạm đóng Homestay. Các đơn bị ảnh hưởng sẽ tự động hủy và khách nhận thông báo:');
+      if (!reason?.trim()) return;
+      request = { ...request, reason: reason.trim() };
+    }
     setSaving(true);
     setNotice(null);
     try {

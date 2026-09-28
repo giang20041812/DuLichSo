@@ -396,21 +396,13 @@ export default function HomestayDetailPage() {
           {homestay.images && homestay.images.length > 0 ? (
             homestay.images.length === 1 ? (
               <div className="rounded-md overflow-hidden border border-slate-200 bg-white p-1.5 h-[280px] md:h-[400px]">
-                <img
-                  src={homestay.images[0]}
-                  alt={homestay.name}
-                  className="w-full h-full object-cover rounded-xs"
-                />
+                <img src={homestay.images[0]} alt={homestay.name} className="w-full h-full object-cover rounded-xs" />
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-4 gap-2 rounded-md overflow-hidden border border-slate-200 bg-white p-1.5">
                 {/* Main large image */}
                 <div className="md:col-span-2 md:row-span-2 h-[280px] md:h-[400px] rounded-xs overflow-hidden relative group">
-                  <img
-                    src={homestay.images[0]}
-                    alt={homestay.name}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-102"
-                  />
+                  <img src={homestay.images[0]} alt={homestay.name} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-102" />
                 </div>
 
                 {/* Sub images */}
@@ -421,11 +413,7 @@ export default function HomestayDetailPage() {
                       key={idx}
                       className="h-[135px] md:h-[195px] rounded-xs overflow-hidden relative group border border-slate-100 bg-slate-100"
                     >
-                      <img
-                        src={img}
-                        alt={`${homestay.name} ${idx + 2}`}
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      />
+                      <img src={img} alt={`${homestay.name} ${idx + 2}`} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
                       {isLast && (
                         <button
                           onClick={() => setShowAmenitiesModal(true)}
@@ -716,7 +704,7 @@ export default function HomestayDetailPage() {
                       type="button"
                       onClick={() => openGoogleMapsDirections(item.latitude, item.longitude, `${item.address || ''} ${item.name}`)}
                       className="text-xs md:text-sm font-semibold text-[#10b981] hover:underline flex items-center gap-1 ml-auto cursor-pointer"
-                      title="Chỉ đường từ vị trí của bạn"
+                      title="Mở Google Maps để chọn điểm xuất phát"
                     >
                       <MapIcon className="w-3.5 h-3.5" />
                       Chỉ đường <ArrowRight className="w-3 h-3" />

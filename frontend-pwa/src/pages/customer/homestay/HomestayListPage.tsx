@@ -80,6 +80,7 @@ export default function HomestayListPage() {
 
   const [homestays, setHomestays] = useState<HomestayDto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'recommended' | 'price_asc' | 'price_desc' | 'rating_desc'>('recommended');
   const [keywordInput, setKeywordInput] = useState('');
 
@@ -97,6 +98,7 @@ export default function HomestayListPage() {
     const ward = searchParams.get('ward');
     const attractionsStr = searchParams.get('attractions');
     const keywordStr = searchParams.get('keyword');
+    const guestCount = searchParams.get('guestCount');
 
     if (checkIn) initialFilters.checkIn = checkIn;
     if (checkOut) initialFilters.checkOut = checkOut;
@@ -109,16 +111,18 @@ export default function HomestayListPage() {
     if (ward) initialFilters.ward = ward;
     if (attractionsStr) initialFilters.attractions = attractionsStr.split(',');
     if (keywordStr) initialFilters.keyword = keywordStr;
+    if (guestCount) initialFilters.guestCount = Number(guestCount);
 
     return initialFilters;
   });
 
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(() => Number(searchParams.get('page') || '1'));
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [showMap, setShowMap] = useState(false);
 
-  // 6 homestay per page = 3 rows in 2-column grid
-  const ITEMS_PER_PAGE = 6;
+  const ITEMS_PER_PAGE = 12;
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
   const getHomestayPhone = (hs: HomestayDto) => {
     const c = hs.contacts?.find(item => item.channel === 'PHONE');
@@ -159,6 +163,8 @@ export default function HomestayListPage() {
       if (newFilters.ward) newParams.set('ward', newFilters.ward); else newParams.delete('ward');
       if (newFilters.attractions && newFilters.attractions.length > 0) newParams.set('attractions', newFilters.attractions.join(',')); else newParams.delete('attractions');
       if (newFilters.keyword) newParams.set('keyword', newFilters.keyword); else newParams.delete('keyword');
+      if (newFilters.guestCount !== undefined) newParams.set('guestCount', String(newFilters.guestCount)); else newParams.delete('guestCount');
+      newParams.set('page', '1');
 
       setSearchParams(newParams, { replace: true });
       return newFilters;
@@ -170,6 +176,25 @@ export default function HomestayListPage() {
     setFilters({});
     setSearchParams(new URLSearchParams(), { replace: true });
     setCurrentPage(1);
+    setError(null);
+  };
+
+  const handleSortChange = (value: typeof sortBy) => {
+    setSortBy(value);
+    setCurrentPage(1);
+    const next = new URLSearchParams(searchParams);
+    next.set('sort', value);
+    next.set('page', '1');
+    setSearchParams(next, { replace: true });
+  };
+
+  const handlePageChange = (page: number) => {
+    const safePage = Math.max(1, Math.min(page, totalPages || 1));
+    setCurrentPage(safePage);
+    const next = new URLSearchParams(searchParams);
+    next.set('page', String(safePage));
+    setSearchParams(next, { replace: true });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Đồng bộ lại filters nếu URL thay đổi (nhấn back/forward hoặc từ SearchHub)
@@ -185,6 +210,9 @@ export default function HomestayListPage() {
     const ward = searchParams.get('ward');
     const attractionsStr = searchParams.get('attractions');
     const keywordStr = searchParams.get('keyword');
+    const guestCount = searchParams.get('guestCount');
+    const page = Number(searchParams.get('page') || '1');
+    const urlSort = searchParams.get('sort') as typeof sortBy | null;
 
     setFilters({
       checkIn: checkIn || undefined,
@@ -198,35 +226,37 @@ export default function HomestayListPage() {
       ward: ward || undefined,
       attractions: attractionsStr ? attractionsStr.split(',') : undefined,
       keyword: keywordStr || undefined,
+      guestCount: guestCount ? Number(guestCount) : undefined,
     });
     setKeywordInput(keywordStr || '');
+    if (Number.isFinite(page) && page > 0) setCurrentPage(page);
+    if (urlSort && ['recommended', 'price_asc', 'price_desc', 'rating_desc'].includes(urlSort)) setSortBy(urlSort);
   }, [searchParams]);
 
   useEffect(() => {
     setLoading(true);
-    fetchHomestays(filters).then(data => {
-      setHomestays(data);
-      setLoading(false);
-    }).catch(err => {
-      console.error(err);
-      setLoading(false);
-    });
-  }, [filters]);
+    setError(null);
+    fetchHomestays({ ...filters, page: currentPage - 1, sort: sortBy }).then(data => {
+      setHomestays(data.content);
+      setTotalElements(data.totalElements);
+      setTotalPages(data.totalPages);
+    }).catch((err: unknown) => {
+      setHomestays([]);
+      setTotalElements(0);
+      setTotalPages(0);
+      setError(err instanceof Error ? err.message : 'Không thể tải danh sách Homestay.');
+    }).finally(() => setLoading(false));
+  }, [filters, currentPage, sortBy]);
 
   const hasActiveFilters = Boolean(
-    filters.amenities?.length || filters.minRating || filters.maxPrice || filters.minPrice || filters.ward || (filters.province && filters.province !== 'Yên Bái') || filters.attractions?.length
+    filters.amenities?.length || filters.minRating || filters.maxPrice || filters.minPrice || filters.guestCount || filters.ward || (filters.province && filters.province !== 'Yên Bái') || filters.attractions?.length
   );
 
-  // Sắp xếp danh sách
-  const sortedHomestays = [...homestays].sort((a, b) => {
-    if (sortBy === 'price_asc') return (a.price || 0) - (b.price || 0);
-    if (sortBy === 'price_desc') return (b.price || 0) - (a.price || 0);
-    if (sortBy === 'rating_desc') return (b.ratingScore || 0) - (a.ratingScore || 0);
-    return 0;
-  });
-
-  const paginatedHomestays = sortedHomestays.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-  const totalPages = Math.ceil(sortedHomestays.length / ITEMS_PER_PAGE);
+  const paginatedHomestays = homestays;
+  const homestayDetailPath = (id: number) => {
+    const query = searchParams.toString();
+    return `/homestays/${id}${query ? `?${query}` : ''}`;
+  };
 
   const roomAmenitiesSelectedCount = filters.amenities?.filter(code =>
     ROOM_AMENITIES.some(ra => ra.code === code)
@@ -235,6 +265,43 @@ export default function HomestayListPage() {
   const placeAmenitiesSelectedCount = filters.amenities?.filter(code =>
     PLACE_AMENITIES.some(pa => pa.code === code)
   ).length || 0;
+
+  const renderKeywordSearch = () => (
+    <div className="bg-white border border-gray-200/90 rounded-lg p-4 shadow-xs">
+      <h2 className="font-bold text-[var(--color-ink-deep)] mb-3 text-sm flex items-center gap-1.5">
+        <Search className="w-4 h-4 text-[var(--color-primary)]" /> Tìm kiếm chỗ nghỉ
+      </h2>
+      <div className="relative">
+        <input
+          type="text"
+          placeholder="Tên, địa chỉ, mô tả..."
+          aria-label="Tìm kiếm chỗ nghỉ"
+          className="w-full h-11 pl-10 pr-10 text-sm bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] transition-all placeholder-gray-400"
+          value={keywordInput}
+          onChange={(e) => setKeywordInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              handleFilterChange({ keyword: keywordInput || undefined });
+            }
+          }}
+        />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        {keywordInput && (
+          <button
+            type="button"
+            aria-label="Xóa tìm kiếm"
+            onClick={() => {
+              setKeywordInput('');
+              handleFilterChange({ keyword: undefined });
+            }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
 
   const renderFilters = () => (
     <div className="bg-white border border-gray-200/90 rounded-lg overflow-hidden shadow-xs">
@@ -254,7 +321,7 @@ export default function HomestayListPage() {
       </div>
 
       {/* 0. Tìm kiếm theo tên/địa chỉ */}
-      <div className="p-4 border-b border-gray-100 bg-white">
+      <div className="hidden p-4 border-b border-gray-100 bg-white">
         <h4 className="font-bold text-[var(--color-ink-deep)] mb-3 text-sm flex items-center justify-between">
           <span className="flex items-center gap-1.5">
             <Search className="w-3.5 h-3.5 text-[var(--color-primary)]" /> Tìm kiếm chỗ nghỉ
@@ -286,6 +353,24 @@ export default function HomestayListPage() {
             </button>
           )}
         </div>
+      </div>
+
+      <div className="p-4 border-b border-gray-100 bg-white">
+        <label htmlFor="guest-count" className="block font-bold text-[var(--color-ink-deep)] mb-2 text-sm">Số khách</label>
+        <input
+          id="guest-count"
+          type="number"
+          min={1}
+          step={1}
+          value={filters.guestCount ?? ''}
+          onChange={(event) => {
+            const value = event.target.value ? Number(event.target.value) : undefined;
+            handleFilterChange({ guestCount: value && value > 0 ? value : undefined });
+          }}
+          className="w-full h-10 px-3 text-sm bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)]"
+          placeholder="Ví dụ: 2"
+        />
+        <p className="mt-1 text-xs text-[var(--color-muted)]">Lọc theo sức chứa phòng đang hoạt động.</p>
       </div>
 
       {/* 1. Tiện nghi phòng ngủ (Room Scope) */}
@@ -453,10 +538,19 @@ export default function HomestayListPage() {
 
       {/* Main Container */}
       <div className="max-w-[1280px] mx-auto w-full px-4 md:px-8 pt-4 pb-8">
+        {/* Tìm kiếm tách riêng khỏi bộ lọc chi tiết */}
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-xs md:text-sm text-[var(--color-muted)] mb-3">
           <Link to="/" className="hover:text-[var(--color-primary)] transition-colors">Trang chủ</Link>
           <span>/</span>
+          <span className="text-[var(--color-ink-deep)] font-semibold">Homestay & Chỗ nghỉ Mù Cang Chải</span>
+        </div>
+
+        <div className="mb-5">
+          {renderKeywordSearch()}
+        </div>
+
+        <div className="hidden" aria-hidden="true">
           <span className="text-[var(--color-ink-deep)] font-semibold">Homestay & Chỗ nghỉ Mù Cang Chải</span>
         </div>
 
@@ -468,7 +562,7 @@ export default function HomestayListPage() {
               <h2 className="text-base md:text-lg font-bold text-[var(--color-ink-deep)] flex items-center gap-2">
                 Homestay & Chỗ nghỉ bản địa
                 <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-[var(--color-primary-50)] text-[var(--color-primary)] border border-[var(--color-primary-100)]">
-                  {homestays.length} chỗ nghỉ
+                  {totalElements} chỗ nghỉ
                 </span>
               </h2>
 
@@ -481,7 +575,7 @@ export default function HomestayListPage() {
                 <span className="text-xs text-gray-500 font-medium hidden md:inline">Sắp xếp:</span>
                 <select
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as 'recommended' | 'price_asc' | 'price_desc' | 'rating_desc')}
+                  onChange={(e) => handleSortChange(e.target.value as typeof sortBy)}
                   className="bg-transparent text-xs md:text-sm font-semibold text-[var(--color-ink-deep)] focus:outline-none cursor-pointer"
                 >
                   <option value="recommended">Gợi ý hàng đầu</option>
@@ -738,7 +832,7 @@ export default function HomestayListPage() {
                 </div>
                 <div className="p-4 border-t border-gray-200 sticky bottom-0 bg-white">
                   <Button variant="primary" className="w-full h-11 rounded-md" onClick={() => setMobileFilterOpen(false)}>
-                    Xem {homestays.length} kết quả
+                    Xem {totalElements} kết quả
                   </Button>
                 </div>
               </div>
@@ -791,6 +885,25 @@ export default function HomestayListPage() {
             <div className="flex-1 flex flex-col gap-4 relative min-h-[350px]">
               {loading ? (
                 <CardSkeleton count={ITEMS_PER_PAGE} layout="grid-2" imageHeight="h-48" />
+              ) : error ? (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
+                  <p className="font-semibold text-red-700">{error}</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setError(null);
+                      setLoading(true);
+                      void fetchHomestays({ ...filters, page: currentPage - 1, sort: sortBy }).then((data) => {
+                        setHomestays(data.content);
+                        setTotalElements(data.totalElements);
+                        setTotalPages(data.totalPages);
+                      }).catch((err: unknown) => setError(err instanceof Error ? err.message : 'Không thể tải danh sách Homestay.')).finally(() => setLoading(false));
+                    }}
+                    className="mt-3 rounded-md bg-[var(--color-primary)] px-4 py-2 text-sm font-bold text-white hover:bg-[var(--color-primary-600)]"
+                  >
+                    Thử lại
+                  </button>
+                </div>
               ) : paginatedHomestays.length === 0 ? (
                 <div className="bg-white p-8 text-center rounded-lg border border-gray-200 shadow-xs">
                   <p className="text-gray-500 font-medium">Không tìm thấy homestay nào phù hợp với bộ lọc đã chọn.</p>
@@ -817,7 +930,7 @@ export default function HomestayListPage() {
                           {/* Image */}
                           <div className="relative w-full h-[190px] shrink-0 overflow-hidden bg-slate-100 flex items-center justify-center">
                             {hs.coverImageUrl ? (
-                              <Link to={`/homestays/${hs.id}`} className="block w-full h-full">
+                              <Link to={homestayDetailPath(hs.id)} className="block w-full h-full">
                                 <img
                                   src={hs.coverImageUrl}
                                   alt={hs.name}
@@ -825,7 +938,7 @@ export default function HomestayListPage() {
                                 />
                               </Link>
                             ) : (
-                              <Link to={`/homestays/${hs.id}`} className="flex flex-col items-center justify-center w-full h-full text-slate-400">
+                              <Link to={homestayDetailPath(hs.id)} className="flex flex-col items-center justify-center w-full h-full text-slate-400">
                                 <Mountain className="w-10 h-10 opacity-30 mb-1" />
                                 <span className="text-xs">Chưa có ảnh</span>
                               </Link>
@@ -852,7 +965,7 @@ export default function HomestayListPage() {
                           {/* Content */}
                           <div className="p-4 flex-1 flex flex-col justify-between">
                             <div>
-                              <Link to={`/homestays/${hs.id}`}>
+                              <Link to={homestayDetailPath(hs.id)}>
                                 <h2 className="text-lg font-extrabold text-[var(--color-ink-deep)] hover:text-[var(--color-primary)] transition-colors leading-snug line-clamp-1 mb-1.5">
                                   {hs.name}
                                 </h2>
@@ -948,13 +1061,13 @@ export default function HomestayListPage() {
                                   type="button"
                                   onClick={() => openGoogleMapsDirections(hs.latitude, hs.longitude, `${hs.district || ''} ${hs.name}`)}
                                   className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold border border-blue-200 transition-colors cursor-pointer"
-                                  title="Chỉ đường từ vị trí của bạn"
+                                  title="Mở Google Maps để chọn điểm xuất phát"
                                 >
                                   <Map className="w-3.5 h-3.5 text-blue-600" />
                                   Chỉ đường
                                 </button>
 
-                                <Link to={`/homestays/${hs.id}`} className="shrink-0">
+                                <Link to={homestayDetailPath(hs.id)} className="shrink-0">
                                   <Button variant="primary" className="rounded-lg font-bold h-8.5 px-3.5 text-xs bg-[#10b981] hover:bg-[#03725e] shadow-xs hover:shadow-sm active:scale-95 transition-all cursor-pointer">
                                     Xem chỗ trống
                                   </Button>
@@ -973,10 +1086,7 @@ export default function HomestayListPage() {
                   <div className="flex justify-center items-center gap-2 mt-6 mb-4">
                     <button
                       disabled={currentPage === 1}
-                      onClick={() => {
-                        setCurrentPage(prev => Math.max(1, prev - 1));
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }}
+                      onClick={() => handlePageChange(currentPage - 1)}
                       className="w-10 h-10 flex items-center justify-center rounded-md border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors bg-white text-xs cursor-pointer"
                     >
                       <ChevronLeft className="w-4 h-4 text-[var(--color-ink-deep)]" />
@@ -986,10 +1096,7 @@ export default function HomestayListPage() {
                       {[...Array(totalPages)].map((_, i) => (
                         <button
                           key={i}
-                          onClick={() => {
-                            setCurrentPage(i + 1);
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                          }}
+                          onClick={() => handlePageChange(i + 1)}
                           className={`w-10 h-10 rounded-md font-bold text-xs transition-colors cursor-pointer ${currentPage === i + 1
                               ? 'bg-[var(--color-primary)] text-white shadow-2xs'
                               : 'text-[var(--color-ink-deep)] hover:bg-gray-100 bg-white border border-gray-200'
@@ -1002,10 +1109,7 @@ export default function HomestayListPage() {
 
                     <button
                       disabled={currentPage === totalPages}
-                      onClick={() => {
-                        setCurrentPage(prev => Math.min(totalPages, prev + 1));
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }}
+                      onClick={() => handlePageChange(currentPage + 1)}
                       className="w-10 h-10 flex items-center justify-center rounded-md border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors bg-white text-xs cursor-pointer"
                     >
                       <ChevronRight className="w-4 h-4 text-[var(--color-ink-deep)]" />

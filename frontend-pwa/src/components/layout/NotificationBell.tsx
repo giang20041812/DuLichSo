@@ -162,6 +162,27 @@ export default function NotificationBell({ isSolid }: NotificationBellProps) {
             Bị từ chối
           </span>
         );
+      case 'CHANGE_APPROVED':
+        return (
+          <span className="inline-flex items-center gap-1 rounded-sm border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
+            <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+            Đã duyệt thay đổi
+          </span>
+        );
+      case 'CHANGE_REJECTED':
+        return (
+          <span className="inline-flex items-center gap-1 rounded-sm border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold text-rose-700">
+            <XCircle className="h-3 w-3 text-rose-600" />
+            Từ chối thay đổi
+          </span>
+        );
+      case 'CANCELLED':
+        return (
+          <span className="inline-flex items-center gap-1 rounded-sm border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold text-rose-700">
+            <XCircle className="h-3 w-3 text-rose-600" />
+            Đã hủy
+          </span>
+        );
 
       default:
         return null;
@@ -173,6 +194,12 @@ export default function NotificationBell({ isSolid }: NotificationBellProps) {
       case 'CONFIRMED':
         return <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />;
       case 'REJECTED':
+        return <XCircle className="h-4 w-4 shrink-0 text-rose-600" />;
+      case 'CHANGE_APPROVED':
+        return <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />;
+      case 'CHANGE_REJECTED':
+        return <XCircle className="h-4 w-4 shrink-0 text-rose-600" />;
+      case 'CANCELLED':
         return <XCircle className="h-4 w-4 shrink-0 text-rose-600" />;
 
       default:

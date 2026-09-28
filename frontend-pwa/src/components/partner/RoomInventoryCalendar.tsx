@@ -14,7 +14,7 @@ type Mode = 'close' | 'broken' | 'open';
 
 /**
  * FR-NCC-09: lịch phòng theo tháng cho một loại phòng. NCC chọn một ngày hoặc khoảng ngày để ngừng phục vụ,
- * khai báo số phòng hỏng/bảo trì (giảm số phòng mở bán) hoặc mở bán lại. Đơn đã giữ/xác nhận không bị ảnh hưởng.
+ * khai báo số phòng hỏng/bảo trì (giảm số phòng mở bán) hoặc mở bán lại. Đơn bị ảnh hưởng sẽ được hủy và khách được thông báo.
  */
 export default function RoomInventoryCalendar({ placeId, room, onChanged }: { placeId: number; room: PartnerRoom; onChanged?: () => void }) {
   const today = iso(new Date());
@@ -73,7 +73,9 @@ export default function RoomInventoryCalendar({ placeId, room, onChanged }: { pl
       // UC-NCC-04 luồng phụ 6: gửi kèm giá trị đang thấy để backend phát hiện dữ liệu đã bị sửa đồng thời.
       const expected = selectedDays.map((d) => ({ stayDate: d.stayDate, totalRooms: d.totalRooms, stopSell: d.stopSell }));
       await api.inventory(placeId, room.id, { startDate: selection.from, endDate: addDays(selection.to, 1), totalRooms, stopSell: mode === 'close', reason: mode === 'open' ? undefined : reason.trim(), expected });
-      setMessage('Đã cập nhật giá và tình trạng phòng');
+      setMessage(maxBooked > 0 && mode !== 'open'
+        ? 'Đã cập nhật tình trạng phòng; các đơn bị ảnh hưởng đã được hủy và khách đã nhận thông báo.'
+        : 'Đã cập nhật giá và tình trạng phòng');
       setSelection(null); setReason(''); setLoading(true); setReload((n) => n + 1); onChanged?.();
     } catch (e: unknown) {
       const text = homestayError(e);
@@ -84,7 +86,7 @@ export default function RoomInventoryCalendar({ placeId, room, onChanged }: { pl
   }
 
   const rangeText = selection ? (selection.from === selection.to ? selection.from : `${selection.from} → ${selection.to}`) : '';
-  const invalid = mode !== 'open' && !reason.trim() || (mode === 'broken' && (broken < 1 || room.totalRoomCount - broken < maxBooked));
+  const invalid = (mode !== 'open' && !reason.trim()) || (mode === 'broken' && (broken < 1 || broken > room.totalRoomCount));
 
   return (
     <div className="flex flex-col gap-4">
@@ -130,7 +132,7 @@ export default function RoomInventoryCalendar({ placeId, room, onChanged }: { pl
           setConfirm({
             title: `Cập nhật lịch ${rangeText}?`, confirmLabel: 'Xác nhận', tone: mode === 'close' ? 'danger' : 'primary',
             body: <>{mode === 'close' ? 'Ngừng nhận đặt phòng mới' : mode === 'broken' ? `Giảm ${broken} phòng (còn ${room.totalRoomCount - broken}/${room.totalRoomCount} phòng mở bán)` : 'Mở bán lại toàn bộ phòng'} cho <b>{room.name}</b>, {rangeText}.
-              {maxBooked > 0 && <><br />Có ngày đã có {maxBooked} phòng được đặt — các đơn này vẫn giữ nguyên.</>}</>,
+              {maxBooked > 0 && mode !== 'open' && <><br />Có ngày đã có {maxBooked} phòng được đặt — các đơn bị ảnh hưởng sẽ tự động hủy và khách nhận thông báo kèm lý do.</>}</>,
             onConfirm: () => void apply(),
           });
         }}>
@@ -148,7 +150,7 @@ export default function RoomInventoryCalendar({ placeId, room, onChanged }: { pl
             {mode === 'broken' && (
               <label className="flex flex-col gap-1 text-xs font-semibold text-muted">Số phòng hỏng / bảo trì (tổng {room.totalRoomCount} phòng)
                 <input className={field} type="number" min={1} max={room.totalRoomCount} value={broken} onChange={(e) => setBroken(Number(e.target.value))} />
-                {room.totalRoomCount - broken < maxBooked && <span className="font-normal text-danger">Có ngày đã đặt {maxBooked} phòng, chỉ khai báo tối đa {room.totalRoomCount - maxBooked} phòng hỏng.</span>}
+                {room.totalRoomCount - broken < maxBooked && <span className="font-normal text-danger">Có ngày đã đặt {maxBooked} phòng; nếu áp dụng, các đơn bị ảnh hưởng sẽ tự động hủy và khách nhận thông báo.</span>}
               </label>
             )}
             {mode !== 'open' && (

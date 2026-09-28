@@ -16,11 +16,9 @@ import {
   CreditCard,
   BedDouble,
   ExternalLink,
-  Sparkles,
   Info,
   Ban,
   Home,
-  Check,
   Edit3,
   Compass,
 } from 'lucide-react';
@@ -81,8 +79,8 @@ export default function UserBookingDetailPage() {
         });
       }
 
-      // Nếu đơn đã hoàn thành, kiểm tra xem đã có đánh giá chưa
-      if (data.status === 'COMPLETED') {
+      // Backend quyết định eligibility; CHECKED_OUT và COMPLETED đều có thể hiển thị review.
+      if (data.status === 'CHECKED_OUT' || data.status === 'COMPLETED') {
         try {
           const rev = await fetchBookingReview(bookingCode);
           setExistingReview(rev);
@@ -117,37 +115,15 @@ export default function UserBookingDetailPage() {
           </div>
         );
       case 'CHECKED_IN':
-        return (
-          <div className="flex items-center gap-2 p-3 bg-teal-50 border border-teal-200 rounded-md text-teal-800 text-xs sm:text-sm font-semibold">
-            <Home className="w-5 h-5 text-teal-600 shrink-0" />
-            <div>
-              <span className="font-bold">Đang lưu trú tại homestay</span>
-              <p className="text-xs text-teal-700 font-normal mt-0.5">
-                Quý khách đang trong kỳ nghỉ. Chúc quý khách có trải nghiệm tuyệt vời!
-              </p>
-            </div>
-          </div>
-        );
       case 'CHECKED_OUT':
-        return (
-          <div className="flex items-center gap-2 p-3 bg-indigo-50 border border-indigo-200 rounded-md text-indigo-800 text-xs sm:text-sm font-semibold">
-            <Check className="w-5 h-5 text-indigo-600 shrink-0" />
-            <div>
-              <span className="font-bold">Đã hoàn tất trả phòng</span>
-              <p className="text-xs text-indigo-700 font-normal mt-0.5">
-                Quý khách đã trả phòng thành công. Cảm ơn quý khách đã lưu trú!
-              </p>
-            </div>
-          </div>
-        );
       case 'COMPLETED':
         return (
-          <div className="flex items-center gap-2 p-3 bg-[#E6F4F1] border border-[#10b981]/20 rounded-md text-[var(--color-primary)] text-xs sm:text-sm font-semibold">
-            <Sparkles className="w-5 h-5 text-[var(--color-sun)] shrink-0" />
+          <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-md text-emerald-800 text-xs sm:text-sm font-semibold">
+            <Home className="w-5 h-5 text-teal-600 shrink-0" />
             <div>
-              <span className="font-bold">Kỳ nghỉ đã hoàn thành!</span>
-              <p className="text-xs text-slate-600 font-normal mt-0.5">
-                Cảm ơn bạn đã lựa chọn trải nghiệm du lịch cộng đồng cùng chúng tôi.
+              <span className="font-bold">Đã xác nhận</span>
+              <p className="text-xs text-teal-700 font-normal mt-0.5">
+                Booking đang trong hoặc đã hoàn tất kỳ lưu trú.
               </p>
             </div>
           </div>
@@ -160,7 +136,7 @@ export default function UserBookingDetailPage() {
             <div>
               <span className="font-bold">Đang chờ chủ nhà xác nhận</span>
               <p className="text-xs text-sky-700 font-normal mt-0.5">
-                Chủ nhà có tối đa <strong>24 giờ</strong> để duyệt đơn đặt phòng. Quá thời gian này đơn sẽ tự động bị hủy.
+                Chủ nhà có tối đa <strong>120 phút</strong> để duyệt đơn đặt phòng. Hạn xử lý: {booking.holdExpiresAt ? new Date(booking.holdExpiresAt).toLocaleString('vi-VN') : 'đang cập nhật'}.
               </p>
             </div>
           </div>
@@ -225,7 +201,9 @@ export default function UserBookingDetailPage() {
     );
   }
 
-  const isCompleted = booking.status === 'COMPLETED';
+  const isCompleted = booking.status === 'CHECKED_OUT' || booking.status === 'COMPLETED';
+  const pendingChangeRequest = booking.changeRequests?.find((request) => request.status === 'PENDING');
+  const canRequestChange = ['PENDING', 'CONFIRMED'].includes(booking.status) && !pendingChangeRequest;
 
   return (
     <div className="min-h-screen bg-[#F6FAF8] pb-20">
@@ -252,6 +230,18 @@ export default function UserBookingDetailPage() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-6 space-y-6">
         {/* Banner trạng thái booking */}
         {getStatusBadge(booking.status)}
+
+        {pendingChangeRequest && (
+          <div className="flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 p-4 text-amber-900">
+            <Clock className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+            <div>
+              <p className="text-sm font-bold">Đơn đang chờ NCC duyệt thay đổi</p>
+              <p className="mt-1 text-xs leading-relaxed">
+                Yêu cầu thay đổi đã được gửi lúc {new Date(pendingChangeRequest.createdAt).toLocaleString('vi-VN')}. Booking hiện tại vẫn giữ nguyên cho đến khi NCC duyệt hoặc từ chối yêu cầu.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Khối đánh giá nếu hoàn thành */}
         {isCompleted && (
@@ -570,7 +560,7 @@ export default function UserBookingDetailPage() {
               )}
 
               {/* Nút hành động thay đổi booking khi ở trạng thái PENDING hoặc CONFIRMED */}
-              {['PENDING', 'CONFIRMED'].includes(booking.status) && (
+              {canRequestChange && (
                 <div className="pt-3 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-amber-50/40 -mx-5 -mb-5 p-4 rounded-b-lg border-t border-amber-100">
                   <div className="text-xs">
                     <span className="font-bold text-slate-800 flex items-center gap-1.5">

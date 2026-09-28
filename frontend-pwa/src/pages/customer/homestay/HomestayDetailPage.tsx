@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   MapPin,
   Star,
@@ -20,6 +20,7 @@ import {
   Shirt,
   Compass,
   ArrowRight,
+  ChevronLeft,
   Map as MapIcon,
   ChevronRight,
   Info,
@@ -47,16 +48,11 @@ import { Button } from '@/components/ui/button';
 import VietmapView from '@/components/map/VietmapView';
 import type { VietmapMarkerItem } from '@/types/integrations/vietmap';
 import RoomBookingCard from '@/components/homestay/RoomBookingCard';
-import { TikTokEmbed } from '@/components/homestay/TikTokEmbed';
+import TikTokEmbedPlayer from '@/components/homestay/TikTokEmbedPlayer';
 import { openGoogleMapsDirections } from '@/lib/mapUtils';
+import ImageCarousel from '@/components/common/ImageCarousel';
 
 // Helper trích xuất ID video TikTok từ link
-function extractTikTokVideoId(url: string): string | null {
-  if (!url) return null;
-  const match = url.match(/\/video\/(\d+)/);
-  return (match && match[1]) ? match[1] : null;
-}
-
 // Helper tính khoảng cách Haversine chính xác theo tọa độ GPS
 function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371; // Earth radius in km
@@ -73,6 +69,8 @@ function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: num
 export default function HomestayDetailPage() {
   const { id, slug } = useParams<{ id?: string; slug?: string }>();
   const identifier = id || slug || '';
+  const [searchParams] = useSearchParams();
+  const homestaysPath = `/homestays${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
   const navigate = useNavigate();
 
   const [homestay, setHomestay] = useState<HomestayDetailDto | null>(null);
@@ -91,42 +89,57 @@ export default function HomestayDetailPage() {
   const [radius, setRadius] = useState(10);
   const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlaceDto[]>([]);
   const [nearbyCategory, setNearbyCategory] = useState<'ALL' | 'ATTRACTION' | 'FOOD' | 'TRANSPORT'>('ALL');
+  const nearbyScrollRef = useRef<HTMLDivElement>(null);
+
+  const scrollNearbyPlaces = (direction: 'left' | 'right') => {
+    nearbyScrollRef.current?.scrollBy({
+      left: direction === 'left' ? -360 : 360,
+      behavior: 'smooth',
+    });
+  };
 
   // Real Reviews & Regional Destinations
-  const [_reviews, setReviews] = useState<ReviewDto[]>([]);
+  const [reviews, setReviews] = useState<ReviewDto[]>([]);
+  const [reviewPage, setReviewPage] = useState(1);
+  const reviewsPerPage = 5;
   const [regionalDestinations, setRegionalDestinations] = useState<HomestayDto[]>([]);
 
   // Booked dates
   const [bookedDates, setBookedDates] = useState<BookedDateRangeDto[]>([]);
 
+  // SearchHub lưu khoảng ngày trong query string. Dùng chính khoảng ngày này
+  // cho mọi room card để kiểm tra tình trạng phòng không lệch với kết quả search.
+  const filteredCheckIn = searchParams.get('checkIn');
+  const filteredCheckOut = searchParams.get('checkOut');
+  const hasValidFilteredRange = Boolean(
+    filteredCheckIn && filteredCheckOut && filteredCheckOut > filteredCheckIn
+  );
+
   // Default initial dates for room booking cards (định dạng theo giờ địa phương, tránh lệch múi giờ UTC)
   const initialCheckInDate = useMemo(() => {
+    if (hasValidFilteredRange && filteredCheckIn) return filteredCheckIn;
     const d = new Date();
     d.setDate(d.getDate() + 2);
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return `${y}-${m}-${day}`;
-  }, []);
+  }, [filteredCheckIn, hasValidFilteredRange]);
   const initialCheckOutDate = useMemo(() => {
+    if (hasValidFilteredRange && filteredCheckOut) return filteredCheckOut;
     const d = new Date();
     d.setDate(d.getDate() + 3);
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return `${y}-${m}-${day}`;
-  }, []);
+  }, [filteredCheckOut, hasValidFilteredRange]);
 
   // TikTok Video from homestay contacts
   const tiktokContact = useMemo(() => {
     if (!homestay?.contacts) return null;
     return homestay.contacts.find((c) => c.channel === 'TIKTOK' && c.value);
   }, [homestay]);
-
-  const tiktokVideoId = useMemo(() => {
-    if (!tiktokContact?.value) return null;
-    return extractTikTokVideoId(tiktokContact.value);
-  }, [tiktokContact]);
 
   // Selected place for focusing map in modal
   const [selectedMapTarget, setSelectedMapTarget] = useState<{ lat: number; lng: number; zoom: number } | null>(null);
@@ -302,7 +315,7 @@ export default function HomestayDetailPage() {
           <h2 className="text-xl font-bold text-[var(--color-ink-deep)] mb-2">Không tìm thấy chỗ nghỉ</h2>
           <p className="text-sm text-gray-600 mb-4">Rất tiếc, chỗ nghỉ bạn tìm kiếm không tồn tại hoặc đã bị tạm ngừng.</p>
           {errorMsg && <p className="text-xs text-rose-600 font-mono mb-4 bg-rose-50 p-2 rounded-md">Error: {errorMsg}</p>}
-          <Button onClick={() => navigate('/homestays')} className="rounded-md">Quay lại danh sách</Button>
+          <Button onClick={() => navigate(homestaysPath)} className="rounded-md">Quay lại danh sách</Button>
         </div>
       </div>
     );
@@ -366,9 +379,17 @@ export default function HomestayDetailPage() {
               <span>{homestay.address || homestay.district}</span>
               <span className="text-slate-300">·</span>
               <button
-                onClick={() => setShowMapModal(true)}
-                className="text-[#10b981] font-semibold hover:underline cursor-pointer flex items-center gap-1"
+                type="button"
+                onClick={() => openGoogleMapsDirections(
+                  homestay.latitude,
+                  homestay.longitude,
+                  `${homestay.address || homestay.district || ''} ${homestay.name}`
+                )}
+                className="text-[0px] text-[#10b981] font-semibold hover:underline cursor-pointer flex items-center gap-1"
+                title="Mở Google Maps để chọn điểm xuất phát"
+                aria-label="Chỉ đường"
               >
+                <span className="text-sm">Chỉ đường</span>
                 <MapIcon className="w-4 h-4" /> Xem bản đồ
               </button>
             </div>
@@ -395,23 +416,11 @@ export default function HomestayDetailPage() {
         <div className="mb-6">
           {homestay.images && homestay.images.length > 0 ? (
             homestay.images.length === 1 ? (
-              <div className="rounded-md overflow-hidden border border-slate-200 bg-white p-1.5 h-[280px] md:h-[400px]">
-                <img
-                  src={homestay.images[0]}
-                  alt={homestay.name}
-                  className="w-full h-full object-cover rounded-xs"
-                />
-              </div>
+              <ImageCarousel images={homestay.images} alt={homestay.name} className="h-[280px] rounded-md border border-slate-200 bg-white p-1.5 md:h-[400px]" imageClassName="h-full w-full rounded-xs object-cover" />
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-4 gap-2 rounded-md overflow-hidden border border-slate-200 bg-white p-1.5">
                 {/* Main large image */}
-                <div className="md:col-span-2 md:row-span-2 h-[280px] md:h-[400px] rounded-xs overflow-hidden relative group">
-                  <img
-                    src={homestay.images[0]}
-                    alt={homestay.name}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-102"
-                  />
-                </div>
+                <ImageCarousel images={homestay.images} alt={homestay.name} className="h-[280px] rounded-xs md:col-span-2 md:row-span-2 md:h-[400px]" />
 
                 {/* Sub images */}
                 {homestay.images.slice(1, 5).map((img, idx) => {
@@ -522,8 +531,12 @@ export default function HomestayDetailPage() {
             </div>
 
             <div className="bg-slate-900 rounded-lg p-3 sm:p-5 flex justify-center items-center shadow-xs border border-slate-800 overflow-hidden min-h-[580px]">
-              {tiktokVideoId ? (
-                <TikTokEmbed url={tiktokContact.value} videoId={tiktokVideoId} />
+              {tiktokContact.value ? (
+                <TikTokEmbedPlayer
+                  url={tiktokContact.value}
+                  homestayName={homestay.name}
+                  className="w-full max-w-[460px] border-0 shadow-none"
+                />
               ) : (
                 <div className="w-full max-w-md py-8 text-center text-white">
                   <p className="text-base font-semibold mb-2">Xem video đánh giá trải nghiệm</p>
@@ -548,18 +561,24 @@ export default function HomestayDetailPage() {
             <h2 className="text-2xl md:text-3xl font-extrabold text-[var(--color-ink-deep)]">Danh sách phòng & Lịch trống</h2>
           </div>
 
-          <div className="flex flex-col gap-6">
-            {homestay.rooms.map((room: RoomTypeDto) => (
-              <RoomBookingCard
-                key={room.id}
-                room={room}
-                homestay={homestay}
-                bookedDates={bookedDates}
-                defaultCheckIn={initialCheckInDate}
-                defaultCheckOut={initialCheckOutDate}
-              />
-            ))}
-          </div>
+          {homestay.operationStatus === 'TEMPORARILY_CLOSED' ? (
+            <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+              Homestay đang tạm đóng và chưa nhận kiểm tra phòng/giá. Bạn vẫn có thể xem thông tin công khai bên dưới.
+            </div>
+          ) : (
+            <div className="flex flex-col gap-6">
+              {homestay.rooms.map((room: RoomTypeDto) => (
+                <RoomBookingCard
+                  key={room.id}
+                  room={room}
+                  homestay={homestay}
+                  bookedDates={bookedDates}
+                  defaultCheckIn={initialCheckInDate}
+                  defaultCheckOut={initialCheckOutDate}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* ĐỊA ĐIỂM XUNG QUANH */}
@@ -568,6 +587,19 @@ export default function HomestayDetailPage() {
             <div>
               <h2 className="text-xl md:text-2xl font-bold text-[var(--color-ink-deep)]">Địa điểm & Dịch vụ xung quanh</h2>
             </div>
+
+            <Button
+              type="button"
+              onClick={() => {
+                setSelectedMapTarget(null);
+                setShowMapModal(true);
+              }}
+              variant="outline"
+              className="shrink-0 rounded-md font-bold text-sm flex items-center gap-2 px-4 py-2 border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary-50)]"
+            >
+              <MapIcon className="w-4 h-4" />
+              Xem bản đồ
+            </Button>
 
             {/* Radius slider */}
             <div className="flex items-center gap-3 bg-gray-50 px-3 py-1.5 rounded-md border border-gray-200">
@@ -629,13 +661,37 @@ export default function HomestayDetailPage() {
           </div>
 
           {/* Danh sách địa điểm & dịch vụ xung quanh */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+          <div className="mb-4 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => scrollNearbyPlaces('left')}
+              aria-label="Lướt địa điểm trước"
+              className="shrink-0 rounded-md border border-slate-200 bg-white p-2 text-[var(--color-primary)] shadow-md transition hover:bg-[var(--color-primary)] hover:text-white"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+
+            <div ref={nearbyScrollRef} className="min-w-0 flex-1 flex gap-4 overflow-x-auto pb-3 snap-x snap-mandatory scrollbar-none">
             {filteredNearbyPlaces.length > 0 ? (
               filteredNearbyPlaces.map((item, idx) => (
                 <div
                   key={idx}
-                  className="p-3.5 rounded-md bg-white hover:bg-slate-50/80 border border-slate-200/90 hover:border-slate-300 transition-all group flex flex-col justify-between"
+                  className="w-[280px] sm:w-[320px] md:w-[340px] shrink-0 snap-start overflow-hidden rounded-lg bg-white border border-slate-200/90 hover:border-[var(--color-primary)] hover:-translate-y-0.5 transition-all duration-300 group flex flex-col shadow-[0_8px_24px_rgba(4,140,115,0.08)]"
                 >
+                  <div className="h-36 bg-slate-100 relative overflow-hidden">
+                    {item.imageUrl ? (
+                      <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center bg-[var(--color-primary-50)]">
+                        {getPlaceIcon(item.kind)}
+                      </div>
+                    )}
+                    <span className="absolute top-3 right-3 text-xs font-bold text-[var(--color-primary)] bg-white/95 text-emerald-800 px-2.5 py-1 rounded-sm border border-emerald-200 shadow-sm">
+                      {item.displayDistance < 1 ? Math.round(item.displayDistance * 1000) + ' m' : item.displayDistance + ' km'}
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 flex flex-col flex-1">
                   <div
                     onClick={() => {
                       setSelectedMapTarget({ lat: item.latitude, lng: item.longitude, zoom: 16 });
@@ -644,24 +700,23 @@ export default function HomestayDetailPage() {
                     className="flex items-center justify-between cursor-pointer"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-9 h-9 rounded-md bg-slate-50 flex items-center justify-center border border-slate-200 shrink-0">
-                        {getPlaceIcon(item.kind)}
-                      </div>
                       <div className="min-w-0">
                         <span className="text-sm md:text-base font-bold text-[var(--color-ink-deep)] group-hover:text-[var(--color-primary)] transition-colors block truncate">
                           {item.name}
                         </span>
-
+                        <span className="mt-1 flex items-center gap-1 text-xs text-slate-500 truncate">
+                          <MapPin className="w-3.5 h-3.5 shrink-0" />
+                          {item.address || 'Đang cập nhật địa chỉ'}
+                        </span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0 ml-3">
-                      <span className="text-xs md:text-sm font-bold text-[var(--color-primary)] bg-emerald-50 text-emerald-800 px-2.5 py-1 rounded-sm border border-emerald-200">
-                        {item.displayDistance < 1 ? Math.round(item.displayDistance * 1000) + ' m' : item.displayDistance + ' km'}
-                      </span>
-                      <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[var(--color-primary)]" />
-                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[var(--color-primary)] shrink-0 ml-2" />
                   </div>
+
+                  <p className="mt-3 text-xs leading-5 text-slate-600 line-clamp-2 min-h-10">
+                    {item.description || 'Khám phá địa điểm và dịch vụ nổi bật quanh homestay.'}
+                  </p>
 
                   {/* THÔNG TIN CONTACT CỦA DỊCH VỤ DƯỚI MỖI THẺ */}
                   <div className="mt-2.5 pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-1.5 text-xs">
@@ -716,35 +771,32 @@ export default function HomestayDetailPage() {
                       type="button"
                       onClick={() => openGoogleMapsDirections(item.latitude, item.longitude, `${item.address || ''} ${item.name}`)}
                       className="text-xs md:text-sm font-semibold text-[#10b981] hover:underline flex items-center gap-1 ml-auto cursor-pointer"
-                      title="Chỉ đường từ vị trí của bạn"
+                      title="Mở Google Maps để chọn điểm xuất phát"
                     >
                       <MapIcon className="w-3.5 h-3.5" />
                       Chỉ đường <ArrowRight className="w-3 h-3" />
                     </button>
                   </div>
+                  </div>
                 </div>
               ))
             ) : (
-              <p className="col-span-2 text-sm text-gray-500 italic p-4 text-center bg-gray-50 rounded-md">
+              <p className="w-full text-sm text-gray-500 italic p-4 text-center bg-gray-50 rounded-md">
                 Không tìm thấy địa điểm nào phù hợp trong danh mục này trong bán kính {radius}km.
               </p>
             )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => scrollNearbyPlaces('right')}
+              aria-label="Lướt địa điểm tiếp theo"
+              className="shrink-0 rounded-md border border-slate-200 bg-white p-2 text-[var(--color-primary)] shadow-md transition hover:bg-[var(--color-primary)] hover:text-white"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
           </div>
 
-          {/* NÚT MỞ BẢN ĐỒ VIETMAP Ở DƯỚI ĐỊA ĐIỂM XUNG QUANH */}
-          <div className="pt-1 flex justify-center">
-            <Button
-              onClick={() => {
-                setSelectedMapTarget(null);
-                setShowMapModal(true);
-              }}
-              variant="outline"
-              className="rounded-md font-bold text-sm flex items-center gap-2 px-6 py-2.5 border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary-50)]"
-            >
-              <MapIcon className="w-4 h-4" />
-              Mở bản đồ
-            </Button>
-          </div>
         </div>
 
         {/* ĐÁNH GIÁ CỦA KHÁCH (Data thực tế từ Review backend) */}
@@ -826,6 +878,41 @@ export default function HomestayDetailPage() {
               </div>
             </div>
           )}
+
+          <div className="mt-6 rounded-md border border-slate-200 bg-white p-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-lg font-bold text-[var(--color-ink-deep)]">Đánh giá từ du khách ({homestay.ratingCount})</h3>
+              {homestay.ratingCount === 0 && <span className="text-sm text-slate-500">Chưa có đánh giá</span>}
+            </div>
+            {reviews.length > 0 && (
+              <div className="mt-4 space-y-3">
+                {reviews.slice((reviewPage - 1) * reviewsPerPage, reviewPage * reviewsPerPage).map((review) => (
+                  <article key={review.id} className="border-b border-slate-100 pb-3 last:border-0">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-semibold text-sm">{review.guestName}</span>
+                      <span className="text-xs text-slate-500">{new Date(review.createdAt).toLocaleDateString('vi-VN')}</span>
+                    </div>
+                    <div className="my-1 flex items-center gap-1 text-amber-500">
+                      {'★'.repeat(Math.max(0, Math.min(5, review.rating)))}<span className="text-xs text-slate-500">{review.rating}/5</span>
+                    </div>
+                    <p className="text-sm text-slate-700">{review.content}</p>
+                    {review.images && review.images.length > 0 && (
+                      <div className="mt-2 flex gap-2 overflow-x-auto">
+                        {review.images.map((image) => <img key={image} src={image} alt="Ảnh đánh giá" className="h-16 w-16 rounded-sm object-cover" />)}
+                      </div>
+                    )}
+                  </article>
+                ))}
+              </div>
+            )}
+            {reviews.length > reviewsPerPage && (
+              <div className="mt-3 flex items-center justify-end gap-2 text-xs">
+                <button type="button" disabled={reviewPage === 1} onClick={() => setReviewPage((page) => page - 1)} className="rounded-md border px-2 py-1 disabled:opacity-40">Trước</button>
+                <span>Trang {reviewPage}/{Math.ceil(reviews.length / reviewsPerPage)}</span>
+                <button type="button" disabled={reviewPage >= Math.ceil(reviews.length / reviewsPerPage)} onClick={() => setReviewPage((page) => page + 1)} className="rounded-md border px-2 py-1 disabled:opacity-40">Sau</button>
+              </div>
+            )}
+          </div>
 
 
         </div>

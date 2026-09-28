@@ -85,13 +85,15 @@ public class PartnerRoomService {
             int delta=input.totalRoomCount()-room.getTotalRoomCount();
             List<RoomInventoryDay> future=em.createQuery("select d from RoomInventoryDay d where d.roomType.id=:id and d.id.stayDate>=:today",RoomInventoryDay.class)
                     .setParameter("id",roomId).setParameter("today",LocalDate.now()).getResultList();
-            // UC-NCC-03 luồng phụ 3: chỉ ra mọi ngày xung đột, không áp dụng thay đổi nào nếu có xung đột.
             List<String> conflicts=new ArrayList<>();
             for(RoomInventoryDay day:future) {
                 int next=Math.max(0,Math.min(input.totalRoomCount(),day.getTotalRooms()+delta));
                 if(next<day.getHeldRooms()+day.getConfirmedRooms()) conflicts.add(day.getId().getStayDate().toString());
             }
-            if(!conflicts.isEmpty()) throw bad("Số lượng phòng mới xung đột với Booking hiện có (ngày "+String.join(", ",conflicts)+").");
+            if (!conflicts.isEmpty()) {
+                throw bad("Số lượng phòng mới xung đột với Booking hiện có (ngày "
+                        + String.join(", ", conflicts) + ").");
+            }
             for(RoomInventoryDay day:future) {
                 day.setTotalRooms(Math.max(0,Math.min(input.totalRoomCount(),day.getTotalRooms()+delta))); day.setUpdatedAt(java.time.LocalDateTime.now());
             }
@@ -175,8 +177,8 @@ public class PartnerRoomService {
         if(input.startDate().isBefore(LocalDate.now())) throw bad("Không sửa tồn phòng trong quá khứ.");
         if(input.totalRooms()>room.getTotalRoomCount()) throw bad("Số phòng đưa vào bán không được vượt số phòng thực tế của loại phòng.");
         String reason=blockReason(input.stopSell() || input.totalRooms()<room.getTotalRoomCount(),input.reason());
-        // UC-NCC-04 luồng phụ 3: kiểm tra toàn bộ khoảng ngày trước, chỉ ra các ngày xung đột và không áp dụng thay đổi gây overbooking.
-        List<RoomInventoryDay> days=new ArrayList<>(); List<String> conflicts=new ArrayList<>();
+        List<RoomInventoryDay> days=new ArrayList<>();
+        List<String> conflicts=new ArrayList<>();
         Map<LocalDate,ExpectedDay> expected=new HashMap<>();
         if(input.expected()!=null) input.expected().forEach(e->expected.put(e.stayDate(),e));
         for(LocalDate date=input.startDate();date.isBefore(input.endDate());date=date.plusDays(1)) {
@@ -186,7 +188,8 @@ public class PartnerRoomService {
                 throw new ResponseStatusException(HttpStatus.CONFLICT,"Dữ liệu đã thay đổi, vui lòng kiểm tra lại.");
             if(input.totalRooms()<day.getHeldRooms()+day.getConfirmedRooms()) conflicts.add(date.toString());
         }
-        if(!conflicts.isEmpty()) throw bad("Số phòng đưa vào bán xung đột với các Booking hiện có (ngày "+String.join(", ",conflicts)+").");
+        if(!conflicts.isEmpty()) throw bad("Số phòng đưa vào bán xung đột với các Booking hiện có (ngày "
+                + String.join(", ", conflicts) + ").");
         for(var day:days) { day.setTotalRooms(input.totalRooms()); day.setStopSell(input.stopSell()); day.setBlockReason(reason); day.setUpdatedAt(java.time.LocalDateTime.now()); }
         audit.record(homestays.actor(p,true),"INVENTORY_UPDATE",PartnerAuditRecorder.ROOM_TYPE,id,reason,null,
                 Map.of("startDate",input.startDate().toString(),"endDate",input.endDate().toString(),"totalRooms",input.totalRooms(),"stopSell",input.stopSell()));
@@ -205,6 +208,8 @@ public class PartnerRoomService {
         List<RoomType> list=rooms.findByPlaceId(placeId).stream().sorted(Comparator.comparing(RoomType::getId)).toList();
         if(list.isEmpty()) throw bad("Homestay chưa có loại phòng nào.");
         int bookedDays=0;
+        // Các lần ngừng phục vụ được lưu theo từng ngày. Booking hiện hữu vẫn giữ nguyên;
+        // chỉ chặn booking mới trong các ngày được đóng.
         for(RoomType r:list) {
             RoomType room=rooms.findLockedById(r.getId()).orElseThrow();
             for(LocalDate date=input.startDate();date.isBefore(input.endDate());date=date.plusDays(1)) {

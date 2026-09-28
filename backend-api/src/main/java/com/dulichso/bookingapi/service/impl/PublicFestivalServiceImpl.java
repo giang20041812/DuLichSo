@@ -12,7 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
@@ -50,32 +51,12 @@ public class PublicFestivalServiceImpl implements PublicFestivalService {
                 }
             }
 
-            // Mặc định fallback tính theo tháng nếu DB chưa có ngày cụ thể
-            int currentMonth = today.getMonthValue();
-            if (!isCurrent) {
-                if ("mua-vang-kham-pha-ruong-bac-thang".equals(f.getSlug()) && (currentMonth == 9 || currentMonth == 10)) {
-                    isCurrent = true;
-                } else if ("mung-com-moi".equals(f.getSlug()) && (currentMonth >= 9 && currentMonth <= 11)) {
-                    isCurrent = true;
-                }
-            }
-
             String timeRange = f.getSeasonNote();
             if (nextStart != null && nextEnd != null) {
                 timeRange = String.format("%02d/%02d – %02d/%02d/%d", 
                         nextStart.getDayOfMonth(), nextStart.getMonthValue(),
                         nextEnd.getDayOfMonth(), nextEnd.getMonthValue(), nextEnd.getYear());
             }
-
-            // Ảnh bìa từ database entity với fallback
-            String coverUrl = f.getCoverImageUrl() != null && !f.getCoverImageUrl().isBlank()
-                    ? f.getCoverImageUrl()
-                    : "https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1200&q=80";
-
-            // Địa điểm tổ chức từ database entity với fallback
-            String location = f.getLocation() != null && !f.getLocation().isBlank()
-                    ? f.getLocation()
-                    : (f.getRegion() != null ? f.getRegion().getName() : "Huyện Mù Cang Chải, Tỉnh Yên Bái");
 
             // Tách hoạt động từ suitableExperience
             List<String> activities = extractActivities(f.getSuitableExperience());
@@ -88,9 +69,9 @@ public class PublicFestivalServiceImpl implements PublicFestivalService {
                     .coreValue(f.getCoreValue())
                     .suitableExperience(f.getSuitableExperience())
                     .etiquetteDont(f.getEtiquetteDont())
-                    .regionName(f.getRegion() != null ? f.getRegion().getName() : "Mù Cang Chải")
-                    .coverImageUrl(coverUrl)
-                    .location(location)
+                    .regionName(f.getRegion() != null ? f.getRegion().getName() : null)
+                    .coverImageUrl(f.getCoverImageUrl())
+                    .location(f.getLocation())
                     .highlightTag(isCurrent ? "Đang Diễn Ra" : "Di Sản Văn Hóa")
                     .activities(activities)
                     .isSuitableByTime(Boolean.TRUE.equals(f.getIsSuitableByTime()) || isCurrent)
@@ -106,7 +87,7 @@ public class PublicFestivalServiceImpl implements PublicFestivalService {
 
     private List<String> extractActivities(String exp) {
         if (exp == null || exp.isEmpty()) {
-            return List.of("Trải nghiệm văn hóa", "Khám phá bản sắc");
+            return List.of();
         }
         String firstLine = exp.split("\n")[0];
         String[] parts = firstLine.split(";");
@@ -117,6 +98,6 @@ public class PublicFestivalServiceImpl implements PublicFestivalService {
                 list.add(trimmed);
             }
         }
-        return list.isEmpty() ? List.of("Trải nghiệm văn hóa", "Khám phá bản sắc") : list;
+        return list;
     }
 }

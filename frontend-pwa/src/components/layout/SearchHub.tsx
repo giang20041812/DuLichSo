@@ -324,6 +324,10 @@ export default function SearchHub() {
           const d = parseInt(p2, 10);
           if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
             setCheckInDate({ year: y, month: m, day: d });
+            // Khi mở lại kết quả tìm kiếm, lịch phải hiển thị đúng tháng của
+            // khoảng ngày đang nằm trong URL thay vì quay về tháng hiện tại.
+            setCalendarMonth(m);
+            setCalendarYear(y);
           }
         }
       }

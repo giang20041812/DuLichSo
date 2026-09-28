@@ -1,4 +1,5 @@
 import PartnerBookingList from '@/components/partner/PartnerBookingList';
+import PartnerBookingChangeRequests from '@/components/partner/PartnerBookingChangeRequests';
 import { PageHeader } from '@/components/partner/PartnerUI';
 
 export default function PartnerBookingsPage() {
@@ -9,6 +10,7 @@ export default function PartnerBookingsPage() {
         title="Đơn đặt phòng"
         description="Chọn một đơn để kiểm tra thông tin, tình trạng phòng và chấp nhận hoặc từ chối yêu cầu."
       />
+      <PartnerBookingChangeRequests />
       <PartnerBookingList />
     </div>
   );

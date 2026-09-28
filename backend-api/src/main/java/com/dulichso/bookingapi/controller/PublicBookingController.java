@@ -122,5 +122,22 @@ public class PublicBookingController {
             @RequestParam(value = "excludeBookingCode", required = false) String excludeBookingCode) {
         return ResponseEntity.ok(bookingService.checkAvailability(roomTypeId, checkIn, checkOut, roomCount, excludeBookingCode));
     }
+
+    @PostMapping("/{bookingCode}/change-requests")
+    public ResponseEntity<BookingResponseDto> createBookingChangeRequest(
+            @PathVariable String bookingCode,
+            @Valid @RequestBody com.dulichso.bookingapi.dto.UpdateBookingDetailsRequest request) {
+        return ResponseEntity.ok(bookingService.updateBookingDetails(bookingCode, request));
+    }
+
+    @GetMapping("/rooms/{roomTypeId}/quote")
+    public ResponseEntity<com.dulichso.bookingapi.dto.BookingQuoteResponse> quote(
+            @PathVariable Long roomTypeId,
+            @RequestParam @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate checkIn,
+            @RequestParam @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate checkOut,
+            @RequestParam(defaultValue = "1") int roomCount,
+            @RequestParam(defaultValue = "1") int guestCount) {
+        return ResponseEntity.ok(bookingService.quote(roomTypeId, checkIn, checkOut, roomCount, guestCount));
+    }
 }
 

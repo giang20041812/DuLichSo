@@ -14,6 +14,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.text.Normalizer;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
 import java.util.*;
@@ -30,6 +31,7 @@ public class PartnerHomestayService {
     private final PlaceContactRepository contacts;
     private final PlaceAmenityRepository placeAmenities;
     private final PartnerChangeRequestRepository changeRequests;
+    private final BookingImpactService bookingImpact;
 
     /** Dữ liệu cần để xác định Homestay đủ điều kiện công khai/nhận Booking (UC-NCC-02/03/05). */
     record PublishFacts(int rooms, int sellableRooms, String cover, String phone, HomestayProfile profile, boolean pendingPublish) {}
@@ -174,6 +176,13 @@ public class PartnerHomestayService {
                     "Xuất bản Homestay lần đầu cần được quản trị viên duyệt.");
         if (request.getVisibility() == null && request.getOperationStatus() == null) throw bad("Chưa chọn trạng thái cần cập nhật.");
         if (request.getVisibility() != null) place.setVisibility(request.getVisibility());
+        if (request.getOperationStatus() == PlaceOperationStatus.TEMP_CLOSED
+                && place.getOperationStatus() != PlaceOperationStatus.TEMP_CLOSED) {
+            bookingImpact.cancelForPlace(id, LocalDate.now(), LocalDate.of(9999, 12, 31),
+                    request.getReason() == null || request.getReason().isBlank()
+                            ? "Homestay tạm ngừng hoạt động theo yêu cầu của nhà cung cấp."
+                            : request.getReason().trim());
+        }
         if (request.getOperationStatus() != null) place.setOperationStatus(request.getOperationStatus());
         place.setUpdatedBy(account);
         repository.flush();

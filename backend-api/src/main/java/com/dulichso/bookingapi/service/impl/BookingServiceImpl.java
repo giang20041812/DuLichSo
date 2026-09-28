@@ -347,6 +347,7 @@ public class BookingServiceImpl implements BookingService {
         return com.dulichso.bookingapi.dto.ReviewDto.builder()
                 .id(savedReview.getId())
                 .placeId(place.getId())
+                .bookingCode(booking.getBookingCode())
                 .rating(savedReview.getRating())
                 .content(savedReview.getContent())
                 .images(savedReview.getImages())
@@ -453,6 +454,7 @@ public class BookingServiceImpl implements BookingService {
                 .map(r -> com.dulichso.bookingapi.dto.ReviewDto.builder()
                         .id(r.getId())
                         .placeId(r.getPlace().getId())
+                        .bookingCode(booking.getBookingCode())
                         .rating(r.getRating())
                         .content(r.getContent())
                         .images(r.getImages())
@@ -620,6 +622,16 @@ public class BookingServiceImpl implements BookingService {
             return mapToResponseDto(saved, saved.getPlace(), saved.getRoomType(), unitPrice, nights);
         } else if (booking.getStatus() == BookingStatus.CONFIRMED) {
 
+            LocalDate requestedCheckIn = request.getCheckIn() != null ? request.getCheckIn() : booking.getCheckIn();
+            LocalDate requestedCheckOut = request.getCheckOut() != null ? request.getCheckOut() : booking.getCheckOut();
+            int requestedRooms = request.getRoomCount() != null ? request.getRoomCount() : booking.getRoomCount();
+            int requestedGuests = request.getGuestCount() != null ? request.getGuestCount() : booking.getGuestCount();
+            var availability = checkAvailability(booking.getRoomType().getId(), requestedCheckIn, requestedCheckOut,
+                    requestedRooms, bookingCode);
+            if (!availability.isAvailable()) {
+                throw new IllegalStateException("Không thể tiếp nhận yêu cầu thay đổi: " + availability.getMessage());
+            }
+
             BookingChangeRequest changeReq = BookingChangeRequest.builder()
                     .booking(booking)
                     .status(com.dulichso.bookingapi.entity.enums.BookingChangeStatus.PENDING)
@@ -627,10 +639,10 @@ public class BookingServiceImpl implements BookingService {
                     .guestPhone(request.getGuestPhone() != null ? request.getGuestPhone().trim() : booking.getGuestPhone())
                     .guestEmail(request.getGuestEmail() != null ? request.getGuestEmail().trim() : booking.getGuestEmail())
                     .guestNote(request.getGuestNote() != null ? request.getGuestNote().trim() : booking.getGuestNote())
-                    .checkIn(request.getCheckIn() != null ? request.getCheckIn() : booking.getCheckIn())
-                    .checkOut(request.getCheckOut() != null ? request.getCheckOut() : booking.getCheckOut())
-                    .roomCount(request.getRoomCount() != null ? request.getRoomCount() : booking.getRoomCount())
-                    .guestCount(request.getGuestCount() != null ? request.getGuestCount() : booking.getGuestCount())
+                    .checkIn(requestedCheckIn)
+                    .checkOut(requestedCheckOut)
+                    .roomCount(requestedRooms)
+                    .guestCount(requestedGuests)
                     .reason(request.getReason() != null ? request.getReason().trim() : "Khách yêu cầu đổi thông tin đơn phòng")
                     .createdAt(LocalDateTime.now())
                     .build();
@@ -873,6 +885,8 @@ public class BookingServiceImpl implements BookingService {
 
         bookingChangeRequestRepository.save(changeReq);
 
+        notificationService.notifyBookingChangeRequestDecision(booking, approved, changeReq.getRejectionReason());
+
         int nights = (int) ChronoUnit.DAYS.between(booking.getCheckIn(), booking.getCheckOut());
         BigDecimal unitPrice = booking.getRoomType().getBasePrice() != null ? booking.getRoomType().getBasePrice() : BigDecimal.ZERO;
         return mapToResponseDto(booking, booking.getPlace(), booking.getRoomType(), unitPrice, nights);
@@ -1028,6 +1042,17 @@ public class BookingServiceImpl implements BookingService {
                 .minAvailableRooms(finalMin)
                 .message("Phòng khả dụng! Hiện còn " + finalMin + " phòng trống cho khoảng thời gian này.")
                 .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public com.dulichso.bookingapi.dto.BookingQuoteResponse quote(
+            Long roomTypeId, LocalDate checkIn, LocalDate checkOut, int roomCount, int guestCount) {
+        RoomType roomType = roomTypeRepository.findById(roomTypeId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy loại phòng với ID: " + roomTypeId));
+        var quote = roomCalendarService.quote(roomType, checkIn, checkOut, roomCount, guestCount);
+        return new com.dulichso.bookingapi.dto.BookingQuoteResponse(
+                quote.roomTypeId(), quote.availableRooms(), quote.suitable(), quote.totalAmount());
     }
 
     private String generateUniqueBookingCode() {

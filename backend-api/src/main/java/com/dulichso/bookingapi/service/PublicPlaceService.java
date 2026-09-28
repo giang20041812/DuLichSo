@@ -15,7 +15,9 @@ import com.dulichso.bookingapi.repository.RoomTypeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -111,13 +113,21 @@ public class PublicPlaceService {
 
     @Transactional(readOnly = true)
     public Page<PlaceSummaryDto> getPlaces(CategoryKind kind, BigDecimal minPrice, BigDecimal maxPrice, BigDecimal minRating, List<String> amenities, LocalDate checkIn, LocalDate checkOut, String province, String district, String ward, List<Long> attractionIds, String keyword, Pageable pageable) {
-        Specification<Place> spec = PlaceSpecification.filterPublicPlaces(kind, minPrice, maxPrice, minRating, amenities, checkIn, checkOut, province, district, ward, attractionIds, keyword);
+        return getPlaces(kind, minPrice, maxPrice, minRating, amenities, checkIn, checkOut, province, district, ward, attractionIds, keyword, null, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<PlaceSummaryDto> getPlaces(CategoryKind kind, BigDecimal minPrice, BigDecimal maxPrice, BigDecimal minRating, List<String> amenities, LocalDate checkIn, LocalDate checkOut, String province, String district, String ward, List<Long> attractionIds, String keyword, Integer guestCount, Pageable pageable) {
+        validateFilters(minPrice, maxPrice, checkIn, checkOut, guestCount);
+        Specification<Place> spec = PlaceSpecification.filterPublicPlaces(kind, minPrice, maxPrice, minRating, amenities, checkIn, checkOut, province, district, ward, attractionIds, keyword, guestCount);
+        Pageable listingPageable = PageRequest.of(pageable.getPageNumber(), 12, normalizeSort(pageable.getSort()));
         
-        Page<Place> placesPage = placeRepository.findAll(spec, pageable);
+        Page<Place> placesPage = placeRepository.findAll(spec, listingPageable);
         
         List<Long> placeIds = placesPage.getContent().stream().map(Place::getId).collect(Collectors.toList());
         Map<Long, List<PlaceDetailDto.ContactItemDto>> contactsByPlaceId = new java.util.HashMap<>();
         Map<Long, List<String>> amenitiesByPlaceId = new java.util.HashMap<>();
+        Map<Long, BigDecimal> listingPriceByPlaceId = new java.util.HashMap<>();
         if (!placeIds.isEmpty()) {
             List<com.dulichso.bookingapi.entity.PlaceContact> contacts = placeContactRepository.findByPlaceIdInAndIsPublicTrue(placeIds);
             for (com.dulichso.bookingapi.entity.PlaceContact c : contacts) {
@@ -138,6 +148,11 @@ public class PublicPlaceService {
                             .add(pa.getAmenity().getName());
                 }
             }
+
+            for (RoomType roomType : roomTypeRepository.findByPlaceIdInAndStatus(placeIds, "ACTIVE")) {
+                if (roomType.getBasePrice() == null || roomType.getBasePrice().signum() < 0) continue;
+                listingPriceByPlaceId.merge(roomType.getPlace().getId(), roomType.getBasePrice(), BigDecimal::min);
+            }
         }
 
         return placesPage.map(p -> {
@@ -154,7 +169,7 @@ public class PublicPlaceService {
                     p.getRegion() != null ? p.getRegion().getName() : null,
                     coverUrl,
                     p.getDescription(),
-                    p.getPriceRefMin(),
+                    listingPriceByPlaceId.getOrDefault(p.getId(), p.getPriceRefMin()),
                     p.getRatingAvg(),
                     p.getRatingCount(),
                     p.getAttributes(),
@@ -173,6 +188,43 @@ public class PublicPlaceService {
             }
             return dto;
         });
+    }
+
+    private void validateFilters(BigDecimal minPrice, BigDecimal maxPrice, LocalDate checkIn, LocalDate checkOut, Integer guestCount) {
+        if (minPrice != null && minPrice.signum() < 0) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Giá từ không được âm");
+        }
+        if (maxPrice != null && maxPrice.signum() < 0) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Giá đến không được âm");
+        }
+        if (minPrice != null && maxPrice != null && minPrice.compareTo(maxPrice) > 0) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Giá từ không được lớn hơn Giá đến");
+        }
+        if (checkOut != null && checkIn == null) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Phải chọn Check-in trước khi chọn Check-out");
+        }
+        if (checkIn != null && checkOut != null && !checkOut.isAfter(checkIn)) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Check-out phải sau Check-in");
+        }
+        if (guestCount != null && guestCount < 1) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Số khách phải lớn hơn 0");
+        }
+    }
+
+    private Sort normalizeSort(Sort requested) {
+        if (requested == null || requested.isUnsorted()) {
+            return Sort.by(Sort.Order.desc("ratingAvg"), Sort.Order.desc("ratingCount"), Sort.Order.asc("id"));
+        }
+        Sort.Order first = requested.stream().findFirst().orElse(null);
+        if (first == null) return Sort.by(Sort.Order.desc("ratingAvg"), Sort.Order.asc("id"));
+        String property = switch (first.getProperty()) {
+            case "price_asc", "priceRefMin" -> "priceRefMin";
+            case "price_desc" -> "priceRefMin";
+            case "rating_desc", "ratingAvg" -> "ratingAvg";
+            default -> "ratingAvg";
+        };
+        Sort.Direction direction = "price_desc".equals(first.getProperty()) ? Sort.Direction.DESC : first.getDirection();
+        return Sort.by(new Sort.Order(direction, property), new Sort.Order(Sort.Direction.ASC, "id"));
     }
 
     @Transactional(readOnly = true)
@@ -277,6 +329,8 @@ public class PublicPlaceService {
         return projections.stream().map(p -> com.dulichso.bookingapi.dto.NearbyPlaceDto.builder()
                 .id(p.getId())
                 .name(p.getName())
+                .description(p.getDescription())
+                .imageUrl(p.getImageUrl())
                 .kind(com.dulichso.bookingapi.entity.enums.CategoryKind.valueOf(p.getKind()))
                 .distance(p.getDistance())
                 .latitude(p.getLatitude())

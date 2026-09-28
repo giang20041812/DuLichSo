@@ -81,6 +81,7 @@ public class PartnerHomestayDtos {
     public static class UpdateStatusRequest {
         private PlaceVisibility visibility;
         private PlaceOperationStatus operationStatus;
+        private String reason;
     }
 
     /** Xác nhận nghiệp vụ (2026-09-28): NCC xin chuyển Homestay sang NCC khác quản lý — chờ Admin duyệt. */

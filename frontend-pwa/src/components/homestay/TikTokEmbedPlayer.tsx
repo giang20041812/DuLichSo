@@ -18,6 +18,12 @@ interface TikTokEmbedPlayerProps {
   className?: string;
 }
 
+function getOembedVideoId(value: unknown): string | null {
+  if (typeof value !== 'object' || value === null || !('embed_product_id' in value)) return null;
+  const embedProductId = (value as { embed_product_id?: unknown }).embed_product_id;
+  return typeof embedProductId === 'string' && /^\d+$/.test(embedProductId) ? embedProductId : null;
+}
+
 export default function TikTokEmbedPlayer({
   url,
   homestayName,
@@ -28,6 +34,7 @@ export default function TikTokEmbedPlayer({
   const [copied, setCopied] = useState(false);
   const [embedLoaded, setEmbedLoaded] = useState(false);
   const [embedError, setEmbedError] = useState(false);
+  const [resolvedVideoId, setResolvedVideoId] = useState<string | null>(null);
 
   // Normalize TikTok URL
   const cleanUrl = useMemo(() => {
@@ -45,6 +52,23 @@ export default function TikTokEmbedPlayer({
     return match ? match[1] : null;
   }, [cleanUrl]);
 
+  const playableVideoId = videoId || resolvedVideoId;
+
+  // Mobile share links are redirect URLs (vt/vm.tiktok.com). Resolve them via
+  // TikTok oEmbed so the panel can use the same iframe as a desktop video URL.
+  useEffect(() => {
+    setResolvedVideoId(null);
+    if (!cleanUrl || videoId) return;
+
+    const controller = new AbortController();
+    fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(cleanUrl)}`, { signal: controller.signal })
+      .then((response) => response.ok ? response.json() as Promise<unknown> : null)
+      .then((data) => setResolvedVideoId(getOembedVideoId(data)))
+      .catch(() => setResolvedVideoId(null));
+
+    return () => controller.abort();
+  }, [cleanUrl, videoId]);
+
   // Handle TikTok script embed for vt.tiktok.com shortlinks or profile/video embeds
   useEffect(() => {
     if (!cleanUrl) return;
@@ -53,7 +77,7 @@ export default function TikTokEmbedPlayer({
     setEmbedError(false);
 
     // If direct video ID, we use standard TikTok iframe embed
-    if (videoId) {
+    if (playableVideoId) {
       setEmbedLoaded(true);
       return;
     }
@@ -89,7 +113,7 @@ export default function TikTokEmbedPlayer({
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [cleanUrl, videoId]);
+  }, [cleanUrl, playableVideoId]);
 
   const handleCopyLink = () => {
     if (!cleanUrl) return;
@@ -166,11 +190,11 @@ export default function TikTokEmbedPlayer({
 
       {/* Vùng Embed Player */}
       <div className="p-3 sm:p-4 bg-slate-950 flex flex-col items-center justify-center min-h-[440px] relative">
-        {videoId ? (
+        {playableVideoId ? (
           /* Trực tiếp TikTok Iframe Embed khi có videoId */
           <div className="w-full max-w-[340px] h-[580px] rounded-md overflow-hidden bg-black shadow-lg border border-slate-800">
             <iframe
-              src={`https://www.tiktok.com/embed/v2/${videoId}`}
+              src={`https://www.tiktok.com/embed/v2/${playableVideoId}`}
               title={`TikTok video review ${homestayName}`}
               className="w-full h-full border-0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"

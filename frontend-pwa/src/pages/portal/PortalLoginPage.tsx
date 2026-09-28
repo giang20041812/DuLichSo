@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   AlertCircle,
   ArrowRight,
@@ -22,6 +22,33 @@ const VN_PHONE_REGEX = /^(0|\+84)(3|5|7|8|9)[0-9]{8}$/;
 
 export default function PortalLoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const loginState = (() => {
+    const state: unknown = location.state;
+    if (!state || typeof state !== 'object') return null;
+    const candidate = state as { returnUrl?: unknown; returnTo?: unknown; bookingState?: unknown; message?: unknown };
+    const destination = typeof candidate.returnTo === 'string'
+      ? candidate.returnTo
+      : typeof candidate.returnUrl === 'string' ? candidate.returnUrl : null;
+    if (!destination || !destination.startsWith('/') || destination.startsWith('//') || destination === '/login') return null;
+    return {
+      destination,
+      bookingState: candidate.bookingState,
+      message: typeof candidate.message === 'string' ? candidate.message : undefined,
+    };
+  })();
+
+  const navigateAfterTravelerLogin = () => {
+    if (loginState) {
+      navigate(loginState.destination, {
+        replace: true,
+        ...(loginState.bookingState !== undefined ? { state: loginState.bookingState } : {}),
+      });
+      return;
+    }
+    navigate('/', { replace: true });
+  };
 
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -42,7 +69,7 @@ export default function PortalLoginPage() {
         const parsed = JSON.parse(rawPortal);
         if (parsed.role === 'ADMIN') navigate('/admin', { replace: true });
         else if (parsed.role === 'PROVIDER') navigate('/partner', { replace: true });
-      } catch (e) {}
+      } catch {}
     }
   }, [navigate]);
 
@@ -104,7 +131,7 @@ export default function PortalLoginPage() {
         try {
           const travelerRes = await travelerLogin(cleanId, password);
           saveTravelerSession(travelerRes);
-          navigate('/');
+          navigateAfterTravelerLogin();
         } catch (travelerErr: unknown) {
           throw (travelerErr as AuthErrorResponse)?.errorCode === 'ACCOUNT_INACTIVE'
             ? travelerErr
@@ -123,7 +150,7 @@ export default function PortalLoginPage() {
     setError(null);
     try {
       saveTravelerSession(await googleLogin(idToken));
-      navigate('/');
+      navigateAfterTravelerLogin();
     } catch (err: unknown) {
       setError(err as AuthErrorResponse);
     } finally {

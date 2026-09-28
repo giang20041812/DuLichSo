@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import SidebarLayout from '@/components/layout/SidebarLayout';
 import CustomerRoute from '@/components/layout/CustomerRoute';
+import TravelerRoute from '@/components/layout/TravelerRoute';
 import PartnerLayout from '@/components/partner/PartnerLayout';
 import PartnerRoomsPage from '@/pages/partner/PartnerRoomsPage';
 import PartnerBookingProcessPage from '@/pages/partner/PartnerBookingProcessPage';
@@ -48,9 +49,11 @@ export function AppRoutes() {
           <Route path="homestays/:id" element={<HomestayDetailPage />} />
           
           {/* User Bookings Management */}
-          <Route path="bookings" element={<UserBookingListPage />} />
-          <Route path="my-bookings" element={<UserBookingListPage />} />
-          <Route path="bookings/:bookingCode" element={<UserBookingDetailPage />} />
+          <Route element={<TravelerRoute />}>
+            <Route path="bookings" element={<UserBookingListPage />} />
+            <Route path="my-bookings" element={<UserBookingListPage />} />
+            <Route path="bookings/:bookingCode" element={<UserBookingDetailPage />} />
+          </Route>
           
           <Route path="experiences" element={<CultureFestivalPage />} />
           <Route path="experiences/:slug" element={<FestivalDetailPage />} />
