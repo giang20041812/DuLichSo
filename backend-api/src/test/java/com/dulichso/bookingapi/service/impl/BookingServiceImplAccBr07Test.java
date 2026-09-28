@@ -46,7 +46,7 @@ class BookingServiceImplAccBr07Test {
     @BeforeEach
     void setUp() {
         service = new BookingServiceImpl(
-                null, null, null, placeRepository, roomTypeRepository, null, null, null, null, null, null, null, null, accountRepository);
+                null, null, null, placeRepository, roomTypeRepository, null, null, null, null, null, null, null, null, null, accountRepository);
     }
 
     private CreateBookingRequest request() {
