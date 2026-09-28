@@ -16,6 +16,7 @@ export const STATUS_LABEL: Record<BookingStatus, string> = {
   EXPIRED: 'Hết hạn giữ chỗ',
   COMPLETED: 'Hoàn tất',
   NO_SHOW: 'Khách không đến',
+  REFUNDED: 'Đã hoàn tiền',
 };
 
 export const STATUS_TONE: Record<BookingStatus, StatusTone> = {
@@ -29,6 +30,7 @@ export const STATUS_TONE: Record<BookingStatus, StatusTone> = {
   CANCELLED: 'danger',
   EXPIRED: 'neutral',
   NO_SHOW: 'neutral',
+  REFUNDED: 'neutral',
 };
 
 export const isPendingStatus = (s: BookingStatus) => s === 'PENDING' || s === 'AWAITING_PAYMENT';
@@ -45,6 +47,7 @@ export const STATUS_FILL: Record<BookingStatus, string> = {
   CANCELLED: 'bg-danger/10',
   EXPIRED: 'bg-muted/10',
   NO_SHOW: 'bg-muted/10',
+  REFUNDED: 'bg-muted/10',
 };
 
 export const ATTENTION_TONE: Record<BookingAttentionReason, StatusTone> = {

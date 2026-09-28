@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { BarChart3, CalendarDays, ChevronRight, Home, LogOut, Menu, Star, X, User, Lock, ChevronDown, BedDouble } from 'lucide-react';
+import { BarChart3, CalendarDays, Home, LogOut, Menu, Star, X, User, Lock, ChevronDown, BedDouble } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { VietTrackLogo, VietTrackLogoMark } from '@/components/ui/logo';
 import PartnerNotificationDropdown from './PartnerNotificationDropdown';

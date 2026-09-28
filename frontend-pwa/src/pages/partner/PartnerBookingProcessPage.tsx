@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { AlertTriangle, ArrowLeft, CheckCircle2, Clock, Mail, Phone, StickyNote, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Clock, Mail, Phone, StickyNote, XCircle } from 'lucide-react';
 import { partnerBookingService } from '@/services/partnerBookingService';
 import { homestayError } from '@/services/partnerHomestayService';
 import { BOOKING_STATUS_LABEL, BOOKING_STATUS_TONE } from '@/lib/bookingStatus';
@@ -57,7 +57,7 @@ export default function PartnerBookingProcessPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 pb-8">
-      <PageHeader breadcrumbs={[{ label: 'Bảng điều khiển', to: '/partner' }, { label: 'Đơn đặt phòng', to: '/partner/bookings' }, { label: booking.bookingCode }]} />
+      <PageHeader title={booking.bookingCode} breadcrumbs={[{ label: 'Bảng điều khiển', to: '/partner' }, { label: 'Đơn đặt phòng', to: '/partner/bookings' }, { label: booking.bookingCode }]} />
 
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>

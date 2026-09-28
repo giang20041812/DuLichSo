@@ -17,8 +17,6 @@ import { BOOKING_STATUS_LABEL, BOOKING_STATUS_TONE } from '@/lib/bookingStatus';
 import type { PartnerHomestaySummaryDto } from '@/types/partner';
 import type { ChangeRequestSummary } from '@/types/changeRequest';
 
-type StatusTone = 'success' | 'warning' | 'danger' | 'info' | 'brand' | 'neutral';
-
 const vnd = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 });
 const compactVnd = (n: number) =>
   n >= 1_000_000_000 ? `${(n / 1_000_000_000).toFixed(1)} tỷ` : n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)} tr` : n >= 1_000 ? `${Math.round(n / 1_000)}k` : `${n}`;

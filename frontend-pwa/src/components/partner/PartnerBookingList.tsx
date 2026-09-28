@@ -15,8 +15,6 @@ const vnd = (n?: number | null) => (n == null ? '—' : new Intl.NumberFormat('v
 const date = (d?: string | null) => (d ? new Date(d).toLocaleDateString('vi-VN') : '—');
 const dateTime = (d?: string | null) => (d ? new Date(d).toLocaleString('vi-VN') : '—');
 const STATUSES = Object.keys(BOOKING_STATUS_LABEL) as BookingStatus[];
-/** Đơn cần NCC thao tác: chờ duyệt, hoặc đang trong vòng nhận phòng → trả phòng → hoàn thành. */
-const ACTIONABLE: BookingStatus[] = ['PENDING', 'CONFIRMED', 'CHECKED_IN', 'CHECKED_OUT'];
 
 /** FR-NCC-11: danh sách yêu cầu đặt phòng của nhà cung cấp; đơn chờ xử lý có nút mở màn hình xử lý. */
 export default function PartnerBookingList() {

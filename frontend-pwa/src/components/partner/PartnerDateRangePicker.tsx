@@ -8,7 +8,7 @@ interface PartnerDateRangePickerProps {
   label?: string;
 }
 
-export default function PartnerDateRangePicker({ checkInFrom, checkInTo, onChange, label = 'Ngày nhận phòng' }: PartnerDateRangePickerProps) {
+export default function PartnerDateRangePicker({ checkInFrom, checkInTo, onChange }: PartnerDateRangePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -17,9 +17,9 @@ export default function PartnerDateRangePicker({ checkInFrom, checkInTo, onChang
     if (!dStr) return null;
     const parts = dStr.split('-');
     if (parts.length === 3) {
-      const year = parseInt(parts[0], 10);
-      const month = parseInt(parts[1], 10);
-      const day = parseInt(parts[2], 10);
+      const year = parseInt(parts[0] ?? '', 10);
+      const month = parseInt(parts[1] ?? '', 10);
+      const day = parseInt(parts[2] ?? '', 10);
       if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
         return { year, month, day };
       }

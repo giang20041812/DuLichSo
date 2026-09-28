@@ -17,7 +17,8 @@ export default function RecentBookingTag() {
       if (!customer) {
         const localBookings = getUserSavedBookings();
         if (localBookings && localBookings.length > 0 && mounted) {
-          setLatestBooking(localBookings[0]);
+          const first = localBookings[0];
+          if (first) setLatestBooking(first);
         }
         return;
       }
@@ -27,11 +28,13 @@ export default function RecentBookingTag() {
         if (mounted) {
           if (data && data.length > 0) {
             const sorted = [...data].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-            setLatestBooking(sorted[0]);
+            const first = sorted[0];
+            if (first) setLatestBooking(first);
           } else {
             const localBookings = getUserSavedBookings();
             if (localBookings && localBookings.length > 0) {
-              setLatestBooking(localBookings[0]);
+              const first = localBookings[0];
+              if (first) setLatestBooking(first);
             }
           }
         }
@@ -40,7 +43,8 @@ export default function RecentBookingTag() {
         if (mounted) {
           const localBookings = getUserSavedBookings();
           if (localBookings && localBookings.length > 0) {
-            setLatestBooking(localBookings[0]);
+            const first = localBookings[0];
+            if (first) setLatestBooking(first);
           }
         }
       }
