@@ -163,7 +163,7 @@ function RoomEditor({ placeId, options, editor, onClose, onSaved }: {
     try {
       const saved = await api.save(placeId, editor?.id ?? null, form);
       if (isSubmittedChange(saved)) onSaved(editor?.id ?? null, saved.message);
-      else onSaved(saved.id);
+      else onSaved(saved.id, 'Đã lưu thông tin loại phòng');
     } catch (e: unknown) { setError(homestayError(e)); }
     finally { setBusy(false); }
   }
@@ -195,8 +195,8 @@ function RoomEditor({ placeId, options, editor, onClose, onSaved }: {
               <div className="flex flex-col gap-3">
                 <p className="text-xs font-bold uppercase tracking-wide text-muted">Giá</p>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Giá ngày thường / phòng / đêm" required><input className={ui.input} type="number" required min={0} max={999999999999} value={form.basePrice} onChange={e => set('basePrice', Number(e.target.value))} /></Field>
-                  <Field label="Giá cuối tuần (T7, CN)" hint="Để trống nếu bằng giá ngày thường."><input className={ui.input} type="number" min={0} max={999999999999} value={form.weekendPrice ?? ''} onChange={e => set('weekendPrice', e.target.value ? Number(e.target.value) : undefined)} /></Field>
+                  <Field label="Giá ngày thường / phòng / đêm" required><input className={ui.input} type="number" required min={1} max={999999999999} title="Giá phòng phải lớn hơn 0" value={form.basePrice} onChange={e => set('basePrice', Number(e.target.value))} /></Field>
+                  <Field label="Giá cuối tuần (T7, CN)" hint="Để trống nếu bằng giá ngày thường."><input className={ui.input} type="number" min={1} max={999999999999} title="Giá phòng phải lớn hơn 0" value={form.weekendPrice ?? ''} onChange={e => set('weekendPrice', e.target.value ? Number(e.target.value) : undefined)} /></Field>
                 </div>
               </div>
 
@@ -244,6 +244,7 @@ function RoomEditor({ placeId, options, editor, onClose, onSaved }: {
                 <>
                   <div className="flex flex-col gap-3 border-t border-primary/10 pt-5">
                     <p className="text-xs font-bold uppercase tracking-wide text-muted">Ảnh phòng</p>
+                    <p className="text-[11px] leading-relaxed text-muted">Cần bổ sung ít nhất một ảnh toàn phòng; thiếu ảnh thì loại phòng chưa đủ điều kiện công khai/nhận Booking.</p>
                     <MediaManager target={{ placeId, roomId: editor.id }} title={`Ảnh phòng ${form.name}`} />
                   </div>
                   <div className="flex flex-col gap-3 border-t border-primary/10 pt-5">
@@ -309,7 +310,7 @@ function SeasonalPrices({ placeId, room }: { placeId: number; room: PartnerRoom 
           </ul>
         )}
       </div>
-      <form className="flex flex-col gap-3 rounded-md border border-primary/15 bg-primary-50/40 p-4" onSubmit={(e) => { e.preventDefault(); void run(async () => { const saved = await api.savePrice(placeId, room.id, editId, form); setEditId(null); setForm(empty); return saved; }, editId ? 'Đã cập nhật giá.' : 'Đã thêm giá theo mùa.'); }}>
+      <form className="flex flex-col gap-3 rounded-md border border-primary/15 bg-primary-50/40 p-4" onSubmit={(e) => { e.preventDefault(); void run(async () => { const saved = await api.savePrice(placeId, room.id, editId, form); setEditId(null); setForm(empty); return saved; }, 'Đã cập nhật giá và tình trạng phòng'); }}>
         <p className="text-sm font-bold text-ink-deep">{editId ? 'Sửa giá theo mùa' : 'Thêm giá theo mùa'}</p>
         <fieldset disabled={busy} className="flex flex-col gap-3">
           <Field label="Tên" required><input className={ui.input} required maxLength={255} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="VD: Mùa lúa chín, Tết..." /></Field>
@@ -317,7 +318,7 @@ function SeasonalPrices({ placeId, room }: { placeId: number; room: PartnerRoom 
             <Field label="Từ ngày" required><input className={ui.input} type="date" required value={form.periodStart} onChange={e => setForm({ ...form, periodStart: e.target.value })} /></Field>
             <Field label="Đến ngày" required><input className={ui.input} type="date" required min={form.periodStart} value={form.periodEnd} onChange={e => setForm({ ...form, periodEnd: e.target.value })} /></Field>
           </div>
-          <Field label="Giá / phòng / đêm" required><input className={ui.input} type="number" required min={0} value={form.price} onChange={e => setForm({ ...form, price: Number(e.target.value) })} /></Field>
+          <Field label="Giá / phòng / đêm" required><input className={ui.input} type="number" required min={1} title="Giá phòng phải lớn hơn 0" value={form.price} onChange={e => setForm({ ...form, price: Number(e.target.value) })} /></Field>
           <button className={ui.btnPrimary}>{editId ? 'Lưu thay đổi' : 'Thêm giá'}</button>
           {editId && <button type="button" className={ui.btnGhost} onClick={() => { setEditId(null); setForm(empty); }}>Hủy sửa</button>}
         </fieldset>

@@ -21,6 +21,10 @@ export interface PartnerHomestaySummaryDto {
   auditStatusText: string;
   alertNote?: string;
   isReadyToPublish: boolean;
+  /** UC-NCC-02 luồng phụ 4: các thông tin còn thiếu để công khai/nhận Booking. */
+  missingForPublish: string[];
+  /** UC-NCC-02: đang có yêu cầu xuất bản chờ Admin duyệt. */
+  pendingPublish: boolean;
 }
 
 export interface PartnerHomestayStatsDto {
@@ -66,12 +70,19 @@ export interface PartnerHomestayDetailDto {
   amenities: string[];
   checkInFrom: string;
   checkOutUntil: string;
+  /** Khung giờ NCC xử lý đơn "HH:mm" (BOOK-BR-11); rỗng = mặc định 05:00 - 21:00. Khớp PartnerHomestayDetailDto bên backend. */
+  processingStartTime?: string;
+  processingEndTime?: string;
   houseRules: string;
   cancellationPolicy: string;
   policyName?: string;
   freeCancelCutoffHours?: number | null;
   refundOnLateCancel?: 'FULL_REFUND' | 'NO_REFUND' | null;
   policyVersion?: number | null;
+  /** UC-NCC-05: thời điểm phiên bản chính sách hủy hiện hành có hiệu lực. */
+  policyEffectiveFrom?: string | null;
+  missingForPublish?: string[];
+  pendingPublish?: boolean;
   surchargeNote?: string;
   childrenPolicy?: string;
   petsPolicy?: string;
@@ -127,6 +138,18 @@ export interface ProviderRegisterInput {
   address: string;
   businessLicenseNo: string;
   description: string;
+}
+
+/** UC-NCC-01 "Xem trạng thái" — khớp ProviderApplicationDtos.StatusInput/StatusResult */
+export interface ProviderApplicationStatusInput { applicationId: number; contactPhone: string }
+export interface ProviderApplicationStatusResult {
+  applicationId: number;
+  businessName: string;
+  status: ProviderApplicationStatus;
+  statusLabel: string;
+  reviewNote: string | null;
+  createdAt: string;
+  reviewedAt: string | null;
 }
 
 export interface ProviderRegisterResult {

@@ -3,34 +3,38 @@ package com.dulichso.bookingapi.service;
 import com.dulichso.bookingapi.dto.partner.PartnerBookingDtos.*;
 import com.dulichso.bookingapi.dto.partner.PartnerRoomDtos.InventoryDto;
 import com.dulichso.bookingapi.entity.*;
+import com.dulichso.bookingapi.entity.BookingEvaluation.Conclusion;
 import com.dulichso.bookingapi.entity.enums.ActorType;
 import com.dulichso.bookingapi.entity.enums.BookingStatus;
-import com.dulichso.bookingapi.entity.keys.BookingNightId;
 import com.dulichso.bookingapi.repository.BookingNightRepository;
 import com.dulichso.bookingapi.repository.BookingRepository;
 import com.dulichso.bookingapi.repository.RoomTypeRepository;
 import com.dulichso.bookingapi.security.UserPrincipal;
+import com.dulichso.bookingapi.service.AdminBookingService.BookingDto;
+import com.dulichso.bookingapi.service.ResponseDeadlineService.BookingRef;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 
 /**
- * Nhà cung cấp xử lý đơn đặt phòng: xem chi tiết + kiểm tra, chấp nhận (có thể đổi phương án phòng), từ chối.
- * Chỉ đơn PENDING mới được xử lý; mọi thao tác ghi đều khóa booking và loại phòng trước khi đụng tồn kho.
+ * Nhà cung cấp xử lý đơn đặt phòng theo UC-NCC-06 (tiếp nhận, kiểm tra, yêu cầu bổ sung), UC-NCC-07 (đánh giá khả năng
+ * đáp ứng) và UC-NCC-08 (chấp nhận / từ chối). Chỉ đơn PENDING, còn trong hạn 120 phút theo khung giờ xử lý mới được
+ * quyết định; mọi thao tác ghi đều khóa booking và loại phòng trước khi đụng tồn kho.
  */
 @Service @RequiredArgsConstructor @Transactional(readOnly = true)
 public class PartnerBookingService {
     /** BR-50: khách phải thanh toán trong 15 phút kể từ lúc nhà cung cấp chấp nhận. */
     static final Duration PAYMENT_WINDOW = Duration.ofMinutes(15);
+    static final String EXPIRED_REASON = "Nhà cung cấp không phản hồi trong 120 phút xử lý; phòng đã giữ được trả lại.";
 
     private final PartnerHomestayService homestays;
     private final BookingRepository bookings;
@@ -40,48 +44,89 @@ public class PartnerBookingService {
     private final EntityManager em;
     private final NotificationRecorder notifications;
     private final NotificationService notificationService;
+    private final ResponseDeadlineService deadlines;
 
     public BookingDetailDto detail(UserPrincipal principal, Long id) {
         Account actor = homestays.actor(principal, false);
-        Booking booking = bookings.findById(id).filter(b -> ownedBy(b, actor)).orElseThrow(PartnerBookingService::notFound);
+        Booking booking = bookings.findById(id).filter(b -> ownedBy(b, actor))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không có quyền xem Booking này."));
         return toDetail(booking);
     }
 
+    /** UC-NCC-06: danh sách đơn kèm hạn phản hồi của các đơn đang chờ. */
+    public Page<BookingRowDto> rows(Page<BookingDto> page) {
+        List<BookingRef> refs = page.getContent().stream().filter(b -> b.status() == BookingStatus.PENDING)
+                .map(b -> new BookingRef(b.id(), b.placeId(), b.createdAt())).toList();
+        Map<Long, LocalDateTime> due = deadlines.dueAt(refs);
+        return page.map(b -> new BookingRowDto(b, due.get(b.id())));
+    }
+
+    /** UC-NCC-07: lưu kết quả đánh giá. Chưa đổi trạng thái đơn. */
+    @Transactional
+    public BookingDetailDto evaluate(UserPrincipal principal, Long id, EvaluationInput input) {
+        Account actor = homestays.actor(principal, true);
+        Booking booking = lockedOwned(id, actor);
+        requirePending(booking);
+        requireWithinDeadline(booking, "Booking đã hết thời hạn xử lý.");
+        if (openInfoRequest(booking.getId()))
+            throw conflict("Đơn đang chờ khách bổ sung thông tin; hãy đánh giá sau khi khách phản hồi.");
+        String special = trimToNull(input.specialRequestResult());
+        if (hasSpecialRequest(booking) && special == null)
+            throw bad("Vui lòng ghi rõ đáp ứng hoặc không đáp ứng từng yêu cầu đặc biệt của khách.");
+        if (input.conclusion() == Conclusion.MEETS) {
+            RoomType room = rooms.findLockedById(booking.getRoomType().getId()).orElseThrow(PartnerBookingService::notFound);
+            if (!capacityOk(room, booking)) throw bad("Số khách vượt sức chứa phương án phòng.");
+            if (!"ACTIVE".equals(room.getStatus()) || !holdStillValid(room, booking))
+                throw conflict("Không đủ phòng trong toàn bộ thời gian lưu trú.");
+        }
+        BookingEvaluation evaluation = em.find(BookingEvaluation.class, booking.getId());
+        if (evaluation == null) evaluation = BookingEvaluation.builder().bookingId(booking.getId()).build();
+        evaluation.setConclusion(input.conclusion());
+        evaluation.setSpecialRequestResult(special);
+        evaluation.setNote(trimToNull(input.note()));
+        evaluation.setEvaluatedBy(actor.getId());
+        evaluation.setEvaluatedAt(LocalDateTime.now());
+        if (!em.contains(evaluation)) em.persist(evaluation);
+        em.flush();
+        return toDetail(booking);
+    }
+
+    /** UC-NCC-08 luồng chính: chấp nhận đúng phương án khách đã chọn, sau khi đã đánh giá "Đáp ứng". */
     @Transactional
     public BookingDetailDto accept(UserPrincipal principal, Long id, AcceptInput input) {
         Account actor = homestays.actor(principal, true);
         Booking booking = lockedOwned(id, actor);
         requirePending(booking);
+        requireWithinDeadline(booking, "Booking đã quá thời hạn phản hồi.");
         LocalDateTime now = LocalDateTime.now();
-        if (booking.getHoldExpiresAt() != null && !booking.getHoldExpiresAt().isAfter(now))
-            throw conflict("Đơn đã quá hạn xử lý, không thể chấp nhận. Bạn chỉ có thể từ chối đơn này.");
         if (booking.getCheckIn().isBefore(LocalDate.now()))
             throw conflict("Đã qua ngày nhận phòng, không thể chấp nhận đơn.");
-
         Long currentId = booking.getRoomType().getId();
-        Long targetId = input.roomTypeId() == null ? currentId : input.roomTypeId();
-        if (targetId.equals(currentId)) {
-            RoomType room = rooms.findLockedById(currentId).orElseThrow(PartnerBookingService::notFound);
-            if (!capacityOk(room, booking)) throw bad("Loại phòng hiện tại không đủ sức chứa cho số khách. Hãy chọn phương án phòng khác.");
-            if (!"ACTIVE".equals(room.getStatus())) throw conflict("Loại phòng hiện tại đang ngừng bán.");
-            for (LocalDate date = booking.getCheckIn(); date.isBefore(booking.getCheckOut()); date = date.plusDays(1)) {
-                RoomInventoryDay day = calendar.lockedDay(room, date);
-                if (Boolean.TRUE.equals(day.getStopSell()) || day.getHeldRooms() < booking.getRoomCount()
-                        || day.getHeldRooms() + day.getConfirmedRooms() > day.getTotalRooms())
-                    throw conflict("Không thể xác nhận giữ chỗ ngày " + date + ". Hãy chọn phương án phòng khác.");
-            }
-        } else {
-            switchRoom(booking, currentId, targetId);
+        if (input.roomTypeId() != null && !input.roomTypeId().equals(currentId))
+            throw bad("Không được tự đổi loại phòng hoặc giá khi chấp nhận. Hãy lưu đánh giá \"Cần điều chỉnh\" và đề xuất cho khách xác nhận.");
+
+        RoomType room = rooms.findLockedById(currentId).orElseThrow(PartnerBookingService::notFound);
+        BookingEvaluation evaluation = em.find(BookingEvaluation.class, booking.getId());
+        if (evaluation == null || evaluation.getConclusion() != Conclusion.MEETS)
+            throw conflict("Cần lưu kết quả đánh giá \"Đáp ứng\" trước khi chấp nhận Booking.");
+        if (isStale(evaluation, room))
+            throw conflict("Dữ liệu phòng đã thay đổi sau khi đánh giá. Vui lòng kiểm tra lại khả năng đáp ứng.");
+        if (!capacityOk(room, booking)) throw conflict("Không thể xác nhận vì khả năng cung cấp đã thay đổi.");
+        if (!"ACTIVE".equals(room.getStatus())) throw conflict("Không thể xác nhận vì khả năng cung cấp đã thay đổi.");
+        for (LocalDate date = booking.getCheckIn(); date.isBefore(booking.getCheckOut()); date = date.plusDays(1)) {
+            RoomInventoryDay day = calendar.lockedDay(room, date);
+            if (Boolean.TRUE.equals(day.getStopSell()) || day.getHeldRooms() < booking.getRoomCount()
+                    || day.getHeldRooms() + day.getConfirmedRooms() > day.getTotalRooms())
+                throw conflict("Không thể xác nhận vì khả năng cung cấp đã thay đổi (ngày " + date + ").");
         }
 
         BookingStatus from = booking.getStatus();
         booking.setStatus(BookingStatus.CONFIRMED);
         booking.setConfirmedAt(now);
-        
-        RoomType finalRoom = rooms.findLockedById(booking.getRoomType().getId()).orElseThrow(PartnerBookingService::notFound);
-        confirmHold(finalRoom, booking);
+        confirmHold(room, booking);
 
         String note = trimToNull(input.note());
+        if (note == null) note = evaluation.getSpecialRequestResult();
         history(booking, from, actor, note != null ? note : "Nhà cung cấp chấp nhận đơn đặt phòng");
         flush("Khách đã có một đơn khác còn hiệu lực cho loại phòng và khoảng ngày này.");
         notifyCustomer("BOOKING_ACCEPTED_CUSTOMER", booking, Map.of(
@@ -89,16 +134,18 @@ public class PartnerBookingService {
         try {
             notificationService.notifyBookingStatusChange(booking, BookingStatus.CONFIRMED, note);
         } catch (Exception ex) {
-            // Log & ignore to prevent rollback of main business transaction
+            // Không để lỗi gửi thông báo làm hỏng giao dịch chính (trạng thái và tồn kho đã cập nhật).
         }
         return toDetail(booking);
     }
 
+    /** UC-NCC-08 luồng phụ 1: từ chối kèm lý do, giải phóng phòng đã giữ đúng một lần. */
     @Transactional
     public BookingDetailDto reject(UserPrincipal principal, Long id, RejectInput input) {
         Account actor = homestays.actor(principal, true);
         Booking booking = lockedOwned(id, actor);
         requirePending(booking);
+        requireWithinDeadline(booking, "Booking đã quá thời hạn phản hồi.");
         RoomType room = rooms.findLockedById(booking.getRoomType().getId()).orElseThrow(PartnerBookingService::notFound);
         releaseHold(room, booking);
 
@@ -114,19 +161,18 @@ public class PartnerBookingService {
         try {
             notificationService.notifyBookingStatusChange(booking, BookingStatus.REJECTED, reason);
         } catch (Exception ex) {
-            // Log & ignore
+            // Không để lỗi gửi thông báo làm hỏng giao dịch chính.
         }
         return toDetail(booking);
     }
 
-    /** FR-NCC-14: đơn vẫn PENDING và vẫn giữ phòng; phía khách trả lời thuộc module Khách hàng (docs/ncc-handoff.md). Mỗi lúc chỉ một yêu cầu đang mở. */
+    /** UC-NCC-06 luồng phụ 1 (FR-NCC-14): đơn vẫn PENDING và vẫn giữ phòng; không gia hạn. Mỗi lúc chỉ một yêu cầu đang mở. */
     @Transactional
     public BookingDetailDto requestInfo(UserPrincipal principal, Long id, InfoRequestInput input) {
         Account actor = homestays.actor(principal, true);
         Booking booking = lockedOwned(id, actor);
         requirePending(booking);
-        if (booking.getHoldExpiresAt() != null && !booking.getHoldExpiresAt().isAfter(LocalDateTime.now()))
-            throw conflict("Đơn đã quá hạn xử lý, không thể yêu cầu bổ sung thông tin.");
+        requireWithinDeadline(booking, "Booking đã quá thời hạn xử lý.");
         if (openInfoRequest(booking.getId())) throw conflict("Đơn đang có một yêu cầu bổ sung chưa được khách phản hồi.");
         String message = input.message().trim();
         em.persist(BookingInfoRequest.builder().booking(booking).message(message).requestedBy(actor.getId()).createdAt(LocalDateTime.now()).build());
@@ -135,13 +181,53 @@ public class PartnerBookingService {
         return toDetail(booking);
     }
 
+    /**
+     * UC-NCC-08 luồng phụ 2 (BOOK-BR-11/12): đơn quá hạn phản hồi được chuyển sang Hết hạn và trả lại phòng đã giữ đúng một
+     * lần. Gọi định kỳ từ {@link PendingBookingExpiryJob}.
+     * @return số đơn đã chuyển sang Hết hạn
+     */
+    @Transactional
+    public int expireOverdue() {
+        List<Booking> pending = em.createQuery("select b from Booking b where b.status = :status", Booking.class)
+                .setParameter("status", BookingStatus.PENDING).getResultList();
+        if (pending.isEmpty()) return 0;
+        Map<Long, LocalDateTime> due = deadlines.dueAt(pending.stream()
+                .map(b -> new BookingRef(b.getId(), b.getPlace().getId(), b.getCreatedAt())).toList());
+        LocalDateTime now = LocalDateTime.now();
+        int expired = 0;
+        for (Booking candidate : pending) {
+            LocalDateTime dueAt = due.get(candidate.getId());
+            if (dueAt == null || dueAt.isAfter(now)) continue;
+            Booking booking = bookings.findLockedById(candidate.getId()).orElse(null);
+            if (booking == null || booking.getStatus() != BookingStatus.PENDING) continue;
+            RoomType room = rooms.findLockedById(booking.getRoomType().getId()).orElse(null);
+            if (room != null) releaseHold(room, booking);
+            BookingStatus from = booking.getStatus();
+            booking.setStatus(BookingStatus.EXPIRED);
+            booking.setClosedAt(now);
+            booking.setCloseReason(EXPIRED_REASON);
+            booking.setClosedByActor(ActorType.SYSTEM);
+            em.persist(BookingStatusHistory.builder().booking(booking).fromStatus(from).toStatus(BookingStatus.EXPIRED)
+                    .actor(ActorType.SYSTEM).reason(EXPIRED_REASON).createdAt(now).build());
+            notifyCustomer("BOOKING_EXPIRED_CUSTOMER", booking, Map.of("reason", EXPIRED_REASON));
+            try {
+                notificationService.notifyBookingStatusChange(booking, BookingStatus.EXPIRED, EXPIRED_REASON);
+            } catch (Exception ex) {
+                // Không để lỗi gửi thông báo chặn việc trả phòng.
+            }
+            expired++;
+        }
+        em.flush();
+        return expired;
+    }
+
     private boolean openInfoRequest(Long bookingId) {
         return em.createQuery("select count(r) from BookingInfoRequest r where r.booking.id=:id and r.respondedAt is null", Long.class)
                 .setParameter("id", bookingId).getSingleResult() > 0;
     }
 
     /**
-     * Vận hành lưu trú (CONFIRMED → CHECKED_IN → CHECKED_OUT → COMPLETED, hoặc CONFIRMED → NO_SHOW).
+     * Vận hành lưu trú (CONFIRMED → CHECKED_IN → COMPLETED, hoặc CONFIRMED → NO_SHOW).
      * Nhận/trả phòng không đổi tồn kho vì phòng đã nằm trong confirmed_rooms; NO_SHOW nhả các đêm từ hôm nay trở đi để bán lại.
      */
     @Transactional
@@ -199,7 +285,6 @@ public class PartnerBookingService {
                 yield actions;
             }
             case CHECKED_IN -> List.of(StayAction.CHECK_OUT);
-            case CHECKED_OUT -> List.of();
             default -> List.of();
         };
     }
@@ -210,10 +295,13 @@ public class PartnerBookingService {
         payload.put("bookingCode", booking.getBookingCode());
         payload.put("bookingStatus", booking.getStatus().name());
         payload.put("isRead", false);
-        payload.put("title", template.equals("BOOKING_INFO_REQUESTED") ? "Chủ nhà cần bổ sung thông tin"
-                : booking.getStatus() == BookingStatus.REJECTED ? "Yêu cầu đặt phòng bị từ chối" : "Chủ nhà đã chấp nhận đặt phòng");
+        payload.put("title", switch (template) {
+            case "BOOKING_INFO_REQUESTED" -> "Chủ nhà cần bổ sung thông tin";
+            case "BOOKING_EXPIRED_CUSTOMER" -> "Yêu cầu đặt phòng đã hết hạn";
+            default -> booking.getStatus() == BookingStatus.REJECTED ? "Yêu cầu đặt phòng bị từ chối" : "Booking đã được xác nhận";
+        });
         String message = template.equals("BOOKING_INFO_REQUESTED") ? String.valueOf(extra.get("message"))
-                : booking.getStatus() == BookingStatus.REJECTED ? String.valueOf(extra.get("reason"))
+                : booking.getStatus() == BookingStatus.REJECTED || booking.getStatus() == BookingStatus.EXPIRED ? String.valueOf(extra.get("reason"))
                 : "Phòng: " + booking.getRoomType().getName() + ". Tổng tiền: " + booking.getTotalAmount()
                     + " VND. Khách hàng vui lòng thanh toán trực tiếp tại chỗ nghỉ. " + extra.getOrDefault("message", "");
         payload.put("message", message);
@@ -222,41 +310,6 @@ public class PartnerBookingService {
     }
 
     // ---------------------------------------------------------------- ghi
-
-    /** Chuyển phần giữ chỗ của đơn sang loại phòng khác cùng Homestay và tính lại giá theo bảng giá của loại phòng mới. */
-    private void switchRoom(Booking booking, Long currentId, Long targetId) {
-        // Khóa theo thứ tự id để hai lượt đổi phòng ngược chiều không deadlock.
-        RoomType first = rooms.findLockedById(Math.min(currentId, targetId)).orElseThrow(() -> bad("Không tìm thấy loại phòng."));
-        RoomType second = rooms.findLockedById(Math.max(currentId, targetId)).orElseThrow(() -> bad("Không tìm thấy loại phòng."));
-        RoomType current = first.getId().equals(currentId) ? first : second;
-        RoomType target = first.getId().equals(targetId) ? first : second;
-
-        if (!target.getPlace().getId().equals(booking.getPlace().getId())) throw bad("Loại phòng không thuộc Homestay của đơn.");
-        if (!"ACTIVE".equals(target.getStatus())) throw bad("Loại phòng được chọn đang ngừng bán.");
-        if (!capacityOk(target, booking)) throw bad("Loại phòng được chọn không đủ sức chứa cho số khách.");
-
-        releaseHold(current, booking);
-        int count = booking.getRoomCount();
-        for (LocalDate date = booking.getCheckIn(); date.isBefore(booking.getCheckOut()); date = date.plusDays(1)) {
-            RoomInventoryDay day = calendar.lockedDay(target, date);
-            if (Boolean.TRUE.equals(day.getStopSell())) throw conflict("Loại phòng được chọn đang ngừng bán ngày " + date + ".");
-            int available = day.getTotalRooms() - day.getHeldRooms() - day.getConfirmedRooms();
-            if (available < count) throw conflict("Loại phòng được chọn không đủ phòng trống ngày " + date + ".");
-            day.setHeldRooms(day.getHeldRooms() + count);
-        }
-
-        List<InventoryDto> priced = calendar.calendar(target, booking.getCheckIn(), booking.getCheckOut());
-        bookingNights.deleteAll(bookingNights.findByBookingId(booking.getId()));
-        bookingNights.flush();
-        BigDecimal total = BigDecimal.ZERO;
-        for (InventoryDto night : priced) {
-            bookingNights.save(BookingNight.builder().id(new BookingNightId(booking.getId(), night.stayDate()))
-                    .booking(booking).unitPrice(night.price()).roomCount(count).build());
-            total = total.add(night.price());
-        }
-        booking.setRoomType(target);
-        booking.setTotalAmount(total.multiply(BigDecimal.valueOf(count)));
-    }
 
     /** Caller phải khóa RoomType trước. */
     private void releaseHold(RoomType room, Booking booking) {
@@ -292,9 +345,9 @@ public class PartnerBookingService {
     // ---------------------------------------------------------------- đọc
 
     private BookingDetailDto toDetail(Booking b) {
-        LocalDateTime now = LocalDateTime.now();
         boolean pending = b.getStatus() == BookingStatus.PENDING;
-        boolean withinDeadline = b.getHoldExpiresAt() == null || b.getHoldExpiresAt().isAfter(now);
+        LocalDateTime dueAt = pending ? dueAt(b) : null;
+        boolean withinDeadline = dueAt == null || dueAt.isAfter(LocalDateTime.now());
         List<RoomOptionDto> options = pending ? roomOptions(b) : List.of();
 
         List<NightDto> nights = bookingNights.findByBookingId(b.getId()).stream()
@@ -308,6 +361,16 @@ public class PartnerBookingService {
                 .setParameter("id", b.getId()).getResultStream()
                 .map(h -> new HistoryDto(h.getFromStatus(), h.getToStatus(), h.getActor(), h.getReason(), h.getCreatedAt())).toList();
 
+        boolean infoComplete = infoRequests.stream().allMatch(r -> r.respondedAt() != null);
+        BookingEvaluation evaluation = pending ? em.find(BookingEvaluation.class, b.getId()) : null;
+        boolean stale = evaluation != null && isStale(evaluation, b.getRoomType());
+        EvaluationDto evaluationDto = evaluation == null ? null : new EvaluationDto(evaluation.getConclusion(),
+                evaluation.getSpecialRequestResult(), evaluation.getNote(), evaluation.getEvaluatedAt(), stale);
+        boolean open = pending && withinDeadline;
+        boolean canAccept = open && !b.getCheckIn().isBefore(LocalDate.now()) && evaluation != null
+                && evaluation.getConclusion() == Conclusion.MEETS && !stale;
+        List<InventoryDto> availability = pending ? calendar.calendar(b.getRoomType(), b.getCheckIn(), b.getCheckOut()) : List.of();
+
         return new BookingDetailDto(b.getId(), b.getBookingCode(), b.getStatus(),
                 b.getPlace().getId(), b.getPlace().getName(), b.getRoomType().getId(), b.getRoomType().getName(),
                 b.getCheckIn(), b.getCheckOut(), b.getNights(), b.getRoomCount(), b.getGuestCount(),
@@ -317,14 +380,18 @@ public class PartnerBookingService {
                 b.getConfirmedAt(), b.getClosedAt(), b.getCloseReason(),
                 b.getPolicySnapshot() == null ? Map.of() : b.getPolicySnapshot(),
                 nights, services, history, infoRequests,
-                pending ? checks(b, services, infoRequests, withinDeadline) : List.of(), options,
-                pending && withinDeadline && !b.getCheckIn().isBefore(LocalDate.now()), pending,
-                pending && withinDeadline && infoRequests.stream().allMatch(r -> r.respondedAt() != null),
-                allowedStayActions(b, LocalDate.now()));
+                pending ? checks(b, services, infoRequests, withinDeadline, dueAt) : List.of(), options,
+                canAccept, open, open && infoComplete,
+                allowedStayActions(b, LocalDate.now()),
+                dueAt, pending && !withinDeadline, availability, evaluationDto, open && infoComplete);
+    }
+
+    private LocalDateTime dueAt(Booking b) {
+        return deadlines.dueAt(new BookingRef(b.getId(), b.getPlace().getId(), b.getCreatedAt()));
     }
 
     /** FR-NCC-13/15/16/17: các kiểm tra tự động trên đơn đang chờ xử lý. */
-    private List<CheckDto> checks(Booking b, List<ServiceItemDto> services, List<InfoRequestDto> infoRequests, boolean withinDeadline) {
+    private List<CheckDto> checks(Booking b, List<ServiceItemDto> services, List<InfoRequestDto> infoRequests, boolean withinDeadline, LocalDateTime dueAt) {
         List<CheckDto> list = new ArrayList<>();
         boolean hasContact = notBlank(b.getGuestName()) && notBlank(b.getGuestPhone());
         list.add(new CheckDto("CONTACT", "Thông tin người đặt",
@@ -338,19 +405,21 @@ public class PartnerBookingService {
         RoomType room = b.getRoomType();
         boolean capacity = capacityOk(room, b);
         list.add(new CheckDto("CAPACITY", "Sức chứa loại phòng", capacity ? CheckLevel.OK : CheckLevel.FAIL,
-                b.getGuestCount() + " khách / " + b.getRoomCount() + " phòng, tối đa " + room.getMaxOccupancy() + " khách mỗi phòng."));
+                capacity ? b.getGuestCount() + " khách / " + b.getRoomCount() + " phòng, tối đa " + room.getMaxOccupancy() + " khách mỗi phòng."
+                        : "Số khách vượt sức chứa phương án phòng."));
 
-        list.add(new CheckDto("AVAILABILITY", "Tình trạng phòng", "ACTIVE".equals(room.getStatus()) ? CheckLevel.OK : CheckLevel.WARN,
-                "ACTIVE".equals(room.getStatus()) ? "Đã giữ " + b.getRoomCount() + " phòng cho đơn này trên lịch phòng."
-                        : "Đã giữ phòng cho đơn nhưng loại phòng hiện đang ngừng bán."));
+        boolean available = "ACTIVE".equals(room.getStatus()) && holdStillValid(room, b);
+        list.add(new CheckDto("AVAILABILITY", "Tình trạng phòng", available ? CheckLevel.OK : CheckLevel.FAIL,
+                available ? "Đã giữ " + b.getRoomCount() + " phòng cho đơn này trong toàn bộ thời gian lưu trú."
+                        : "Không đủ phòng trong toàn bộ thời gian lưu trú."));
 
         boolean hasPolicy = b.getPolicySnapshot() != null && !b.getPolicySnapshot().isEmpty();
         list.add(new CheckDto("PRICE_POLICY", "Giá và chính sách áp dụng", hasPolicy ? CheckLevel.OK : CheckLevel.WARN,
-                hasPolicy ? "Giá theo từng đêm và chính sách hủy đã được chốt lúc khách đặt." : "Giá đã chốt nhưng Homestay chưa có chính sách hủy lúc khách đặt."));
+                hasPolicy ? "Giá theo từng đêm và chính sách hủy đã được chốt lúc khách đặt (BOOK-BR-16)." : "Giá đã chốt nhưng Homestay chưa có chính sách hủy lúc khách đặt."));
 
         boolean special = notBlank(b.getGuestNote()) || !services.isEmpty();
         list.add(new CheckDto("SPECIAL_REQUEST", "Yêu cầu đặc biệt", special ? CheckLevel.WARN : CheckLevel.OK,
-                special ? "Khách có ghi chú hoặc dịch vụ kèm theo, cần xem xét và phản hồi khi chấp nhận." : "Khách không có yêu cầu đặc biệt."));
+                special ? "Khách có ghi chú hoặc dịch vụ kèm theo; cần ghi rõ đáp ứng hay không khi đánh giá." : "Khách không có yêu cầu đặc biệt."));
 
         if (!infoRequests.isEmpty()) {
             boolean waiting = infoRequests.stream().anyMatch(r -> r.respondedAt() == null);
@@ -358,22 +427,29 @@ public class PartnerBookingService {
                     waiting ? "Đang chờ khách phản hồi yêu cầu bổ sung." : "Khách đã phản hồi yêu cầu bổ sung, xem nội dung bên dưới."));
         }
 
-        list.add(new CheckDto("DEADLINE", "Hạn xử lý", withinDeadline ? CheckLevel.OK : CheckLevel.FAIL,
-                b.getHoldExpiresAt() == null ? "Không có hạn giữ chỗ." : (withinDeadline ? "Cần xử lý trước " : "Đã quá hạn lúc ") + b.getHoldExpiresAt() + "."));
+        list.add(new CheckDto("DEADLINE", "Hạn phản hồi", withinDeadline ? CheckLevel.OK : CheckLevel.FAIL,
+                dueAt == null ? "Không có hạn phản hồi." : withinDeadline ? "Cần phản hồi trước " + dueAt + " (120 phút trong khung giờ xử lý)."
+                        : "Booking đã quá thời hạn xử lý (hạn " + dueAt + ")."));
         return list;
     }
 
-    /** FR-NCC-15/18: khả năng cung cấp và giá của từng loại phòng trong Homestay cho khoảng ngày của đơn. */
+    /** Phòng của đơn vẫn được giữ đủ và không bị đóng bán trên toàn bộ các đêm. */
+    private boolean holdStillValid(RoomType room, Booking b) {
+        return calendar.calendar(room, b.getCheckIn(), b.getCheckOut()).stream()
+                .allMatch(d -> !d.stopSell() && d.heldRooms() >= b.getRoomCount() && d.heldRooms() + d.confirmedRooms() <= d.totalRooms());
+    }
+
+    /**
+     * Khả năng cung cấp của các loại phòng khác cùng Homestay — chỉ để NCC tham khảo khi đề xuất điều chỉnh cho khách
+     * (UC-NCC-07 luồng phụ 4); không dùng để tự đổi phòng khi chấp nhận.
+     */
     private List<RoomOptionDto> roomOptions(Booking b) {
         List<RoomOptionDto> list = new ArrayList<>();
         for (RoomType room : rooms.findByPlaceId(b.getPlace().getId())) {
             boolean current = room.getId().equals(b.getRoomType().getId());
             boolean capacity = capacityOk(room, b);
             if (current) {
-                // Phòng của đơn đã được giữ sẵn trong held_rooms nên luôn còn đủ cho chính đơn này.
-                boolean available = "ACTIVE".equals(room.getStatus()) && calendar.calendar(room, b.getCheckIn(), b.getCheckOut()).stream()
-                        .allMatch(d -> !d.stopSell() && d.heldRooms() >= b.getRoomCount()
-                                && d.heldRooms() + d.confirmedRooms() <= d.totalRooms());
+                boolean available = "ACTIVE".equals(room.getStatus()) && holdStillValid(room, b);
                 list.add(new RoomOptionDto(room.getId(), room.getName(), room.getMaxOccupancy(), true, available ? b.getRoomCount() : 0,
                         capacity, capacity && available, b.getTotalAmount(), !capacity ? "Không đủ sức chứa" : available ? null : "Phòng ngừng bán hoặc giữ chỗ không còn hợp lệ"));
                 continue;
@@ -402,6 +478,20 @@ public class PartnerBookingService {
         return em.createQuery("select r from BookingInfoRequest r where r.booking.id=:id order by r.createdAt, r.id", BookingInfoRequest.class)
                 .setParameter("id", bookingId).getResultStream()
                 .map(r -> new InfoRequestDto(r.getId(), r.getMessage(), r.getCreatedAt(), r.getResponseText(), r.getRespondedAt())).toList();
+    }
+
+    private void requireWithinDeadline(Booking booking, String message) {
+        LocalDateTime dueAt = dueAt(booking);
+        if (dueAt != null && !dueAt.isAfter(LocalDateTime.now())) throw conflict(message);
+    }
+
+    /** UC-NCC-07 luồng phụ 5: dữ liệu loại phòng đổi sau khi đánh giá thì không dùng kết quả cũ để xác nhận. */
+    private static boolean isStale(BookingEvaluation evaluation, RoomType room) {
+        return room.getUpdatedAt() != null && evaluation.getEvaluatedAt() != null && room.getUpdatedAt().isAfter(evaluation.getEvaluatedAt());
+    }
+
+    private static boolean hasSpecialRequest(Booking b) {
+        return notBlank(b.getGuestNote()) || b.getServiceItems().stream().anyMatch(s -> !Boolean.FALSE.equals(s.getIsIncluded()));
     }
 
     private Booking lockedOwned(Long id, Account actor) {

@@ -22,6 +22,7 @@ class PartnerHomestayServiceTest {
     @Mock AccountRepository accounts;
     @Mock PlaceContactRepository contacts;
     @Mock PlaceAmenityRepository amenities;
+    @Mock PartnerChangeRequestRepository changeRequests;
     PartnerHomestayService service;
     // JwtAuthenticationFilter supplies an identifier, not account/provider IDs.
     final UserPrincipal principal = new UserPrincipal(null, "provider@example.test", AccountRole.PROVIDER, null);
@@ -29,7 +30,7 @@ class PartnerHomestayServiceTest {
     Place place;
 
     @BeforeEach void setup() {
-        service = new PartnerHomestayService(repository, accounts, contacts, amenities);
+        service = new PartnerHomestayService(repository, accounts, contacts, amenities, changeRequests);
         Provider provider = Provider.builder().id(12L).name("Nhà cung cấp A").build();
         account = Account.builder().id(7L).role(AccountRole.PROVIDER).provider(provider).build();
         place = Place.builder().id(21L).name("Homestay A").nameNorm("homestay a").description("Mô tả")
@@ -163,6 +164,12 @@ class PartnerHomestayServiceTest {
         when(repository.media(List.of(21L))).thenReturn(List.of(PlaceMedia.builder().place(place).role(MediaRole.COVER)
                 .media(MediaAsset.builder().publicUrl("https://img.example/cover.jpg").build()).build()));
         when(repository.roomCounts(List.of(21L))).thenReturn(java.util.Collections.singletonList(new Object[]{21L, 1L}));
+        when(repository.sellableRoomCounts(List.of(21L))).thenReturn(java.util.Collections.singletonList(new Object[]{21L, 1L}));
+        place.setLatitude(new java.math.BigDecimal("21.03"));
+        place.setLongitude(new java.math.BigDecimal("105.85"));
+        when(repository.profile(21L)).thenReturn(Optional.of(HomestayProfile.builder().placeId(21L)
+                .checkInFrom(java.time.LocalTime.of(14, 0)).checkOutUntil(java.time.LocalTime.of(12, 0))
+                .currentPolicy(CancellationPolicy.builder().name("Linh hoạt").build()).build()));
 
         var result = service.applyPublish(account, 21L);
 
@@ -183,6 +190,18 @@ class PartnerHomestayServiceTest {
             PartnerHomestayDetailDto dto = input();
             dto.setReviewVideoUrl(bad);
             assertEquals(400, assertThrows(ResponseStatusException.class, () -> service.saveHomestayDetail(principal, 21L, dto)).getStatusCode().value(), bad);
+        }
+        verify(repository, never()).persist(any());
+    }
+
+    @Test void processingWindowNeedsBothTimesAndStartBeforeEnd() {
+        authenticate();
+        lenient().when(repository.findOwned(21L, 12L, true)).thenReturn(Optional.of(place));
+        for (String[] bad : List.of(new String[]{"07:00", ""}, new String[]{"", "22:00"}, new String[]{"22:00", "06:00"}, new String[]{"08:00", "08:00"}, new String[]{"7h", "22:00"})) {
+            PartnerHomestayDetailDto dto = input();
+            dto.setProcessingStartTime(bad[0]);
+            dto.setProcessingEndTime(bad[1]);
+            assertEquals(400, assertThrows(ResponseStatusException.class, () -> service.saveHomestayDetail(principal, 21L, dto)).getStatusCode().value(), String.join("-", bad));
         }
         verify(repository, never()).persist(any());
     }

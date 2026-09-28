@@ -134,8 +134,9 @@ public class PartnerChangeService {
         Place place = homestays.owned(id, actor, false);
         boolean firstPublish = request.getVisibility() == PlaceVisibility.PUBLISHED && place.getVisibility() != PlaceVisibility.PUBLISHED;
         if (!firstPublish) return new Outcome<>(homestays.updateStatus(principal, id, request), null);
-        if (!homestays.isReadyToPublish(place))
-            throw bad("Cần có tên, địa chỉ, mô tả, số điện thoại, ảnh đại diện và loại phòng trước khi xuất bản.");
+        List<String> missing = homestays.missingForPublish(place);
+        if (!missing.isEmpty())
+            throw bad("Homestay chưa đủ điều kiện công khai/nhận Booking, còn thiếu: " + String.join(", ", missing) + ".");
         Map<String, Object> before = Map.of("visibility", place.getVisibility().name());
         Map<String, Object> after = Map.of("visibility", PlaceVisibility.PUBLISHED.name());
         SubmittedDto pending = submit(actor, place, ChangeTargetType.HOMESTAY, null, null, ChangeOperation.PUBLISH, after, before, PUBLISH_PENDING_MESSAGE);

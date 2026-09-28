@@ -26,4 +26,11 @@ public class ProviderApplicationController {
         rateLimiter.check(request, "provider-register", 5, Duration.ofHours(1));
         return service.register(input);
     }
+
+    /** UC-NCC-01: xem trạng thái hồ sơ (POST để số điện thoại không nằm trên URL/log). */
+    @PostMapping("/application-status")
+    public StatusResult status(@Valid @RequestBody StatusInput input, HttpServletRequest request) {
+        rateLimiter.check(request, "provider-application-status", 20, Duration.ofHours(1));
+        return service.status(input);
+    }
 }

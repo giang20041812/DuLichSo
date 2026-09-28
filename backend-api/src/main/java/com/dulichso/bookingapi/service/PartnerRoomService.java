@@ -85,11 +85,15 @@ public class PartnerRoomService {
             int delta=input.totalRoomCount()-room.getTotalRoomCount();
             List<RoomInventoryDay> future=em.createQuery("select d from RoomInventoryDay d where d.roomType.id=:id and d.id.stayDate>=:today",RoomInventoryDay.class)
                     .setParameter("id",roomId).setParameter("today",LocalDate.now()).getResultList();
+            // UC-NCC-03 luồng phụ 3: chỉ ra mọi ngày xung đột, không áp dụng thay đổi nào nếu có xung đột.
+            List<String> conflicts=new ArrayList<>();
             for(RoomInventoryDay day:future) {
                 int next=Math.max(0,Math.min(input.totalRoomCount(),day.getTotalRooms()+delta));
-                if(next<day.getHeldRooms()+day.getConfirmedRooms())
-                    throw bad("Ngày "+day.getId().getStayDate()+" đã có "+(day.getHeldRooms()+day.getConfirmedRooms())+" phòng được giữ/xác nhận, không thể giảm tổng số phòng như vậy.");
-                day.setTotalRooms(next); day.setUpdatedAt(java.time.LocalDateTime.now());
+                if(next<day.getHeldRooms()+day.getConfirmedRooms()) conflicts.add(day.getId().getStayDate().toString());
+            }
+            if(!conflicts.isEmpty()) throw bad("Số lượng phòng mới xung đột với Booking hiện có (ngày "+String.join(", ",conflicts)+").");
+            for(RoomInventoryDay day:future) {
+                day.setTotalRooms(Math.max(0,Math.min(input.totalRoomCount(),day.getTotalRooms()+delta))); day.setUpdatedAt(java.time.LocalDateTime.now());
             }
         }
         room.setName(input.name().trim()); room.setDescription(input.description()); room.setMaxOccupancy(input.maxOccupancy());
@@ -169,13 +173,21 @@ public class PartnerRoomService {
     public void inventory(UserPrincipal p,Long placeId,Long id,InventoryInput input) {
         RoomType room=owned(p,placeId,id,true); RoomCalendarService.validateDates(input.startDate(),input.endDate());
         if(input.startDate().isBefore(LocalDate.now())) throw bad("Không sửa tồn phòng trong quá khứ.");
-        if(input.totalRooms()>room.getTotalRoomCount()) throw bad("Tồn phòng không được vượt tổng số phòng của loại phòng.");
+        if(input.totalRooms()>room.getTotalRoomCount()) throw bad("Số phòng đưa vào bán không được vượt số phòng thực tế của loại phòng.");
         String reason=blockReason(input.stopSell() || input.totalRooms()<room.getTotalRoomCount(),input.reason());
+        // UC-NCC-04 luồng phụ 3: kiểm tra toàn bộ khoảng ngày trước, chỉ ra các ngày xung đột và không áp dụng thay đổi gây overbooking.
+        List<RoomInventoryDay> days=new ArrayList<>(); List<String> conflicts=new ArrayList<>();
+        Map<LocalDate,ExpectedDay> expected=new HashMap<>();
+        if(input.expected()!=null) input.expected().forEach(e->expected.put(e.stayDate(),e));
         for(LocalDate date=input.startDate();date.isBefore(input.endDate());date=date.plusDays(1)) {
-            var day=calendar.lockedDay(room,date);
-            if(input.totalRooms()<day.getHeldRooms()+day.getConfirmedRooms()) throw bad("Ngày "+date+" đã có nhiều phòng được giữ/xác nhận hơn số nhập vào.");
-            day.setTotalRooms(input.totalRooms()); day.setStopSell(input.stopSell()); day.setBlockReason(reason); day.setUpdatedAt(java.time.LocalDateTime.now());
+            var day=calendar.lockedDay(room,date); days.add(day);
+            ExpectedDay seen=expected.get(date);
+            if(seen!=null && (seen.totalRooms()!=day.getTotalRooms() || seen.stopSell()!=Boolean.TRUE.equals(day.getStopSell())))
+                throw new ResponseStatusException(HttpStatus.CONFLICT,"Dữ liệu đã thay đổi, vui lòng kiểm tra lại.");
+            if(input.totalRooms()<day.getHeldRooms()+day.getConfirmedRooms()) conflicts.add(date.toString());
         }
+        if(!conflicts.isEmpty()) throw bad("Số phòng đưa vào bán xung đột với các Booking hiện có (ngày "+String.join(", ",conflicts)+").");
+        for(var day:days) { day.setTotalRooms(input.totalRooms()); day.setStopSell(input.stopSell()); day.setBlockReason(reason); day.setUpdatedAt(java.time.LocalDateTime.now()); }
         audit.record(homestays.actor(p,true),"INVENTORY_UPDATE",PartnerAuditRecorder.ROOM_TYPE,id,reason,null,
                 Map.of("startDate",input.startDate().toString(),"endDate",input.endDate().toString(),"totalRooms",input.totalRooms(),"stopSell",input.stopSell()));
     }

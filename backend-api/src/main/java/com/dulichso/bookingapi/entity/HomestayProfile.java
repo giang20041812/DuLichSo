@@ -20,6 +20,11 @@ public class HomestayProfile {
     private LocalTime checkInFrom;
     @Column(name = "check_out_until")
     private LocalTime checkOutUntil;
+    /** Khung giờ NCC xử lý đơn (BOOK-BR-11). NULL = mặc định 05:00 - 21:00, xem ResponseDeadlineCalculator. */
+    @Column(name = "processing_start_time")
+    private LocalTime processingStartTime;
+    @Column(name = "processing_end_time")
+    private LocalTime processingEndTime;
     @Column(name = "house_rules", columnDefinition = "TEXT")
     private String houseRules;
     @Column(name = "surcharge_note", columnDefinition = "TEXT")

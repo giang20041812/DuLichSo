@@ -29,6 +29,10 @@ public class PartnerHomestayService {
     private final AccountRepository accounts;
     private final PlaceContactRepository contacts;
     private final PlaceAmenityRepository placeAmenities;
+    private final PartnerChangeRequestRepository changeRequests;
+
+    /** Dữ liệu cần để xác định Homestay đủ điều kiện công khai/nhận Booking (UC-NCC-02/03/05). */
+    record PublishFacts(int rooms, int sellableRooms, String cover, String phone, HomestayProfile profile, boolean pendingPublish) {}
 
     Account actor(UserPrincipal principal, boolean writing) {
         if (principal == null || principal.role() != AccountRole.PROVIDER)
@@ -62,8 +66,13 @@ public class PartnerHomestayService {
         Map<Long, List<PlaceMedia>> media = repository.media(ids).stream().collect(Collectors.groupingBy(m -> m.getPlace().getId()));
         Map<Long, List<PlaceContact>> contactMap = ids.isEmpty() ? Map.of() : contacts.findByPlaceIdInAndIsPublicTrue(ids)
                 .stream().collect(Collectors.groupingBy(c -> c.getPlace().getId()));
-        List<PartnerHomestaySummaryDto> all = places.stream().map(p -> summary(p, counts.getOrDefault(p.getId(), 0),
-                cover(p, media.getOrDefault(p.getId(), List.of())), contact(contactMap.getOrDefault(p.getId(), List.of()), ContactChannel.PHONE))).toList();
+        Map<Long, Integer> sellable = new HashMap<>();
+        repository.sellableRoomCounts(ids).forEach(row -> sellable.put((Long) row[0], ((Number) row[1]).intValue()));
+        Map<Long, HomestayProfile> profiles = repository.profiles(ids).stream().collect(Collectors.toMap(HomestayProfile::getPlaceId, h -> h));
+        Set<Long> pending = ids.isEmpty() ? Set.of() : new HashSet<>(changeRequests.pendingPublishPlaceIds(ids));
+        List<PartnerHomestaySummaryDto> all = places.stream().map(p -> summary(p, new PublishFacts(counts.getOrDefault(p.getId(), 0),
+                sellable.getOrDefault(p.getId(), 0), cover(p, media.getOrDefault(p.getId(), List.of())),
+                contact(contactMap.getOrDefault(p.getId(), List.of()), ContactChannel.PHONE), profiles.get(p.getId()), pending.contains(p.getId())))).toList();
         PlaceVisibility vis = parseFilter(visibility, PlaceVisibility.class);
         PlaceOperationStatus op = parseFilter(operation, PlaceOperationStatus.class);
         String kw = normalize(text(keyword));
@@ -164,17 +173,21 @@ public class PartnerHomestayService {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Xuất bản Homestay lần đầu cần được quản trị viên duyệt.");
         if (request.getVisibility() == null && request.getOperationStatus() == null) throw bad("Chưa chọn trạng thái cần cập nhật.");
-        PartnerHomestayDetailDto detail = detail(place);
         if (request.getVisibility() != null) place.setVisibility(request.getVisibility());
         if (request.getOperationStatus() != null) place.setOperationStatus(request.getOperationStatus());
         place.setUpdatedBy(account);
         repository.flush();
-        return summary(place, detail.getRoomTypesCount(), detail.getCoverImageUrl(), detail.getContactPhone());
+        return summary(place, facts(place));
     }
 
     /** HOM-MGT-BR-04: điều kiện đủ để công khai — dùng cả khi NCC tự kiểm tra trước khi gửi yêu cầu và khi Admin duyệt. */
     boolean isReadyToPublish(Place place) {
-        return detail(place).isReadyToPublish();
+        return missingForPublish(place).isEmpty();
+    }
+
+    /** Các mục còn thiếu để công khai (dùng cho thông báo khi NCC gửi yêu cầu xuất bản và khi Admin duyệt). */
+    List<String> missingForPublish(Place place) {
+        return missingForPublish(place, facts(place));
     }
 
     /**
@@ -189,8 +202,7 @@ public class PartnerHomestayService {
         place.setProvider(target);
         place.setUpdatedBy(submitter);
         repository.flush();
-        PartnerHomestayDetailDto detail = detail(place);
-        return summary(place, detail.getRoomTypesCount(), detail.getCoverImageUrl(), detail.getContactPhone());
+        return summary(place, facts(place));
     }
 
     /**
@@ -200,13 +212,13 @@ public class PartnerHomestayService {
     @Transactional
     public PartnerHomestaySummaryDto applyPublish(Account submitter, Long placeId) {
         Place place = owned(placeId, submitter, true);
-        if (!isReadyToPublish(place)) throw new ResponseStatusException(HttpStatus.CONFLICT,
-                "Homestay không còn đủ điều kiện xuất bản (thiếu tên/địa chỉ/mô tả/số điện thoại/ảnh đại diện/loại phòng).");
-        PartnerHomestayDetailDto detail = detail(place);
+        List<String> missing = missingForPublish(place);
+        if (!missing.isEmpty()) throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "Homestay không còn đủ điều kiện xuất bản, còn thiếu: " + String.join(", ", missing) + ".");
         place.setVisibility(PlaceVisibility.PUBLISHED);
         place.setUpdatedBy(submitter);
         repository.flush();
-        return summary(place, detail.getRoomTypesCount(), detail.getCoverImageUrl(), detail.getContactPhone());
+        return summary(place, facts(place));
     }
 
     private void apply(Place place, PartnerHomestayDetailDto dto, Account account) {
@@ -247,6 +259,8 @@ public class PartnerHomestayService {
         if (isNew) profile = HomestayProfile.builder().place(place).build();
         profile.setCheckInFrom(time(dto.getCheckInFrom()));
         profile.setCheckOutUntil(time(dto.getCheckOutUntil()));
+        profile.setProcessingStartTime(time(dto.getProcessingStartTime()));
+        profile.setProcessingEndTime(time(dto.getProcessingEndTime()));
         profile.setHouseRules(text(dto.getHouseRules()));
         profile.setSurchargeNote(text(dto.getSurchargeNote()));
         profile.setChildrenPolicy(text(dto.getChildrenPolicy()));
@@ -283,10 +297,11 @@ public class PartnerHomestayService {
     private PartnerHomestayDetailDto detail(Place p) {
         List<PlaceContact> cs = contacts.findByPlaceIdAndIsPublicTrue(p.getId());
         List<PlaceMedia> ms = repository.media(List.of(p.getId()));
-        int roomCount = repository.roomCounts(List.of(p.getId())).stream().mapToInt(r -> ((Number) r[1]).intValue()).sum();
-        String cover = cover(p, ms);
-        PartnerHomestaySummaryDto summary = summary(p, roomCount, cover, contact(cs, ContactChannel.PHONE));
-        HomestayProfile profile = repository.profile(p.getId()).orElse(null);
+        PublishFacts facts = facts(p, cs, ms);
+        int roomCount = facts.rooms();
+        String cover = facts.cover();
+        PartnerHomestaySummaryDto summary = summary(p, facts);
+        HomestayProfile profile = facts.profile();
         CancellationPolicy policy = profile == null ? null : profile.getCurrentPolicy();
         return PartnerHomestayDetailDto.builder().id(p.getId()).code(summary.getCode()).slug(p.getSlug())
                 .name(p.getName()).description(text(p.getDescription())).address(text(p.getAddress()))
@@ -298,11 +313,15 @@ public class PartnerHomestayService {
                 .amenities(placeAmenities.findByPlaceIdWithAmenity(p.getId()).stream().filter(a -> a.getValue() == AmenityValue.YES).map(a -> a.getAmenity().getName()).toList())
                 .checkInFrom(profile == null || profile.getCheckInFrom() == null ? "" : profile.getCheckInFrom().toString())
                 .checkOutUntil(profile == null || profile.getCheckOutUntil() == null ? "" : profile.getCheckOutUntil().toString())
+                .processingStartTime(profile == null || profile.getProcessingStartTime() == null ? "" : profile.getProcessingStartTime().toString())
+                .processingEndTime(profile == null || profile.getProcessingEndTime() == null ? "" : profile.getProcessingEndTime().toString())
                 .houseRules(profile == null ? "" : text(profile.getHouseRules())).surchargeNote(profile == null ? "" : text(profile.getSurchargeNote()))
                 .childrenPolicy(profile==null?"":text(profile.getChildrenPolicy())).petsPolicy(profile==null?"":text(profile.getPetsPolicy())).guestPolicy(profile==null?"":text(profile.getGuestPolicy()))
                 .cancellationPolicy(policy == null ? "" : policy.getContentText()).policyName(policy == null ? "" : policy.getName())
                 .freeCancelCutoffHours(policy == null ? null : policy.getFreeCancelCutoffHours())
                 .refundOnLateCancel(policy == null ? null : policy.getRefundOnLateCancel()).policyVersion(policy == null ? null : policy.getVersion())
+                .policyEffectiveFrom(policy == null ? null : policy.getEffectiveFrom())
+                .missingForPublish(summary.getMissingForPublish()).pendingPublish(summary.isPendingPublish())
                 .visibility(p.getVisibility()).operationStatus(p.getOperationStatus()).isReadyToPublish(summary.isReadyToPublish())
                 .cooperativeName(p.getProvider().getName()).providerCode("NCC-" + p.getProvider().getId()).alertNote(summary.getAlertNote())
                 .roomTypesCount(roomCount).roomTypesSummary(roomCount + " loại phòng")
@@ -311,10 +330,44 @@ public class PartnerHomestayService {
                 .stopSellSummary("Xem lịch phòng để kiểm tra tình trạng theo ngày").heroStatusBadge(p.getVisibility() == PlaceVisibility.PUBLISHED ? "Đang hiển thị" : "Chưa hiển thị").build();
     }
 
-    private PartnerHomestaySummaryDto summary(Place p, int rooms, String cover, String phone) {
-        boolean ready = !text(p.getName()).isEmpty() && !text(p.getAddress()).isEmpty() && !text(p.getDescription()).isEmpty()
-                && !phone.isEmpty() && !cover.isEmpty() && rooms > 0;
+    private PublishFacts facts(Place p) {
+        return facts(p, contacts.findByPlaceIdAndIsPublicTrue(p.getId()), repository.media(List.of(p.getId())));
+    }
+
+    private PublishFacts facts(Place p, List<PlaceContact> cs, List<PlaceMedia> ms) {
+        List<Long> id = List.of(p.getId());
+        int rooms = repository.roomCounts(id).stream().mapToInt(r -> ((Number) r[1]).intValue()).sum();
+        int sellable = repository.sellableRoomCounts(id).stream().mapToInt(r -> ((Number) r[1]).intValue()).sum();
+        return new PublishFacts(rooms, sellable, cover(p, ms), contact(cs, ContactChannel.PHONE),
+                repository.profile(p.getId()).orElse(null), !changeRequests.pendingPublishPlaceIds(id).isEmpty());
+    }
+
+    /**
+     * UC-NCC-02 luồng phụ 4 / UC-NCC-03 / UC-NCC-05: điều kiện công khai và nhận Booking. Ít nhất 1 ảnh chung;
+     * ít nhất một loại phòng đang mở bán có giá &gt; 0 và ảnh toàn phòng; giờ nhận/trả phòng và chính sách hủy là bắt buộc.
+     */
+    static List<String> missingForPublish(Place p, PublishFacts f) {
+        List<String> missing = new ArrayList<>();
+        if (text(p.getName()).isEmpty()) missing.add("tên Homestay");
+        if (text(p.getAddress()).isEmpty()) missing.add("địa chỉ");
+        if (p.getLatitude() == null || p.getLongitude() == null) missing.add("vị trí trên bản đồ");
+        if (text(p.getDescription()).isEmpty()) missing.add("mô tả");
+        if (f.phone().isEmpty()) missing.add("số điện thoại liên hệ");
+        if (f.cover().isEmpty()) missing.add("ít nhất 1 ảnh chung");
+        if (f.rooms() == 0) missing.add("loại phòng");
+        else if (f.sellableRooms() == 0) missing.add("loại phòng đang mở bán có giá > 0 và ảnh toàn phòng");
+        HomestayProfile profile = f.profile();
+        if (profile == null || profile.getCheckInFrom() == null || profile.getCheckOutUntil() == null) missing.add("giờ nhận/trả phòng");
+        if (profile == null || profile.getCurrentPolicy() == null) missing.add("chính sách hủy");
+        return missing;
+    }
+
+    private PartnerHomestaySummaryDto summary(Place p, PublishFacts facts) {
+        List<String> missing = missingForPublish(p, facts);
+        boolean ready = missing.isEmpty();
         boolean closed = p.getOperationStatus() == PlaceOperationStatus.TEMP_CLOSED;
+        int rooms = facts.rooms();
+        String cover = facts.cover();
         return PartnerHomestaySummaryDto.builder().id(p.getId()).code("HM-" + p.getId()).slug(p.getSlug()).name(p.getName())
                 .address(text(p.getAddress())).coverImageUrl(cover).categoryName(p.getCategory().getName())
                 .visibility(p.getVisibility()).operationStatus(p.getOperationStatus()).roomTypesCount(rooms)
@@ -322,7 +375,8 @@ public class PartnerHomestayService {
                 .lastUpdatedText(p.getUpdatedAt().toString()).isReadyToPublish(ready)
                 .auditStatus(!ready ? "NEEDS_DATA" : closed ? "MAINTENANCE" : "STANDARD")
                 .auditStatusText(!ready ? "Cần bổ sung hồ sơ" : closed ? "Tạm đóng cửa" : "Hồ sơ đầy đủ")
-                .alertNote(ready ? "" : "Cần tên, địa chỉ, mô tả, số điện thoại, ảnh đại diện và loại phòng để xuất bản.").build();
+                .missingForPublish(missing).pendingPublish(facts.pendingPublish())
+                .alertNote(facts.pendingPublish() ? "Homestay đang chờ duyệt" : ready ? "" : "Còn thiếu: " + String.join(", ", missing) + ".").build();
     }
 
     private String cover(Place p, List<PlaceMedia> media) {
@@ -351,6 +405,10 @@ public class PartnerHomestayService {
         if (dto.getLatitude() != null && (!Double.isFinite(dto.getLatitude()) || Math.abs(dto.getLatitude()) > 90
                 || !Double.isFinite(dto.getLongitude()) || Math.abs(dto.getLongitude()) > 180)) throw bad("Tọa độ không hợp lệ.");
         time(dto.getCheckInFrom()); time(dto.getCheckOutUntil());
+        LocalTime processingStart = time(dto.getProcessingStartTime()), processingEnd = time(dto.getProcessingEndTime());
+        if ((processingStart == null) != (processingEnd == null)) throw bad("Cần chọn cả giờ bắt đầu và giờ kết thúc xử lý đơn.");
+        if (processingStart != null && !ResponseDeadlineCalculator.isValidWindow(processingStart, processingEnd))
+            throw bad("Giờ bắt đầu xử lý đơn phải trước giờ kết thúc.");
         if (text(dto.getCancellationPolicy()).isEmpty() && (!text(dto.getPolicyName()).isEmpty()
                 || dto.getFreeCancelCutoffHours() != null || dto.getRefundOnLateCancel() != null)) throw bad("Cần nhập nội dung chính sách hủy.");
         if (!text(dto.getCancellationPolicy()).isEmpty() && (text(dto.getPolicyName()).isEmpty() || text(dto.getPolicyName()).length() > 255
