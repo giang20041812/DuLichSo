@@ -1048,36 +1048,5 @@ public class BookingServiceImpl implements BookingService {
         return "VJ-" + System.currentTimeMillis();
     }
 
-    @Override
-    @Transactional
-    public BookingResponseDto updateBookingStatus(Long bookingId, BookingStatus newStatus, String reason, Long actorAccountId) {
-        Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn đặt phòng với ID: " + bookingId));
 
-        if (newStatus == BookingStatus.CONFIRMED) {
-            booking.setStatus(BookingStatus.CONFIRMED);
-            booking.setConfirmedAt(LocalDateTime.now());
-            try {
-                notificationService.notifyBookingStatusChange(booking, BookingStatus.CONFIRMED, reason);
-            } catch (Exception ex) {
-                log.warn("Không thể gửi thông báo CONFIRMED: {}", ex.getMessage());
-            }
-        } else if (newStatus == BookingStatus.REJECTED) {
-            booking.setStatus(BookingStatus.REJECTED);
-            booking.setClosedAt(LocalDateTime.now());
-            booking.setCloseReason(reason != null && !reason.isBlank() ? reason : "Đối tác/Quản lý từ chối đơn đặt phòng.");
-            try {
-                notificationService.notifyBookingStatusChange(booking, BookingStatus.REJECTED, reason);
-            } catch (Exception ex) {
-                log.warn("Không thể gửi thông báo REJECTED: {}", ex.getMessage());
-            }
-        } else {
-            booking.setStatus(newStatus);
-        }
-
-        Booking saved = bookingRepository.save(booking);
-        int nights = (int) ChronoUnit.DAYS.between(saved.getCheckIn(), saved.getCheckOut());
-        BigDecimal unitPrice = saved.getRoomType().getBasePrice() != null ? saved.getRoomType().getBasePrice() : BigDecimal.ZERO;
-        return mapToResponseDto(saved, saved.getPlace(), saved.getRoomType(), unitPrice, nights);
-    }
 }

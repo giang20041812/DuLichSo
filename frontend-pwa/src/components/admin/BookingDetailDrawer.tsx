@@ -105,7 +105,6 @@ export default function BookingDetailDrawer({ booking, scope, onClose, onChanged
 
   // MON-BR-03/04: Admin chỉ xem Booking (kể cả tab "Thông tin đơn"), không có quyền xác nhận/từ chối/hoàn tiền.
   const canDecide = scope === 'partner' && (b.status === 'PENDING' || b.status === 'AWAITING_PAYMENT');
-  const canRefund = scope === 'partner' && b.status === 'CONFIRMED';
 
   const copyCode = async () => {
     try {
