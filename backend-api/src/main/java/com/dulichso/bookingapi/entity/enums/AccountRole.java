@@ -1,5 +1,5 @@
 package com.dulichso.bookingapi.entity.enums;
 
 public enum AccountRole {
-    ADMIN, PROVIDER
+    ADMIN, PROVIDER, GUEST
 }

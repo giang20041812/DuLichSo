@@ -49,7 +49,12 @@ export default function NotificationBell({ isSolid }: NotificationBellProps) {
 
   // Nạp danh sách thông báo từ server
   const loadNotifications = useCallback(async () => {
-    const email = currentUser?.email || 'vutrggiang@gmail.com';
+    if (!currentUser) {
+      setNotifications([]);
+      return;
+    }
+
+    const email = currentUser.email;
     const phone = currentUser?.phone;
     const accountId = currentUser?.id;
 
@@ -102,7 +107,7 @@ export default function NotificationBell({ isSolid }: NotificationBellProps) {
 
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
     await markAllNotificationsAsRead({
-      email: currentUser?.email || 'vutrggiang@gmail.com',
+      email: currentUser?.email,
       phone: currentUser?.phone,
       accountId: currentUser?.id,
       notificationIds: unreadIds,

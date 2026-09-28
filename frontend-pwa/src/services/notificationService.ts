@@ -3,6 +3,11 @@ import { apiOrigin } from '@/lib/apiBase';
 
 const READ_NOTIFICATION_IDS_KEY = 'user_read_notification_ids';
 
+function getSessionToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('traveler_token') || localStorage.getItem('portal_token');
+}
+
 export function getLocalReadNotificationIds(): Set<number> {
   if (typeof window === 'undefined') return new Set();
   try {
@@ -30,12 +35,14 @@ export async function fetchCustomerNotifications(params: {
   accountId?: number;
 }): Promise<CustomerNotification[]> {
   try {
+    const token = getSessionToken();
+    if (!token && !params.accountId) return [];
     const url = new URL('/api/public/notifications', apiOrigin());
     if (params.email) url.searchParams.append('email', params.email);
     if (params.phone) url.searchParams.append('phone', params.phone);
     if (params.accountId) url.searchParams.append('accountId', String(params.accountId));
 
-    const res = await fetch(url.toString());
+    const res = await fetch(url.toString(), { headers: token ? { Authorization: `Bearer ${token}` } : undefined });
     if (!res.ok) {
       return [];
     }
@@ -58,7 +65,8 @@ export async function markNotificationAsRead(id: number): Promise<void> {
 
   try {
     const url = new URL(`/api/public/notifications/${id}/read`, apiOrigin());
-    await fetch(url.toString(), { method: 'PUT' });
+    const token = getSessionToken();
+    await fetch(url.toString(), { method: 'PUT', headers: token ? { Authorization: `Bearer ${token}` } : undefined });
   } catch (err) {
     console.warn('Lỗi đồng bộ trạng thái đọc lên server:', err);
   }
@@ -82,9 +90,10 @@ export async function markAllNotificationsAsRead(params: {
 
   try {
     const url = new URL('/api/public/notifications/mark-all-read', apiOrigin());
+    const token = getSessionToken();
     await fetch(url.toString(), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       body: JSON.stringify({
         email: params.email,
         phone: params.phone,
