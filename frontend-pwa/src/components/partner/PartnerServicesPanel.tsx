@@ -5,6 +5,7 @@ import type { HomestayServiceOffer, HomestayServiceInput } from '@/types/homesta
 import { homestayError } from '@/services/partnerHomestayService';
 import { Alert, Card, EmptyState, Field, Pill } from '@/components/partner/PartnerUI';
 import { ui, vnd } from '@/lib/partnerUi';
+import MoneyInput from '@/components/partner/MoneyInput';
 
 const EMPTY: HomestayServiceInput = { name: '', description: '', price: null, priceUnit: '', active: true };
 const auth = () => ({ headers: { Authorization: `Bearer ${localStorage.getItem('portal_token') ?? ''}` } });
@@ -64,7 +65,7 @@ export default function PartnerServicesPanel({ placeId }: { placeId: number }) {
               <textarea className={ui.textarea} rows={3} maxLength={10000} value={form.description ?? ''} onChange={e => set('description', e.target.value)} placeholder="Thời gian phục vụ, số người, lưu ý..." />
             </Field>
             <Field label="Giá (VND)" hint="Để trống nếu giá tùy theo yêu cầu, khách liên hệ trực tiếp.">
-              <input className={ui.input} type="number" min={0} max={999999999999} value={form.price ?? ''} onChange={e => set('price', e.target.value === '' ? null : Number(e.target.value))} />
+              <MoneyInput ariaLabel="Giá dịch vụ" placeholder="Để trống nếu giá liên hệ" value={form.price} onChange={v => set('price', v)} />
             </Field>
             <Field label="Đơn vị tính">
               <input className={ui.input} maxLength={64} value={form.priceUnit ?? ''} onChange={e => set('priceUnit', e.target.value)} placeholder="người, suất, chuyến..." />

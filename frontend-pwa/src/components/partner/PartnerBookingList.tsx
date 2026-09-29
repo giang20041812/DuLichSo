@@ -17,9 +17,9 @@ const dateTime = (d?: string | null) => (d ? new Date(d).toLocaleString('vi-VN')
 const STATUSES = Object.keys(BOOKING_STATUS_LABEL) as BookingStatus[];
 
 /** Hạn phản hồi còn lại (UC-NCC-06, BOOK-BR-11): 120 phút trong khung giờ xử lý của Homestay. */
-function DueCell({ dueAt }: { dueAt: string | null }) {
-  if (!dueAt) return <span className="text-muted">—</span>;
-  const minutes = Math.floor((new Date(dueAt).getTime() - new Date().getTime()) / 60000);
+function DueCell({ dueAt, minutes }: { dueAt: string | null; minutes: number | null }) {
+  // Số phút do máy chủ tính, để khớp với trạng thái đơn (không dùng đồng hồ trình duyệt).
+  if (!dueAt || minutes == null) return <span className="text-muted">—</span>;
   if (minutes < 0) return <span className="font-semibold text-danger">Quá hạn</span>;
   return (
     <span className={minutes <= 30 ? 'font-semibold text-coral-hover' : 'text-ink'}>
@@ -148,7 +148,7 @@ export default function PartnerBookingList() {
                 <td className={`${th} text-right font-semibold text-ink-deep`}>{vnd(b.totalAmount)}</td>
                 <td className={th}><span className={`rounded-sm border px-2 py-0.5 text-[10px] font-bold ${BOOKING_STATUS_TONE[b.status]}`}>{BOOKING_STATUS_LABEL[b.status]}</span></td>
                 <td className={`${th} text-muted`}>{dateTime(b.createdAt)}</td>
-                <td className={th}>{b.status === 'PENDING' ? <DueCell dueAt={b.responseDueAt} /> : <span className="text-muted">—</span>}</td>
+                <td className={th}>{b.status === 'PENDING' ? <DueCell dueAt={b.responseDueAt} minutes={b.responseMinutesLeft} /> : <span className="text-muted">—</span>}</td>
                 <td className={`${th} text-right`}>
                   <div className="flex items-center justify-end gap-2">
                     {b.status === 'PENDING' && (

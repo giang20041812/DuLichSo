@@ -2,7 +2,7 @@ import type { RoomInventoryDay } from './room';
 import type { AdminBookingDto } from './admin';
 
 /** UC-NCC-06: một dòng danh sách đơn của NCC — khớp PartnerBookingDtos.BookingRowDto (dữ liệu chung + hạn phản hồi). */
-export type PartnerBookingRowDto = AdminBookingDto & { responseDueAt: string | null };
+export type PartnerBookingRowDto = AdminBookingDto & { responseDueAt: string | null; responseMinutesLeft: number | null };
 // Trạng thái booking — khớp với BookingStatus enum bên backend
 export type BookingStatus =
   | 'PENDING'
@@ -251,6 +251,8 @@ export interface PartnerBookingDetailDto {
   stayActions: StayAction[];
   /** UC-NCC-06/08: hạn phản hồi = 120 phút trong khung giờ xử lý của Homestay (đã chốt). */
   responseDueAt: string | null;
+  /** Số phút còn lại theo đồng hồ máy chủ (âm = đã quá hạn). */
+  responseMinutesLeft: number | null;
   overdue: boolean;
   /** UC-NCC-07: khả dụng theo từng đêm của loại phòng khách chọn. */
   availability: RoomInventoryDay[];
