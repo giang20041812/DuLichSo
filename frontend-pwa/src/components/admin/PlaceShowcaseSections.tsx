@@ -1,7 +1,9 @@
 import { useState, type ReactNode } from 'react';
-import { Check, ImageOff, Sparkles, ScrollText } from 'lucide-react';
+import { BedDouble, Check, ImageOff, Sparkles, ScrollText } from 'lucide-react';
 import ImageLightbox from '@/components/common/ImageLightbox';
-import type { PlaceShowcase, PlaceStayPolicy } from '@/types/admin';
+import type { PlaceShowcase, PlaceShowcaseRoom, PlaceStayPolicy } from '@/types/admin';
+import { StatusBadge } from './StatusBadge';
+import { fmtDate, vnd } from './bookingMeta';
 
 interface PlaceShowcaseSectionsProps {
   /** null trong lúc đang tải. */
@@ -91,6 +93,18 @@ export default function PlaceShowcaseSections({ showcase, error, name, showStayP
       </Section>
 
       {showStayPolicy && (
+        <Section title={`Loại phòng${showcase.rooms.length ? ` (${showcase.rooms.length})` : ''}`}>
+          {showcase.rooms.length === 0 ? (
+            <Empty icon={<BedDouble className="h-5 w-5" />} text="Chưa có loại phòng" />
+          ) : (
+            <div className="flex flex-col gap-2.5">
+              {showcase.rooms.map((room) => <RoomCard key={room.id} room={room} />)}
+            </div>
+          )}
+        </Section>
+      )}
+
+      {showStayPolicy && (
         <Section title="Chính sách lưu trú">
           {hasPolicy(showcase.stayPolicy) ? (
             <StayPolicy policy={showcase.stayPolicy} />
@@ -111,6 +125,62 @@ export default function PlaceShowcaseSections({ showcase, error, name, showStayP
         />
       )}
     </>
+  );
+}
+
+const BATHROOM_LABEL: Record<'YES' | 'NO' | 'UNVERIFIED', string> = {
+  YES: 'Có phòng tắm riêng',
+  NO: 'Dùng chung',
+  UNVERIFIED: 'Chưa xác định',
+};
+
+/** Một loại phòng với đủ các trường NCC khai ở Cổng NCC → Loại phòng (cùng nhãn với form NCC). */
+function RoomCard({ room: r }: { room: PlaceShowcaseRoom }) {
+  const selling = r.status === 'ACTIVE';
+  return (
+    <article className="rounded-md border border-border">
+      <header className="flex items-center justify-between gap-2 border-b border-border bg-canvas/60 px-3 py-2">
+        <h5 className="min-w-0 truncate text-xs font-bold text-ink-deep" title={r.name}>{r.name}</h5>
+        <StatusBadge tone={selling ? 'success' : 'neutral'}>{selling ? 'Mở bán' : 'Ngừng bán'}</StatusBadge>
+      </header>
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-2.5 px-3 py-2.5 text-xs">
+        <PolicyItem label="Tổng số phòng">{String(r.totalRoomCount)}</PolicyItem>
+        <PolicyItem label="Khách tối đa mỗi phòng">{String(r.maxOccupancy)}</PolicyItem>
+        <PolicyItem label="Diện tích">{r.areaSqm != null ? `${r.areaSqm} m²` : ''}</PolicyItem>
+        <PolicyItem label="Phòng tắm riêng">{r.privateBathroom ? BATHROOM_LABEL[r.privateBathroom] : ''}</PolicyItem>
+        <PolicyItem label="Giá ngày thường / phòng / đêm">{r.basePrice != null ? vnd(r.basePrice) : ''}</PolicyItem>
+        <PolicyItem label="Giá cuối tuần (T7, CN)">{r.weekendPrice != null ? vnd(r.weekendPrice) : 'Bằng giá ngày thường'}</PolicyItem>
+        <PolicyItem label="Giường ngủ" wide>{r.beds.join(', ')}</PolicyItem>
+        <PolicyItem label="Vị trí / hướng nhìn" wide>{r.viewDescription}</PolicyItem>
+        <PolicyItem label="Tiện nghi phòng" wide>
+          {r.amenities.length > 0 && (
+            <span className="flex flex-wrap gap-1">
+              {r.amenities.map((a) => (
+                <span key={a} className="inline-flex items-center gap-1 rounded-sm bg-canvas px-1.5 py-0.5 text-[11px]">
+                  <Check className="h-3 w-3 text-accent" aria-hidden /> {a}
+                </span>
+              ))}
+            </span>
+          )}
+        </PolicyItem>
+        <PolicyItem label="Mô tả" wide>{r.description}</PolicyItem>
+        <PolicyItem label="Giá theo mùa" wide>
+          {r.seasonalPrices.length > 0 && (
+            <ul className="flex flex-col gap-1">
+              {r.seasonalPrices.map((p) => (
+                <li key={`${p.name}-${p.periodStart}`} className="flex flex-wrap items-baseline justify-between gap-x-2">
+                  <span>
+                    <span className="font-semibold text-ink-deep">{p.name}</span>{' '}
+                    <span className="text-muted">{fmtDate(p.periodStart)} → {fmtDate(p.periodEnd)}</span>
+                  </span>
+                  <span className="font-semibold tabular-nums text-ink-deep">{vnd(p.price)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </PolicyItem>
+      </dl>
+    </article>
   );
 }
 

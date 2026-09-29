@@ -200,7 +200,8 @@ public class AdminChangeRequestService {
 
     private ChangeRequestDetailDto toDetail(PartnerChangeRequest request) {
         List<FieldChangeDto> changes = ChangeRequestDiff.changes(request);
-        return new ChangeRequestDetailDto(ChangeRequestDiff.toSummary(request), request.getBeforeData(), request.getPayload(), changes, isStale(request));
+        return new ChangeRequestDetailDto(ChangeRequestDiff.toSummary(request), request.getBeforeData(), request.getPayload(), changes,
+                ChangeRequestDiff.fields(request), null, isStale(request));
     }
 
     /** Dữ liệu chính thức có còn giống nội dung cũ NCC nhìn thấy lúc gửi không. Chỉ ý nghĩa với yêu cầu đang chờ. */

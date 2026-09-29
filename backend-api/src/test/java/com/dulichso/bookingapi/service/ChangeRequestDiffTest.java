@@ -1,6 +1,7 @@
 package com.dulichso.bookingapi.service;
 
 import com.dulichso.bookingapi.dto.ChangeRequestDtos.FieldChangeDto;
+import com.dulichso.bookingapi.dto.ChangeRequestDtos.FieldDiffDto;
 import com.dulichso.bookingapi.entity.PartnerChangeRequest;
 import com.dulichso.bookingapi.entity.enums.ChangeOperation;
 import com.dulichso.bookingapi.entity.enums.ChangeTargetType;
@@ -52,5 +53,20 @@ class ChangeRequestDiffTest {
         PartnerChangeRequest delete = PartnerChangeRequest.builder().targetType(ChangeTargetType.ROOM_PRICE).operation(ChangeOperation.DELETE)
                 .beforeData(Map.of("name", "Mùa lúa", "price", 900000)).build();
         assertTrue(ChangeRequestDiff.changes(delete).stream().allMatch(c -> "(xóa)".equals(c.after())));
+    }
+
+    @Test
+    @DisplayName("fields: trả đủ mọi trường theo thứ tự hiển thị, đánh dấu trường đổi; trường không đổi giữ nguyên giá trị")
+    void fields_includeUnchanged() {
+        PartnerChangeRequest update = PartnerChangeRequest.builder().targetType(ChangeTargetType.ROOM_PRICE).operation(ChangeOperation.UPDATE)
+                .beforeData(Map.of("name", "Mùa lúa", "price", 900000, "periodStart", "2026-09-01", "periodEnd", "2026-09-30"))
+                .payload(Map.of("name", "Mùa lúa", "price", 1200000.0, "periodStart", "2026-09-01", "periodEnd", "2026-09-30")).build();
+        List<FieldDiffDto> fields = ChangeRequestDiff.fields(update);
+        assertEquals(List.copyOf(ChangeRequestDiff.PRICE.keySet()), fields.stream().map(FieldDiffDto::field).toList());
+        FieldDiffDto name = fields.stream().filter(f -> f.field().equals("name")).findFirst().orElseThrow();
+        assertFalse(name.changed());
+        assertEquals("Mùa lúa", name.before());
+        assertEquals("Mùa lúa", name.after());
+        assertEquals(List.of("price"), fields.stream().filter(FieldDiffDto::changed).map(FieldDiffDto::field).toList());
     }
 }

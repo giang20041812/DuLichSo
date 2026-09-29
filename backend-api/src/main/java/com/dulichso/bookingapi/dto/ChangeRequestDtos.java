@@ -6,6 +6,7 @@ import com.dulichso.bookingapi.entity.enums.ChangeTargetType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +17,12 @@ public final class ChangeRequestDtos {
 
     /** Một trường có thay đổi: giá trị cũ và giá trị mới đã được chuẩn hóa thành chuỗi hiển thị. */
     public record FieldChangeDto(String field, String label, String before, String after) {}
+
+    /**
+     * Một trường của đối tượng trong yêu cầu (kể cả trường không đổi) để Admin xem đầy đủ nội dung:
+     * {@code changed} = giá trị mới khác giá trị hiện tại.
+     */
+    public record FieldDiffDto(String field, String label, String before, String after, boolean changed) {}
 
     /** Phản hồi 202 khi thay đổi được gửi chờ duyệt thay vì ghi trực tiếp. */
     public record SubmittedDto(Long changeRequestId, ChangeRequestStatus status, String message) {}
@@ -30,7 +37,22 @@ public final class ChangeRequestDtos {
      * (nội dung cũ hiển thị có thể không còn khớp).
      */
     public record ChangeRequestDetailDto(ChangeRequestSummaryDto summary, Map<String, Object> before, Map<String, Object> after,
-            List<FieldChangeDto> changes, boolean stale) {}
+            List<FieldChangeDto> changes, List<FieldDiffDto> fields, ChangeContextDto context, boolean stale) {}
+
+    /** Thông tin nhà cung cấp gửi yêu cầu (theo hồ sơ đối tác). {@code status}: ProviderStatus. */
+    public record ProviderInfoDto(Long id, String name, String contactName, String contactPhone, String contactEmail,
+                                  String address, String status) {}
+
+    /** Homestay của yêu cầu. {@code visibility}/{@code verification}: PlaceVisibility / PlaceVerificationStatus. */
+    public record HomestayInfoDto(Long id, String name, String address, String regionName, String visibility,
+                                  String verification, long roomTypeCount) {}
+
+    /** Loại phòng hiện tại mà yêu cầu nhắm tới (sửa / xóa loại phòng, hoặc giá theo mùa của loại phòng). */
+    public record RoomInfoDto(Long id, String name, Integer totalRoomCount, Integer maxOccupancy, BigDecimal basePrice,
+                              BigDecimal weekendPrice, String status) {}
+
+    /** Ngữ cảnh để Admin xét duyệt: ai gửi, cho Homestay nào, loại phòng nào. {@code room} null khi không liên quan loại phòng. */
+    public record ChangeContextDto(ProviderInfoDto provider, HomestayInfoDto homestay, RoomInfoDto room) {}
 
     public record ApproveInput(@Size(max = 500) String note) {}
 

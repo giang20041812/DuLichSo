@@ -2,11 +2,17 @@ package com.dulichso.bookingapi.service;
 
 import com.dulichso.bookingapi.dto.admin.PlaceShowcaseDtos.ImageDto;
 import com.dulichso.bookingapi.dto.admin.PlaceShowcaseDtos.PlaceShowcaseDto;
+import com.dulichso.bookingapi.dto.admin.PlaceShowcaseDtos.RoomShowcaseDto;
+import com.dulichso.bookingapi.dto.admin.PlaceShowcaseDtos.SeasonalPriceDto;
 import com.dulichso.bookingapi.dto.admin.PlaceShowcaseDtos.StayPolicyDto;
 import com.dulichso.bookingapi.entity.CancellationPolicy;
 import com.dulichso.bookingapi.entity.HomestayProfile;
 import com.dulichso.bookingapi.entity.Place;
 import com.dulichso.bookingapi.entity.ProviderApplication;
+import com.dulichso.bookingapi.entity.RoomAmenity;
+import com.dulichso.bookingapi.entity.RoomBed;
+import com.dulichso.bookingapi.entity.RoomSpecialPrice;
+import com.dulichso.bookingapi.entity.RoomType;
 import com.dulichso.bookingapi.entity.enums.AmenityValue;
 import com.dulichso.bookingapi.entity.enums.CategoryKind;
 import com.dulichso.bookingapi.entity.enums.MediaRole;
@@ -18,7 +24,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -69,9 +79,40 @@ public class PlaceShowcaseService {
         List<String> amenities = placeAmenities.findByPlaceIdWithAmenity(place.getId()).stream()
                 .filter(a -> a.getValue() == AmenityValue.YES && a.getAmenity() != null)
                 .map(a -> a.getAmenity().getName()).filter(Objects::nonNull).toList();
-        StayPolicyDto policy = place.getKind() == CategoryKind.HOMESTAY
-                ? homestays.profile(place.getId()).map(PlaceShowcaseService::policyOf).orElse(null) : null;
-        return new PlaceShowcaseDto(place.getId(), place.getName(), images, amenities, policy);
+        boolean homestay = place.getKind() == CategoryKind.HOMESTAY;
+        StayPolicyDto policy = homestay ? homestays.profile(place.getId()).map(PlaceShowcaseService::policyOf).orElse(null) : null;
+        return new PlaceShowcaseDto(place.getId(), place.getName(), images, amenities, policy, homestay ? rooms(place.getId()) : List.of());
+    }
+
+    /** Loại phòng của Homestay kèm giường, tiện nghi phòng, giá theo mùa — mỗi loại dữ liệu một truy vấn (không N+1). */
+    private List<RoomShowcaseDto> rooms(Long placeId) {
+        List<RoomType> rooms = em.createQuery("select r from RoomType r where r.place.id = :id order by r.id", RoomType.class)
+                .setParameter("id", placeId).getResultList();
+        if (rooms.isEmpty()) return List.of();
+        List<Long> ids = rooms.stream().map(RoomType::getId).toList();
+        Map<Long, List<String>> beds = new HashMap<>();
+        for (RoomBed b : em.createQuery("select b from RoomBed b where b.roomType.id in :ids order by b.id", RoomBed.class)
+                .setParameter("ids", ids).getResultList()) {
+            String type = b.getBedType() == null ? "" : b.getBedType().trim().toLowerCase(Locale.forLanguageTag("vi-VN"));
+            beds.computeIfAbsent(b.getRoomType().getId(), k -> new ArrayList<>()).add((b.getQuantity() + " " + type).trim());
+        }
+        Map<Long, List<String>> roomAmenities = new HashMap<>();
+        for (RoomAmenity a : em.createQuery("select a from RoomAmenity a join fetch a.amenity where a.roomType.id in :ids "
+                        + "and a.value = :yes order by a.amenity.sortOrder, a.amenity.name", RoomAmenity.class)
+                .setParameter("ids", ids).setParameter("yes", AmenityValue.YES).getResultList()) {
+            roomAmenities.computeIfAbsent(a.getRoomType().getId(), k -> new ArrayList<>()).add(a.getAmenity().getName());
+        }
+        Map<Long, List<SeasonalPriceDto>> prices = new HashMap<>();
+        for (RoomSpecialPrice p : em.createQuery("select p from RoomSpecialPrice p where p.roomType.id in :ids order by p.periodStart",
+                RoomSpecialPrice.class).setParameter("ids", ids).getResultList()) {
+            prices.computeIfAbsent(p.getRoomType().getId(), k -> new ArrayList<>())
+                    .add(new SeasonalPriceDto(p.getName(), p.getPeriodStart(), p.getPeriodEnd(), p.getPrice()));
+        }
+        return rooms.stream().map(r -> new RoomShowcaseDto(r.getId(), r.getName(), r.getTotalRoomCount(), r.getMaxOccupancy(),
+                r.getAreaSqm(), r.getPrivateBathroom() == null ? null : r.getPrivateBathroom().name(), r.getBasePrice(),
+                r.getWeekendPrice(), r.getStatus(), text(r.getViewDescription()), text(r.getDescription()),
+                beds.getOrDefault(r.getId(), List.of()), roomAmenities.getOrDefault(r.getId(), List.of()),
+                prices.getOrDefault(r.getId(), List.of()))).toList();
     }
 
     private static StayPolicyDto policyOf(HomestayProfile profile) {

@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
-import { AlertTriangle, CheckCircle2, X, XCircle } from 'lucide-react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { AlertTriangle, BedDouble, Building2, CheckCircle2, Home, X, XCircle, type LucideIcon } from 'lucide-react';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { adminService } from '@/services/adminService';
 import { getApiErrorMessage } from '@/lib/apiError';
 import type { PageResponse } from '@/types/admin';
-import type { ChangeRequestDetail, ChangeRequestStatus, ChangeRequestSummary, ChangeTargetType } from '@/types/changeRequest';
+import type { ChangeContext, ChangeRequestDetail, ChangeRequestStatus, ChangeRequestSummary, ChangeTargetType } from '@/types/changeRequest';
 import {
   CompactDateRange,
   CompactSelect,
@@ -19,7 +19,9 @@ import StatusFilter, { type StatusFilterItem } from './StatusFilter';
 import { STATUS_COLOR } from './statusColor';
 import { useUrlStatus } from '@/hooks/useUrlStatus';
 import { useStatusCounts } from '@/hooks/useStatusCounts';
-import { actionButtonClass } from './statusStyles';
+import { actionButtonClass, PROVIDER_STATUS } from './statusStyles';
+import { VERIFICATION_LABEL, VERIFICATION_TONE, VISIBILITY_LABEL, VISIBILITY_TONE } from './placeMeta';
+import { vnd } from './bookingMeta';
 import OverlayPortal from './OverlayPortal';
 import {
   CHANGE_OPERATION_LABEL,
@@ -310,6 +312,78 @@ interface ChangeRequestDrawerProps {
   onReject: (request: ChangeRequestSummary) => void;
 }
 
+function ContextItem({ label, children, wide }: { label: string; children: ReactNode; wide?: boolean }) {
+  return (
+    <div className={wide ? 'col-span-2' : ''}>
+      <dt className="text-[10px] font-semibold uppercase tracking-wide text-muted">{label}</dt>
+      <dd className="mt-0.5 break-words text-ink">{children || '—'}</dd>
+    </div>
+  );
+}
+
+function ContextGroup({ icon: Icon, title, children }: { icon: LucideIcon; title: string; children: ReactNode }) {
+  return (
+    <div className="px-3 py-2.5">
+      <p className="mb-2 flex items-center gap-1.5 text-[11px] font-bold text-ink-deep">
+        <Icon className="h-3.5 w-3.5 text-primary" aria-hidden /> {title}
+      </p>
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">{children}</dl>
+    </div>
+  );
+}
+
+/** Ngữ cảnh xét duyệt: nhà cung cấp gửi yêu cầu, Homestay và loại phòng hiện tại (nếu yêu cầu liên quan phòng / giá). */
+function ChangeContextCard({ context: { provider, homestay, room } }: { context: ChangeContext }) {
+  if (!provider && !homestay && !room) return null;
+  const providerStatus = provider?.status ? PROVIDER_STATUS[provider.status] : null;
+  return (
+    <section aria-label="Thông tin xét duyệt" className="mb-4 divide-y divide-border rounded-lg border border-border bg-white shadow-sm">
+      {provider && (
+        <ContextGroup icon={Building2} title="Nhà cung cấp">
+          <ContextItem label="Tên nhà cung cấp" wide>
+            <span className="inline-flex flex-wrap items-center gap-1.5">
+              <span className="font-semibold text-ink-deep">{provider.name}</span>
+              {providerStatus && <StatusBadge tone={providerStatus.tone}>{providerStatus.label}</StatusBadge>}
+            </span>
+          </ContextItem>
+          <ContextItem label="Người đại diện">{provider.contactName}</ContextItem>
+          <ContextItem label="Số điện thoại">{provider.contactPhone}</ContextItem>
+          <ContextItem label="Email" wide>{provider.contactEmail}</ContextItem>
+          <ContextItem label="Địa chỉ" wide>{provider.address}</ContextItem>
+        </ContextGroup>
+      )}
+      {homestay && (
+        <ContextGroup icon={Home} title="Homestay">
+          <ContextItem label="Tên Homestay" wide><span className="font-semibold text-ink-deep">{homestay.name}</span></ContextItem>
+          <ContextItem label="Khu vực">{homestay.regionName}</ContextItem>
+          <ContextItem label="Số loại phòng">{String(homestay.roomTypeCount)}</ContextItem>
+          <ContextItem label="Địa chỉ" wide>{homestay.address}</ContextItem>
+          <ContextItem label="Hiển thị">
+            {homestay.visibility && <StatusBadge tone={VISIBILITY_TONE[homestay.visibility]}>{VISIBILITY_LABEL[homestay.visibility]}</StatusBadge>}
+          </ContextItem>
+          <ContextItem label="Kiểm duyệt">
+            {homestay.verification && <StatusBadge tone={VERIFICATION_TONE[homestay.verification]}>{VERIFICATION_LABEL[homestay.verification]}</StatusBadge>}
+          </ContextItem>
+        </ContextGroup>
+      )}
+      {room && (
+        <ContextGroup icon={BedDouble} title="Loại phòng hiện tại">
+          <ContextItem label="Tên loại phòng" wide>
+            <span className="inline-flex flex-wrap items-center gap-1.5">
+              <span className="font-semibold text-ink-deep">{room.name}</span>
+              <StatusBadge tone={room.status === 'ACTIVE' ? 'success' : 'neutral'}>{room.status === 'ACTIVE' ? 'Mở bán' : 'Ngừng bán'}</StatusBadge>
+            </span>
+          </ContextItem>
+          <ContextItem label="Tổng số phòng">{String(room.totalRoomCount)}</ContextItem>
+          <ContextItem label="Khách tối đa mỗi phòng">{String(room.maxOccupancy)}</ContextItem>
+          <ContextItem label="Giá ngày thường / phòng / đêm">{room.basePrice != null ? vnd(room.basePrice) : ''}</ContextItem>
+          <ContextItem label="Giá cuối tuần (T7, CN)">{room.weekendPrice != null ? vnd(room.weekendPrice) : 'Bằng giá ngày thường'}</ContextItem>
+        </ContextGroup>
+      )}
+    </section>
+  );
+}
+
 /** Ngăn bên phải: so sánh nội dung cũ và mới của một yêu cầu thay đổi. */
 function ChangeRequestDrawer({ id, onClose, onApprove, onReject }: ChangeRequestDrawerProps) {
   const [detail, setDetail] = useState<ChangeRequestDetail | null>(null);
@@ -339,6 +413,7 @@ function ChangeRequestDrawer({ id, onClose, onApprove, onReject }: ChangeRequest
   }, [onClose]);
 
   const summary = detail?.summary;
+  const changedCount = detail?.fields.filter((f) => f.changed).length ?? 0;
 
   return (
     <OverlayPortal>
@@ -391,23 +466,45 @@ function ChangeRequestDrawer({ id, onClose, onApprove, onReject }: ChangeRequest
                 Dữ liệu chính thức đã thay đổi kể từ lúc nhà cung cấp gửi yêu cầu, nội dung "Hiện tại" bên dưới có thể không còn khớp.
               </p>
             )}
-            {detail && detail.changes.length === 0 && <p className="text-xs text-muted">Yêu cầu không có trường nào khác với dữ liệu hiện tại.</p>}
-            <div className="flex flex-col gap-3">
-              {detail?.changes.map((change) => (
-                <section key={change.field} className="rounded-md border border-border">
-                  <h4 className="border-b border-border bg-canvas/60 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">{change.label}</h4>
-                  <div className="grid grid-cols-2 gap-3 px-3 py-2 text-xs">
-                    <div>
-                      <div className="text-[10px] font-semibold uppercase tracking-wide text-muted">Hiện tại</div>
-                      <p className="mt-0.5 whitespace-pre-line break-words text-ink">{change.before || '—'}</p>
+            {detail?.context && <ChangeContextCard context={detail.context} />}
+            {detail && (
+              <p className="mb-3 text-[11px] text-muted">
+                {changedCount > 0 ? (
+                  <>
+                    <strong className="tabular-nums text-primary">{changedCount}</strong> / {detail.fields.length} trường thay đổi · các trường còn lại giữ nguyên
+                  </>
+                ) : (
+                  'Yêu cầu không có trường nào khác với dữ liệu hiện tại.'
+                )}
+              </p>
+            )}
+            {/* Toàn bộ trường theo thứ tự: trường thay đổi so sánh cũ / mới, trường không đổi hiển thị một giá trị. */}
+            <div className="flex flex-col gap-2">
+              {detail?.fields.map((field) =>
+                field.changed ? (
+                  <section key={field.field} className="rounded-md border border-primary/40 shadow-xs">
+                    <h4 className="flex items-center justify-between gap-2 border-b border-primary/20 bg-primary-50 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-primary">
+                      {field.label}
+                      <span className="rounded-sm bg-primary px-1.5 py-px text-[9px] font-bold tracking-wide text-white">Thay đổi</span>
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3 px-3 py-2 text-xs">
+                      <div>
+                        <div className="text-[10px] font-semibold uppercase tracking-wide text-muted">Hiện tại</div>
+                        <p className="mt-0.5 whitespace-pre-line break-words text-ink line-through decoration-muted/60">{field.before || '—'}</p>
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-semibold uppercase tracking-wide text-primary">Đề xuất mới</div>
+                        <p className="mt-0.5 whitespace-pre-line break-words font-semibold text-ink-deep">{field.after || '—'}</p>
+                      </div>
                     </div>
-                    <div>
-                      <div className="text-[10px] font-semibold uppercase tracking-wide text-primary">Đề xuất mới</div>
-                      <p className="mt-0.5 whitespace-pre-line break-words font-semibold text-ink-deep">{change.after || '—'}</p>
-                    </div>
+                  </section>
+                ) : (
+                  <div key={field.field} className="grid grid-cols-[140px_1fr] gap-3 rounded-md border border-border/70 px-3 py-2 text-xs">
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">{field.label}</span>
+                    <span className="whitespace-pre-line break-words text-ink">{field.after || '—'}</span>
                   </div>
-                </section>
-              ))}
+                ),
+              )}
             </div>
             {summary?.reviewedAt && (
               <p className="mt-4 rounded-md bg-canvas px-3 py-2 text-[11px] text-muted">

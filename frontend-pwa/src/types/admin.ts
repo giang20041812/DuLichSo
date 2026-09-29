@@ -335,6 +335,32 @@ export interface PlaceStayPolicy {
   refundOnLateCancel: 'FULL_REFUND' | 'NO_REFUND' | null;
 }
 
+/** SeasonalPriceDto — giá theo mùa của loại phòng. */
+export interface PlaceSeasonalPrice {
+  name: string;
+  periodStart: string;
+  periodEnd: string;
+  price: number;
+}
+
+/** RoomShowcaseDto — loại phòng với đủ các trường NCC khai; `beds` đã ghép sẵn dạng "2 giường đôi". */
+export interface PlaceShowcaseRoom {
+  id: number;
+  name: string;
+  totalRoomCount: number;
+  maxOccupancy: number;
+  areaSqm: number | null;
+  privateBathroom: 'YES' | 'NO' | 'UNVERIFIED' | null;
+  basePrice: number | null;
+  weekendPrice: number | null;
+  status: 'ACTIVE' | 'INACTIVE' | string;
+  viewDescription: string;
+  description: string;
+  beds: string[];
+  amenities: string[];
+  seasonalPrices: PlaceSeasonalPrice[];
+}
+
 /** placeId/placeName null khi chưa có cơ sở làm nguồn (vd hồ sơ NCC chưa được duyệt); stayPolicy null khi không phải Homestay / chưa khai. */
 export interface PlaceShowcase {
   placeId: number | null;
@@ -342,6 +368,8 @@ export interface PlaceShowcase {
   images: PlaceShowcaseImage[];
   amenities: string[];
   stayPolicy: PlaceStayPolicy | null;
+  /** Loại phòng (chỉ Homestay). */
+  rooms: PlaceShowcaseRoom[];
 }
 
 export interface MonthlyRevenuePoint {
