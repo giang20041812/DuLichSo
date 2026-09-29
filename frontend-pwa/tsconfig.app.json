@@ -35,13 +35,12 @@
     "noImplicitReturns": true,
     "noUncheckedIndexedAccess": true,
     "forceConsistentCasingInFileNames": true,
-    "baseUrl": ".",
     "paths": {
       "@/*": [
-        "src/*"
+        "./src/*"
       ],
       "@/types/*": [
-        "src/types/*"
+        "./src/types/*"
       ]
     }
   },
