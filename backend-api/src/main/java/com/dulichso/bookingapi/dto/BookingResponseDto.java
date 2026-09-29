@@ -40,6 +40,7 @@ public class BookingResponseDto {
     private BigDecimal totalAmount;
     private LocalDateTime createdAt;
     private LocalDateTime holdExpiresAt;
+    private LocalDateTime responseDueAt;
     private Map<String, Object> policySnapshot;
     private java.util.List<ServiceItemDto> serviceItems;
     private java.util.List<BookingChangeRequestDto> changeRequests;

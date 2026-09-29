@@ -9,6 +9,7 @@ import com.dulichso.bookingapi.entity.keys.BookingNightId;
 import com.dulichso.bookingapi.entity.keys.RoomInventoryDayId;
 import com.dulichso.bookingapi.repository.*;
 import com.dulichso.bookingapi.service.BookingService;
+import com.dulichso.bookingapi.service.ResponseDeadlineService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -42,6 +43,7 @@ public class BookingServiceImpl implements BookingService {
     private final PlaceMediaRepository placeMediaRepository;
     private final RoomTypeMediaRepository roomTypeMediaRepository;
     private final BookingChangeRequestRepository bookingChangeRequestRepository;
+    private final ResponseDeadlineService responseDeadlineService;
 
     private final com.dulichso.bookingapi.service.NotificationService notificationService;
     private final AccountRepository accountRepository;
@@ -584,6 +586,8 @@ public class BookingServiceImpl implements BookingService {
                 .totalAmount(booking.getTotalAmount())
                 .createdAt(booking.getCreatedAt())
                 .holdExpiresAt(booking.getHoldExpiresAt())
+                .responseDueAt(responseDeadlineService.dueAt(new ResponseDeadlineService.BookingRef(
+                        booking.getId(), place.getId(), booking.getCreatedAt())))
                 .policySnapshot(booking.getPolicySnapshot())
                 .serviceItems(serviceItemDtos)
                 .changeRequests(changeRequestDtos)

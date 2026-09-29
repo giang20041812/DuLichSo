@@ -131,6 +131,7 @@ export interface BookingResponseDto {
   totalAmount: number;
   createdAt: string;       // ISO datetime
   holdExpiresAt: string;   // ISO datetime
+  responseDueAt: string | null; // ISO datetime — hạn nhà cung cấp phản hồi
   policySnapshot: BookingPolicySnapshot;
   serviceItems?: BookingServiceItemDto[];
   changeRequests?: BookingChangeRequestDto[];

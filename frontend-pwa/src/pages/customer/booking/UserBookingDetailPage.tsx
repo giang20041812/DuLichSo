@@ -136,7 +136,7 @@ export default function UserBookingDetailPage() {
             <div>
               <span className="font-bold">Đang chờ chủ nhà xác nhận</span>
               <p className="text-xs text-sky-700 font-normal mt-0.5">
-                Chủ nhà có tối đa <strong>120 phút</strong> để duyệt đơn đặt phòng. Hạn xử lý: {booking?.holdExpiresAt ? new Date(booking.holdExpiresAt).toLocaleString('vi-VN') : 'đang cập nhật'}.
+                Chủ nhà có tối đa <strong>120 phút</strong> để duyệt đơn đặt phòng. Hạn xử lý: {booking?.responseDueAt ? new Date(booking.responseDueAt).toLocaleString('vi-VN') : 'đang cập nhật'}.
               </p>
             </div>
           </div>
