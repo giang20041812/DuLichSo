@@ -261,23 +261,9 @@ export default function SearchHub() {
   const [isSticky, setIsSticky] = useState(false);
 
   // Date state: Ngày nhận phòng & Ngày trả phòng (Check-in & Check-out)
-  const [checkInDate, setCheckInDate] = useState<{ day: number, month: number, year: number } | null>(() => {
-    const today = new Date();
-    return {
-      day: today.getDate(),
-      month: today.getMonth() + 1,
-      year: today.getFullYear()
-    };
-  });
-  const [checkOutDate, setCheckOutDate] = useState<{ day: number, month: number, year: number } | null>(() => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return {
-      day: tomorrow.getDate(),
-      month: tomorrow.getMonth() + 1,
-      year: tomorrow.getFullYear()
-    };
-  });
+  // Ngày chỉ được gửi khi người dùng chủ động chọn, không tự động lọc hôm nay/ngày mai.
+  const [checkInDate, setCheckInDate] = useState<{ day: number, month: number, year: number } | null>(null);
+  const [checkOutDate, setCheckOutDate] = useState<{ day: number, month: number, year: number } | null>(null);
   const [calendarTarget, setCalendarTarget] = useState<'checkIn' | 'checkOut'>('checkIn');
   const [calendarMonth, setCalendarMonth] = useState<number>(new Date().getMonth() + 1);
   const [calendarYear, setCalendarYear] = useState<number>(new Date().getFullYear());
@@ -684,11 +670,9 @@ export default function SearchHub() {
     if (selectedAttractions.length > 0) {
       params.append('attractions', selectedAttractions.map(a => a.id).join(','));
     }
-    if (checkInDate) {
+    if (checkInDate && checkOutDate) {
       const startStr = `${checkInDate.year}-${String(checkInDate.month).padStart(2, '0')}-${String(checkInDate.day).padStart(2, '0')}`;
       params.append('checkIn', startStr);
-    }
-    if (checkOutDate) {
       const endStr = `${checkOutDate.year}-${String(checkOutDate.month).padStart(2, '0')}-${String(checkOutDate.day).padStart(2, '0')}`;
       params.append('checkOut', endStr);
     }

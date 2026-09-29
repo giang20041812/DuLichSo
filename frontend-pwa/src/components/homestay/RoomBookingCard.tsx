@@ -279,6 +279,12 @@ export default function RoomBookingCard({
               </div>
             ) : null}
           </div>
+          {room.amenities && room.amenities.length > 0 && (
+            <div className="mt-2 rounded-md border border-emerald-100 bg-emerald-50/60 p-2.5">
+              <p className="mb-1 text-xs font-bold text-emerald-900">Tiện nghi riêng của phòng</p>
+              <p className="text-xs text-emerald-800">{room.amenities.join(' · ')}</p>
+            </div>
+          )}
         </div>
 
         {/* Cột 2: Tiêu đề, Chọn số phòng/khách, Lịch trống độc lập & Nút Đặt phòng */}

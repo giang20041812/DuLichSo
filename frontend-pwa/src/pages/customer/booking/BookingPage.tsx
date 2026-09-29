@@ -516,6 +516,7 @@ export default function BookingPage() {
   };
 
   const [isBookingSuccess, setIsBookingSuccess] = useState(false);
+  const [showBookingReview, setShowBookingReview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingResult, setBookingResult] = useState<BookingResponseDto | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -542,8 +543,8 @@ export default function BookingPage() {
 
   const isPhoneValid = phone.trim().length >= 9;
 
-  const handleSubmitBooking = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmitBooking = async (e?: React.FormEvent | React.MouseEvent) => {
+    e?.preventDefault();
     setPhoneTouched(true);
     setSubmitError(null);
 
@@ -1632,7 +1633,7 @@ export default function BookingPage() {
                     </div>
                   )}
                   <Button
-                    onClick={handleSubmitBooking}
+                    onClick={() => setShowBookingReview(true)}
                     disabled={isSubmitting || !validation.isValid}
                     className={`w-full py-4 font-bold rounded-md shadow-xs transition-colors flex items-center justify-center gap-2 ${
                       !validation.isValid
@@ -1667,6 +1668,31 @@ export default function BookingPage() {
             </div>
           </div>
         </main>
+      )}
+
+      {showBookingReview && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-lg rounded-lg border border-slate-200 bg-white p-5 shadow-xl">
+            <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
+              <h2 className="text-lg font-bold text-slate-900">Xem lại chi tiết đơn đặt phòng</h2>
+              <button type="button" onClick={() => setShowBookingReview(false)} className="rounded-md p-1 text-slate-500 hover:bg-slate-100" aria-label="Đóng">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="space-y-2 text-sm text-slate-700">
+              <p><strong>Chỗ nghỉ:</strong> {roomInfo.placeName}</p>
+              <p><strong>Loại phòng:</strong> {roomInfo.roomName} · {roomCount} phòng · {guestCount} khách</p>
+              <p><strong>Lưu trú:</strong> {formatISODate(checkIn)} → {formatISODate(checkOut)} ({nights} đêm)</p>
+              <p><strong>Khách lưu trú:</strong> {guestName || fullName}</p>
+              <p><strong>Tổng tiền:</strong> <span className="font-bold text-[var(--color-coral)]">{new Intl.NumberFormat('vi-VN').format(totalPrice)} VND</span></p>
+              {customNote.trim() && <p><strong>Ghi chú:</strong> {customNote.trim()}</p>}
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setShowBookingReview(false)} className="rounded-md">Chỉnh sửa</Button>
+              <Button type="button" onClick={(event) => { setShowBookingReview(false); void handleSubmitBooking(event); }} className="rounded-md bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-600)]">Xác nhận đặt phòng</Button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ================= MODAL NHẬP GHI CHÚ KHI THÊM DỊCH VỤ QUANH ĐÂY ================= */}

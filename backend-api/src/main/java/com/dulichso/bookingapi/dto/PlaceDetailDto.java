@@ -34,6 +34,7 @@ public class PlaceDetailDto {
     private BigDecimal priceRefMax;
     private String priceUnitNote;
     private PlaceOperationStatus operationStatus;
+    private String operationStatusReason;
     private PlaceVerificationStatus verification;
     private BigDecimal ratingAvg;
     private Integer ratingCount;

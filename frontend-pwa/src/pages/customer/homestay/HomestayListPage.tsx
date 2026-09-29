@@ -252,7 +252,10 @@ export default function HomestayListPage() {
     filters.amenities?.length || filters.minRating || filters.maxPrice || filters.minPrice || filters.guestCount || filters.ward || (filters.province && filters.province !== 'Yên Bái') || filters.attractions?.length
   );
 
-  const paginatedHomestays = homestays;
+  const paginatedHomestays = [...homestays].sort((a, b) => {
+    const score = (item: HomestayDto) => item.operationStatus === 'TEMPORARILY_CLOSED' || item.availableForSelectedDates === false ? 1 : 0;
+    return score(a) - score(b);
+  });
   const homestayDetailPath = (id: string) => {
     const query = searchParams.toString();
     return `/homestays/${id}${query ? `?${query}` : ''}`;
@@ -971,6 +974,17 @@ export default function HomestayListPage() {
                                 </h2>
                               </Link>
 
+                              {hs.operationStatus === 'TEMPORARILY_CLOSED' && (
+                                <div className="mb-2 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-bold text-amber-900">
+                                  Tạm ngừng nhận đặt phòng{hs.operationStatusReason ? `: ${hs.operationStatusReason}` : ''}
+                                </div>
+                              )}
+                              {hs.availableForSelectedDates === false && hs.operationStatus !== 'TEMPORARILY_CLOSED' && (
+                                <div className="mb-2 rounded-md border border-slate-200 bg-slate-100 px-2.5 py-1.5 text-xs font-bold text-slate-700">
+                                  Không khả dụng trong khoảng ngày đã chọn
+                                </div>
+                              )}
+
                               {/* Vị trí với liên kết xem trên bản đồ VietMap */}
                               <div className="text-xs sm:text-[13px] text-[var(--color-primary)] font-semibold flex items-center gap-1 mb-2">
                                 <button
@@ -1068,8 +1082,8 @@ export default function HomestayListPage() {
                                 </button>
 
                                 <Link to={homestayDetailPath(hs.id)} className="shrink-0">
-                                  <Button variant="primary" className="rounded-lg font-bold h-8.5 px-3.5 text-xs bg-[#10b981] hover:bg-[#03725e] shadow-xs hover:shadow-sm active:scale-95 transition-all cursor-pointer">
-                                    Xem chỗ trống
+                                  <Button variant="primary" className="rounded-lg font-bold h-8.5 px-3.5 text-xs bg-[#10b981] hover:bg-[#03725e] shadow-xs hover:shadow-sm active:scale-95 transition-all cursor-pointer" disabled={hs.operationStatus === 'TEMPORARILY_CLOSED'}>
+                                    {hs.operationStatus === 'TEMPORARILY_CLOSED' ? 'Xem thông tin' : 'Xem chỗ trống'}
                                   </Button>
                                 </Link>
                               </div>

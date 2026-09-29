@@ -43,6 +43,7 @@ public class RoomType {
     private BigDecimal weekendPrice;
     
     @Column(columnDefinition = "enum('ACTIVE','INACTIVE')", nullable = false)
+    @Builder.Default
     private String status = "ACTIVE"; // Kept string for simplicity since it's just 'ACTIVE'/'INACTIVE'
     
     @Column(name = "created_at", nullable = false, updatable = false)

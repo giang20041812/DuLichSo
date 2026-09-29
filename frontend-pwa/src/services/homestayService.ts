@@ -43,6 +43,9 @@ interface PlaceSummaryApiItem {
   statsText?: string | null;
   contacts?: HomestayDto['contacts'];
   amenities?: string[];
+  operationStatus?: HomestayDto['operationStatus'];
+  operationStatusReason?: string | null;
+  availableForSelectedDates?: boolean;
 }
 
 const readPageResponse = (value: unknown): PageResponse<PlaceSummaryApiItem> => {
@@ -131,6 +134,9 @@ export const fetchHomestays = async (params?: HomestayFilterParams): Promise<Pag
         longitude: item.longitude || undefined,
         contacts: item.contacts || [],
         amenities: item.amenities || [],
+        operationStatus: item.operationStatus,
+        operationStatusReason: item.operationStatusReason,
+        availableForSelectedDates: item.availableForSelectedDates,
       };
       }),
     };

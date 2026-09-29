@@ -43,12 +43,16 @@ public class PlaceSpecification {
             if (keyword != null && !keyword.trim().isEmpty()) {
                 String pattern = "%" + keyword.toLowerCase().trim() + "%";
                 Predicate nameMatch = cb.like(cb.lower(root.get("name")), pattern);
-                predicates.add(nameMatch);
+                Predicate addressMatch = cb.like(cb.lower(root.get("address")), pattern);
+                predicates.add(cb.or(nameMatch, addressMatch));
             }
             
             // 1. Default filters for public view
             predicates.add(cb.equal(root.get("visibility"), PlaceVisibility.PUBLISHED));
-            predicates.add(cb.equal(root.get("operationStatus"), com.dulichso.bookingapi.entity.enums.PlaceOperationStatus.OPERATING));
+            predicates.add(cb.or(
+                    cb.equal(root.get("operationStatus"), com.dulichso.bookingapi.entity.enums.PlaceOperationStatus.OPERATING),
+                    cb.equal(root.get("operationStatus"), com.dulichso.bookingapi.entity.enums.PlaceOperationStatus.TEMP_CLOSED)
+            ));
             predicates.add(cb.isFalse(root.get("isDeleted")));
 
             if (guestCount != null) {
@@ -108,7 +112,7 @@ public class PlaceSpecification {
                         cb.greaterThan(rtRoot.get("totalRoomCount"), 0)
                 );
                 
-                predicates.add(cb.greaterThan(availableRtSq, 0L));
+                // Không loại khỏi kết quả: frontend cần hiển thị cơ sở hết phòng là "Không khả dụng".
             }
             
             // 3. Category Kind

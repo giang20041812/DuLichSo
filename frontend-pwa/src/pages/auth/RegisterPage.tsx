@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   AlertCircle,
   ArrowRight,
@@ -24,6 +24,7 @@ const VN_PHONE_REGEX = /^(0|\+84)(3|5|7|8|9)[0-9]{8}$/;
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Form values
   const [fullName, setFullName] = useState('');
@@ -31,7 +32,6 @@ export default function RegisterPage() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [agreedTerms, setAgreedTerms] = useState(false);
 
   // Visibility states
   const [showPassword, setShowPassword] = useState(false);
@@ -83,12 +83,8 @@ export default function RegisterPage() {
       errs.confirmPassword = 'Mật khẩu xác nhận không khớp.';
     }
 
-    if (!agreedTerms) {
-      errs.agreedTerms = 'Vui lòng đồng ý với điều khoản sử dụng.';
-    }
-
     return errs;
-  }, [fullName, email, phone, password, confirmPassword, agreedTerms]);
+  }, [fullName, email, phone, password, confirmPassword]);
 
   // Độ mạnh mật khẩu (Password Strength)
   const passwordStrength = useMemo(() => {
@@ -117,10 +113,12 @@ export default function RegisterPage() {
       phone: true,
       password: true,
       confirmPassword: true,
-      agreedTerms: true,
     });
 
-    if (!isFormValid) return;
+    if (!isFormValid) {
+      setServerError('Vui lòng nhập đầy đủ và đúng các thông tin bắt buộc.');
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -132,7 +130,8 @@ export default function RegisterPage() {
         confirmPassword,
       });
       saveTravelerSession(res);
-      navigate('/');
+      const state = location.state as { from?: string } | null;
+      navigate(state?.from || '/', { replace: true });
     } catch (err: unknown) {
       const message =
         (err as AuthErrorResponse)?.message ||
@@ -149,7 +148,8 @@ export default function RegisterPage() {
     try {
       const res = await googleLogin(idToken);
       saveTravelerSession(res);
-      navigate('/');
+        const state = location.state as { from?: string } | null;
+        navigate(state?.from || '/', { replace: true });
     } catch (err: unknown) {
       const message =
         (err as AuthErrorResponse)?.message ||
@@ -431,37 +431,6 @@ export default function RegisterPage() {
           {touched.confirmPassword && errors.confirmPassword && (
             <p className="mt-1 flex items-center gap-1 text-xs text-danger">
               <AlertCircle className="h-3 w-3 shrink-0" /> {errors.confirmPassword}
-            </p>
-          )}
-        </div>
-
-        {/* Checkbox điều khoản */}
-        <div className="mt-1">
-          <label className="flex items-start gap-2.5 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={agreedTerms}
-              onChange={(e) => {
-                setAgreedTerms(e.target.checked);
-                setServerError(null);
-              }}
-              className="mt-1 h-4 w-4 rounded-sm border-slate-300 text-primary focus:ring-primary/20 accent-[var(--color-primary)]"
-            />
-            <span className="text-xs leading-relaxed text-ink-light select-none">
-              Tôi xác nhận đồng ý với{' '}
-              <a href="#terms" onClick={(e) => e.preventDefault()} className="font-semibold text-primary hover:underline">
-                Điều khoản dịch vụ
-              </a>{' '}
-              và{' '}
-              <a href="#privacy" onClick={(e) => e.preventDefault()} className="font-semibold text-primary hover:underline">
-                Chính sách bảo mật
-              </a>{' '}
-              của Đi Du Lịch.
-            </span>
-          </label>
-          {touched.agreedTerms && errors.agreedTerms && (
-            <p className="mt-1 flex items-center gap-1 text-xs text-danger">
-              <AlertCircle className="h-3 w-3 shrink-0" /> {errors.agreedTerms}
             </p>
           )}
         </div>

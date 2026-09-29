@@ -7,6 +7,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.List;
+import java.util.TimeZone;
 
 @SpringBootApplication
 @EnableAsync
@@ -14,6 +15,10 @@ public class BookingApiApplication {
 
 	public static void main(String[] args) {
 		loadEnv();
+		// Timestamps in the domain use LocalDateTime and represent Vietnam local time.
+		// Containers commonly default to UTC; set the application timezone before
+		// Spring creates entities/services that call LocalDateTime.now().
+		TimeZone.setDefault(TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
 		SpringApplication.run(BookingApiApplication.class, args);
 	}
 

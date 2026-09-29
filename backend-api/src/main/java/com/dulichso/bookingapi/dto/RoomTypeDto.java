@@ -22,4 +22,5 @@ public class RoomTypeDto {
     private BigDecimal basePrice;
     private BigDecimal weekendPrice;
     private List<String> images;
+    private List<String> amenities;
 }

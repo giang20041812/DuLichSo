@@ -51,6 +51,7 @@ import RoomBookingCard from '@/components/homestay/RoomBookingCard';
 import TikTokEmbedPlayer from '@/components/homestay/TikTokEmbedPlayer';
 import { openGoogleMapsDirections } from '@/lib/mapUtils';
 import ImageCarousel from '@/components/common/ImageCarousel';
+import HomestayPoliciesSection from '@/components/homestay/HomestayPoliciesSection';
 
 // Helper trích xuất ID video TikTok từ link
 // Helper tính khoảng cách Haversine chính xác theo tọa độ GPS
@@ -557,13 +558,19 @@ export default function HomestayDetailPage() {
 
         {/* DANH SÁCH PHÒNG & LỊCH TRỐNG */}
         <div className="mb-8">
+          {homestay.homestayProfile && (
+            <div className="mb-6 rounded-md border border-slate-200 bg-white p-4">
+              <HomestayPoliciesSection profile={homestay.homestayProfile} />
+            </div>
+          )}
           <div className="mb-4">
             <h2 className="text-2xl md:text-3xl font-extrabold text-[var(--color-ink-deep)]">Danh sách phòng & Lịch trống</h2>
           </div>
 
           {homestay.operationStatus === 'TEMPORARILY_CLOSED' ? (
             <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-              Homestay đang tạm đóng và chưa nhận kiểm tra phòng/giá. Bạn vẫn có thể xem thông tin công khai bên dưới.
+              <strong>Tạm ngừng nhận đặt phòng.</strong>{' '}
+              {homestay.operationStatusReason || 'Homestay đang tạm đóng và chưa nhận kiểm tra phòng/giá.'} Bạn vẫn có thể xem thông tin công khai bên dưới.
             </div>
           ) : (
             <div className="flex flex-col gap-6">

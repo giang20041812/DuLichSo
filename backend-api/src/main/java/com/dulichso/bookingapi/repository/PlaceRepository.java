@@ -1,10 +1,6 @@
 package com.dulichso.bookingapi.repository;
 
-import com.dulichso.bookingapi.dto.PlaceSummaryDto;
 import com.dulichso.bookingapi.entity.Place;
-import com.dulichso.bookingapi.entity.enums.CategoryKind;
-import com.dulichso.bookingapi.entity.enums.PlaceVisibility;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;

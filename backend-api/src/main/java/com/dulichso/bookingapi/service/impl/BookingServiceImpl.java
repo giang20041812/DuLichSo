@@ -42,7 +42,7 @@ public class BookingServiceImpl implements BookingService {
     private final PlaceMediaRepository placeMediaRepository;
     private final RoomTypeMediaRepository roomTypeMediaRepository;
     private final BookingChangeRequestRepository bookingChangeRequestRepository;
-    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+
     private final com.dulichso.bookingapi.service.NotificationService notificationService;
     private final AccountRepository accountRepository;
 

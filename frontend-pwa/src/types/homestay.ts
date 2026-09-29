@@ -133,6 +133,9 @@ export interface HomestayDto {
   address?: string;
   latitude?: number;
   longitude?: number;
+  operationStatus?: PlaceOperationStatus;
+  operationStatusReason?: string | null;
+  availableForSelectedDates?: boolean;
   contacts?: PlaceContactItem[];
   amenities?: string[];
   isSuitableByTime?: boolean;
@@ -150,6 +153,7 @@ export interface HomestayDetailDto {
   description: string;
   kind: string;
   operationStatus: PlaceOperationStatus;
+  operationStatusReason?: string | null;
   address: string;
   district?: string;
   latitude: number;

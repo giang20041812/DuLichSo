@@ -75,6 +75,7 @@ public class Place {
     private Boolean isDeleted = false;
     
     @Column(name = "is_suitable_by_time", nullable = false)
+    @Builder.Default
     private Boolean isSuitableByTime = false;
     
     @Column(name = "suitable_date_start")
