@@ -25,6 +25,7 @@ public class PlaceSummaryDto {
     private Integer ratingCount;
     private java.util.Map<String, Object> attributes;
     private CategoryKind kind;
+    private String needs;
     private BigDecimal latitude;
     private BigDecimal longitude;
     private String address;

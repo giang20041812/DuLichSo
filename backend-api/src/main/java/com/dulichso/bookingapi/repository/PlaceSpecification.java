@@ -35,6 +35,7 @@ public class PlaceSpecification {
             String ward,
             List<Long> attractionIds,
             String keyword,
+            String needs,
             Integer guestCount) {
             
         return (root, query, cb) -> {
@@ -118,6 +119,10 @@ public class PlaceSpecification {
             // 3. Category Kind
             if (kind != null) {
                 predicates.add(cb.equal(root.get("kind"), kind));
+            }
+
+            if (needs != null && !needs.trim().isEmpty()) {
+                predicates.add(cb.equal(cb.lower(root.get("needs")), needs.trim().toLowerCase()));
             }
 
             // 4. Lọc theo Địa điểm du lịch (attractionIds)

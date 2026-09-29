@@ -58,4 +58,5 @@
 
     <!-- Hạn phản hồi 120 phút đã chốt, đơn hết hạn, kết quả đánh giá khả năng đáp ứng (UC-NCC-06/07/08) -->
     <include file="db/changelog/changes/017-ncc-booking-deadline-evaluation.xml"/>
+    <include file="db/changelog/changes/018-add-place-needs.xml"/>
 </databaseChangeLog>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+    <changeSet id="018-place-needs" author="dulichso">
+        <addColumn tableName="place">
+            <column name="needs" type="VARCHAR(20)"/>
+        </addColumn>
+        <sql>
+            UPDATE place SET needs = 'adventure' WHERE kind = 'ATTRACTION' AND needs IS NULL;
+            UPDATE place SET needs = 'enjoy'
+            WHERE kind = 'ATTRACTION'
+              AND (LOWER(name) LIKE '%ruộng%' OR LOWER(name) LIKE '%thác%'
+                OR LOWER(name) LIKE '%suối%' OR LOWER(name) LIKE '%hồ%'
+                OR LOWER(name) LIKE '%đồi%' OR LOWER(name) LIKE '%thung lũng%');
+        </sql>
+        <sql>ALTER TABLE place ADD CONSTRAINT chk_place_needs CHECK (needs IS NULL OR needs IN ('enjoy', 'adventure'))</sql>
+        <createIndex tableName="place" indexName="idx_place_kind_needs">
+            <column name="kind"/>
+            <column name="needs"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

@@ -16,7 +16,8 @@ export default defineConfig({
     allowedHosts: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        // Dùng IPv4 để tránh Node thử ::1 rồi báo AggregateError khi backend chỉ bind IPv4.
+        target: 'http://127.0.0.1:8080',
         changeOrigin: true,
       }
     }

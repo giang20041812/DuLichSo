@@ -167,6 +167,7 @@ export default function PlaceDetailPage() {
   }
 
   const kind = place.categoryKind || 'ATTRACTION';
+  const needLabel = place.needs === 'adventure' ? 'Khám phá & phiêu lưu' : place.needs === 'enjoy' ? 'Tận hưởng & thư giãn' : null;
   const defaultHighlight = getDefaultHighlights(kind);
 
   // Group Highlights
@@ -314,6 +315,7 @@ export default function PlaceDetailPage() {
               {categoryIcon}
               <span>{place.categoryName || parentLabel}</span>
             </Badge>
+            {needLabel && <Badge className="bg-amber-500 text-white text-xs font-bold px-2.5 py-1 rounded-sm">{needLabel}</Badge>}
 
             {place.verification === 'OFFICIAL_VERIFIED' ? (
               <Badge className="bg-emerald-600 text-white text-xs font-bold px-2.5 py-0.5 rounded-sm shadow-xs flex items-center gap-1">
@@ -579,6 +581,8 @@ export default function PlaceDetailPage() {
                   {place.categoryName || parentLabel}
                 </span>
               </div>
+
+              {needLabel && <div className="flex justify-between items-center pb-2.5 border-b border-gray-50"><span className="text-gray-500">Nhu cầu:</span><span className="font-semibold text-amber-700">{needLabel}</span></div>}
 
               <div className="flex justify-between items-center pb-2.5 border-b border-gray-50">
                 <span className="text-gray-500">Khu vực:</span>

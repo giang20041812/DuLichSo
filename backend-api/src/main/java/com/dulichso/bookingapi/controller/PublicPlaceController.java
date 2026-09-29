@@ -41,10 +41,11 @@ public class PublicPlaceController {
             @RequestParam(value = "ward", required = false) String ward,
              @RequestParam(value = "attractions", required = false) List<Long> attractions,
              @RequestParam(value = "keyword", required = false) String keyword,
+             @RequestParam(value = "needs", required = false) String needs,
              @RequestParam(value = "guestCount", required = false) Integer guestCount,
              @PageableDefault(size = 12) Pageable pageable) {
 
-        return ResponseEntity.ok(publicPlaceService.getPlaces(kind, minPrice, maxPrice, minRating, amenities, checkIn, checkOut, province, district, ward, attractions, keyword, guestCount, pageable));
+        return ResponseEntity.ok(publicPlaceService.getPlaces(kind, minPrice, maxPrice, minRating, amenities, checkIn, checkOut, province, district, ward, attractions, keyword, needs, guestCount, pageable));
     }
 
     @GetMapping("/{identifier}")

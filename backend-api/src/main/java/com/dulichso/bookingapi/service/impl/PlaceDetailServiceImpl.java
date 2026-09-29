@@ -351,6 +351,7 @@ public class PlaceDetailServiceImpl implements PlaceDetailService {
                 .slug(place.getSlug())
                 .name(place.getName())
                 .kind(place.getKind())
+                .needs(place.getNeeds())
                 .categoryKind(categoryKindStr)
                 .categoryName(categoryName)
                 .regionName(regionName)

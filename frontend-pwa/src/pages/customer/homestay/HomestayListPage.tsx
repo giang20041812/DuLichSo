@@ -270,39 +270,43 @@ export default function HomestayListPage() {
   ).length || 0;
 
   const renderKeywordSearch = () => (
-    <div className="bg-white border border-gray-200/90 rounded-lg p-4 shadow-xs">
+    <div className="pt-3 mt-3 border-t border-gray-100">
       <h2 className="font-bold text-[var(--color-ink-deep)] mb-3 text-sm flex items-center gap-1.5">
         <Search className="w-4 h-4 text-[var(--color-primary)]" /> Tìm kiếm chỗ nghỉ
       </h2>
-      <div className="relative">
-        <input
-          type="text"
-          placeholder="Tên, địa chỉ, mô tả..."
-          aria-label="Tìm kiếm chỗ nghỉ"
-          className="w-full h-11 pl-10 pr-10 text-sm bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] transition-all placeholder-gray-400"
-          value={keywordInput}
-          onChange={(e) => setKeywordInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              handleFilterChange({ keyword: keywordInput || undefined });
-            }
-          }}
-        />
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        {keywordInput && (
-          <button
-            type="button"
-            aria-label="Xóa tìm kiếm"
-            onClick={() => {
-              setKeywordInput('');
-              handleFilterChange({ keyword: undefined });
-            }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        )}
-      </div>
+      <form
+        className="flex flex-col sm:flex-row gap-2"
+        onSubmit={(event) => {
+          event.preventDefault();
+          handleFilterChange({ keyword: keywordInput.trim() || undefined });
+        }}
+      >
+        <div className="relative flex-1">
+          <input
+            type="text"
+            placeholder="Tên, địa chỉ, mô tả..."
+            aria-label="Tìm kiếm chỗ nghỉ"
+            className="w-full h-11 pl-10 pr-10 text-sm bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] transition-all placeholder-gray-400"
+            value={keywordInput}
+            onChange={(e) => setKeywordInput(e.target.value)}
+          />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          {keywordInput && (
+            <button
+              type="button"
+              aria-label="Xóa tìm kiếm"
+              onClick={() => setKeywordInput('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+        <Button type="submit" variant="primary" className="h-11 px-5 rounded-md font-bold shrink-0">
+          <Search className="w-4 h-4" />
+          Tìm kiếm
+        </Button>
+      </form>
     </div>
   );
 
@@ -549,10 +553,6 @@ export default function HomestayListPage() {
           <span className="text-[var(--color-ink-deep)] font-semibold">Homestay & Chỗ nghỉ Mù Cang Chải</span>
         </div>
 
-        <div className="mb-5">
-          {renderKeywordSearch()}
-        </div>
-
         <div className="hidden" aria-hidden="true">
           <span className="text-[var(--color-ink-deep)] font-semibold">Homestay & Chỗ nghỉ Mù Cang Chải</span>
         </div>
@@ -714,6 +714,9 @@ export default function HomestayListPage() {
               Dưới 500k / đêm
             </button>
           </div>
+
+          {/* Thanh tìm kiếm nằm ngay dưới các bộ lọc nhanh */}
+          {renderKeywordSearch()}
 
           {/* Row 3: Active Filters Tags (Khi có bộ lọc đang chạy) */}
           {hasActiveFilters && (

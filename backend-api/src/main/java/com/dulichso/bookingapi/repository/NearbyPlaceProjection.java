@@ -8,6 +8,7 @@ public interface NearbyPlaceProjection {
     String getDescription();
     String getImageUrl();
     String getKind();
+    String getNeeds();
     Double getDistance();
     BigDecimal getLatitude();
     BigDecimal getLongitude();

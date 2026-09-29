@@ -1,3 +1,6 @@
+import type { PlaceNeeds } from './homestay';
+export type { PlaceNeeds } from './homestay';
+
 export type CategoryKind = 
   | 'ATTRACTION' 
   | 'HOMESTAY' 
@@ -12,6 +15,7 @@ export type CategoryKind =
 export interface CategoryDto {
   id: number;
   kind: CategoryKind;
+  needs?: PlaceNeeds;
   slug: string;
   name: string;
   description: string;

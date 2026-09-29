@@ -121,8 +121,13 @@ public class PublicPlaceService {
 
     @Transactional(readOnly = true)
     public Page<PlaceSummaryDto> getPlaces(CategoryKind kind, BigDecimal minPrice, BigDecimal maxPrice, BigDecimal minRating, List<String> amenities, LocalDate checkIn, LocalDate checkOut, String province, String district, String ward, List<Long> attractionIds, String keyword, Integer guestCount, Pageable pageable) {
+        return getPlaces(kind, minPrice, maxPrice, minRating, amenities, checkIn, checkOut, province, district, ward, attractionIds, keyword, null, guestCount, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<PlaceSummaryDto> getPlaces(CategoryKind kind, BigDecimal minPrice, BigDecimal maxPrice, BigDecimal minRating, List<String> amenities, LocalDate checkIn, LocalDate checkOut, String province, String district, String ward, List<Long> attractionIds, String keyword, String needs, Integer guestCount, Pageable pageable) {
         validateFilters(minPrice, maxPrice, checkIn, checkOut, guestCount);
-        Specification<Place> spec = PlaceSpecification.filterPublicPlaces(kind, minPrice, maxPrice, minRating, amenities, checkIn, checkOut, province, district, ward, attractionIds, keyword, guestCount);
+        Specification<Place> spec = PlaceSpecification.filterPublicPlaces(kind, minPrice, maxPrice, minRating, amenities, checkIn, checkOut, province, district, ward, attractionIds, keyword, needs, guestCount);
         Pageable listingPageable = PageRequest.of(pageable.getPageNumber(), 12, normalizeSort(pageable.getSort()));
         
         Page<Place> placesPage = placeRepository.findAll(spec, listingPageable);
@@ -186,6 +191,7 @@ public class PublicPlaceService {
             dto.setIsSuitableByTime(p.getIsSuitableByTime());
             dto.setSuitableDateStart(p.getSuitableDateStart());
             dto.setSuitableDateEnd(p.getSuitableDateEnd());
+            dto.setNeeds(p.getNeeds());
             dto.setOperationStatus(p.getOperationStatus());
             Object statusReason = p.getAttributes() == null ? null : p.getAttributes().get("operationStatusReason");
             dto.setOperationStatusReason(statusReason instanceof String ? (String) statusReason : null);
@@ -310,6 +316,7 @@ public class PublicPlaceService {
                 .name(place.getName())
                 .description(place.getDescription())
                 .kind(place.getKind())
+                .needs(place.getNeeds())
                 .address(place.getAddress())
                 .latitude(place.getLatitude())
                 .longitude(place.getLongitude())
@@ -362,6 +369,7 @@ public class PublicPlaceService {
                 .description(p.getDescription())
                 .imageUrl(p.getImageUrl())
                 .kind(com.dulichso.bookingapi.entity.enums.CategoryKind.valueOf(p.getKind()))
+                .needs(p.getNeeds())
                 .distance(p.getDistance())
                 .latitude(p.getLatitude())
                 .longitude(p.getLongitude())
@@ -394,6 +402,7 @@ public class PublicPlaceService {
                     .slug(p.getSlug())
                     .name(p.getName())
                     .kind(p.getKind())
+                    .needs(p.getNeeds())
                     .categoryName(p.getCategory() != null ? p.getCategory().getName() : null)
                     .regionName(p.getRegion() != null ? p.getRegion().getName() : null)
                     .address(p.getAddress())

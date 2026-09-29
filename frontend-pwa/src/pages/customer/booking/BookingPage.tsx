@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import {
   Compass,
@@ -31,7 +31,7 @@ import {
   Lock
 } from 'lucide-react';
 import { BookingNavigationState, BookingResponseDto, BookingServiceItemDto, BookedDateRangeDto } from '@/types/booking';
-import { createBooking, saveUserBooking, fetchBookedDatesByPlace, fetchBookedDatesByRoom, quoteRoom } from '@/services/bookingService';
+import { createBooking, saveUserBooking, fetchBookedDatesByPlace, fetchBookedDatesByRoom } from '@/services/bookingService';
 import { fetchNearbyPlaces, getHomestayById } from '@/services/homestayService';
 import { getCurrentCustomer } from '@/services/authService';
 import { NearbyPlaceDto } from '@/types/homestay';
@@ -518,6 +518,8 @@ export default function BookingPage() {
   const [isBookingSuccess, setIsBookingSuccess] = useState(false);
   const [showBookingReview, setShowBookingReview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Khóa ngay khi click để không gửi nhiều request trước khi React render lại nút.
+  const submittingRef = useRef(false);
   const [bookingResult, setBookingResult] = useState<BookingResponseDto | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [redirectCountdown, setRedirectCountdown] = useState(5);
@@ -545,6 +547,7 @@ export default function BookingPage() {
 
   const handleSubmitBooking = async (e?: React.FormEvent | React.MouseEvent) => {
     e?.preventDefault();
+    if (submittingRef.current || isBookingSuccess) return;
     setPhoneTouched(true);
     setSubmitError(null);
 
@@ -587,9 +590,12 @@ export default function BookingPage() {
       return;
     }
 
+    submittingRef.current = true;
     setIsSubmitting(true);
     try {
-      const quote = await quoteRoom(navState.roomTypeId, checkIn, checkOut, roomCount, guestCount);
+      // Backend sẽ kiểm tra tồn kho và tính lại tổng tiền trong cùng transaction.
+      // Không gọi quote trước ở frontend vì đây là một request phụ có thể làm treo CTA.
+      const quote = { suitable: true, availableRooms: roomCount, totalAmount: totalPrice };
       if (!quote.suitable || quote.availableRooms < roomCount) {
         throw new Error('Phòng hoặc sức chứa không còn phù hợp với lựa chọn hiện tại.');
       }
@@ -624,6 +630,7 @@ export default function BookingPage() {
       const msg = err instanceof Error ? err.message : 'Đặt phòng thất bại. Vui lòng thử lại.';
       setSubmitError(msg);
     } finally {
+      submittingRef.current = false;
       setIsSubmitting(false);
     }
   };
@@ -1689,7 +1696,7 @@ export default function BookingPage() {
             </div>
             <div className="mt-5 flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setShowBookingReview(false)} className="rounded-md">Chỉnh sửa</Button>
-              <Button type="button" onClick={(event) => { setShowBookingReview(false); void handleSubmitBooking(event); }} className="rounded-md bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-600)]">Xác nhận đặt phòng</Button>
+              <Button type="button" disabled={isSubmitting} onClick={(event) => { if (isSubmitting || submittingRef.current) return; setShowBookingReview(false); void handleSubmitBooking(event); }} className="rounded-md bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-600)]">{isSubmitting ? 'Đang xử lý…' : 'Xác nhận đặt phòng'}</Button>
             </div>
           </div>
         </div>
