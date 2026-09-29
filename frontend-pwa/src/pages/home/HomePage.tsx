@@ -282,49 +282,8 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Slogan nghệ thuật bẻ cong vút lên dịch hẳn sang mép phải theo sườn đồi ruộng bậc thang - Layer ở dưới SearchHub (z-10) */}
-        <div className="absolute bottom-2 right-0 sm:bottom-3 sm:right-1 md:bottom-4 md:right-2 lg:right-4 z-10 select-none pointer-events-auto">
-          <svg
-            viewBox="0 0 320 190"
-            className="w-[210px] sm:w-[260px] md:w-[310px] lg:w-[350px] h-auto overflow-visible select-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]"
-            aria-label="Mỗi chuyến đi đẹp là một kỷ niệm"
-          >
-            <defs>
-              {/* Đường cong bắt đầu từ dưới rồi cong vút lên cao sang phải theo sườn ruộng bậc thang */}
-              <path
-                id="curve-travel-slogan-up"
-                d="M 12 165 C 115 165, 205 130, 285 22"
-                fill="none"
-              />
-            </defs>
-            <text
-              fill="#ffffff"
-              className="font-bold tracking-wide"
-              style={{
-                fontFamily: 'var(--font-brush)',
-                fontSize: '23px',
-              }}
-            >
-              <textPath href="#curve-travel-slogan-up" startOffset="0%" textAnchor="start">
-                Mỗi chuyến đi đẹp là một kỷ niệm
-              </textPath>
-            </text>
-            {/* Calligraphy flourish gạch chân uốn lượn cong vút đồng điệu bên dưới */}
-            <path
-              d="M 14 175 C 118 175, 208 139, 290 28"
-              fill="none"
-              stroke="rgba(255, 255, 255, 0.7)"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-            />
-            {/* Trái tim nhỏ xinh ở đỉnh vút cong */}
-            <path
-              d="M 296 20 C 293 15 285 16 285 22 C 285 28 296 33 296 35 C 296 33 307 28 307 22 C 307 16 299 15 296 20 Z"
-              fill="rgba(255, 255, 255, 0.9)"
-              transform="scale(0.65) translate(150, -6)"
-            />
-          </svg>
-        </div>
+
+
       </section>
 
 
