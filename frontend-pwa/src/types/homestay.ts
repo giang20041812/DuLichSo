@@ -186,6 +186,7 @@ export interface NearbyPlaceDto {
   description?: string;
   imageUrl?: string;
   kind: string;
+  needs?: PlaceNeeds;
   distance: number;
   routeDistance?: number;
   latitude?: number;
