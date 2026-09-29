@@ -23,6 +23,7 @@ public class PlaceDetailDto {
     private String slug;
     private String name;
     private CategoryKind kind;
+    private String needs;
     private String categoryKind;
     private String categoryName;
     private String regionName;
@@ -34,6 +35,7 @@ public class PlaceDetailDto {
     private BigDecimal priceRefMax;
     private String priceUnitNote;
     private PlaceOperationStatus operationStatus;
+    private String operationStatusReason;
     private PlaceVerificationStatus verification;
     private BigDecimal ratingAvg;
     private Integer ratingCount;

@@ -44,11 +44,13 @@ export default function DestinationListPage() {
     const minRating = searchParams.get('minRating');
     const scenics = searchParams.get('scenics');
     const freeOnly = searchParams.get('freeOnly');
+    const needs = searchParams.get('needs');
 
     if (q) initial.keyword = q;
     if (minRating) initial.minRating = Number(minRating);
     if (scenics) initial.scenicTypes = scenics.split(',');
     if (freeOnly === 'true') initial.maxPrice = 0;
+    if (needs === 'enjoy' || needs === 'adventure') initial.needs = needs;
 
     return initial;
   });
@@ -66,6 +68,7 @@ export default function DestinationListPage() {
       if (newFilters.minRating !== undefined) newParams.set('minRating', newFilters.minRating.toString()); else newParams.delete('minRating');
       if (newFilters.maxPrice !== undefined) newParams.set('maxPrice', newFilters.maxPrice.toString()); else newParams.delete('maxPrice');
       if (newFilters.scenicTypes && newFilters.scenicTypes.length > 0) newParams.set('scenics', newFilters.scenicTypes.join(',')); else newParams.delete('scenics');
+      if (newFilters.needs) newParams.set('needs', newFilters.needs); else newParams.delete('needs');
 
       setSearchParams(newParams, { replace: true });
       return newFilters;
@@ -84,12 +87,14 @@ export default function DestinationListPage() {
     const minRating = searchParams.get('minRating');
     const scenics = searchParams.get('scenics');
     const maxPrice = searchParams.get('maxPrice');
+    const needs = searchParams.get('needs');
 
     setFilters({
       keyword: q || undefined,
       minRating: minRating ? Number(minRating) : undefined,
       maxPrice: maxPrice ? Number(maxPrice) : undefined,
       scenicTypes: scenics ? scenics.split(',') : undefined,
+      needs: needs === 'enjoy' || needs === 'adventure' ? needs : undefined,
     });
   }, [searchParams]);
 
@@ -105,7 +110,7 @@ export default function DestinationListPage() {
   }, [filters]);
 
   const hasActiveFilters = Boolean(
-    filters.keyword || filters.scenicTypes?.length || filters.minRating || filters.maxPrice !== undefined
+    filters.keyword || filters.scenicTypes?.length || filters.minRating || filters.maxPrice !== undefined || filters.needs
   );
 
   const sortedDestinations = [...destinations].sort((a, b) => {
@@ -136,6 +141,18 @@ export default function DestinationListPage() {
       </div>
 
       {/* Loại hình danh thắng */}
+      <div className="p-4 border-b border-gray-100">
+        <h4 className="font-bold text-[var(--color-ink-deep)] mb-3 text-sm">Nhu cầu trải nghiệm</h4>
+        <div className="flex flex-col gap-2.5">
+          {([{ value: 'enjoy', label: 'Tận hưởng & thư giãn' }, { value: 'adventure', label: 'Khám phá & phiêu lưu' }] as const).map((option) => (
+            <label key={option.value} className="flex items-center gap-2.5 cursor-pointer group">
+              <input type="radio" name="destination-needs" className="w-4 h-4 accent-[var(--color-primary)] cursor-pointer" checked={filters.needs === option.value} onChange={() => handleFilterChange({ needs: filters.needs === option.value ? undefined : option.value })} />
+              <span className={`text-sm flex-1 ${filters.needs === option.value ? 'font-semibold text-[var(--color-primary)]' : 'text-[var(--color-ink)] group-hover:text-[var(--color-primary)]'}`}>{option.label}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
       <div className="p-4 border-b border-gray-100">
         <h4 className="font-bold text-[var(--color-ink-deep)] mb-3 text-sm flex items-center justify-between">
           <span>Loại hình cảnh quan</span>
@@ -520,6 +537,7 @@ export default function DestinationListPage() {
                                 {dest.tagBadge}
                               </span>
                             )}
+                            {dest.needs && <span className="bg-amber-500 text-white text-xs font-extrabold px-2.5 py-1 rounded-md shadow-xs">{dest.needs === 'enjoy' ? 'Tận hưởng' : 'Khám phá'}</span>}
                           </div>
 
                           <div className="absolute bottom-2.5 left-2.5 bg-black/75 backdrop-blur-xs text-white px-2.5 py-1 rounded-md text-xs sm:text-sm font-extrabold flex items-center gap-1.5 shadow-sm">

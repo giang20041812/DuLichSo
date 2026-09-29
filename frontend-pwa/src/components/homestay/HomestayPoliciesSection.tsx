@@ -20,14 +20,14 @@ export default function HomestayPoliciesSection({ profile }: HomestayPoliciesSec
 
       {/* Checkin / Checkout times */}
       <div className="grid grid-cols-2 gap-2.5">
-        <div className="p-3.5 rounded-2xl bg-sky-50/70 border border-sky-100 text-center">
+        <div className="p-3.5 rounded-md bg-sky-50/70 border border-sky-100 text-center">
           <span className="text-[11px] text-slate-500 font-medium block">Giờ nhận phòng</span>
           <span className="text-base sm:text-lg font-bold text-sky-950 mt-0.5 block">
             Từ {checkIn}
           </span>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-sky-50/70 border border-sky-100 text-center">
+        <div className="p-3.5 rounded-md bg-sky-50/70 border border-sky-100 text-center">
           <span className="text-[11px] text-slate-500 font-medium block">Giờ trả phòng</span>
           <span className="text-base sm:text-lg font-bold text-sky-950 mt-0.5 block">
             Trước {checkOut}
@@ -37,21 +37,21 @@ export default function HomestayPoliciesSection({ profile }: HomestayPoliciesSec
 
       {/* Rules & Policy List */}
       <div className="space-y-2.5 text-xs sm:text-sm text-slate-700">
-        <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50/60 border border-slate-100">
+        <div className="flex items-start gap-2.5 p-2.5 rounded-md bg-slate-50/60 border border-slate-100">
           <IdCard className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
           <p className="leading-relaxed">
             <strong className="font-semibold text-slate-800">Nội quy lưu trú:</strong> {profile?.houseRules || 'Chưa công bố nội quy.'}
           </p>
         </div>
 
-        <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50/60 border border-slate-100">
+        <div className="flex items-start gap-2.5 p-2.5 rounded-md bg-slate-50/60 border border-slate-100">
           <CalendarX2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
           <p className="leading-relaxed">
             <strong className="font-semibold text-slate-800">Chính sách hủy phòng:</strong> {policyDesc}
           </p>
         </div>
 
-        <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50/60 border border-slate-100">
+        <div className="flex items-start gap-2.5 p-2.5 rounded-md bg-slate-50/60 border border-slate-100">
           <PawPrint className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
           <p className="leading-relaxed">
             <strong className="font-semibold text-slate-800">Phụ thu:</strong> {profile?.surchargeNote || 'Vui lòng liên hệ chỗ nghỉ để biết quy định phụ thu.'}

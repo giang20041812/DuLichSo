@@ -28,6 +28,10 @@ public class Place {
     @Column(name = "kind", insertable = false, updatable = false)
     @Enumerated(EnumType.STRING)
     private CategoryKind kind;
+
+    /** Phân loại trải nghiệm của điểm tham quan: enjoy hoặc adventure. */
+    @Column(name = "needs", length = 20)
+    private String needs;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "provider_id")
@@ -75,6 +79,7 @@ public class Place {
     private Boolean isDeleted = false;
     
     @Column(name = "is_suitable_by_time", nullable = false)
+    @Builder.Default
     private Boolean isSuitableByTime = false;
     
     @Column(name = "suitable_date_start")

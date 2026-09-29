@@ -12,6 +12,8 @@ import com.dulichso.bookingapi.repository.PlaceRepository;
 import com.dulichso.bookingapi.repository.PlaceSpecification;
 import com.dulichso.bookingapi.repository.RoomTypeMediaRepository;
 import com.dulichso.bookingapi.repository.RoomTypeRepository;
+import com.dulichso.bookingapi.repository.RoomInventoryDayRepository;
+import com.dulichso.bookingapi.entity.keys.RoomInventoryDayId;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -43,6 +45,7 @@ public class PublicPlaceService {
     private final com.dulichso.bookingapi.repository.PlaceContactRepository placeContactRepository;
     private final com.dulichso.bookingapi.repository.ReviewRepository reviewRepository;
     private final com.dulichso.bookingapi.repository.RegionRepository regionRepository;
+    private final RoomInventoryDayRepository roomInventoryDayRepository;
 
     @Transactional(readOnly = true)
     public List<com.dulichso.bookingapi.dto.PublicRegionHierarchyDto> getPublicRegions() {
@@ -118,8 +121,13 @@ public class PublicPlaceService {
 
     @Transactional(readOnly = true)
     public Page<PlaceSummaryDto> getPlaces(CategoryKind kind, BigDecimal minPrice, BigDecimal maxPrice, BigDecimal minRating, List<String> amenities, LocalDate checkIn, LocalDate checkOut, String province, String district, String ward, List<Long> attractionIds, String keyword, Integer guestCount, Pageable pageable) {
+        return getPlaces(kind, minPrice, maxPrice, minRating, amenities, checkIn, checkOut, province, district, ward, attractionIds, keyword, null, guestCount, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<PlaceSummaryDto> getPlaces(CategoryKind kind, BigDecimal minPrice, BigDecimal maxPrice, BigDecimal minRating, List<String> amenities, LocalDate checkIn, LocalDate checkOut, String province, String district, String ward, List<Long> attractionIds, String keyword, String needs, Integer guestCount, Pageable pageable) {
         validateFilters(minPrice, maxPrice, checkIn, checkOut, guestCount);
-        Specification<Place> spec = PlaceSpecification.filterPublicPlaces(kind, minPrice, maxPrice, minRating, amenities, checkIn, checkOut, province, district, ward, attractionIds, keyword, guestCount);
+        Specification<Place> spec = PlaceSpecification.filterPublicPlaces(kind, minPrice, maxPrice, minRating, amenities, checkIn, checkOut, province, district, ward, attractionIds, keyword, needs, guestCount);
         Pageable listingPageable = PageRequest.of(pageable.getPageNumber(), 12, normalizeSort(pageable.getSort()));
         
         Page<Place> placesPage = placeRepository.findAll(spec, listingPageable);
@@ -128,6 +136,7 @@ public class PublicPlaceService {
         Map<Long, List<PlaceDetailDto.ContactItemDto>> contactsByPlaceId = new java.util.HashMap<>();
         Map<Long, List<String>> amenitiesByPlaceId = new java.util.HashMap<>();
         Map<Long, BigDecimal> listingPriceByPlaceId = new java.util.HashMap<>();
+        Map<Long, List<RoomType>> activeRoomsByPlaceId = new java.util.HashMap<>();
         if (!placeIds.isEmpty()) {
             List<com.dulichso.bookingapi.entity.PlaceContact> contacts = placeContactRepository.findByPlaceIdInAndIsPublicTrue(placeIds);
             for (com.dulichso.bookingapi.entity.PlaceContact c : contacts) {
@@ -150,6 +159,7 @@ public class PublicPlaceService {
             }
 
             for (RoomType roomType : roomTypeRepository.findByPlaceIdInAndStatus(placeIds, "ACTIVE")) {
+                activeRoomsByPlaceId.computeIfAbsent(roomType.getPlace().getId(), k -> new ArrayList<>()).add(roomType);
                 if (roomType.getBasePrice() == null || roomType.getBasePrice().signum() < 0) continue;
                 listingPriceByPlaceId.merge(roomType.getPlace().getId(), roomType.getBasePrice(), BigDecimal::min);
             }
@@ -181,12 +191,38 @@ public class PublicPlaceService {
             dto.setIsSuitableByTime(p.getIsSuitableByTime());
             dto.setSuitableDateStart(p.getSuitableDateStart());
             dto.setSuitableDateEnd(p.getSuitableDateEnd());
+            dto.setNeeds(p.getNeeds());
+            dto.setOperationStatus(p.getOperationStatus());
+            Object statusReason = p.getAttributes() == null ? null : p.getAttributes().get("operationStatusReason");
+            dto.setOperationStatusReason(statusReason instanceof String ? (String) statusReason : null);
+            dto.setAvailableForSelectedDates(isAvailableForSelection(
+                    p, activeRoomsByPlaceId.getOrDefault(p.getId(), Collections.emptyList()), checkIn, checkOut, guestCount));
             dto.setContacts(contactsByPlaceId.getOrDefault(p.getId(), Collections.emptyList()));
             dto.setAmenities(amenitiesByPlaceId.getOrDefault(p.getId(), Collections.emptyList()));
             if (p.getAttributes() != null && p.getAttributes().containsKey("tagBadge")) {
                 dto.setTagBadge((String) p.getAttributes().get("tagBadge"));
             }
             return dto;
+        });
+    }
+
+    private boolean isAvailableForSelection(Place place, List<RoomType> rooms, LocalDate checkIn,
+                                             LocalDate checkOut, Integer guestCount) {
+        if (place.getOperationStatus() != com.dulichso.bookingapi.entity.enums.PlaceOperationStatus.OPERATING) return false;
+        if (checkIn == null || checkOut == null) return true;
+        return rooms.stream().anyMatch(room -> {
+            if (room.getTotalRoomCount() == null || room.getTotalRoomCount() < 1
+                    || (guestCount != null && (room.getMaxOccupancy() == null || room.getMaxOccupancy() < guestCount))) return false;
+            for (LocalDate date = checkIn; date.isBefore(checkOut); date = date.plusDays(1)) {
+                var inventory = roomInventoryDayRepository.findById(new RoomInventoryDayId(room.getId(), date));
+                if (inventory.isPresent()) {
+                    var day = inventory.get();
+                    int occupied = (day.getHeldRooms() == null ? 0 : day.getHeldRooms())
+                            + (day.getConfirmedRooms() == null ? 0 : day.getConfirmedRooms());
+                    if (day.getTotalRooms() == null || Boolean.TRUE.equals(day.getStopSell()) || day.getTotalRooms() - occupied < 1) return false;
+                }
+            }
+            return true;
         });
     }
 
@@ -280,6 +316,7 @@ public class PublicPlaceService {
                 .name(place.getName())
                 .description(place.getDescription())
                 .kind(place.getKind())
+                .needs(place.getNeeds())
                 .address(place.getAddress())
                 .latitude(place.getLatitude())
                 .longitude(place.getLongitude())
@@ -332,6 +369,7 @@ public class PublicPlaceService {
                 .description(p.getDescription())
                 .imageUrl(p.getImageUrl())
                 .kind(com.dulichso.bookingapi.entity.enums.CategoryKind.valueOf(p.getKind()))
+                .needs(p.getNeeds())
                 .distance(p.getDistance())
                 .latitude(p.getLatitude())
                 .longitude(p.getLongitude())
@@ -364,6 +402,7 @@ public class PublicPlaceService {
                     .slug(p.getSlug())
                     .name(p.getName())
                     .kind(p.getKind())
+                    .needs(p.getNeeds())
                     .categoryName(p.getCategory() != null ? p.getCategory().getName() : null)
                     .regionName(p.getRegion() != null ? p.getRegion().getName() : null)
                     .address(p.getAddress())

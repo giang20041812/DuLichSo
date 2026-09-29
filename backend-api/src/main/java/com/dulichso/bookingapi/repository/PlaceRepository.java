@@ -1,10 +1,6 @@
 package com.dulichso.bookingapi.repository;
 
-import com.dulichso.bookingapi.dto.PlaceSummaryDto;
 import com.dulichso.bookingapi.entity.Place;
-import com.dulichso.bookingapi.entity.enums.CategoryKind;
-import com.dulichso.bookingapi.entity.enums.PlaceVisibility;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -25,7 +21,7 @@ public interface PlaceRepository extends JpaRepository<Place, Long>, JpaSpecific
              JOIN media_asset ma ON ma.id = pm.media_id
              WHERE pm.place_id = place.id AND pm.role = 'COVER'
              ORDER BY pm.sort_order LIMIT 1) AS image_url,
-            kind, latitude, longitude, address,
+            kind, needs, latitude, longitude, address,
             ( 6371 * acos( cos( radians(:lat) ) * cos( radians( latitude ) ) * cos( radians( longitude ) - radians(:lng) ) + sin( radians(:lat) ) * sin( radians( latitude ) ) ) ) AS distance
             FROM place
             WHERE visibility = 'PUBLISHED' AND is_deleted = false AND id != :placeId AND latitude IS NOT NULL AND longitude IS NOT NULL

@@ -16,6 +16,7 @@ public class NearbyPlaceDto {
     private String description;
     private String imageUrl;
     private CategoryKind kind;
+    private String needs;
     private Double distance;
     private java.math.BigDecimal latitude;
     private java.math.BigDecimal longitude;

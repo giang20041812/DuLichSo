@@ -37,6 +37,9 @@ public interface AccountRepository extends JpaRepository<Account, Long>, JpaSpec
 
     List<Account> findByProviderIdOrderByIdAsc(Long providerId);
 
+    /** Chỉ lấy account đầu tiên của provider — dùng để kiểm tra trạng thái provider account (tránh load toàn list). */
+    Optional<Account> findFirstByProviderIdOrderByIdAsc(Long providerId);
+
     Optional<Account> findByPhone(String phone);
 
     boolean existsByEmail(String email);

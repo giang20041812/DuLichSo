@@ -58,7 +58,8 @@ public class PartnerBookingService {
         List<BookingRef> refs = page.getContent().stream().filter(b -> b.status() == BookingStatus.PENDING)
                 .map(b -> new BookingRef(b.id(), b.placeId(), b.createdAt())).toList();
         Map<Long, LocalDateTime> due = deadlines.dueAt(refs);
-        return page.map(b -> new BookingRowDto(b, due.get(b.id())));
+        LocalDateTime now = LocalDateTime.now();
+        return page.map(b -> new BookingRowDto(b, due.get(b.id()), minutesLeft(due.get(b.id()), now)));
     }
 
     /** UC-NCC-07: lưu kết quả đánh giá. Chưa đổi trạng thái đơn. */
@@ -188,8 +189,23 @@ public class PartnerBookingService {
      */
     @Transactional
     public int expireOverdue() {
-        List<Booking> pending = em.createQuery("select b from Booking b where b.status = :status", Booking.class)
-                .setParameter("status", BookingStatus.PENDING).getResultList();
+        return expireOverdue(null);
+    }
+
+    /**
+     * Chuyển ngay các đơn quá hạn của một NCC trước khi NCC xem danh sách/chi tiết, để trạng thái luôn khớp với hạn phản hồi
+     * (không phải chờ lượt chạy kế tiếp của tác vụ nền, hoặc khi backend vừa khởi động lại).
+     */
+    @Transactional
+    public int expireOverdueFor(UserPrincipal principal) {
+        return expireOverdue(homestays.actor(principal, false).getProvider().getId());
+    }
+
+    private int expireOverdue(Long providerId) {
+        var query = em.createQuery("select b from Booking b where b.status = :status"
+                + (providerId == null ? "" : " and b.provider.id = :provider"), Booking.class).setParameter("status", BookingStatus.PENDING);
+        if (providerId != null) query.setParameter("provider", providerId);
+        List<Booking> pending = query.getResultList();
         if (pending.isEmpty()) return 0;
         Map<Long, LocalDateTime> due = deadlines.dueAt(pending.stream()
                 .map(b -> new BookingRef(b.getId(), b.getPlace().getId(), b.getCreatedAt())).toList());
@@ -383,7 +399,11 @@ public class PartnerBookingService {
                 pending ? checks(b, services, infoRequests, withinDeadline, dueAt) : List.of(), options,
                 canAccept, open, open && infoComplete,
                 allowedStayActions(b, LocalDate.now()),
-                dueAt, pending && !withinDeadline, availability, evaluationDto, open && infoComplete);
+                dueAt, minutesLeft(dueAt, LocalDateTime.now()), pending && !withinDeadline, availability, evaluationDto, open && infoComplete);
+    }
+
+    private static Long minutesLeft(LocalDateTime dueAt, LocalDateTime now) {
+        return dueAt == null ? null : java.time.Duration.between(now, dueAt).toMinutes();
     }
 
     private LocalDateTime dueAt(Booking b) {
@@ -415,7 +435,7 @@ public class PartnerBookingService {
 
         boolean hasPolicy = b.getPolicySnapshot() != null && !b.getPolicySnapshot().isEmpty();
         list.add(new CheckDto("PRICE_POLICY", "Giá và chính sách áp dụng", hasPolicy ? CheckLevel.OK : CheckLevel.WARN,
-                hasPolicy ? "Giá theo từng đêm và chính sách hủy đã được chốt lúc khách đặt (BOOK-BR-16)." : "Giá đã chốt nhưng Homestay chưa có chính sách hủy lúc khách đặt."));
+                hasPolicy ? "Giá theo từng đêm và chính sách hủy đã được chốt lúc khách đặt." : "Giá đã chốt nhưng Homestay chưa có chính sách hủy lúc khách đặt."));
 
         boolean special = notBlank(b.getGuestNote()) || !services.isEmpty();
         list.add(new CheckDto("SPECIAL_REQUEST", "Yêu cầu đặc biệt", special ? CheckLevel.WARN : CheckLevel.OK,

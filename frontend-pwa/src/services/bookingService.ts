@@ -1,8 +1,25 @@
 import { CreateBookingRequest, BookingResponseDto } from '../types/booking';
 import { apiOrigin } from '@/lib/apiBase';
 
+const BOOKING_REQUEST_TIMEOUT_MS = 30000;
+
+async function fetchBookingRequest(input: RequestInfo | URL, init: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), BOOKING_REQUEST_TIMEOUT_MS);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } catch (error: unknown) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error('Máy chủ phản hồi quá lâu. Vui lòng kiểm tra kết nối rồi thử lại.');
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
 export async function createBooking(request: CreateBookingRequest): Promise<BookingResponseDto> {
-  const response = await fetch('/api/public/bookings', {
+  const response = await fetchBookingRequest('/api/public/bookings', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
@@ -391,7 +408,7 @@ export async function quoteRoom(
   url.searchParams.set('checkOut', checkOut);
   url.searchParams.set('roomCount', String(roomCount));
   url.searchParams.set('guestCount', String(guestCount));
-  const response = await fetch(url.toString());
+  const response = await fetchBookingRequest(url.toString(), {});
   if (!response.ok) throw new Error(`Không thể kiểm tra lại giá (HTTP ${response.status})`);
   return (await response.json()) as import('../types/booking').BookingQuoteResponse;
 }

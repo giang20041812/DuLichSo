@@ -40,6 +40,7 @@ export interface RoomTypeDto {
   basePrice: number;
   weekendPrice?: number;
   images: string[];
+  amenities?: string[];
   bedType?: string;
   hasBreakfast?: boolean;
   freeCancellation?: boolean;

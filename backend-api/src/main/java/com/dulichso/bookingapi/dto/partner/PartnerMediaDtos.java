@@ -2,7 +2,6 @@ package com.dulichso.bookingapi.dto.partner;
 
 import com.dulichso.bookingapi.entity.enums.MediaRole;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 

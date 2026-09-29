@@ -5,6 +5,7 @@ export type PlaceVerificationStatus = 'UNVERIFIED' | 'COMMUNITY_VERIFIED' | 'OFF
 export type ContactChannel = 'PHONE' | 'EMAIL' | 'ZALO' | 'FACEBOOK' | 'WEBSITE' | 'TIKTOK' | 'YOUTUBE' | 'GOOGLE_MAPS' | 'OTHER';
 export type AmenityValue = 'YES' | 'NO' | 'OPTIONAL' | 'UNVERIFIED';
 export type HighlightType = 'PRO' | 'CON' | 'TIP' | 'PAIN_POINT';
+export type PlaceNeeds = 'enjoy' | 'adventure';
 
 export interface PlaceMediaItem {
   id: number;
@@ -65,6 +66,7 @@ export interface PlaceDetail {
   slug: string;
   name: string;
   categoryKind: string;
+  needs?: PlaceNeeds;
   categoryName?: string;
   regionName?: string;
   address?: string;
@@ -133,6 +135,9 @@ export interface HomestayDto {
   address?: string;
   latitude?: number;
   longitude?: number;
+  operationStatus?: PlaceOperationStatus;
+  operationStatusReason?: string | null;
+  availableForSelectedDates?: boolean;
   contacts?: PlaceContactItem[];
   amenities?: string[];
   isSuitableByTime?: boolean;
@@ -149,7 +154,9 @@ export interface HomestayDetailDto {
   name: string;
   description: string;
   kind: string;
+  needs?: PlaceNeeds;
   operationStatus: PlaceOperationStatus;
+  operationStatusReason?: string | null;
   address: string;
   district?: string;
   latitude: number;
@@ -179,7 +186,9 @@ export interface NearbyPlaceDto {
   description?: string;
   imageUrl?: string;
   kind: string;
+  needs?: PlaceNeeds;
   distance: number;
+  routeDistance?: number;
   latitude?: number;
   longitude?: number;
   address?: string;

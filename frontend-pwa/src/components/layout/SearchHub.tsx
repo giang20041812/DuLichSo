@@ -30,6 +30,7 @@ export interface AttractionItem {
   isSuitableByTime?: boolean;
   suitableDateStart?: string;
   suitableDateEnd?: string;
+  needs?: 'enjoy' | 'adventure';
 }
 
 export interface WardData {
@@ -63,6 +64,7 @@ interface RawPlaceItem {
   isSuitableByTime?: boolean;
   suitableDateStart?: string;
   suitableDateEnd?: string;
+  needs?: 'enjoy' | 'adventure';
 }
 
 const DEFAULT_LOCATIONS: ProvinceData[] = [
@@ -261,23 +263,9 @@ export default function SearchHub() {
   const [isSticky, setIsSticky] = useState(false);
 
   // Date state: Ngày nhận phòng & Ngày trả phòng (Check-in & Check-out)
-  const [checkInDate, setCheckInDate] = useState<{ day: number, month: number, year: number } | null>(() => {
-    const today = new Date();
-    return {
-      day: today.getDate(),
-      month: today.getMonth() + 1,
-      year: today.getFullYear()
-    };
-  });
-  const [checkOutDate, setCheckOutDate] = useState<{ day: number, month: number, year: number } | null>(() => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return {
-      day: tomorrow.getDate(),
-      month: tomorrow.getMonth() + 1,
-      year: tomorrow.getFullYear()
-    };
-  });
+  // Ngày chỉ được gửi khi người dùng chủ động chọn, không tự động lọc hôm nay/ngày mai.
+  const [checkInDate, setCheckInDate] = useState<{ day: number, month: number, year: number } | null>(null);
+  const [checkOutDate, setCheckOutDate] = useState<{ day: number, month: number, year: number } | null>(null);
   const [calendarTarget, setCalendarTarget] = useState<'checkIn' | 'checkOut'>('checkIn');
   const [calendarMonth, setCalendarMonth] = useState<number>(new Date().getMonth() + 1);
   const [calendarYear, setCalendarYear] = useState<number>(new Date().getFullYear());
@@ -290,6 +278,7 @@ export default function SearchHub() {
   const [selectedDistrict, setSelectedDistrict] = useState<string | null>(null);
   const [selectedWard, setSelectedWard] = useState<string | null>(null);
   const [selectedAttractions, setSelectedAttractions] = useState<AttractionItem[]>([]);
+  const [selectedNeeds, setSelectedNeeds] = useState<'enjoy' | 'adventure' | null>(null);
   
   // Search text inputs for each section
   const [provinceSearch, setProvinceSearch] = useState("");
@@ -310,10 +299,12 @@ export default function SearchHub() {
     const wrd = searchParams.get('ward');
     const checkIn = searchParams.get('checkIn');
     const checkOut = searchParams.get('checkOut');
+    const needs = searchParams.get('needs');
 
     if (prov) setSelectedProvince(prov);
     if (dist) setSelectedDistrict(dist);
     if (wrd) setSelectedWard(wrd);
+    setSelectedNeeds(needs === 'enjoy' || needs === 'adventure' ? needs : null);
     if (checkIn) {
       const parts = checkIn.split('-');
       if (parts.length === 3) {
@@ -447,6 +438,7 @@ export default function SearchHub() {
           isSuitableByTime: Boolean(item.isSuitableByTime),
           suitableDateStart: item.suitableDateStart,
           suitableDateEnd: item.suitableDateEnd,
+          needs: item.needs || undefined,
         }));
         setDbAttractions(list);
       })
@@ -658,7 +650,7 @@ export default function SearchHub() {
 
     // 4. Lọc theo từ khóa tìm kiếm ô input (nếu người dùng gõ tìm kiếm)
     const q = attractionSearch.trim().toLowerCase();
-    let result = list;
+    let result = selectedNeeds ? list.filter(a => a.needs === selectedNeeds) : list;
     if (q) {
       result = list.filter(a => 
         a.name.toLowerCase().includes(q) || 
@@ -673,7 +665,7 @@ export default function SearchHub() {
       const bVal = b.isSuitableByTime ? 1 : 0;
       return bVal - aVal;
     });
-  }, [dbAttractions, selectedProvince, selectedDistrict, selectedWard, currentProvinceObj, attractionSearch]);
+  }, [dbAttractions, selectedProvince, selectedDistrict, selectedWard, currentProvinceObj, attractionSearch, selectedNeeds]);
 
   // Perform actual search
   const handleSearch = () => {
@@ -681,14 +673,13 @@ export default function SearchHub() {
     if (selectedProvince) params.append('province', selectedProvince);
     if (selectedDistrict) params.append('district', selectedDistrict);
     if (selectedWard) params.append('ward', selectedWard);
+    if (selectedNeeds) params.append('needs', selectedNeeds);
     if (selectedAttractions.length > 0) {
       params.append('attractions', selectedAttractions.map(a => a.id).join(','));
     }
-    if (checkInDate) {
+    if (checkInDate && checkOutDate) {
       const startStr = `${checkInDate.year}-${String(checkInDate.month).padStart(2, '0')}-${String(checkInDate.day).padStart(2, '0')}`;
       params.append('checkIn', startStr);
-    }
-    if (checkOutDate) {
       const endStr = `${checkOutDate.year}-${String(checkOutDate.month).padStart(2, '0')}-${String(checkOutDate.day).padStart(2, '0')}`;
       params.append('checkOut', endStr);
     }
@@ -1472,6 +1463,14 @@ export default function SearchHub() {
           {/* TAB 2: ĐỊA ĐIỂM VUI CHƠI */}
           {activeTab === 'attractions' && (
             <div className="flex flex-col gap-2.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-bold text-gray-600">Nhu cầu:</span>
+                {([{ value: 'enjoy', label: 'Tận hưởng' }, { value: 'adventure', label: 'Khám phá' }] as const).map((option) => (
+                  <button type="button" key={option.value} onClick={() => setSelectedNeeds(selectedNeeds === option.value ? null : option.value)} className={`rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors ${selectedNeeds === option.value ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white' : 'border-gray-200 bg-white text-gray-600 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'}`}>
+                    {option.label}
+                  </button>
+                ))}
+              </div>
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
                   <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />

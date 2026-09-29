@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.util.List;
+import com.dulichso.bookingapi.entity.enums.PlaceOperationStatus;
 
 @Data
 @NoArgsConstructor
@@ -24,6 +25,7 @@ public class PlaceSummaryDto {
     private Integer ratingCount;
     private java.util.Map<String, Object> attributes;
     private CategoryKind kind;
+    private String needs;
     private BigDecimal latitude;
     private BigDecimal longitude;
     private String address;
@@ -41,6 +43,9 @@ public class PlaceSummaryDto {
     private List<String> highlights;
     private String durationText;
     private List<PlaceDetailDto.ContactItemDto> contacts;
+    private PlaceOperationStatus operationStatus;
+    private String operationStatusReason;
+    private Boolean availableForSelectedDates;
     
     public PlaceSummaryDto(Long id, String slug, String name, String regionName, String coverImageUrl, 
                            String description, BigDecimal priceRefMin, BigDecimal ratingAvg, Integer ratingCount, 

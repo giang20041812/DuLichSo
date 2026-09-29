@@ -14,7 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import java.util.*;
 
-import static com.dulichso.bookingapi.dto.partner.PartnerMediaDtos.MAX_FILE_BYTES;
 import static com.dulichso.bookingapi.dto.partner.PartnerMediaDtos.MAX_IMAGES_PER_OWNER;
 
 /**

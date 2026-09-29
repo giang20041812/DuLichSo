@@ -1,7 +1,6 @@
 package com.dulichso.bookingapi.entity;
 import jakarta.persistence.*;
 import lombok.*;
-import java.util.List;
 
 @Entity
 @Table(name = "region")

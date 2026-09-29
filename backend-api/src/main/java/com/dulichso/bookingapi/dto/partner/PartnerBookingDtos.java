@@ -51,7 +51,7 @@ public final class PartnerBookingDtos {
                                    List<CheckDto> checks, List<RoomOptionDto> roomOptions,
                                    boolean canAccept, boolean canReject, boolean canRequestInfo,
                                    List<StayAction> stayActions,
-                                   LocalDateTime responseDueAt, boolean overdue,
+                                   LocalDateTime responseDueAt, Long responseMinutesLeft, boolean overdue,
                                    List<InventoryDto> availability, EvaluationDto evaluation, boolean canEvaluate) {}
 
     /**
@@ -63,8 +63,11 @@ public final class PartnerBookingDtos {
     /** stale = dữ liệu loại phòng đã đổi sau khi đánh giá, phải kiểm tra lại trước khi quyết định. */
     public record EvaluationDto(Conclusion conclusion, String specialRequestResult, String note, LocalDateTime evaluatedAt, boolean stale) {}
 
-    /** Một dòng danh sách đơn của NCC: dữ liệu chung + hạn phản hồi (UC-NCC-06). */
-    public record BookingRowDto(@JsonUnwrapped BookingDto booking, LocalDateTime responseDueAt) {}
+    /**
+     * Một dòng danh sách đơn của NCC: dữ liệu chung + hạn phản hồi (UC-NCC-06). responseMinutesLeft tính theo đồng hồ máy chủ
+     * để cột hạn luôn khớp trạng thái đơn, kể cả khi đồng hồ/múi giờ trình duyệt khác máy chủ.
+     */
+    public record BookingRowDto(@JsonUnwrapped BookingDto booking, LocalDateTime responseDueAt, Long responseMinutesLeft) {}
 
     /** roomTypeId: chỉ được null hoặc đúng loại phòng khách đã chọn (UC-NCC-08: NCC không tự đổi sản phẩm). note: lời nhắn gửi khách. */
     public record AcceptInput(Long roomTypeId, @Size(max = 500) String note) {}

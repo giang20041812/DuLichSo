@@ -37,6 +37,7 @@ import SearchHub from '@/components/layout/SearchHub';
 import {
   getHomestayById,
   fetchNearbyPlaces,
+  fetchDrivingDistances,
   fetchPlaceReviews,
   fetchRegionalDestinations,
 } from '@/services/homestayService';
@@ -51,6 +52,7 @@ import RoomBookingCard from '@/components/homestay/RoomBookingCard';
 import TikTokEmbedPlayer from '@/components/homestay/TikTokEmbedPlayer';
 import { openGoogleMapsDirections } from '@/lib/mapUtils';
 import ImageCarousel from '@/components/common/ImageCarousel';
+import HomestayPoliciesSection from '@/components/homestay/HomestayPoliciesSection';
 
 // Helper trích xuất ID video TikTok từ link
 // Helper tính khoảng cách Haversine chính xác theo tọa độ GPS
@@ -177,6 +179,17 @@ export default function HomestayDetailPage() {
     }
   }, [identifier, radius]);
 
+  useEffect(() => {
+    if (!homestay || !Number.isFinite(homestay.latitude) || !Number.isFinite(homestay.longitude) || nearbyPlaces.length === 0) return;
+    if (nearbyPlaces.every((item) => typeof item.routeDistance === 'number' || !Number.isFinite(item.latitude) || !Number.isFinite(item.longitude))) return;
+    let cancelled = false;
+    fetchDrivingDistances({ latitude: homestay.latitude, longitude: homestay.longitude }, nearbyPlaces).then((distances) => {
+      if (cancelled || distances.size === 0) return;
+      setNearbyPlaces((current) => current.map((item) => ({ ...item, routeDistance: distances.get(item.id) ?? item.routeDistance })));
+    });
+    return () => { cancelled = true; };
+  }, [homestay, nearbyPlaces]);
+
   // Amenity icon mapping - Clean & solid
   const getAmenityIcon = (name: string) => {
     const n = name.toLowerCase();
@@ -216,7 +229,7 @@ export default function HomestayDetailPage() {
 
     return nearbyPlaces.map((item) => {
       // Ưu tiên khoảng cách chuẩn xác do Backend SQL Haversine tính toán
-      let distanceValue = typeof item.distance === 'number'
+      let distanceValue = typeof item.routeDistance === 'number' ? item.routeDistance : typeof item.distance === 'number'
         ? Math.round(item.distance * 10) / 10
         : 0;
 
@@ -236,8 +249,7 @@ export default function HomestayDetailPage() {
 
   // Filter nearby places by selected category
   const filteredNearbyPlaces = useMemo(() => {
-    if (nearbyCategory === 'ALL') return processedNearbyPlaces;
-    return processedNearbyPlaces.filter((item) => {
+    const filtered = nearbyCategory === 'ALL' ? processedNearbyPlaces : processedNearbyPlaces.filter((item) => {
       if (nearbyCategory === 'FOOD') {
         return item.kind === 'FOOD' || item.kind === 'RESTAURANT' || item.kind === 'CUISINE';
       }
@@ -249,6 +261,7 @@ export default function HomestayDetailPage() {
       }
       return true;
     });
+    return [...filtered].sort((a, b) => a.displayDistance - b.displayDistance);
   }, [processedNearbyPlaces, nearbyCategory]);
 
   // Markers for VietmapView modal
@@ -557,13 +570,19 @@ export default function HomestayDetailPage() {
 
         {/* DANH SÁCH PHÒNG & LỊCH TRỐNG */}
         <div className="mb-8">
+          {homestay.homestayProfile && (
+            <div className="mb-6 rounded-md border border-slate-200 bg-white p-4">
+              <HomestayPoliciesSection profile={homestay.homestayProfile} />
+            </div>
+          )}
           <div className="mb-4">
             <h2 className="text-2xl md:text-3xl font-extrabold text-[var(--color-ink-deep)]">Danh sách phòng & Lịch trống</h2>
           </div>
 
           {homestay.operationStatus === 'TEMPORARILY_CLOSED' ? (
             <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-              Homestay đang tạm đóng và chưa nhận kiểm tra phòng/giá. Bạn vẫn có thể xem thông tin công khai bên dưới.
+              <strong>Tạm ngừng nhận đặt phòng.</strong>{' '}
+              {homestay.operationStatusReason || 'Homestay đang tạm đóng và chưa nhận kiểm tra phòng/giá.'} Bạn vẫn có thể xem thông tin công khai bên dưới.
             </div>
           ) : (
             <div className="flex flex-col gap-6">
@@ -710,6 +729,8 @@ export default function HomestayDetailPage() {
                         </span>
                       </div>
                     </div>
+
+                    {item.needs && <span className="shrink-0 rounded-sm bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">{item.needs === 'enjoy' ? 'Tận hưởng' : 'Khám phá'}</span>}
 
                     <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[var(--color-primary)] shrink-0 ml-2" />
                   </div>

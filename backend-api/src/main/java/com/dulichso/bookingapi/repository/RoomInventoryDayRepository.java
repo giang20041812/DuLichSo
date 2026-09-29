@@ -22,6 +22,19 @@ public interface RoomInventoryDayRepository extends JpaRepository<RoomInventoryD
             @Param("stayDate") LocalDate stayDate
     );
 
+    /**
+     * Fetch và lock toàn bộ RoomInventoryDay trong khoảng ngày [start, end) bằng 1 query duy nhất.
+     * Dùng thay cho N lần findByIdForUpdate tuần tự để tránh N round-trip DB và giảm thời gian giữ lock.
+     * Caller phải lock RoomType trước khi gọi (thứ tự: RoomType → RoomInventoryDay).
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT r FROM RoomInventoryDay r WHERE r.id.roomTypeId = :roomTypeId AND r.id.stayDate >= :start AND r.id.stayDate < :end")
+    java.util.List<RoomInventoryDay> findByRoomTypeAndDateRangeForUpdate(
+            @Param("roomTypeId") Long roomTypeId,
+            @Param("start") LocalDate start,
+            @Param("end") LocalDate end
+    );
+
     @Query("SELECT r FROM RoomInventoryDay r WHERE r.id.roomTypeId = :roomTypeId AND r.id.stayDate >= :startDate AND r.id.stayDate <= :endDate AND r.stopSell = true")
     java.util.List<RoomInventoryDay> findDisabledDaysByRoomTypeAndDateRange(
             @Param("roomTypeId") Long roomTypeId,

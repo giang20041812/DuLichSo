@@ -43,6 +43,21 @@ export async function fetchCustomerNotifications(params: {
     if (params.accountId) url.searchParams.append('accountId', String(params.accountId));
 
     const res = await fetch(url.toString(), { headers: token ? { Authorization: `Bearer ${token}` } : undefined });
+    if (res.status === 401 || res.status === 403) {
+      // Token cũ/bị khóa không được retry liên tục bởi NotificationBell polling.
+      if (typeof window !== 'undefined') {
+        if (localStorage.getItem('traveler_token') === token) {
+          localStorage.removeItem('traveler_token');
+          localStorage.removeItem('traveler_user');
+        }
+        if (localStorage.getItem('portal_token') === token) {
+          localStorage.removeItem('portal_token');
+          localStorage.removeItem('portal_user');
+        }
+        window.dispatchEvent(new Event('auth_change'));
+      }
+      return [];
+    }
     if (!res.ok) {
       return [];
     }

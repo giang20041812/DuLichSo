@@ -9,6 +9,7 @@ import com.dulichso.bookingapi.entity.keys.BookingNightId;
 import com.dulichso.bookingapi.entity.keys.RoomInventoryDayId;
 import com.dulichso.bookingapi.repository.*;
 import com.dulichso.bookingapi.service.BookingService;
+import com.dulichso.bookingapi.service.ResponseDeadlineService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -42,7 +43,8 @@ public class BookingServiceImpl implements BookingService {
     private final PlaceMediaRepository placeMediaRepository;
     private final RoomTypeMediaRepository roomTypeMediaRepository;
     private final BookingChangeRequestRepository bookingChangeRequestRepository;
-    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+    private final ResponseDeadlineService responseDeadlineService;
+
     private final com.dulichso.bookingapi.service.NotificationService notificationService;
     private final AccountRepository accountRepository;
 
@@ -85,8 +87,8 @@ public class BookingServiceImpl implements BookingService {
         if (place.getProvider().getStatus() != com.dulichso.bookingapi.entity.enums.ProviderStatus.ACTIVE) {
             throw new IllegalStateException("Nhà cung cấp hiện không hoạt động, không thể đặt phòng.");
         }
-        boolean providerAccountLocked = accountRepository.findByProviderIdOrderByIdAsc(place.getProvider().getId()).stream()
-                .findFirst().map(acc -> acc.getStatus() != com.dulichso.bookingapi.entity.enums.AccountStatus.ACTIVE).orElse(false);
+        boolean providerAccountLocked = accountRepository.findFirstByProviderIdOrderByIdAsc(place.getProvider().getId())
+                .map(acc -> acc.getStatus() != com.dulichso.bookingapi.entity.enums.AccountStatus.ACTIVE).orElse(false);
         if (providerAccountLocked) {
             throw new IllegalStateException("Nhà cung cấp hiện không hoạt động, không thể đặt phòng.");
         }
@@ -101,26 +103,42 @@ public class BookingServiceImpl implements BookingService {
         if (!quote.suitable()) throw new IllegalStateException("Không đủ phòng hoặc sức chứa cho yêu cầu.");
         int totalCapacity = roomType.getTotalRoomCount() != null ? roomType.getTotalRoomCount() : 5;
 
-        // 3. Chống race-condition: Kiểm tra và giữ chỗ tồn kho phòng (RoomInventoryDay) với Pessimistic Lock
+        // 3. Chong race-condition: Kiem tra va giu cho ton kho phong (RoomInventoryDay) voi Pessimistic Lock.
+        // Dung 1 batch SELECT ... FOR UPDATE thay vi N lan rieng le de giam round-trip DB va thoi gian giu lock.
+        Map<LocalDate, RoomInventoryDay> inventoryMap = roomInventoryDayRepository
+                .findByRoomTypeAndDateRangeForUpdate(roomType.getId(), request.getCheckIn(), request.getCheckOut())
+                .stream()
+                .collect(java.util.stream.Collectors.toMap(d -> d.getId().getStayDate(), d -> d));
+
+        // Tao ban ghi moi cho cac ngay chua co trong DB (bulk insert, khong flush tung ngay)
+        List<RoomInventoryDay> toInsert = new ArrayList<>();
         for (LocalDate date = request.getCheckIn(); date.isBefore(request.getCheckOut()); date = date.plusDays(1)) {
-            final LocalDate stayDate = date;
-            RoomInventoryDay inventory = roomInventoryDayRepository.findByIdForUpdate(roomType.getId(), stayDate)
-                    .orElseGet(() -> {
-                        // Khởi tạo bản ghi tồn kho ngày đó nếu chưa có
-                        RoomInventoryDay newInv = RoomInventoryDay.builder()
-                                .id(new RoomInventoryDayId(roomType.getId(), stayDate))
-                                .roomType(roomType)
-                                .totalRooms(totalCapacity)
-                                .heldRooms(0)
-                                .confirmedRooms(0)
-                                .stopSell(false)
-                                .updatedAt(LocalDateTime.now())
-                                .build();
-                        return roomInventoryDayRepository.saveAndFlush(newInv);
-                    });
+            if (!inventoryMap.containsKey(date)) {
+                RoomInventoryDay newInv = RoomInventoryDay.builder()
+                        .id(new RoomInventoryDayId(roomType.getId(), date))
+                        .roomType(roomType)
+                        .totalRooms(totalCapacity)
+                        .heldRooms(0)
+                        .confirmedRooms(0)
+                        .stopSell(false)
+                        .updatedAt(LocalDateTime.now())
+                        .build();
+                toInsert.add(newInv);
+                inventoryMap.put(date, newInv);
+            }
+        }
+        if (!toInsert.isEmpty()) {
+            roomInventoryDayRepository.saveAll(toInsert);
+        }
+
+        // Validate tat ca ngay roi cap nhat held_rooms
+        LocalDateTime invNow = LocalDateTime.now();
+        List<RoomInventoryDay> toUpdate = new ArrayList<>();
+        for (LocalDate date = request.getCheckIn(); date.isBefore(request.getCheckOut()); date = date.plusDays(1)) {
+            RoomInventoryDay inventory = inventoryMap.get(date);
 
             if (Boolean.TRUE.equals(inventory.getStopSell())) {
-                throw new IllegalStateException("Phòng đã tạm ngừng nhận khách vào ngày: " + date);
+                throw new IllegalStateException("Phong da tam ngung nhan khach vao ngay: " + date);
             }
 
             int currentlyOccupied = (inventory.getHeldRooms() != null ? inventory.getHeldRooms() : 0)
@@ -128,13 +146,15 @@ public class BookingServiceImpl implements BookingService {
             int available = inventory.getTotalRooms() - currentlyOccupied;
 
             if (available < requestedRooms) {
-                throw new IllegalStateException("Không đủ phòng trống vào ngày " + date + ". Chỉ còn " + Math.max(0, available) + " phòng.");
+                throw new IllegalStateException("Khong du phong trong vao ngay " + date + ". Chi con " + Math.max(0, available) + " phong.");
             }
 
-            // Tăng số lượng phòng đang giữ (held_rooms)
             inventory.setHeldRooms((inventory.getHeldRooms() != null ? inventory.getHeldRooms() : 0) + requestedRooms);
-            roomInventoryDayRepository.save(inventory);
+            inventory.setUpdatedAt(invNow);
+            toUpdate.add(inventory);
         }
+        // Bulk save tat ca trong 1 lan thay vi N lan save rieng
+        roomInventoryDayRepository.saveAll(toUpdate);
 
         // 4. Tính toán giá tiền
         BigDecimal unitPrice = quote.nights().get(0).price();
@@ -216,10 +236,12 @@ public class BookingServiceImpl implements BookingService {
             }
         }
 
-        log.info("Tạo booking thành công với mã: {}", bookingCode);
+        log.info("Tao booking thanh cong voi ma: {}", bookingCode);
 
-        // 9. Map sang DTO trả về
-        return mapToResponseDto(savedBooking, place, roomType, unitPrice, (int) nightsCount);
+        // 9. Map sang DTO tra ve (dung dueAtInCurrentTx de tranh REQUIRES_NEW deadlock)
+        LocalDateTime responseDueAt = responseDeadlineService.dueAtInCurrentTx(
+                new ResponseDeadlineService.BookingRef(savedBooking.getId(), place.getId(), savedBooking.getCreatedAt()));
+        return mapToResponseDto(savedBooking, place, roomType, unitPrice, (int) nightsCount, responseDueAt);
     }
 
     @Override
@@ -516,6 +538,12 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private BookingResponseDto mapToResponseDto(Booking booking, Place place, RoomType roomType, BigDecimal unitPrice, int nights) {
+        LocalDateTime responseDueAt = responseDeadlineService.dueAt(new ResponseDeadlineService.BookingRef(
+                booking.getId(), place.getId(), booking.getCreatedAt()));
+        return mapToResponseDto(booking, place, roomType, unitPrice, nights, responseDueAt);
+    }
+
+    private BookingResponseDto mapToResponseDto(Booking booking, Place place, RoomType roomType, BigDecimal unitPrice, int nights, LocalDateTime responseDueAt) {
         List<BookingResponseDto.ServiceItemDto> serviceItemDtos = Collections.emptyList();
         if (booking.getServiceItems() != null && !booking.getServiceItems().isEmpty()) {
             serviceItemDtos = booking.getServiceItems().stream().map(item ->
@@ -545,7 +573,7 @@ public class BookingServiceImpl implements BookingService {
                 }
             }
         } catch (Exception e) {
-            log.warn("Không thể tải ảnh cho placeId: {}", place.getId());
+            log.warn("Khong the tai anh cho placeId: {}", place.getId());
         }
 
         List<com.dulichso.bookingapi.dto.BookingChangeRequestDto> changeRequestDtos = Collections.emptyList();
@@ -555,7 +583,7 @@ public class BookingServiceImpl implements BookingService {
                 changeRequestDtos = crList.stream().map(this::toChangeRequestDto).collect(Collectors.toList());
             }
         } catch (Exception e) {
-            log.warn("Không thể tải change requests cho bookingId: {}", booking.getId());
+            log.warn("Khong the tai change requests cho bookingId: {}", booking.getId());
         }
 
         return BookingResponseDto.builder()
@@ -584,6 +612,7 @@ public class BookingServiceImpl implements BookingService {
                 .totalAmount(booking.getTotalAmount())
                 .createdAt(booking.getCreatedAt())
                 .holdExpiresAt(booking.getHoldExpiresAt())
+                .responseDueAt(responseDueAt)
                 .policySnapshot(booking.getPolicySnapshot())
                 .serviceItems(serviceItemDtos)
                 .changeRequests(changeRequestDtos)

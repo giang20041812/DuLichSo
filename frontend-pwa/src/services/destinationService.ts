@@ -23,6 +23,7 @@ export interface DestinationDto {
   isSuitableByTime?: boolean;
   suitableDateStart?: string;
   suitableDateEnd?: string;
+  needs?: 'enjoy' | 'adventure';
 }
 
 export interface DestinationFilterParams {
@@ -31,6 +32,7 @@ export interface DestinationFilterParams {
   minPrice?: number;
   maxPrice?: number;
   minRating?: number;
+  needs?: 'enjoy' | 'adventure';
 }
 
 export const fetchDestinations = async (params?: DestinationFilterParams): Promise<DestinationDto[]> => {
@@ -42,6 +44,7 @@ export const fetchDestinations = async (params?: DestinationFilterParams): Promi
     if (params?.minPrice !== undefined) url.searchParams.append('minPrice', params.minPrice.toString());
     if (params?.maxPrice !== undefined) url.searchParams.append('maxPrice', params.maxPrice.toString());
     if (params?.minRating !== undefined) url.searchParams.append('minRating', params.minRating.toString());
+    if (params?.needs) url.searchParams.append('needs', params.needs);
 
     const response = await fetch(url.toString());
     if (!response.ok) {
@@ -64,6 +67,7 @@ export const fetchDestinations = async (params?: DestinationFilterParams): Promi
       isSuitableByTime?: boolean | null;
       suitableDateStart?: string | null;
       suitableDateEnd?: string | null;
+      needs?: 'enjoy' | 'adventure' | null;
     }> = data.content || [];
 
     const mapped: DestinationDto[] = content.map((item) => {
@@ -106,6 +110,7 @@ export const fetchDestinations = async (params?: DestinationFilterParams): Promi
         isSuitableByTime: Boolean(item.isSuitableByTime),
         suitableDateStart: item.suitableDateStart || undefined,
         suitableDateEnd: item.suitableDateEnd || undefined,
+        needs: item.needs || undefined,
       };
     });
 

@@ -11,7 +11,6 @@ import com.dulichso.bookingapi.entity.PlaceHighlight;
 import com.dulichso.bookingapi.entity.PlaceMedia;
 import com.dulichso.bookingapi.entity.RoomType;
 import com.dulichso.bookingapi.entity.enums.AmenityValue;
-import com.dulichso.bookingapi.entity.enums.CategoryKind;
 import com.dulichso.bookingapi.entity.enums.PlaceOperationStatus;
 import com.dulichso.bookingapi.entity.enums.PlaceVerificationStatus;
 import com.dulichso.bookingapi.repository.NearbyPlaceProjection;
@@ -35,8 +34,6 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -48,6 +45,7 @@ public class PlaceDetailServiceImpl implements PlaceDetailService {
     private final PlaceAmenityRepository placeAmenityRepository;
     private final RoomTypeRepository roomTypeRepository;
     private final RoomTypeMediaRepository roomTypeMediaRepository;
+    private final com.dulichso.bookingapi.repository.RoomAmenityRepository roomAmenityRepository;
     private final PlaceContactRepository placeContactRepository;
     private final PlaceHighlightRepository placeHighlightRepository;
     private final com.dulichso.bookingapi.repository.HomestayProfileRepository homestayProfileRepository;
@@ -296,6 +294,7 @@ public class PlaceDetailServiceImpl implements PlaceDetailService {
                     .basePrice(rt.getBasePrice())
                     .weekendPrice(rt.getWeekendPrice())
                     .images(roomImages != null ? roomImages : Collections.emptyList())
+                    .amenities(roomAmenityRepository.findActiveNamesByRoomTypeId(rt.getId()))
                     .build());
         }
 
@@ -346,11 +345,13 @@ public class PlaceDetailServiceImpl implements PlaceDetailService {
                             .name(policy.getName()).description(policy.getContentText()).build()).build();
         }).orElse(null);
 
+        Object statusReason = place.getAttributes() == null ? null : place.getAttributes().get("operationStatusReason");
         return PlaceDetailDto.builder()
                 .id(place.getId())
                 .slug(place.getSlug())
                 .name(place.getName())
                 .kind(place.getKind())
+                .needs(place.getNeeds())
                 .categoryKind(categoryKindStr)
                 .categoryName(categoryName)
                 .regionName(regionName)
@@ -362,6 +363,7 @@ public class PlaceDetailServiceImpl implements PlaceDetailService {
                 .priceRefMax(place.getPriceRefMax())
                 .priceUnitNote(place.getPriceUnitNote() != null ? place.getPriceUnitNote() : "đêm")
                 .operationStatus(place.getOperationStatus() != null ? place.getOperationStatus() : PlaceOperationStatus.OPERATING)
+                .operationStatusReason(statusReason instanceof String ? (String) statusReason : null)
                 .verification(place.getVerification() != null ? place.getVerification() : PlaceVerificationStatus.UNVERIFIED)
                 .ratingAvg(place.getRatingAvg())
                 .ratingCount(place.getRatingCount() != null ? place.getRatingCount() : 0)

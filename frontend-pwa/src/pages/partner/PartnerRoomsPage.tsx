@@ -10,6 +10,9 @@ import { partnerRoomService as api } from '@/services/partnerRoomService';
 import { fetchPartnerHomestays, homestayError } from '@/services/partnerHomestayService';
 import { isSubmittedChange } from '@/services/changeRequestService';
 import MediaManager from '@/components/partner/MediaManager';
+import MoneyInput from '@/components/partner/MoneyInput';
+import PendingPhotoPicker from '@/components/partner/PendingPhotoPicker';
+import { partnerMediaService } from '@/services/partnerMediaService';
 import RoomInventoryCalendar from '@/components/partner/RoomInventoryCalendar';
 import ConfirmDialog, { type ConfirmRequest } from '@/components/partner/ConfirmDialog';
 import { Alert, EmptyState, Field, LoadingBlock, PageHeader, Pill, Tabs, type TabItem } from '@/components/partner/PartnerUI';
@@ -153,8 +156,10 @@ function RoomEditor({ placeId, options, editor, onClose, onSaved }: {
   const [form, setForm] = useState<PartnerRoomInput>(BLANK);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [photos, setPhotos] = useState<File[]>([]);
+  const [progress, setProgress] = useState('');
   const [openedFor, setOpenedFor] = useState<typeof editor>(null);
-  if (editor !== openedFor) { setOpenedFor(editor); if (editor) { setForm(editor.form); setError(''); } }
+  if (editor !== openedFor) { setOpenedFor(editor); if (editor) { setForm(editor.form); setError(''); setPhotos([]); setProgress(''); } }
 
   const set = <K extends keyof PartnerRoomInput>(k: K, v: PartnerRoomInput[K]) => setForm(f => ({ ...f, [k]: v }));
 
@@ -162,10 +167,25 @@ function RoomEditor({ placeId, options, editor, onClose, onSaved }: {
     setBusy(true); setError('');
     try {
       const saved = await api.save(placeId, editor?.id ?? null, form);
-      if (isSubmittedChange(saved)) onSaved(editor?.id ?? null, saved.message);
-      else onSaved(saved.id, 'Đã lưu thông tin loại phòng');
+      if (isSubmittedChange(saved)) {
+        // Homestay đang công khai: loại phòng mới chờ Admin duyệt nên chưa có mã phòng để gắn ảnh.
+        onSaved(editor?.id ?? null, photos.length
+          ? `${saved.message} Ảnh đã chọn chưa được tải lên; hãy thêm ảnh sau khi loại phòng được duyệt.`
+          : saved.message);
+        return;
+      }
+      // UC-NCC-03: tải các ảnh đã chọn lúc tạo loại phòng mới, ảnh đầu tiên thành ảnh đại diện.
+      const failed: string[] = [];
+      for (const [i, file] of photos.entries()) {
+        setProgress(`Đang tải ảnh ${i + 1}/${photos.length}...`);
+        try { await partnerMediaService.upload({ placeId, roomId: saved.id }, file); }
+        catch { failed.push(file.name); }
+      }
+      onSaved(saved.id, failed.length
+        ? `Đã lưu thông tin loại phòng, nhưng chưa tải được ${failed.length} ảnh (${failed.join(', ')}). Hãy mở lại loại phòng để thêm ảnh.`
+        : 'Đã lưu thông tin loại phòng');
     } catch (e: unknown) { setError(homestayError(e)); }
-    finally { setBusy(false); }
+    finally { setBusy(false); setProgress(''); }
   }
 
   return (
@@ -195,8 +215,8 @@ function RoomEditor({ placeId, options, editor, onClose, onSaved }: {
               <div className="flex flex-col gap-3">
                 <p className="text-xs font-bold uppercase tracking-wide text-muted">Giá</p>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Giá ngày thường / phòng / đêm" required><input className={ui.input} type="number" required min={1} max={999999999999} title="Giá phòng phải lớn hơn 0" value={form.basePrice} onChange={e => set('basePrice', Number(e.target.value))} /></Field>
-                  <Field label="Giá cuối tuần (T7, CN)" hint="Để trống nếu bằng giá ngày thường."><input className={ui.input} type="number" min={1} max={999999999999} title="Giá phòng phải lớn hơn 0" value={form.weekendPrice ?? ''} onChange={e => set('weekendPrice', e.target.value ? Number(e.target.value) : undefined)} /></Field>
+                  <Field label="Giá ngày thường / phòng / đêm" required><MoneyInput required ariaLabel="Giá ngày thường" value={form.basePrice > 0 ? form.basePrice : null} onChange={v => set('basePrice', v ?? 0)} /></Field>
+                  <Field label="Giá cuối tuần (T7, CN)" hint="Để trống nếu bằng giá ngày thường."><MoneyInput ariaLabel="Giá cuối tuần" placeholder="Bằng giá ngày thường" value={form.weekendPrice ?? null} onChange={v => set('weekendPrice', v ?? undefined)} /></Field>
                 </div>
               </div>
 
@@ -239,7 +259,10 @@ function RoomEditor({ placeId, options, editor, onClose, onSaved }: {
                 <span><b>Mở bán</b> loại phòng này <span className="text-muted">(bỏ chọn để tạm ẩn, không nhận đặt mới)</span></span>
               </label>
               {editor?.id == null ? (
-                <p className="text-[11px] leading-relaxed text-muted">Vui lòng lưu loại phòng trước khi thêm ảnh và giá theo mùa.</p>
+                <div className="flex flex-col gap-3 border-t border-primary/10 pt-5">
+                  <PendingPhotoPicker files={photos} onChange={setPhotos} disabled={busy} onError={setError} />
+                  <p className="text-[11px] leading-relaxed text-muted">Giá theo mùa khai báo được sau khi lưu loại phòng.</p>
+                </div>
               ) : (
                 <>
                   <div className="flex flex-col gap-3 border-t border-primary/10 pt-5">
@@ -256,7 +279,7 @@ function RoomEditor({ placeId, options, editor, onClose, onSaved }: {
             </fieldset>
             <footer className="flex justify-end gap-2 border-t border-primary/10 bg-canvas/60 px-5 py-3">
               <Dialog.Close type="button" className={ui.btnGhost}>Hủy</Dialog.Close>
-              <button className={ui.btnPrimary} disabled={busy}>{busy ? 'Đang lưu...' : 'Lưu loại phòng'}</button>
+              <button className={ui.btnPrimary} disabled={busy}>{busy ? (progress || 'Đang lưu...') : 'Lưu loại phòng'}</button>
             </footer>
           </form>
         </Dialog.Content>
@@ -318,7 +341,7 @@ function SeasonalPrices({ placeId, room }: { placeId: number; room: PartnerRoom 
             <Field label="Từ ngày" required><input className={ui.input} type="date" required value={form.periodStart} onChange={e => setForm({ ...form, periodStart: e.target.value })} /></Field>
             <Field label="Đến ngày" required><input className={ui.input} type="date" required min={form.periodStart} value={form.periodEnd} onChange={e => setForm({ ...form, periodEnd: e.target.value })} /></Field>
           </div>
-          <Field label="Giá / phòng / đêm" required><input className={ui.input} type="number" required min={1} title="Giá phòng phải lớn hơn 0" value={form.price} onChange={e => setForm({ ...form, price: Number(e.target.value) })} /></Field>
+          <Field label="Giá / phòng / đêm" required><MoneyInput required ariaLabel="Giá theo mùa" value={form.price > 0 ? form.price : null} onChange={v => setForm({ ...form, price: v ?? 0 })} /></Field>
           <button className={ui.btnPrimary}>{editId ? 'Lưu thay đổi' : 'Thêm giá'}</button>
           {editId && <button type="button" className={ui.btnGhost} onClick={() => { setEditId(null); setForm(empty); }}>Hủy sửa</button>}
         </fieldset>

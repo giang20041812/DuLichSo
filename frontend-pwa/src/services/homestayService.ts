@@ -43,6 +43,9 @@ interface PlaceSummaryApiItem {
   statsText?: string | null;
   contacts?: HomestayDto['contacts'];
   amenities?: string[];
+  operationStatus?: HomestayDto['operationStatus'];
+  operationStatusReason?: string | null;
+  availableForSelectedDates?: boolean;
 }
 
 const readPageResponse = (value: unknown): PageResponse<PlaceSummaryApiItem> => {
@@ -131,6 +134,9 @@ export const fetchHomestays = async (params?: HomestayFilterParams): Promise<Pag
         longitude: item.longitude || undefined,
         contacts: item.contacts || [],
         amenities: item.amenities || [],
+        operationStatus: item.operationStatus,
+        operationStatusReason: item.operationStatusReason,
+        availableForSelectedDates: item.availableForSelectedDates,
       };
       }),
     };
@@ -171,6 +177,32 @@ export const fetchNearbyPlaces = async (id: string, radius: number): Promise<imp
     return [];
   }
 };
+
+/** Khoảng cách lái xe theo mạng đường bộ; OSRM trả về mét trong ma trận khoảng cách. */
+export async function fetchDrivingDistances(
+  origin: { latitude: number; longitude: number },
+  destinations: Array<{ id: number; latitude?: number; longitude?: number }>,
+): Promise<Map<number, number>> {
+  const valid = destinations.filter((item) => Number.isFinite(item.latitude) && Number.isFinite(item.longitude));
+  if (valid.length === 0) return new Map();
+  const coordinates = [`${origin.longitude},${origin.latitude}`, ...valid.map((item) => `${item.longitude},${item.latitude}`)].join(';');
+  try {
+    const response = await fetch(`https://router.project-osrm.org/table/v1/driving/${coordinates}?sources=0&annotations=distance`);
+    if (!response.ok) return new Map();
+    const data: unknown = await response.json();
+    if (!data || typeof data !== 'object' || !('distances' in data)) return new Map();
+    const distances = (data as { distances?: unknown }).distances;
+    if (!Array.isArray(distances) || !Array.isArray(distances[0])) return new Map();
+    const result = new Map<number, number>();
+    valid.forEach((item, index) => {
+      const meters = distances[0][index + 1];
+      if (typeof meters === 'number' && Number.isFinite(meters)) result.set(item.id, meters / 1000);
+    });
+    return result;
+  } catch {
+    return new Map();
+  }
+}
 
 export const fetchPlaceReviews = async (id: string): Promise<import("../types/review").ReviewDto[]> => {
   try {
