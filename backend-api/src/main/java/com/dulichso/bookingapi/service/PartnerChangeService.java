@@ -54,7 +54,7 @@ public class PartnerChangeService {
     static final String PENDING_MESSAGE =
             "Homestay đang công khai nên thay đổi đã được gửi cho quản trị viên duyệt. Dữ liệu hiện hành chưa thay đổi cho đến khi được duyệt.";
     static final String PUBLISH_PENDING_MESSAGE =
-            "Yêu cầu xuất bản đã được gửi cho quản trị viên duyệt (HOM-MGT-BR-04). Homestay sẽ hiển thị công khai sau khi được duyệt.";
+            "Yêu cầu xuất bản đã được gửi cho quản trị viên duyệt. Homestay sẽ hiển thị công khai sau khi được duyệt.";
     static final String TRANSFER_PENDING_MESSAGE =
             "Yêu cầu chuyển NCC quản lý đã được gửi cho quản trị viên duyệt. Homestay vẫn do bạn quản lý cho đến khi được duyệt.";
 
