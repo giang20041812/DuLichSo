@@ -3,7 +3,7 @@ export function openGoogleMapsDirections(lat?: number, lng?: number, addressOrNa
   const destination = lat !== undefined && lng !== undefined
     ? `${lat},${lng}`
     : encodeURIComponent(addressOrName || 'Mù Cang Chải, Yên Bái');
-  const url = `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
+  const url = `https://www.google.com/maps/dir/?api=1&origin=Current+Location&destination=${destination}`;
 
   // Google Maps lets the user choose the origin, including "Your location".
   window.open(url, '_blank', 'noopener,noreferrer');

@@ -21,6 +21,7 @@ import {
   Home,
   Edit3,
   Compass,
+  Navigation,
 } from 'lucide-react';
 import { getCurrentCustomer } from '@/services/authService';
 import { getBookingByCode, fetchBookingReview } from '@/services/bookingService';
@@ -32,6 +33,7 @@ import BookingEditModal from '@/components/booking/BookingEditModal';
 import BookingServicesMapModal from '@/components/booking/BookingServicesMapModal';
 import { fetchNearbyPlaces } from '@/services/homestayService';
 import type { NearbyPlaceDto } from '@/types/homestay';
+import { openGoogleMapsDirections } from '@/lib/mapUtils';
 
 export default function UserBookingDetailPage() {
   const { bookingCode } = useParams<{ bookingCode: string }>();
@@ -526,16 +528,37 @@ export default function UserBookingDetailPage() {
 
                 {booking.serviceItems && booking.serviceItems.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                    {booking.serviceItems.map((s, idx) => (
+                    {booking.serviceItems.map((s, idx) => {
+                      const linkedPlace = nearbyPlaces.find((place) =>
+                        s.serviceCode === `NEARBY_${place.kind}_${place.id}`
+                      );
+
+                      return (
                       <div
                         key={idx}
                         className="flex items-start gap-2.5 p-2.5 rounded-md bg-[#F6FAF8] border border-[#10b981]/20 hover:border-[var(--color-primary)] transition-colors"
                       >
                         <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                         <div className="flex-1 min-w-0">
-                          <span className="text-xs font-bold text-slate-800 block truncate">
-                            {s.serviceName}
-                          </span>
+                          <div className="flex items-start gap-2">
+                            <span className="text-xs font-bold text-slate-800 block truncate flex-1">
+                              {s.serviceName}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => openGoogleMapsDirections(
+                                linkedPlace?.latitude,
+                                linkedPlace?.longitude,
+                                linkedPlace?.address || linkedPlace?.name || s.serviceName
+                              )}
+                              className="inline-flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-colors cursor-pointer"
+                              title="Chỉ đường từ vị trí hiện tại"
+                              aria-label={`Chỉ đường đến ${s.serviceName}`}
+                            >
+                              <Navigation className="w-3 h-3" />
+                              <span>Chỉ đường</span>
+                            </button>
+                          </div>
                           {s.note ? (
                             <span className="text-[11px] text-gray-500 block mt-0.5 leading-snug">
                               {s.note}
@@ -547,7 +570,8 @@ export default function UserBookingDetailPage() {
                           )}
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="p-3 bg-slate-50 border border-gray-200/60 rounded-md text-xs text-gray-500 flex items-center gap-2">
