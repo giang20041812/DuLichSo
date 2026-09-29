@@ -5,7 +5,7 @@ import { VietTrackLogo } from "../ui/logo"
 
 export default function Footer() {
   return (
-    <footer className="bg-[#f8f9fa] border-t border-[#66716c]/10 text-[#0f2d3c] py-10 md:py-16 px-4 md:px-8 mt-auto">
+    <footer className="bg-[#f8f9fa] border-t border-[#66716c]/10 text-[#0f2d3c] pt-10 pb-20 md:py-16 px-4 md:px-8 mt-auto">
       <div className="max-w-[1280px] mx-auto w-full grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-12 mb-6 md:mb-12">
         
         {/* Column 1: Brand & Info (Luôn hiển thị cả trên mobile & desktop) */}

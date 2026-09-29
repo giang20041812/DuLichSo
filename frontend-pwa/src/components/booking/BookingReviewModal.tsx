@@ -59,7 +59,7 @@ export default function BookingReviewModal({
         if (file.size > 10 * 1024 * 1024) {
           throw new Error(`Ảnh ${file.name} vượt quá dung lượng tối đa 10MB.`);
         }
-        const secureUrl = await uploadReviewImageToCloudinary(file);
+        const { url: secureUrl } = await uploadReviewImageToCloudinary(file);
         uploadedUrls.push(secureUrl);
       }
       setImages((prev) => [...prev, ...uploadedUrls]);

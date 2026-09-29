@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CardSkeleton } from '@/components/ui/CardSkeleton';
 import { openGoogleMapsDirections } from '@/lib/mapUtils';
+import { TikTokLogoIcon } from '@/components/homestay/TikTokEmbedPlayer';
 import {
   MapPin,
   Star,
@@ -250,7 +251,7 @@ export default function UtilityListPage() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                   {paginatedServices.map((srv) => {
-
+                    const tiktokContact = srv.contacts?.find((contact) => contact.channel === 'TIKTOK');
 
                     return (
                       <div
@@ -302,14 +303,14 @@ export default function UtilityListPage() {
                                 type="button"
                                 onClick={() => openGoogleMapsDirections(srv.latitude, srv.longitude, `${srv.address || ''} ${srv.name}`)}
                                 className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 text-[11px] font-bold border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer"
-                                title="Chỉ đường từ vị trí của bạn"
+                                title="Mở Google Maps để chọn điểm xuất phát"
                               >
                                 <Map className="w-3 h-3 text-blue-600" />
                                 Chỉ đường
                               </button>
 
                               {srv.contacts && srv.contacts.length > 0 ? (
-                                srv.contacts.map((contact, cIdx) => (
+                                srv.contacts.filter((contact) => contact.channel !== 'TIKTOK').map((contact, cIdx) => (
                                   <a
                                     key={cIdx}
                                     href={contact.channel === 'PHONE' ? `tel:${contact.value.replace(/[^0-9+]/g, '')}` : '#'}
@@ -320,6 +321,12 @@ export default function UtilityListPage() {
                                   </a>
                                 ))
                               ) : null}
+                              {tiktokContact && (
+                                <a href={tiktokContact.value} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-bold bg-neutral-900 text-white border border-neutral-700 hover:bg-neutral-800" title="Xem video review TikTok">
+                                  <TikTokLogoIcon className="w-3 h-3 text-white" />
+                                  <span>TikTok</span>
+                                </a>
+                              )}
                             </div>
                           </div>
                         </div>

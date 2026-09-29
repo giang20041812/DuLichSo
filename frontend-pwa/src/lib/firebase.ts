@@ -143,20 +143,36 @@ export async function signInWithGoogleGsi(): Promise<string> {
   await loadGsiScript();
 
   return new Promise<string>((resolve, reject) => {
+    let settled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    let hiddenDiv: HTMLDivElement | null = null;
+
+    const cleanup = () => {
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
+      if (hiddenDiv?.isConnected) hiddenDiv.remove();
+    };
+
+    const finish = (callback: () => void) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      callback();
+    };
+
     try {
       window.google!.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
         callback: (response: { credential?: string }) => {
           if (response.credential) {
-            resolve(response.credential);
+            finish(() => resolve(response.credential!));
           } else {
-            reject(new Error('Không nhận được token xác thực từ Google'));
+            finish(() => reject(new Error('Không nhận được token xác thực từ Google')));
           }
         },
       });
 
       // Tạo một nút ẩn để kích hoạt popup tự nhiên của Google
-      const hiddenDiv = document.createElement('div');
+      hiddenDiv = document.createElement('div');
       hiddenDiv.style.display = 'none';
       document.body.appendChild(hiddenDiv);
 
@@ -172,22 +188,23 @@ export async function signInWithGoogleGsi(): Promise<string> {
       } else {
         window.google!.accounts.id.prompt((notification) => {
           if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            reject(new Error('Trình duyệt đã chặn cửa sổ đăng nhập Google'));
+            finish(() => reject(new Error('Trình duyệt đã chặn cửa sổ đăng nhập Google')));
           }
         });
       }
 
       // Dọn dẹp nút ẩn sau 30 giây
-      setTimeout(() => {
-        if (document.body.contains(hiddenDiv)) {
-          document.body.removeChild(hiddenDiv);
-        }
-      }, 30000);
+      timeoutId = setTimeout(() => {
+        finish(() => {
+          const error = new Error('Google popup closed');
+          Object.assign(error, { code: 'auth/popup-closed-by-user' });
+          reject(error);
+        });
+      }, 15000);
     } catch (err) {
-      reject(err);
+      finish(() => reject(err));
     }
   });
 }
 
 export { auth, googleProvider };
-

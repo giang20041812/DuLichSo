@@ -12,10 +12,55 @@ export interface HomestayFilterParams {
   district?: string;
   ward?: string;
   attractions?: string[];
+  keyword?: string;
+  guestCount?: number;
+  page?: number;
+  sort?: 'recommended' | 'price_asc' | 'price_desc' | 'rating_desc';
 }
 
-export const fetchHomestays = async (params?: HomestayFilterParams): Promise<HomestayDto[]> => {
-  try {
+export interface PageResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+}
+
+interface PlaceSummaryApiItem {
+  id: number;
+  name: string;
+  description?: string | null;
+  coverImageUrl?: string | null;
+  regionName?: string | null;
+  attributes?: Record<string, unknown> | null;
+  ratingAvg?: number | null;
+  ratingCount?: number | null;
+  priceRefMin?: number | null;
+  address?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  tagBadge?: string | null;
+  statsText?: string | null;
+  contacts?: HomestayDto['contacts'];
+  amenities?: string[];
+}
+
+const readPageResponse = (value: unknown): PageResponse<PlaceSummaryApiItem> => {
+  if (!value || typeof value !== 'object') throw new Error('Phản hồi tìm kiếm không hợp lệ.');
+  const data = value as Record<string, unknown>;
+  if (!Array.isArray(data.content) || typeof data.totalElements !== 'number' || typeof data.totalPages !== 'number') {
+    throw new Error('Phản hồi tìm kiếm không hợp lệ.');
+  }
+  return {
+    content: data.content as PlaceSummaryApiItem[],
+    totalElements: data.totalElements,
+    totalPages: data.totalPages,
+    number: typeof data.number === 'number' ? data.number : 0,
+    size: typeof data.size === 'number' ? data.size : 12,
+  };
+};
+
+export const fetchHomestays = async (params?: HomestayFilterParams): Promise<PageResponse<HomestayDto>> => {
     const url = new URL('/api/public/places', apiOrigin());
     url.searchParams.append('kind', 'HOMESTAY');
     
@@ -30,20 +75,34 @@ export const fetchHomestays = async (params?: HomestayFilterParams): Promise<Hom
     if (params?.attractions && params.attractions.length > 0) {
       url.searchParams.append('attractions', params.attractions.join(','));
     }
+    if (params?.keyword) {
+      const keyword = params.keyword.trim();
+      if (keyword) url.searchParams.append('keyword', keyword);
+    }
     if (params?.amenities && params.amenities.length > 0) {
       params.amenities.forEach(amenity => url.searchParams.append('amenities', amenity));
     }
+    if (params?.guestCount !== undefined) url.searchParams.append('guestCount', params.guestCount.toString());
+    url.searchParams.append('page', String(params?.page ?? 0));
+    url.searchParams.append('size', '12');
+    url.searchParams.append('sort', params?.sort ?? 'recommended');
 
     const response = await fetch(url.toString());
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      let message = `Không thể tải danh sách Homestay (HTTP ${response.status}).`;
+      try {
+        const body: unknown = await response.json();
+        if (body && typeof body === 'object' && typeof (body as { message?: unknown }).message === 'string') {
+          message = (body as { message: string }).message;
+        }
+      } catch { /* Giữ thông báo mặc định khi server không trả JSON. */ }
+      throw new Error(message);
     }
-    const data = await response.json();
-    
-    // Map the backend PlaceSummaryDto Page content to HomestayDto
-    const content = data.content || [];
-    
-    return content.map((item: any) => {
+    const raw: unknown = await response.json();
+    const data = readPageResponse(raw);
+    return {
+      ...data,
+      content: data.content.map((item) => {
       const attrs = item.attributes || {};
       
       return {
@@ -52,20 +111,20 @@ export const fetchHomestays = async (params?: HomestayFilterParams): Promise<Hom
         description: item.description || '',
         coverImageUrl: item.coverImageUrl || '',
         district: item.regionName || '',
-        distanceFromCenter: attrs.distanceFromCenter || undefined,
+        distanceFromCenter: typeof attrs.distanceFromCenter === 'string' ? attrs.distanceFromCenter : undefined,
         ratingScore: item.ratingAvg || 0,
-        ratingText: attrs.ratingText || undefined,
+        ratingText: typeof attrs.ratingText === 'string' ? attrs.ratingText : '',
         reviewCount: item.ratingCount || 0,
         isGenius: attrs.isGenius === true,
         promotionalBadge: item.tagBadge || undefined,
-        roomType: attrs.roomType || 'Phòng Homestay',
-        bedInfo: attrs.bedInfo || undefined,
+        roomType: typeof attrs.roomType === 'string' ? attrs.roomType : 'Phòng Homestay',
+        bedInfo: typeof attrs.bedInfo === 'string' ? attrs.bedInfo : '',
         freeCancellation: attrs.freeCancellation === true,
         noPrepayment: attrs.noPrepayment === true,
         scarcityMessage: item.statsText || undefined,
-        originalPrice: attrs.originalPrice || undefined,
+        originalPrice: typeof attrs.originalPrice === 'number' ? attrs.originalPrice : undefined,
         price: item.priceRefMin || 0,
-        priceDetails: attrs.priceDetails || undefined,
+        priceDetails: typeof attrs.priceDetails === 'string' ? attrs.priceDetails : undefined,
         taxesAndFeesIncluded: attrs.taxesAndFeesIncluded === true,
         address: item.address || undefined,
         latitude: item.latitude || undefined,
@@ -73,11 +132,8 @@ export const fetchHomestays = async (params?: HomestayFilterParams): Promise<Hom
         contacts: item.contacts || [],
         amenities: item.amenities || [],
       };
-    });
-  } catch (error) {
-    console.error("Error fetching homestays:", error);
-    return [];
-  }
+      }),
+    };
 };
 
 export const getHomestayById = async (id: string): Promise<HomestayDetailDto | null> => {

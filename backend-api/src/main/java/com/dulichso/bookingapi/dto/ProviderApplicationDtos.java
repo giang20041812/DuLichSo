@@ -20,4 +20,11 @@ public final class ProviderApplicationDtos {
                                 @Size(max = 5000) String description) {}
 
     public record RegisterResult(Long applicationId, ProviderApplicationStatus status, String message) {}
+
+    /** UC-NCC-01 "Xem trạng thái": chỉ người biết đúng mã hồ sơ và số điện thoại đăng ký mới xem được. */
+    public record StatusInput(@jakarta.validation.constraints.NotNull Long applicationId,
+                              @NotBlank @Pattern(regexp = "[+0-9() .-]{8,20}", message = "không hợp lệ") String contactPhone) {}
+
+    public record StatusResult(Long applicationId, String businessName, ProviderApplicationStatus status, String statusLabel,
+                               String reviewNote, java.time.LocalDateTime createdAt, java.time.LocalDateTime reviewedAt) {}
 }

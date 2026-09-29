@@ -13,6 +13,8 @@ import lombok.NoArgsConstructor;
 public class NearbyPlaceDto {
     private Long id;
     private String name;
+    private String description;
+    private String imageUrl;
     private CategoryKind kind;
     private Double distance;
     private java.math.BigDecimal latitude;

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { AlertTriangle, Check, CheckCircle2, ClipboardCheck, Copy, FileText, Mail, Phone, RotateCcw, SearchCheck, Send, ShieldAlert, StickyNote, X, XCircle } from 'lucide-react';
+import { AlertTriangle, Check, CheckCircle2, ClipboardCheck, Copy, FileText, Mail, Phone, SearchCheck, Send, ShieldAlert, StickyNote, X, XCircle } from 'lucide-react';
 import { adminService } from '@/services/adminService';
 import { partnerBookingService } from '@/services/partnerBookingService';
 import { getApiErrorMessage } from '@/lib/apiError';
@@ -15,8 +15,6 @@ import { StatusBadge } from './StatusBadge';
 import Avatar from './Avatar';
 import { SegmentedTabs } from './AdminFilters';
 import {
-  ATTENTION_LABEL,
-  ATTENTION_TONE,
   OUTCOME_LABEL,
   OUTCOME_TONE,
   STATUS_LABEL,
@@ -105,7 +103,6 @@ export default function BookingDetailDrawer({ booking, scope, onClose, onChanged
 
   // MON-BR-03/04: Admin chỉ xem Booking (kể cả tab "Thông tin đơn"), không có quyền xác nhận/từ chối/hoàn tiền.
   const canDecide = scope === 'partner' && (b.status === 'PENDING' || b.status === 'AWAITING_PAYMENT');
-  const canRefund = scope === 'partner' && b.status === 'CONFIRMED';
 
   const copyCode = async () => {
     try {
@@ -118,10 +115,8 @@ export default function BookingDetailDrawer({ booking, scope, onClose, onChanged
   };
 
   const handleNoteAdded = (note: BookingNoteDto) => {
-    // Cần tải lại để cập nhật cờ "cần chú ý" do kết quả mới nhất quyết định.
     setDetail((d) => (d ? { ...d, notes: [note, ...d.notes] } : d));
     onChanged?.();
-    void load();
   };
 
   return (
@@ -149,11 +144,6 @@ export default function BookingDetailDrawer({ booking, scope, onClose, onChanged
                 <StatusBadge tone={STATUS_TONE[b.status]} pulse={isPendingStatus(b.status)}>
                   {STATUS_LABEL[b.status]}
                 </StatusBadge>
-                {detail?.attention.map((a) => (
-                  <StatusBadge key={a} tone={ATTENTION_TONE[a]} pulse>
-                    {ATTENTION_LABEL[a]}
-                  </StatusBadge>
-                ))}
               </div>
             </div>
             <button type="button" onClick={onClose} aria-label="Đóng" className="rounded-md p-1.5 text-muted transition-colors hover:bg-hover hover:text-ink">
@@ -333,7 +323,7 @@ export default function BookingDetailDrawer({ booking, scope, onClose, onChanged
             </div>
           )}
         </div>
-        {(canDecide || canRefund || actionMsg) && (
+        {(canDecide || actionMsg) && (
           <footer className="border-t border-border bg-canvas/60 px-5 py-3">
             {actionMsg && (
               <p
@@ -401,20 +391,7 @@ export default function BookingDetailDrawer({ booking, scope, onClose, onChanged
                   </button>
                 </div>
               ))}
-            {canRefund && (
-              <button
-                type="button"
-                disabled={updating}
-                onClick={() => {
-                  if (window.confirm(`Duyệt hoàn tiền cho đơn ${b.bookingCode}?`)) {
-                    void handleUpdateStatus('REFUNDED', 'Quản lý duyệt hoàn tiền theo chính sách');
-                  }
-                }}
-                className="flex h-9 w-full items-center justify-center gap-1.5 rounded-md border border-sun/60 bg-white px-3 text-xs font-semibold text-amber-700 transition-colors hover:bg-sun/10 disabled:opacity-50"
-              >
-                <RotateCcw className="h-4 w-4" /> {updating ? 'Đang cập nhật...' : 'Duyệt hoàn tiền cho đơn'}
-              </button>
-            )}
+
           </footer>
         )}
       </aside>

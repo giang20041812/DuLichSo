@@ -19,7 +19,7 @@ interface StatusFilterProps<T extends string> {
   /** Số lượng từng tab; khóa '' là tổng của "Tất cả". Thiếu/null thì không hiện số. */
   counts?: Record<string, number | null | undefined>;
   ariaLabel: string;
-  /** Phần phụ đặt cuối hàng tab (vd: nút "Cần chú ý"). */
+  /** Phần phụ đặt cuối hàng tab. */
   trailing?: ReactNode;
 }
 

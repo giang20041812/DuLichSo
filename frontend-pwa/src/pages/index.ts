@@ -4,7 +4,7 @@ export { default as HomePage } from './home/HomePage';
 // Customer - Homestay
 export { default as HomestayListPage } from './customer/homestay/HomestayListPage';
 export { default as HomestayDetailPage } from './customer/homestay/HomestayDetailPage';
-export { default as RoomAvailabilityPage } from './customer/homestay/RoomAvailabilityPage';
+
 export { default as FullScreenMapPage } from './customer/homestay/FullScreenMapPage';
 
 // Customer - Booking
@@ -29,9 +29,10 @@ export { default as RegisterPage } from './auth/RegisterPage';
 export { default as ProviderSuspendedPage } from './portal/ProviderSuspendedPage';
 export { default as AdminDashboardPage } from './admin/AdminDashboardPage';
 export { default as PartnerDashboardPage } from './partner/PartnerDashboardPage';
+export { default as PartnerHomestaysPage } from './partner/PartnerHomestaysPage';
 export { default as PartnerBookingsPage } from './partner/PartnerBookingsPage';
-export { default as PartnerHomestayDetailPage } from './partner/PartnerHomestayDetailPage';
 export { default as PartnerHomestayEditPage } from './partner/PartnerHomestayEditPage';
+export { default as PartnerProfilePage } from './partner/PartnerProfilePage';
 
 // System & Design
 export { default as DesignSystemPage } from './system/DesignSystemPage';

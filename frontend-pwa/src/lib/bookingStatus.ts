@@ -8,11 +8,11 @@ export const BOOKING_STATUS_LABEL: Record<BookingStatus, string> = {
   CHECKED_IN: 'Đã nhận phòng',
   CHECKED_OUT: 'Đã trả phòng',
   COMPLETED: 'Hoàn tất',
-  REFUNDED: 'Đã hoàn tiền',
   REJECTED: 'Bị từ chối',
   CANCELLED: 'Đã hủy',
   EXPIRED: 'Hết hạn giữ chỗ',
   NO_SHOW: 'Khách không đến',
+  REFUNDED: 'Đã hoàn tiền',
 };
 
 export const BOOKING_STATUS_TONE: Record<BookingStatus, string> = {
@@ -22,9 +22,9 @@ export const BOOKING_STATUS_TONE: Record<BookingStatus, string> = {
   CHECKED_IN: 'border-blue-200 bg-blue-50 text-blue-700',
   CHECKED_OUT: 'border-purple-200 bg-purple-50 text-purple-700',
   COMPLETED: 'border-primary/30 bg-primary-50 text-primary',
-  REFUNDED: 'border-orange-200 bg-orange-50 text-orange-700',
   REJECTED: 'border-rose-200 bg-rose-50 text-rose-700',
   CANCELLED: 'border-rose-200 bg-rose-50 text-rose-700',
   EXPIRED: 'border-border bg-canvas text-muted',
   NO_SHOW: 'border-border bg-canvas text-muted',
+  REFUNDED: 'border-border bg-canvas text-muted',
 };

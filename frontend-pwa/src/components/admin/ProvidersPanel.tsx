@@ -69,6 +69,15 @@ export default function ProvidersPanel({
   const [openId, setOpenId] = useState<number | null>(null);
   const [page, setPage] = useState(0);
 
+  /** Nút tải lại: đưa màn hình về trạng thái ban đầu (bỏ mọi điều kiện tìm kiếm / lọc / sắp xếp, về tab mặc định, trang 1) rồi tải lại dữ liệu mới nhất. */
+  const reloadFromStart = () => {
+    setKeyword('');
+    setStatusUrl('');
+    setPage(0);
+    setOpenId(null);
+    onReload();
+  };
+
   const matchesSearch = useMemo(() => {
     const k = keyword.trim().toLowerCase();
     return (p: AdminProviderSummaryDto) =>
@@ -125,7 +134,7 @@ export default function ProvidersPanel({
 
       <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2.5">
         <FilterSearch value={keyword} onChange={(v) => { setKeyword(v); setPage(0); }} placeholder="Tìm theo tên đối tác, người liên hệ, SĐT, email..." />
-        <RefreshButton loading={loading} onClick={onReload} />
+        <RefreshButton loading={loading} onClick={reloadFromStart} />
         {canOperate && (
           <button
             type="button"

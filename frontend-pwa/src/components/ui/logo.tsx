@@ -197,8 +197,8 @@ export const VietTrackLogo: React.FC<LogoProps> = ({
       <VietTrackLogoMark size={size} />
       <div className="flex flex-col select-none leading-tight">
         <span 
-          className={`font-bold text-2xl sm:text-[27px] tracking-normal ${textColor}`}
-          style={{ fontFamily: "'Outfit', 'Be Vietnam Pro', sans-serif" }}
+          className={`font-bold italic text-[26px] sm:text-[28px] tracking-tight leading-none ${textColor}`}
+          style={{ fontFamily: 'var(--font-brush)', lineHeight: 1 }}
         >
           Đi Du Lịch
         </span>

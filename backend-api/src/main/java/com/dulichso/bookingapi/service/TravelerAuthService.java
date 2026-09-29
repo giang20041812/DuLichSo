@@ -1,5 +1,6 @@
 package com.dulichso.bookingapi.service;
 
+import com.dulichso.bookingapi.dto.FieldErrorDto;
 import com.dulichso.bookingapi.entity.Traveler;
 import com.dulichso.bookingapi.entity.enums.AccountStatus;
 import com.dulichso.bookingapi.entity.enums.ActorType;
@@ -12,6 +13,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /** Đăng ký / đăng nhập khách du lịch (email + mật khẩu hoặc Google). */
@@ -44,10 +47,6 @@ public class TravelerAuthService {
     }
 
     public record TravelerSession(String token, String email, String fullName, String picture, String phone) {}
-
-    public static class DuplicateAccountException extends RuntimeException {
-        public DuplicateAccountException(String message) { super(message); }
-    }
 
     public static class InvalidRegistrationException extends RuntimeException {
         public InvalidRegistrationException(String message) { super(message); }
@@ -82,12 +81,15 @@ public class TravelerAuthService {
         if (confirmPassword != null && !password.equals(confirmPassword)) {
             throw new InvalidRegistrationException("Xác nhận mật khẩu không khớp với mật khẩu đã nhập.");
         }
+        // Kiểm tra đủ mọi trường trước khi báo, để khách thấy cùng lúc tất cả thông tin bị trùng.
+        List<FieldErrorDto> duplicates = new ArrayList<>();
         if (travelerRepository.existsByEmailIgnoreCase(normalizedEmail)) {
-            throw new DuplicateAccountException("Địa chỉ email này đã được sử dụng. Vui lòng đăng nhập hoặc dùng email khác.");
+            duplicates.add(new FieldErrorDto("email", "Email này đã được sử dụng"));
         }
         if (normalizedPhone != null && travelerRepository.existsByPhone(normalizedPhone)) {
-            throw new DuplicateAccountException("Số điện thoại này đã được đăng ký cho một tài khoản khác.");
+            duplicates.add(new FieldErrorDto("phone", "Số điện thoại này đã được đăng ký"));
         }
+        if (!duplicates.isEmpty()) throw new DuplicateFieldsException(duplicates);
 
         Traveler traveler = travelerRepository.save(Traveler.builder()
                 .email(normalizedEmail)

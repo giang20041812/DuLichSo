@@ -700,12 +700,12 @@ export default function RestaurantListPage() {
 
                               {/* Contact items badge row */}
                               <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-gray-100">
-                                {/* Luôn luôn hiện nút Chỉ đường Google Maps từ vị trí người dùng */}
+                                {/* Mở Google Maps để người dùng tự chọn điểm xuất phát */}
                                 <button
                                   type="button"
                                   onClick={() => openGoogleMapsDirections(res.latitude, res.longitude, `${res.address || res.district || ''} ${res.name}`)}
                                   className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 text-[11px] font-bold border border-blue-200 transition-colors cursor-pointer"
-                                  title="Chỉ đường từ vị trí của bạn"
+                                  title="Mở Google Maps để chọn điểm xuất phát"
                                 >
                                   <Map className="w-3 h-3 text-blue-600" />
                                   Chỉ đường

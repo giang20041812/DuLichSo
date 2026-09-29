@@ -14,6 +14,7 @@ import { RoomTypeDto, HomestayDetailDto } from '@/types/homestay';
 import { BookedDateRangeDto } from '@/types/booking';
 import { Button } from '@/components/ui/button';
 import RoomAvailabilityCalendar from '@/components/homestay/RoomAvailabilityCalendar';
+import ImageCarousel from '@/components/common/ImageCarousel';
 
 interface RoomBookingCardProps {
   room: RoomTypeDto;
@@ -23,16 +24,6 @@ interface RoomBookingCardProps {
   defaultCheckOut?: string;
   filterGuestCount?: number;
   filterRoomCount?: number;
-}
-
-function getRoomImage(room: RoomTypeDto, homestay: HomestayDetailDto): string {
-  if (room.images && room.images.length > 0 && room.images[0]?.trim()) {
-    return room.images[0];
-  }
-  if (homestay.images && homestay.images.length > 0 && homestay.images[0]?.trim()) {
-    return homestay.images[0];
-  }
-  return '';
 }
 
 // Helper: chuyển string YYYY-MM-DD sang YYYY-MM-DD an toàn theo giờ địa phương
@@ -268,31 +259,7 @@ export default function RoomBookingCard({
       <div className="flex flex-col lg:flex-row gap-5">
         {/* Cột 1: Ảnh & Thông số chi tiết phòng */}
         <div className="w-full lg:w-[300px] shrink-0 flex flex-col gap-3">
-          <div className="h-[210px] rounded-md overflow-hidden relative border border-slate-200 bg-slate-100 flex items-center justify-center">
-            {(() => {
-              const imgUrl = getRoomImage(room, homestay);
-              if (imgUrl) {
-                return (
-                  <>
-                    <img
-                      src={imgUrl}
-                      alt={room.name}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute bottom-2 left-2 bg-black/60 text-white text-[11px] font-medium px-2 py-0.5 rounded-sm">
-                      {room.images && room.images.length > 0 ? `${room.images.length} ảnh thực tế` : 'Ảnh phòng'}
-                    </div>
-                  </>
-                );
-              }
-              return (
-                <div className="flex flex-col items-center justify-center text-slate-400">
-                  <BedDouble className="w-10 h-10 opacity-30 mb-1" />
-                  <span className="text-xs">Chưa có ảnh phòng</span>
-                </div>
-              );
-            })()}
-          </div>
+          <ImageCarousel images={room.images?.length ? room.images : (homestay.images ?? [])} alt={room.name} className="h-[210px] rounded-md border border-slate-200 bg-slate-100" imageClassName="h-full w-full object-cover transition-transform duration-300 hover:scale-105" emptyContent={<div className="flex h-full flex-col items-center justify-center text-slate-400"><BedDouble className="mb-1 h-10 w-10 opacity-30" /><span className="text-xs">Chưa có ảnh phòng</span></div>} />
 
           <div className="grid grid-cols-2 gap-2 text-xs md:text-sm text-[var(--color-muted)] font-medium">
             <div className="flex items-center gap-1.5 bg-slate-50 p-2 rounded-md border border-slate-100">
@@ -323,6 +290,7 @@ export default function RoomBookingCard({
                 <h3 className="font-bold text-xl md:text-2xl text-[var(--color-ink-deep)]">{room.name}</h3>
               </div>
               <div className="sm:text-right shrink-0">
+                <div className="text-[11px] font-semibold text-[var(--color-muted)]">Giá tham khảo, tạm tính</div>
                 <span className="text-2xl md:text-3xl font-black text-[var(--color-coral)]">
                   {new Intl.NumberFormat('vi-VN').format(room.basePrice)}đ
                 </span>

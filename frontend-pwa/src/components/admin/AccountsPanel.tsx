@@ -111,6 +111,12 @@ export default function AccountsPanel({ currentAccountId, refreshKey = 0, onCrea
     setPage(0);
   };
 
+  /** Nút tải lại: đưa màn hình về trạng thái ban đầu (bỏ mọi điều kiện tìm kiếm / lọc / sắp xếp, về tab mặc định, trang 1) rồi tải lại dữ liệu mới nhất. */
+  const reloadFromStart = () => {
+    clearFilters();
+    setReload((n) => n + 1);
+  };
+
   const load = useCallback(async () => {
     const [sortBy, sortDir] = sort.split(':') as [string, 'asc' | 'desc'];
     setLoading(true);
@@ -241,7 +247,7 @@ export default function AccountsPanel({ currentAccountId, refreshKey = 0, onCrea
             <RotateCcw className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Đặt lại</span>
           </button>
-          <RefreshButton loading={loading} onClick={() => setReload((n) => n + 1)} />
+          <RefreshButton loading={loading} onClick={reloadFromStart} />
         </div>
       </div>
 
@@ -350,7 +356,11 @@ export default function AccountsPanel({ currentAccountId, refreshKey = 0, onCrea
           }
           confirmLabel={lockTarget.next === 'INACTIVE' ? 'Khóa' : 'Mở khóa'}
           reasonRequired={lockTarget.next === 'INACTIVE'}
-          finalConfirm={lockTarget.next === 'INACTIVE' ? `Bạn sắp KHÓA tài khoản ${lockTarget.name}. Người này sẽ không đăng nhập được cho đến khi bạn mở khóa lại.` : undefined}
+          finalConfirm={
+            lockTarget.next === 'INACTIVE'
+              ? `Bạn sắp KHÓA tài khoản ${lockTarget.name}. Người này sẽ không đăng nhập được cho đến khi bạn mở khóa lại.`
+              : `Bạn sắp MỞ KHÓA tài khoản ${lockTarget.name}. Người này sẽ đăng nhập được trở lại ngay sau khi xác nhận.`
+          }
           tone={lockTarget.next === 'INACTIVE' ? 'danger' : 'primary'}
           error={lockError}
           onCancel={() => setLockTarget(null)}

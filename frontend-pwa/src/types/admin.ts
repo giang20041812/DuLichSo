@@ -310,6 +310,40 @@ export interface AdminPlaceDetailDto {
   updatedAt: string;
 }
 
+// ─────────────────────────────────────────────
+// Hình ảnh / tiện nghi / chính sách lưu trú ở màn chi tiết Admin (khớp PlaceShowcaseDtos)
+// ─────────────────────────────────────────────
+export interface PlaceShowcaseImage {
+  url: string;
+  caption: string | null;
+  /** Ảnh bìa (luôn đứng đầu danh sách). */
+  cover: boolean;
+}
+
+/** Chính sách lưu trú của Homestay; trường chữ rỗng khi NCC chưa khai. */
+export interface PlaceStayPolicy {
+  checkInFrom: string;
+  checkOutUntil: string;
+  houseRules: string;
+  surchargeNote: string;
+  childrenPolicy: string;
+  petsPolicy: string;
+  guestPolicy: string;
+  cancellationPolicyName: string;
+  cancellationPolicy: string;
+  freeCancelCutoffHours: number | null;
+  refundOnLateCancel: 'FULL_REFUND' | 'NO_REFUND' | null;
+}
+
+/** placeId/placeName null khi chưa có cơ sở làm nguồn (vd hồ sơ NCC chưa được duyệt); stayPolicy null khi không phải Homestay / chưa khai. */
+export interface PlaceShowcase {
+  placeId: number | null;
+  placeName: string | null;
+  images: PlaceShowcaseImage[];
+  amenities: string[];
+  stayPolicy: PlaceStayPolicy | null;
+}
+
 export interface MonthlyRevenuePoint {
   year: number;
   month: number;
@@ -372,14 +406,6 @@ export type BookingStatusSummary = Record<BookingStatus, number>;
 // ─────────────────────────────────────────────
 // Giám sát Booking (khớp AdminBookingMonitorService)
 // ─────────────────────────────────────────────
-export type BookingAttentionReason = 'PENDING_STALE' | 'PAYMENT_OVERDUE' | 'STAY_UNRESOLVED' | 'FOLLOW_UP';
-
-export interface BookingAttentionItem {
-  booking: AdminBookingDto;
-  reason: BookingAttentionReason;
-  reasonLabel: string;
-}
-
 export type BookingNoteKind = 'VERIFICATION' | 'OUTCOME';
 export type BookingNoteOutcome = 'NO_ISSUE' | 'SUPPORTED' | 'ESCALATED' | 'FOLLOW_UP';
 
@@ -428,7 +454,6 @@ export interface AdminBookingDetailDto {
   services: BookingServiceItemDto[];
   payments: BookingPaymentDto[];
   notes: BookingNoteDto[];
-  attention: BookingAttentionReason[];
 }
 
 export interface AddBookingNoteRequest {

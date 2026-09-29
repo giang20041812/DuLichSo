@@ -1,3 +1,8 @@
+import type { RoomInventoryDay } from './room';
+import type { AdminBookingDto } from './admin';
+
+/** UC-NCC-06: một dòng danh sách đơn của NCC — khớp PartnerBookingDtos.BookingRowDto (dữ liệu chung + hạn phản hồi). */
+export type PartnerBookingRowDto = AdminBookingDto & { responseDueAt: string | null };
 // Trạng thái booking — khớp với BookingStatus enum bên backend
 export type BookingStatus =
   | 'PENDING'
@@ -6,11 +11,11 @@ export type BookingStatus =
   | 'CHECKED_IN'
   | 'CHECKED_OUT'
   | 'COMPLETED'
-  | 'REFUNDED'
   | 'CANCELLED'
   | 'REJECTED'
   | 'EXPIRED'
-  | 'NO_SHOW';
+  | 'NO_SHOW'
+  | 'REFUNDED';
 
 export interface CancelBookingRequest {
   reason: string;
@@ -81,6 +86,24 @@ export interface CheckAvailabilityResponse {
   message: string;
 }
 
+export interface BookingQuoteResponse {
+  roomTypeId: number;
+  availableRooms: number;
+  suitable: boolean;
+  totalAmount: number;
+}
+
+export interface BookingPolicySnapshot {
+  policyId?: number;
+  policyVersion?: number;
+  policyName?: string;
+  freeCancelCutoffHours?: number;
+  refundType?: string;
+  description?: string;
+  cancelReason?: string;
+  refundAmount?: number | string;
+}
+
 // DTO nhận về từ backend — field name khớp với BookingResponseDto.java
 export interface BookingResponseDto {
   id: number;
@@ -108,7 +131,7 @@ export interface BookingResponseDto {
   totalAmount: number;
   createdAt: string;       // ISO datetime
   holdExpiresAt: string;   // ISO datetime
-  policySnapshot: Record<string, unknown>;
+  policySnapshot: BookingPolicySnapshot;
   serviceItems?: BookingServiceItemDto[];
   changeRequests?: BookingChangeRequestDto[];
 }
@@ -226,9 +249,34 @@ export interface PartnerBookingDetailDto {
   canReject: boolean;
   canRequestInfo: boolean;
   stayActions: StayAction[];
+  /** UC-NCC-06/08: hạn phản hồi = 120 phút trong khung giờ xử lý của Homestay (đã chốt). */
+  responseDueAt: string | null;
+  overdue: boolean;
+  /** UC-NCC-07: khả dụng theo từng đêm của loại phòng khách chọn. */
+  availability: RoomInventoryDay[];
+  evaluation: BookingEvaluationDto | null;
+  canEvaluate: boolean;
 }
 
-/** roomTypeId null = giữ loại phòng khách đã chọn. */
+/** UC-NCC-07 — khớp BookingEvaluation.Conclusion */
+export type BookingEvaluationConclusion = 'MEETS' | 'NOT_MEETS' | 'NEEDS_ADJUSTMENT';
+
+/** Khớp PartnerBookingDtos.EvaluationDto; stale = dữ liệu phòng đổi sau khi đánh giá. */
+export interface BookingEvaluationDto {
+  conclusion: BookingEvaluationConclusion;
+  specialRequestResult: string | null;
+  note: string | null;
+  evaluatedAt: string;
+  stale: boolean;
+}
+
+export interface BookingEvaluationInput {
+  conclusion: BookingEvaluationConclusion;
+  specialRequestResult?: string;
+  note?: string;
+}
+
+/** roomTypeId chỉ được null (UC-NCC-08: NCC không tự đổi loại phòng/giá khi chấp nhận). */
 export interface AcceptBookingInput {
   roomTypeId: number | null;
   note: string;

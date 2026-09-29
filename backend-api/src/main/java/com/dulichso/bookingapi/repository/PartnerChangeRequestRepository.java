@@ -32,4 +32,12 @@ public interface PartnerChangeRequestRepository extends JpaRepository<PartnerCha
                                         @Param("roomTypeId") Long roomTypeId);
 
     long countByStatus(ChangeRequestStatus status);
+
+    /** UC-NCC-02: Homestay đang có yêu cầu xuất bản lần đầu chờ Admin duyệt. */
+    @Query("""
+            select distinct c.place.id from PartnerChangeRequest c
+            where c.status = com.dulichso.bookingapi.entity.enums.ChangeRequestStatus.PENDING
+              and c.operation = com.dulichso.bookingapi.entity.enums.ChangeOperation.PUBLISH and c.place.id in :ids
+            """)
+    List<Long> pendingPublishPlaceIds(@Param("ids") List<Long> ids);
 }

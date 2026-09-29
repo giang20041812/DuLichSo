@@ -82,6 +82,17 @@ export default function ReviewsPanel({ notify }: ReviewsPanelProps) {
   const debouncedKeyword = useDebouncedValue(keyword);
   const activeCount = [debouncedKeyword, rating, from || to].filter(Boolean).length;
 
+  /** Nút tải lại: đưa màn hình về trạng thái ban đầu (bỏ mọi điều kiện tìm kiếm / lọc / sắp xếp, về tab mặc định, trang 1) rồi tải lại dữ liệu mới nhất. */
+  const reloadFromStart = () => {
+    setKeyword('');
+    setStatus('PENDING');
+    setRating('');
+    setFrom('');
+    setTo('');
+    setPage(0);
+    setReload((n) => n + 1);
+  };
+
   const resetPage = <T,>(setter: (v: T) => void) => (v: T) => {
     setter(v);
     setPage(0);
@@ -178,7 +189,7 @@ export default function ReviewsPanel({ notify }: ReviewsPanelProps) {
           }}
         />
         <div className="ml-auto flex shrink-0 items-center gap-2">
-          <RefreshButton loading={loading} onClick={() => setReload((n) => n + 1)} />
+          <RefreshButton loading={loading} onClick={reloadFromStart} />
         </div>
       </div>
 
@@ -273,7 +284,9 @@ export default function ReviewsPanel({ notify }: ReviewsPanelProps) {
               ? `Bạn sắp GỠ đánh giá của ${decision.review.guestName}. Đánh giá bị gỡ khỏi hệ thống công khai và không thể khôi phục; khách sẽ được thông báo kèm lý do.`
               : decision.action === 'HIDE'
               ? `Bạn sắp ẨN đánh giá của ${decision.review.guestName}. Đánh giá không còn hiển thị công khai và không tính vào điểm của Homestay cho đến khi được khôi phục.`
-              : undefined
+              : decision.action === 'RESTORE'
+              ? `Bạn sắp KHÔI PHỤC đánh giá của ${decision.review.guestName}. Đánh giá hiển thị công khai trở lại và được tính lại vào điểm của Homestay.`
+              : `Bạn sắp GIỮ NGUYÊN đánh giá của ${decision.review.guestName}. Đánh giá tiếp tục hiển thị công khai và được ghi nhận là đã xem xét.`
           }
           tone={ACTION_META[decision.action].danger ? 'danger' : 'primary'}
           error={dialogError}

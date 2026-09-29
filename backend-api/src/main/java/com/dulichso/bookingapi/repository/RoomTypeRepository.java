@@ -12,6 +12,7 @@ public interface RoomTypeRepository extends JpaRepository<RoomType, Long> {
     @org.springframework.data.jpa.repository.Query("select r from RoomType r where r.id = :id")
     java.util.Optional<RoomType> findLockedById(@org.springframework.data.repository.query.Param("id") Long id);
     List<RoomType> findByPlaceIdAndStatus(Long placeId, String status);
+    List<RoomType> findByPlaceIdInAndStatus(List<Long> placeIds, String status);
     List<RoomType> findByPlaceId(Long placeId);
     List<RoomType> findByPlaceSlugAndStatus(String slug, String status);
 }

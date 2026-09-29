@@ -75,4 +75,15 @@ class ProviderApplicationServiceTest {
         assertEquals(409, assertThrows(ResponseStatusException.class, () -> service.register(input())).getStatusCode().value());
         verify(em, never()).persist(any());
     }
+
+    @Test void registerReportsEveryDuplicateFieldAtOnce() {
+        when(accounts.findByIdentifier("0912345678")).thenReturn(Optional.of(Account.builder().id(1L).build()));
+        when(accounts.findByIdentifier("mai@example.test")).thenReturn(Optional.of(Account.builder().id(2L).build()));
+        when(applications.existsByBusinessLicenseNoAndStatusNot("GP-01", ProviderApplicationStatus.REJECTED)).thenReturn(true);
+        DuplicateFieldsException ex = assertThrows(DuplicateFieldsException.class, () -> service.register(input()));
+        assertEquals(409, ex.getStatusCode().value());
+        assertEquals(java.util.List.of("contactPhone", "contactEmail", "businessLicenseNo"),
+                ex.getFieldErrors().stream().map(com.dulichso.bookingapi.dto.FieldErrorDto::field).toList());
+        verify(em, never()).persist(any());
+    }
 }

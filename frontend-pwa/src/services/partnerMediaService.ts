@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { DirectUploadDto, MediaDto } from '@/types/partner';
+import type { MediaDto } from '@/types/partner';
 
 const config = () => ({ headers: { Authorization: `Bearer ${localStorage.getItem('portal_token') ?? ''}` } });
 
@@ -9,19 +9,39 @@ export type MediaTarget = { placeId: number; roomId?: number };
 const base = ({ placeId, roomId }: MediaTarget) =>
   roomId == null ? `/api/v1/partner/homestays/${placeId}/media` : `/api/v1/partner/homestays/${placeId}/rooms/${roomId}/media`;
 
+interface CloudinaryUploadConfig {
+  provider: string;
+  cloudName: string;
+  apiKey: string;
+  timestamp: number;
+  signature: string;
+}
+
 /**
- * Cloudflare Images Direct Creator Upload: backend cấp uploadURL dùng một lần, file đi thẳng từ trình duyệt lên Cloudflare
- * (không qua backend, không lộ API token), sau đó backend kiểm tra ảnh rồi mới gắn vào Homestay/phòng.
+ * Upload ảnh qua Cloudinary
  */
-async function uploadToCloudflare(file: File): Promise<string> {
-  const ticket = (await axios.post<DirectUploadDto>('/api/v1/partner/media/direct-upload', null, config())).data;
-  if (!ticket.allowedTypes.includes(file.type)) throw new Error('Chỉ hỗ trợ ảnh JPG, PNG hoặc WEBP.');
-  if (file.size > ticket.maxFileBytes) throw new Error(`Ảnh vượt quá ${Math.round(ticket.maxFileBytes / 1024 / 1024)}MB.`);
+async function uploadToCloudinary(file: File): Promise<{id: string, url: string}> {
+  const cfg = (await axios.post<CloudinaryUploadConfig>('/api/v1/partner/media/direct-upload', null, config())).data;
+  
   const form = new FormData();
   form.append('file', file);
-  const response = await fetch(ticket.uploadUrl, { method: 'POST', body: form });
-  if (!response.ok) throw new Error('Upload ảnh lên dịch vụ lưu trữ thất bại. Vui lòng thử lại.');
-  return ticket.imageId;
+  form.append('api_key', cfg.apiKey);
+  form.append('timestamp', cfg.timestamp.toString());
+  form.append('signature', cfg.signature);
+  
+  const uploadUrl = `https://api.cloudinary.com/v1_1/${cfg.cloudName}/image/upload`;
+  const response = await fetch(uploadUrl, {
+    method: 'POST',
+    body: form,
+  });
+  
+  if (!response.ok) {
+    const err = (await response.json().catch(() => ({}))) as any;
+    throw new Error(err?.error?.message || 'Lỗi khi tải ảnh lên dịch vụ lưu trữ.');
+  }
+  
+  const result = await response.json();
+  return { id: result.public_id, url: result.secure_url };
 }
 
 export const partnerMediaService = {
@@ -29,8 +49,8 @@ export const partnerMediaService = {
     return (await axios.get<MediaDto[]>(base(target), config())).data;
   },
   async upload(target: MediaTarget, file: File) {
-    const imageId = await uploadToCloudflare(file);
-    return (await axios.post<MediaDto[]>(base(target), { imageId }, config())).data;
+    const { id, url } = await uploadToCloudinary(file);
+    return (await axios.post<MediaDto[]>(base(target), { imageId: id, url }, config())).data;
   },
   async setCover(target: MediaTarget, mediaId: number) {
     return (await axios.put<MediaDto[]>(`${base(target)}/${mediaId}/cover`, null, config())).data;

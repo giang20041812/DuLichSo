@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import axios from 'axios';
-import { AlertTriangle, CheckCircle2, X, XCircle } from 'lucide-react';
+import { AlertTriangle, Briefcase, CalendarDays, CheckCircle2, FileText, Mail, MapPin, Phone, UserRound, X, XCircle, type LucideIcon } from 'lucide-react';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useAdminPermission } from '@/hooks/useAdminPermission';
 import { adminService } from '@/services/adminService';
 import { getApiErrorMessage } from '@/lib/apiError';
-import type { PageResponse } from '@/types/admin';
+import type { PageResponse, PlaceShowcase } from '@/types/admin';
 import type { ProviderApplicationDetail, ProviderApplicationStatus, ProviderApplicationSummary } from '@/types/providerApplication';
 import {
   CompactDateRange,
@@ -23,6 +23,8 @@ import { useUrlStatus } from '@/hooks/useUrlStatus';
 import { useStatusCounts } from '@/hooks/useStatusCounts';
 import { actionButtonClass } from './statusStyles';
 import OverlayPortal from './OverlayPortal';
+import Avatar from './Avatar';
+import PlaceShowcaseSections from './PlaceShowcaseSections';
 
 interface ProviderApplicationsPanelProps {
   notify: (type: 'success' | 'error', text: string) => void;
@@ -90,6 +92,14 @@ export default function ProviderApplicationsPanel({ notify, onChanged }: Provide
     setSortDir(DEFAULT_SORT_DIR);
     setPage(0);
     setSelected([]);
+  };
+
+  /** Nút tải lại: đưa màn hình về trạng thái ban đầu (bỏ mọi điều kiện tìm kiếm / lọc / sắp xếp, về tab mặc định, trang 1) rồi tải lại dữ liệu mới nhất. */
+  const reloadFromStart = () => {
+    clearFilters();
+    setStatus('PENDING');
+    setOpenId(null);
+    setReload((n) => n + 1);
   };
 
   const load = useCallback(async () => {
@@ -225,7 +235,7 @@ export default function ProviderApplicationsPanel({ notify, onChanged }: Provide
               setSelected([]);
             }}
           />
-          <RefreshButton loading={loading} onClick={() => setReload((n) => n + 1)} />
+          <RefreshButton loading={loading} onClick={reloadFromStart} />
         </div>
       </div>
 
@@ -403,8 +413,11 @@ export default function ProviderApplicationsPanel({ notify, onChanged }: Provide
               ? decision.kind === 'bulk'
                 ? `Bạn sắp từ chối ${decision.ids.length} hồ sơ đăng ký nhà cung cấp cùng lúc. Các nhà cung cấp sẽ được báo kết quả kèm lý do và không thể hoàn tác thao tác này.`
                 : `Bạn sắp từ chối hồ sơ "${decision.application.businessName}". Nhà cung cấp sẽ được báo kết quả kèm lý do và không thể hoàn tác thao tác này.`
-              : undefined
+              : decision.kind === 'bulk'
+              ? `Bạn sắp duyệt ${decision.ids.length} hồ sơ đăng ký nhà cung cấp cùng lúc. Mỗi hồ sơ hợp lệ được tạo đối tác và tài khoản đăng nhập, nhà cung cấp được báo kết quả.`
+              : `Bạn sắp duyệt hồ sơ "${decision.application.businessName}". Hệ thống tạo đối tác và tài khoản đăng nhập, nhà cung cấp được báo kết quả.`
           }
+          hideReason={decision.type === 'approve'}
           tone={decision.type === 'reject' ? 'danger' : 'primary'}
           error={dialogError}
           onCancel={() => setDecision(null)}
@@ -432,10 +445,71 @@ function Field({ label, children, wide }: { label: string; children: ReactNode; 
   );
 }
 
+/**
+ * Loại hình dịch vụ của hồ sơ: form đăng ký NCC hiện chỉ dành cho cơ sở lưu trú (chủ Homestay, hợp tác xã) và
+ * provider_application chưa có trường loại hình riêng, nên hiển thị theo danh mục lưu trú của hệ thống.
+ */
+const SERVICE_TYPE_LABEL = 'Lưu trú / Homestay';
+
+function InfoItem({ icon: Icon, label, children, wide }: { icon: LucideIcon; label: string; children: ReactNode; wide?: boolean }) {
+  return (
+    <div className={`flex min-w-0 items-start gap-2.5 ${wide ? 'col-span-2' : ''}`}>
+      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary-50 text-primary">
+        <Icon className="h-3.5 w-3.5" aria-hidden />
+      </span>
+      <div className="min-w-0">
+        <dt className="text-[10px] font-semibold uppercase tracking-wide text-muted">{label}</dt>
+        <dd className="mt-0.5 break-words text-xs text-ink">{children}</dd>
+      </div>
+    </div>
+  );
+}
+
+/** Thẻ "Thông tin chung" của hồ sơ nhà cung cấp (dữ liệu từ ApplicationSummaryDto). */
+function ProviderInfoCard({ application: a }: { application: ProviderApplicationSummary }) {
+  return (
+    <section aria-labelledby="provider-info-title" className="rounded-lg border border-border bg-white shadow-sm">
+      <h4 id="provider-info-title" className="border-b border-border px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted">
+        Thông tin chung
+      </h4>
+      <div className="flex items-center gap-3 px-4 pt-4">
+        <Avatar name={a.businessName} size="lg" />
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-display text-sm font-bold text-ink-deep" title={a.businessName}>{a.businessName}</p>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            <StatusBadge tone={STATUS_TONE[a.status]} pulse={a.status === 'PENDING'}>
+              {STATUS_LABEL[a.status]}
+            </StatusBadge>
+            <span className="text-[11px] text-muted">Mã hồ sơ #{a.id}</span>
+          </div>
+        </div>
+      </div>
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-3.5 p-4">
+        <InfoItem icon={FileText} label="Mã số thuế / ĐKKD">{a.businessLicenseNo || 'Chưa cung cấp'}</InfoItem>
+        <InfoItem icon={Briefcase} label="Loại hình dịch vụ">{SERVICE_TYPE_LABEL}</InfoItem>
+        <InfoItem icon={UserRound} label="Người đại diện">{a.contactName}</InfoItem>
+        <InfoItem icon={Phone} label="Số điện thoại">
+          <a href={`tel:${a.contactPhone}`} className="tabular-nums text-primary hover:underline">{a.contactPhone}</a>
+        </InfoItem>
+        <InfoItem icon={Mail} label="Email" wide>
+          {a.contactEmail ? <a href={`mailto:${a.contactEmail}`} className="text-primary hover:underline">{a.contactEmail}</a> : 'Chưa cung cấp'}
+        </InfoItem>
+        <InfoItem icon={MapPin} label="Địa chỉ" wide>{a.address}</InfoItem>
+        <InfoItem icon={CalendarDays} label="Ngày đăng ký">{fmtDateTime(a.createdAt)}</InfoItem>
+        <InfoItem icon={CheckCircle2} label="Trạng thái hồ sơ">
+          <StatusBadge tone={STATUS_TONE[a.status]}>{STATUS_LABEL[a.status]}</StatusBadge>
+        </InfoItem>
+      </dl>
+    </section>
+  );
+}
+
 /** Ngăn bên phải: thông tin hồ sơ đăng ký để thẩm định. */
 function ApplicationDrawer({ id, canOperate, onClose, onApprove, onReject }: ApplicationDrawerProps) {
   const [detail, setDetail] = useState<ProviderApplicationDetail | null>(null);
   const [error, setError] = useState('');
+  const [showcase, setShowcase] = useState<PlaceShowcase | null>(null);
+  const [showcaseError, setShowcaseError] = useState('');
 
   useEffect(() => {
     let alive = true;
@@ -446,6 +520,14 @@ function ApplicationDrawer({ id, canOperate, onClose, onApprove, onReject }: App
       })
       .catch((err: unknown) => {
         if (alive) setError(getApiErrorMessage(err, 'Không tải được chi tiết hồ sơ đăng ký.'));
+      });
+    adminService
+      .getProviderApplicationShowcase(id)
+      .then((s) => {
+        if (alive) setShowcase(s);
+      })
+      .catch((err: unknown) => {
+        if (alive) setShowcaseError(getApiErrorMessage(err, 'Không tải được hình ảnh, tiện nghi của hồ sơ.'));
       });
     return () => {
       alive = false;
@@ -508,17 +590,25 @@ function ApplicationDrawer({ id, canOperate, onClose, onApprove, onReject }: App
               </p>
             )}
             {a && detail && (
-              <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs">
-                <Field label="Người liên hệ">{a.contactName}</Field>
-                <Field label="Số điện thoại">{a.contactPhone}</Field>
-                <Field label="Email" wide>{a.contactEmail || '—'}</Field>
-                <Field label="Địa chỉ" wide>{a.address}</Field>
-                <Field label="Giấy phép kinh doanh">{a.businessLicenseNo || 'Chưa cung cấp'}</Field>
-                <Field label="Gửi lúc">{fmtDateTime(a.createdAt)}</Field>
-                <Field label="Mô tả cơ sở" wide>
-                  <span className="whitespace-pre-line">{detail.description || '—'}</span>
-                </Field>
-              </dl>
+              <>
+                <ProviderInfoCard application={a} />
+                <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-xs">
+                  <Field label="Mô tả cơ sở" wide>
+                    <span className="whitespace-pre-line">{detail.description || '—'}</span>
+                  </Field>
+                </dl>
+                <PlaceShowcaseSections
+                  showcase={showcase}
+                  error={showcaseError}
+                  name={a.businessName}
+                  showStayPolicy
+                  note={
+                    showcase?.placeId
+                      ? <>Hình ảnh, tiện nghi và chính sách lấy theo Homestay <strong className="text-ink">{showcase.placeName}</strong> của đối tác.</>
+                      : 'Hồ sơ đăng ký chưa kèm hình ảnh, tiện nghi và chính sách lưu trú; các mục này có sau khi hồ sơ được duyệt và nhà cung cấp tạo Homestay.'
+                  }
+                />
+              </>
             )}
             {a?.reviewedAt && (
               <p className="mt-4 rounded-md bg-canvas px-3 py-2 text-[11px] text-muted">

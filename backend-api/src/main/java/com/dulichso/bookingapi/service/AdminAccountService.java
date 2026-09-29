@@ -21,18 +21,18 @@ public class AdminAccountService {
     private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
     private final com.dulichso.bookingapi.repository.ProviderRepository providerRepository;
-    private final ProviderLockCascadeService providerLockCascadeService;
+    private final BookingImpactService bookingImpactService;
 
     public AdminAccountService(AccountRepository accountRepository,
                                PasswordEncoder passwordEncoder,
                                AuditLogService auditLogService,
                                com.dulichso.bookingapi.repository.ProviderRepository providerRepository,
-                               ProviderLockCascadeService providerLockCascadeService) {
+                               BookingImpactService bookingImpactService) {
         this.accountRepository = accountRepository;
         this.passwordEncoder = passwordEncoder;
         this.auditLogService = auditLogService;
         this.providerRepository = providerRepository;
-        this.providerLockCascadeService = providerLockCascadeService;
+        this.bookingImpactService = bookingImpactService;
     }
 
     private static final java.util.Set<String> ACCOUNT_SORT_FIELDS = java.util.Set.of("createdAt", "lastLoginAt", "fullName", "email");
@@ -210,7 +210,8 @@ public class AdminAccountService {
         int cancelledBookings = 0;
         if (changed && saved.getRole() == AccountRole.PROVIDER && saved.getStatus() == AccountStatus.INACTIVE
                 && saved.getProvider() != null) {
-            cancelledBookings = providerLockCascadeService.cancelPendingBookings(saved.getProvider());
+            cancelledBookings = bookingImpactService.cancelForProvider(saved.getProvider().getId(),
+                    "Tài khoản nhà cung cấp bị khóa: " + request.getReason().trim());
         }
 
         java.util.Map<String, Object> after = new java.util.HashMap<>();

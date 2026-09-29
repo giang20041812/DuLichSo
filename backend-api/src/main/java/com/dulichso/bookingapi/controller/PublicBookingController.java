@@ -16,11 +16,11 @@ import org.springframework.web.bind.annotation.*;
 public class PublicBookingController {
 
     private final BookingService bookingService;
-    private final com.dulichso.bookingapi.service.CloudinaryService cloudinaryService;
+    private final com.dulichso.bookingapi.service.MediaFacadeService mediaFacadeService;
 
     @GetMapping("/media/upload-config")
     public ResponseEntity<java.util.Map<String, Object>> getUploadConfig() {
-        return ResponseEntity.ok(cloudinaryService.getUploadConfig());
+        return ResponseEntity.ok(mediaFacadeService.getActiveUploadConfig());
     }
 
     @PostMapping
@@ -40,7 +40,7 @@ public class PublicBookingController {
     @GetMapping("/{bookingCode}")
     public ResponseEntity<BookingResponseDto> getBookingByCode(
             @PathVariable("bookingCode") String bookingCode,
-            @RequestParam(value = "phone", required = true) String phone) {
+            @RequestParam(value = "phone", required = false) String phone) {
         BookingResponseDto response = bookingService.getBookingByCode(bookingCode, phone);
         return ResponseEntity.ok(response);
     }
@@ -121,6 +121,23 @@ public class PublicBookingController {
             @RequestParam(value = "roomCount", defaultValue = "1") int roomCount,
             @RequestParam(value = "excludeBookingCode", required = false) String excludeBookingCode) {
         return ResponseEntity.ok(bookingService.checkAvailability(roomTypeId, checkIn, checkOut, roomCount, excludeBookingCode));
+    }
+
+    @PostMapping("/{bookingCode}/change-requests")
+    public ResponseEntity<BookingResponseDto> createBookingChangeRequest(
+            @PathVariable String bookingCode,
+            @Valid @RequestBody com.dulichso.bookingapi.dto.UpdateBookingDetailsRequest request) {
+        return ResponseEntity.ok(bookingService.updateBookingDetails(bookingCode, request));
+    }
+
+    @GetMapping("/rooms/{roomTypeId}/quote")
+    public ResponseEntity<com.dulichso.bookingapi.dto.BookingQuoteResponse> quote(
+            @PathVariable Long roomTypeId,
+            @RequestParam @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate checkIn,
+            @RequestParam @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate checkOut,
+            @RequestParam(defaultValue = "1") int roomCount,
+            @RequestParam(defaultValue = "1") int guestCount) {
+        return ResponseEntity.ok(bookingService.quote(roomTypeId, checkIn, checkOut, roomCount, guestCount));
     }
 }
 

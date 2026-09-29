@@ -17,6 +17,7 @@ import type {
   AdminDashboardSummaryDto,
   AuditLogEntryDto,
   AdminPlaceDetailDto,
+  PlaceShowcase,
   AccountStatus,
   ProviderStatus,
   PlaceVerificationStatus,
@@ -24,7 +25,6 @@ import type {
   AdminBookingDto,
   BookingSearchParams,
   BookingStatusSummary,
-  BookingAttentionItem,
   AdminBookingDetailDto,
   AddBookingNoteRequest,
   BookingNoteDto,
@@ -231,6 +231,12 @@ export const adminService = {
     return res.data;
   },
 
+  /** Hình ảnh, tiện nghi, chính sách lưu trú của hồ sơ NCC (có dữ liệu khi hồ sơ đã được duyệt và đối tác đã tạo Homestay). */
+  async getProviderApplicationShowcase(id: number): Promise<PlaceShowcase> {
+    const res = await axios.get<PlaceShowcase>(`${API_BASE}/provider-applications/${id}/showcase`, getAuthHeaders());
+    return res.data;
+  },
+
   async approveProviderApplication(id: number, note?: string): Promise<ProviderApplicationDetail> {
     const res = await axios.post<ProviderApplicationDetail>(`${API_BASE}/provider-applications/${id}/approve`, { note }, getAuthHeaders());
     return res.data;
@@ -302,6 +308,12 @@ export const adminService = {
     return res.data;
   },
 
+  /** Hình ảnh, tiện nghi, chính sách lưu trú của điểm đến (màn Duyệt điểm đến). */
+  async getPlaceShowcase(id: number): Promise<PlaceShowcase> {
+    const res = await axios.get<PlaceShowcase>(`${API_BASE}/places/${id}/showcase`, getAuthHeaders());
+    return res.data;
+  },
+
   async getPlaces(params?: PlaceSearchParams): Promise<PageResponse<AdminPlaceSummaryDto>> {
     const res = await axios.get<PageResponse<AdminPlaceSummaryDto>>(`${API_BASE}/places`, {
       ...getAuthHeaders(),
@@ -325,10 +337,6 @@ export const adminService = {
     return res.data;
   },
 
-  async getBookingAttention(): Promise<BookingAttentionItem[]> {
-    const res = await axios.get<BookingAttentionItem[]>(`${API_BASE}/bookings/attention`, getAuthHeaders());
-    return res.data;
-  },
 
   async getBookingDetail(id: number): Promise<AdminBookingDetailDto> {
     const res = await axios.get<AdminBookingDetailDto>(`${API_BASE}/bookings/${id}`, getAuthHeaders());

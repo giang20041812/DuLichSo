@@ -570,7 +570,7 @@ export default function DestinationListPage() {
                             type="button"
                             onClick={() => openGoogleMapsDirections(dest.latitude, dest.longitude, `${dest.address || dest.district || ''} ${dest.name}`)}
                             className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold border border-blue-200 transition-colors cursor-pointer"
-                            title="Chỉ đường từ vị trí của bạn"
+                            title="Mở Google Maps để chọn điểm xuất phát"
                           >
                             <Map className="w-3.5 h-3.5 text-blue-600" />
                             Chỉ đường

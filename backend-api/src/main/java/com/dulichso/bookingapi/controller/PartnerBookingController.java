@@ -5,6 +5,8 @@ import com.dulichso.bookingapi.dto.partner.PartnerBookingDtos.BookingDetailDto;
 import com.dulichso.bookingapi.dto.partner.PartnerBookingDtos.InfoRequestInput;
 import com.dulichso.bookingapi.dto.partner.PartnerBookingDtos.StayActionInput;
 import com.dulichso.bookingapi.dto.partner.PartnerBookingDtos.RejectInput;
+import com.dulichso.bookingapi.dto.partner.PartnerBookingDtos.EvaluationInput;
+import com.dulichso.bookingapi.dto.partner.PartnerBookingDtos.BookingRowDto;
 import com.dulichso.bookingapi.entity.Account;
 import com.dulichso.bookingapi.entity.enums.AccountRole;
 import com.dulichso.bookingapi.entity.enums.BookingStatus;
@@ -13,7 +15,6 @@ import com.dulichso.bookingapi.security.UserPrincipal;
 import com.dulichso.bookingapi.service.AdminBookingService;
 import com.dulichso.bookingapi.service.PartnerBookingService;
 import jakarta.validation.Valid;
-import com.dulichso.bookingapi.service.AdminBookingService.BookingDto;
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -57,7 +58,7 @@ public class PartnerBookingController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<BookingDto>> search(
+    public ResponseEntity<Page<BookingRowDto>> search(
             @AuthenticationPrincipal UserPrincipal principal,
             @RequestParam(required = false) BookingStatus status,
             @RequestParam(required = false) String keyword,
@@ -71,8 +72,8 @@ public class PartnerBookingController {
             @RequestParam(defaultValue = "20") int size) {
         Long providerId = resolveProviderId(principal);
         if (providerId == null) return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        return ResponseEntity.ok(bookingService.search(status, keyword, providerId,
-                checkInFrom, checkInTo, createdFrom, createdTo, sortBy, sortDir, page, size));
+        return ResponseEntity.ok(partnerBookingService.rows(bookingService.search(status, keyword, providerId,
+                checkInFrom, checkInTo, createdFrom, createdTo, sortBy, sortDir, page, size)));
     }
 
     @GetMapping("/change-requests")
@@ -148,6 +149,13 @@ public class PartnerBookingController {
     @GetMapping("/{id}")
     public BookingDetailDto detail(@AuthenticationPrincipal UserPrincipal principal, @PathVariable Long id) {
         return partnerBookingService.detail(principal, id);
+    }
+
+    /** UC-NCC-07: lưu kết quả đánh giá khả năng đáp ứng (chưa xác nhận Booking). */
+    @PostMapping("/{id}/evaluation")
+    public BookingDetailDto evaluate(@AuthenticationPrincipal UserPrincipal principal, @PathVariable Long id,
+                                     @Valid @RequestBody EvaluationInput input) {
+        return partnerBookingService.evaluate(principal, id, input);
     }
 
     @PostMapping("/{id}/accept")

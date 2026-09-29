@@ -10,7 +10,6 @@ import com.dulichso.bookingapi.repository.BookingAdminNoteRepository;
 import com.dulichso.bookingapi.repository.BookingRepository;
 import com.dulichso.bookingapi.repository.BookingStatusHistoryRepository;
 import com.dulichso.bookingapi.repository.PaymentTransactionRepository;
-import com.dulichso.bookingapi.service.AdminBookingMonitorService.AttentionReason;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -50,41 +49,6 @@ class AdminBookingMonitorServiceTest {
         return Booking.builder().id(7L).bookingCode("VJ-1").status(status)
                 .createdAt(now.minusHours(1)).checkIn(now.toLocalDate().plusDays(3))
                 .checkOut(now.toLocalDate().plusDays(4)).build();
-    }
-
-    @Test
-    @DisplayName("attention: đơn PENDING quá 24h bị đánh dấu, đơn mới thì không")
-    void attention_pendingStale() {
-        Booking fresh = booking(BookingStatus.PENDING);
-        assertTrue(AdminBookingMonitorService.attentionReasons(fresh, false, now).isEmpty());
-
-        Booking stale = booking(BookingStatus.PENDING);
-        stale.setCreatedAt(now.minusHours(25));
-        assertEquals(List.of(AttentionReason.PENDING_STALE),
-                AdminBookingMonitorService.attentionReasons(stale, false, now));
-    }
-
-    @Test
-    @DisplayName("attention: quá hạn thanh toán và đã qua ngày trả phòng")
-    void attention_paymentAndStay() {
-        Booking pay = booking(BookingStatus.AWAITING_PAYMENT);
-        pay.setPaymentDeadlineAt(now.minusMinutes(1));
-        assertEquals(List.of(AttentionReason.PAYMENT_OVERDUE), AdminBookingMonitorService.attentionReasons(pay, false, now));
-
-        pay.setPaymentDeadlineAt(now.plusHours(1));
-        assertTrue(AdminBookingMonitorService.attentionReasons(pay, false, now).isEmpty());
-
-        Booking stay = booking(BookingStatus.CONFIRMED);
-        stay.setCheckOut(now.toLocalDate().minusDays(1));
-        assertEquals(List.of(AttentionReason.STAY_UNRESOLVED), AdminBookingMonitorService.attentionReasons(stay, false, now));
-    }
-
-    @Test
-    @DisplayName("attention: đơn đã hoàn tất chỉ cần chú ý khi Admin đánh dấu theo dõi")
-    void attention_followUpOnly() {
-        Booking done = booking(BookingStatus.COMPLETED);
-        assertTrue(AdminBookingMonitorService.attentionReasons(done, false, now).isEmpty());
-        assertEquals(List.of(AttentionReason.FOLLOW_UP), AdminBookingMonitorService.attentionReasons(done, true, now));
     }
 
     @Test

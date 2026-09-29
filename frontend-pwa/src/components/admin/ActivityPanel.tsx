@@ -67,6 +67,19 @@ export default function ActivityPanel() {
   const trimmed = debounced.trim();
   const activeCount = [trimmed, actor, result, entityType, from || to].filter(Boolean).length;
 
+  /** Nút tải lại: đưa màn hình về trạng thái ban đầu (bỏ mọi điều kiện tìm kiếm / lọc / sắp xếp, về tab mặc định, trang 1) rồi tải lại dữ liệu mới nhất. */
+  const reloadFromStart = () => {
+    setKeyword('');
+    setActor('');
+    setResultUrl('');
+    setEntityType('');
+    setFrom('');
+    setTo('');
+    setPage(0);
+    setOpenId(null);
+    setReload((n) => n + 1);
+  };
+
   /** Bộ lọc chung (mọi thứ trừ trạng thái) — dùng cho cả danh sách lẫn số đếm của từng tab. */
   const baseParams = () => {
     // Nhãn tiếng Việt chỉ có ở giao diện: tra ra các mã hành động khớp từ khóa để máy chủ tìm theo cả mã đó.
@@ -169,7 +182,7 @@ export default function ActivityPanel() {
           }}
         />
         <div className="ml-auto flex shrink-0 items-center gap-2">
-          <RefreshButton loading={loading} onClick={() => setReload((n) => n + 1)} />
+          <RefreshButton loading={loading} onClick={reloadFromStart} />
         </div>
       </div>
 

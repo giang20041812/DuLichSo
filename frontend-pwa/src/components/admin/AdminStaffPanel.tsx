@@ -44,6 +44,14 @@ export default function AdminStaffPanel({ currentAccountId, onCreate, onResetPas
   const [lockTarget, setLockTarget] = useState<{ account: AdminAccountDto; next: AccountStatus } | null>(null);
   const [dialogError, setDialogError] = useState('');
 
+  /** Nút tải lại: đưa màn hình về trạng thái ban đầu (bỏ mọi điều kiện tìm kiếm / lọc / sắp xếp, về tab mặc định, trang 1) rồi tải lại dữ liệu mới nhất. */
+  const reloadFromStart = () => {
+    setKeyword('');
+    setLevelTab('');
+    setStatusFilter('');
+    setReload((n) => n + 1);
+  };
+
   const debounced = useDebouncedValue(keyword);
 
   const load = useCallback(async () => {
@@ -149,7 +157,7 @@ export default function AdminStaffPanel({ currentAccountId, onCreate, onResetPas
           <FilterSearch value={keyword} onChange={setKeyword} placeholder="Tìm theo tên, email hoặc số điện thoại..." />
           <CompactSelect label="Cấp" value={levelTab} options={levelOptions} onChange={(v) => setLevelTab(v)} />
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            <RefreshButton loading={loading} onClick={() => setReload((n) => n + 1)} />
+            <RefreshButton loading={loading} onClick={reloadFromStart} />
             <button
               type="button"
               onClick={onCreate}
@@ -263,6 +271,7 @@ export default function AdminStaffPanel({ currentAccountId, onCreate, onResetPas
           description={`${name(levelTarget.account)} sẽ chuyển từ ${LEVEL_META[toAdminLevel(levelTarget.account.adminLevel)].label} sang ${LEVEL_META[levelTarget.level].label} (${LEVEL_META[levelTarget.level].role}): ${LEVEL_META[levelTarget.level].description}`}
           confirmLabel="Đổi cấp"
           reasonRequired={false}
+          finalConfirm={`Bạn sắp chuyển ${name(levelTarget.account)} sang ${LEVEL_META[levelTarget.level].label} (${LEVEL_META[levelTarget.level].role}). Quyền mới có hiệu lực ngay sau khi xác nhận.`}
           tone="primary"
           error={dialogError}
           onCancel={() => setLevelTarget(null)}
@@ -280,7 +289,11 @@ export default function AdminStaffPanel({ currentAccountId, onCreate, onResetPas
           }
           confirmLabel={lockTarget.next === 'INACTIVE' ? 'Khóa' : 'Mở khóa'}
           reasonRequired={lockTarget.next === 'INACTIVE'}
-          finalConfirm={lockTarget.next === 'INACTIVE' ? `Bạn sắp KHÓA tài khoản quản trị ${name(lockTarget.account)}. Người này sẽ không đăng nhập được cổng quản trị cho đến khi được mở khóa.` : undefined}
+          finalConfirm={
+            lockTarget.next === 'INACTIVE'
+              ? `Bạn sắp KHÓA tài khoản quản trị ${name(lockTarget.account)}. Người này sẽ không đăng nhập được cổng quản trị cho đến khi được mở khóa.`
+              : `Bạn sắp MỞ KHÓA tài khoản quản trị ${name(lockTarget.account)}. Người này sẽ đăng nhập được cổng quản trị trở lại ngay sau khi xác nhận.`
+          }
           tone={lockTarget.next === 'INACTIVE' ? 'danger' : 'primary'}
           error={dialogError}
           onCancel={() => setLockTarget(null)}

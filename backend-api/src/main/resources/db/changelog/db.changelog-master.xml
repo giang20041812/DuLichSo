@@ -53,4 +53,10 @@
     <!-- Mẫu thông báo: hủy đơn do khóa NCC (ACC-BR-08), gỡ đánh giá báo khách (REV-BR-17) -->
     <include file="db/changelog/changes/015-notification-templates-admin.xml"/>
     <include file="db/changelog/changes/016-admin-level-and-admin-notifications.xml"/>
+
+    <!-- Khung giờ xử lý đơn do NCC tự chọn cho từng Homestay (BOOK-BR-11) -->
+    <include file="db/changelog/changes/016-homestay-processing-hours.xml"/>
+
+    <!-- Hạn phản hồi 120 phút đã chốt, đơn hết hạn, kết quả đánh giá khả năng đáp ứng (UC-NCC-06/07/08) -->
+    <include file="db/changelog/changes/017-ncc-booking-deadline-evaluation.xml"/>
 </databaseChangeLog>

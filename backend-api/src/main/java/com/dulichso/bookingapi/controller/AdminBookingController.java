@@ -12,12 +12,10 @@ import com.dulichso.bookingapi.entity.enums.BookingNoteKind;
 import com.dulichso.bookingapi.entity.enums.BookingNoteOutcome;
 import com.dulichso.bookingapi.security.UserPrincipal;
 import com.dulichso.bookingapi.service.AdminBookingMonitorService;
-import com.dulichso.bookingapi.service.AdminBookingMonitorService.AttentionItem;
 import com.dulichso.bookingapi.service.AdminBookingMonitorService.BookingDetailDto;
 import com.dulichso.bookingapi.service.AdminBookingMonitorService.NoteDto;
 
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Map;
 
 /** Danh sách đơn đặt phòng toàn hệ thống — chỉ ADMIN (SecurityConfig: /api/v1/admin/**). */
@@ -92,12 +90,6 @@ public class AdminBookingController {
     @GetMapping("/summary")
     public ResponseEntity<Map<String, Long>> summary() {
         return ResponseEntity.ok(adminBookingService.countByStatus());
-    }
-
-    /** Booking cần Admin quan tâm (FR-AD-07). */
-    @GetMapping("/attention")
-    public ResponseEntity<List<AttentionItem>> attention() {
-        return ResponseEntity.ok(monitorService.attention());
     }
 
     /** Chi tiết đầy đủ một Booking (FR-AD-08). */

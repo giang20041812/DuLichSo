@@ -10,6 +10,8 @@ import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.Map;
 
 /**
@@ -20,6 +22,7 @@ import java.util.Map;
 public class NotificationRecorder {
     private final EntityManager em;
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void toCustomer(String templateCode, String phone, String email, String entityType, Long entityId, Map<String, Object> payload) {
         if ((phone == null || phone.isBlank()) && (email == null || email.isBlank())) return;
         template(templateCode).ifPresent(t -> em.persist(Notification.builder().template(t)

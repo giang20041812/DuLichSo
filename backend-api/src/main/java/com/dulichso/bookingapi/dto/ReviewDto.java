@@ -14,9 +14,12 @@ import java.time.LocalDateTime;
 public class ReviewDto {
     private Long id;
     private Long placeId;
+    private String bookingCode;
     private Byte rating;
     private String content;
     private java.util.List<String> images;
+    private String providerReply;
+    private LocalDateTime providerReplyAt;
     private String guestName;
     private LocalDateTime createdAt;
     private LocalDateTime editableUntil;

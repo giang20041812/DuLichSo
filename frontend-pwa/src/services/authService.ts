@@ -2,6 +2,7 @@ import axios, { AxiosError } from 'axios';
 import { PortalLoginRequest, PortalLoginResponse, AuthErrorResponse } from '../types/user';
 import type { GoogleLoginResponse } from '../types/integrations/google-identity';
 import { revokePortalToken } from '../lib/authInterceptor';
+import { parseFieldErrors } from '../lib/apiError';
 
 const API_BASE_URL = '/api/v1/auth';
 
@@ -12,7 +13,8 @@ const toAuthError = (err: unknown): AuthErrorResponse => {
     const data: unknown = err.response?.data;
     if (data && typeof data === 'object' && typeof (data as { message?: unknown }).message === 'string' && (data as { message: string }).message) {
       const d = data as Partial<AuthErrorResponse> & { message: string };
-      return { status: d.status ?? status, errorCode: d.errorCode ?? 'ERROR', message: d.message };
+      const fieldErrors = parseFieldErrors(data);
+      return { status: d.status ?? status, errorCode: d.errorCode ?? 'ERROR', message: d.message, ...(fieldErrors.length ? { fieldErrors } : {}) };
     }
     if (!err.response) {
       return { status: 0, errorCode: 'NETWORK_ERROR', message: 'Không kết nối được máy chủ. Vui lòng kiểm tra mạng hoặc thử lại sau.' };

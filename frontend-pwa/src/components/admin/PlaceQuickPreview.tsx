@@ -3,10 +3,11 @@ import { AlertTriangle, CheckCircle2, Eye, EyeOff, FilePenLine, MapPin, Star, X 
 import { adminService } from '@/services/adminService';
 import { useAdminPermission } from '@/hooks/useAdminPermission';
 import { getApiErrorMessage } from '@/lib/apiError';
-import type { AdminPlaceDetailDto, AdminPlaceSummaryDto } from '@/types/admin';
+import type { AdminPlaceDetailDto, AdminPlaceSummaryDto, PlaceShowcase } from '@/types/admin';
 import { StatusBadge } from './StatusBadge';
 import { kindMeta, VERIFICATION_LABEL, VERIFICATION_TONE, VISIBILITY_LABEL, VISIBILITY_TONE } from './placeMeta';
 import OverlayPortal from './OverlayPortal';
+import PlaceShowcaseSections from './PlaceShowcaseSections';
 
 interface PlaceQuickPreviewProps {
   /** Dữ liệu dòng đã có sẵn trong bảng — hiển thị ngay trong lúc tải chi tiết. */
@@ -26,6 +27,8 @@ export default function PlaceQuickPreview({ place, onClose, onApprove, onRequest
   const canOperate = useAdminPermission().can('operate');
   const [detail, setDetail] = useState<AdminPlaceDetailDto | null>(null);
   const [error, setError] = useState('');
+  const [showcase, setShowcase] = useState<PlaceShowcase | null>(null);
+  const [showcaseError, setShowcaseError] = useState('');
 
   useEffect(() => {
     let alive = true;
@@ -36,6 +39,15 @@ export default function PlaceQuickPreview({ place, onClose, onApprove, onRequest
       })
       .catch((err: unknown) => {
         if (alive) setError(getApiErrorMessage(err, 'Không tải được chi tiết điểm đến.'));
+      });
+    // Hình ảnh / tiện nghi / chính sách tải song song, lỗi riêng không chặn phần thông tin chính.
+    adminService
+      .getPlaceShowcase(place.id)
+      .then((s) => {
+        if (alive) setShowcase(s);
+      })
+      .catch((err: unknown) => {
+        if (alive) setShowcaseError(getApiErrorMessage(err, 'Không tải được hình ảnh, tiện nghi của điểm đến.'));
       });
     return () => {
       alive = false;
@@ -149,6 +161,7 @@ export default function PlaceQuickPreview({ place, onClose, onApprove, onRequest
               </dl>
             </Block>
           )}
+          <PlaceShowcaseSections showcase={showcase} error={showcaseError} name={p.name} showStayPolicy={p.kind === 'HOMESTAY'} />
           {detail && !detail.description && !detail.accessNote && (
             <p className="mt-4 rounded-md bg-sun/10 px-3 py-2 text-[11px] text-amber-700">
               Điểm đến chưa có mô tả — cân nhắc yêu cầu NCC bổ sung trước khi duyệt.

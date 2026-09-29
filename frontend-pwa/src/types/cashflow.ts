@@ -14,8 +14,6 @@ export interface CashflowRow {
   providerName: string | null;
   paidBookings: number;
   paidAmount: number;
-  refundedAmount: number;
-  pendingRefundAmount: number;
   netAmount: number;
 }
 
@@ -23,8 +21,6 @@ export interface CashflowRow {
 export interface CashflowTotals {
   paidBookings: number;
   paidAmount: number;
-  refundedAmount: number;
-  pendingRefundAmount: number;
   netAmount: number;
 }
 

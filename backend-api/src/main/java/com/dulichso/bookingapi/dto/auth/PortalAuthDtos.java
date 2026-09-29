@@ -3,6 +3,8 @@ package com.dulichso.bookingapi.dto.auth;
 import com.dulichso.bookingapi.entity.enums.AccountRole;
 import com.dulichso.bookingapi.entity.enums.AccountStatus;
 import com.dulichso.bookingapi.entity.enums.ProviderStatus;
+import com.dulichso.bookingapi.dto.FieldErrorDto;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -10,6 +12,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class PortalAuthDtos {
 
@@ -70,6 +73,9 @@ public class PortalAuthDtos {
         private int status;
         private String errorCode;
         private String message;
+        /** Các trường nhập bị lỗi (vd trùng email / số điện thoại khi đăng ký); null khi lỗi không gắn với trường cụ thể. */
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        private List<FieldErrorDto> fieldErrors;
         @Builder.Default
         private LocalDateTime timestamp = LocalDateTime.now();
     }

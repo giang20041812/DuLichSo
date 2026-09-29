@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Ban, Check, Calendar as CalendarIcon } from 'lucide-react';
 import { BookedDateRangeDto } from '@/types/booking';
 
@@ -26,6 +26,20 @@ export default function RoomAvailabilityCalendar({
     const today = new Date();
     return new Date(today.getFullYear(), today.getMonth(), 1);
   });
+
+  // Khi room card nhận khoảng ngày từ SearchHub, mở lịch ngay tại tháng của
+  // ngày nhận phòng để người dùng thấy lựa chọn đang được áp dụng.
+  useEffect(() => {
+    if (!selectedCheckIn) return;
+    const [year, month] = selectedCheckIn.split('-').map(Number);
+    if (!year || !month) return;
+    setCurrentBaseDate((current) => {
+      if (current.getFullYear() === year && current.getMonth() === month - 1) {
+        return current;
+      }
+      return new Date(year, month - 1, 1);
+    });
+  }, [selectedCheckIn]);
 
   const nextBaseDate = useMemo(() => {
     return new Date(currentBaseDate.getFullYear(), currentBaseDate.getMonth() + 1, 1);

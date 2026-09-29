@@ -22,9 +22,12 @@ export async function createBooking(request: CreateBookingRequest): Promise<Book
   return response.json() as Promise<BookingResponseDto>;
 }
 
-export async function getBookingByCode(bookingCode: string, phone: string): Promise<BookingResponseDto> {
+export async function getBookingByCode(bookingCode: string, phone?: string): Promise<BookingResponseDto> {
   try {
-    const response = await fetch(`/api/public/bookings/${encodeURIComponent(bookingCode)}?phone=${encodeURIComponent(phone)}`);
+    const url = phone && phone.trim()
+      ? `/api/public/bookings/${encodeURIComponent(bookingCode)}?phone=${encodeURIComponent(phone.trim())}`
+      : `/api/public/bookings/${encodeURIComponent(bookingCode)}`;
+    const response = await fetch(url);
     if (response.ok) {
       return (await response.json()) as BookingResponseDto;
     }
@@ -310,6 +313,29 @@ export async function updateBookingDetails(
   return (await response.json()) as BookingResponseDto;
 }
 
+export async function createChangeRequest(
+  bookingCode: string,
+  request: import('../types/booking').UpdateBookingDetailsRequest
+): Promise<BookingResponseDto> {
+  const url = new URL(`/api/public/bookings/${encodeURIComponent(bookingCode)}/change-requests`, apiOrigin());
+  const response = await fetch(url.toString(), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  });
+  if (!response.ok) {
+    let message = `Lỗi gửi yêu cầu thay đổi: HTTP ${response.status}`;
+    try {
+      const err = (await response.json()) as { message?: string; error?: string };
+      message = err.message ?? err.error ?? message;
+    } catch {
+      // ignore
+    }
+    throw new Error(message);
+  }
+  return (await response.json()) as BookingResponseDto;
+}
+
 export async function fetchBookingChangeRequests(
   bookingCode: string
 ): Promise<import('../types/booking').BookingChangeRequestDto[]> {
@@ -351,5 +377,22 @@ export async function checkRoomAvailability(
   }
 
   return (await response.json()) as import('../types/booking').CheckAvailabilityResponse;
+}
+
+export async function quoteRoom(
+  roomTypeId: number,
+  checkIn: string,
+  checkOut: string,
+  roomCount: number,
+  guestCount: number
+): Promise<import('../types/booking').BookingQuoteResponse> {
+  const url = new URL(`/api/public/bookings/rooms/${roomTypeId}/quote`, apiOrigin());
+  url.searchParams.set('checkIn', checkIn);
+  url.searchParams.set('checkOut', checkOut);
+  url.searchParams.set('roomCount', String(roomCount));
+  url.searchParams.set('guestCount', String(guestCount));
+  const response = await fetch(url.toString());
+  if (!response.ok) throw new Error(`Không thể kiểm tra lại giá (HTTP ${response.status})`);
+  return (await response.json()) as import('../types/booking').BookingQuoteResponse;
 }
 

@@ -4,7 +4,7 @@ import {
   Bell, 
   CheckCircle2, 
   XCircle, 
-  RotateCcw, 
+
   CheckCheck, 
   BellOff, 
   ExternalLink,
@@ -49,7 +49,12 @@ export default function NotificationBell({ isSolid }: NotificationBellProps) {
 
   // Nạp danh sách thông báo từ server
   const loadNotifications = useCallback(async () => {
-    const email = currentUser?.email || 'vutrggiang@gmail.com';
+    if (!currentUser) {
+      setNotifications([]);
+      return;
+    }
+
+    const email = currentUser.email;
     const phone = currentUser?.phone;
     const accountId = currentUser?.id;
 
@@ -102,7 +107,7 @@ export default function NotificationBell({ isSolid }: NotificationBellProps) {
 
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
     await markAllNotificationsAsRead({
-      email: currentUser?.email || 'vutrggiang@gmail.com',
+      email: currentUser?.email,
       phone: currentUser?.phone,
       accountId: currentUser?.id,
       notificationIds: unreadIds,
@@ -115,7 +120,7 @@ export default function NotificationBell({ isSolid }: NotificationBellProps) {
     }
     setIsOpen(false);
     if (item.bookingCode) {
-      navigate(`/bookings?code=${encodeURIComponent(item.bookingCode)}`);
+      navigate(`/bookings/${encodeURIComponent(item.bookingCode)}`);
     } else {
       navigate('/bookings');
     }
@@ -162,13 +167,42 @@ export default function NotificationBell({ isSolid }: NotificationBellProps) {
             Bị từ chối
           </span>
         );
-      case 'REFUNDED':
+      case 'CHANGE_APPROVED':
         return (
-          <span className="inline-flex items-center gap-1 rounded-sm border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">
-            <RotateCcw className="h-3 w-3 text-amber-600" />
-            Đã hoàn tiền
+          <span className="inline-flex items-center gap-1 rounded-sm border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
+            <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+            Đã duyệt thay đổi
           </span>
         );
+      case 'CHANGE_REJECTED':
+        return (
+          <span className="inline-flex items-center gap-1 rounded-sm border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold text-rose-700">
+            <XCircle className="h-3 w-3 text-rose-600" />
+            Từ chối thay đổi
+          </span>
+        );
+      case 'CANCELLED':
+        return (
+          <span className="inline-flex items-center gap-1 rounded-sm border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold text-rose-700">
+            <XCircle className="h-3 w-3 text-rose-600" />
+            Đã hủy
+          </span>
+        );
+      case 'EXPIRED':
+        return (
+          <span className="inline-flex items-center gap-1 rounded-sm border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold text-rose-700">
+            <XCircle className="h-3 w-3 text-rose-600" />
+            Quá hạn
+          </span>
+        );
+      case 'REVIEW_REPLY':
+        return (
+          <span className="inline-flex items-center gap-1 rounded-sm border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
+            <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+            Phản hồi mới
+          </span>
+        );
+
       default:
         return null;
     }
@@ -180,8 +214,17 @@ export default function NotificationBell({ isSolid }: NotificationBellProps) {
         return <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />;
       case 'REJECTED':
         return <XCircle className="h-4 w-4 shrink-0 text-rose-600" />;
-      case 'REFUNDED':
-        return <RotateCcw className="h-4 w-4 shrink-0 text-amber-600" />;
+      case 'CHANGE_APPROVED':
+        return <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />;
+      case 'CHANGE_REJECTED':
+        return <XCircle className="h-4 w-4 shrink-0 text-rose-600" />;
+      case 'CANCELLED':
+        return <XCircle className="h-4 w-4 shrink-0 text-rose-600" />;
+      case 'EXPIRED':
+        return <XCircle className="h-4 w-4 shrink-0 text-rose-600" />;
+      case 'REVIEW_REPLY':
+        return <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />;
+
       default:
         return <Sparkles className="h-4 w-4 shrink-0 text-[var(--color-primary)]" />;
     }
@@ -268,9 +311,8 @@ export default function NotificationBell({ isSolid }: NotificationBellProps) {
             {filteredList.length > 0 ? (
               filteredList.map((item) => {
                 const bookingStatus = item.bookingStatus || (item.payload?.bookingStatus as string | undefined);
-                const isConfirmed = bookingStatus === 'CONFIRMED';
-                const isRejected = bookingStatus === 'REJECTED';
-                const isRefunded = bookingStatus === 'REFUNDED';
+                const isPositive = bookingStatus === 'CONFIRMED' || bookingStatus === 'CHANGE_APPROVED' || bookingStatus === 'REVIEW_REPLY';
+                const isNegative = ['REJECTED', 'CHANGE_REJECTED', 'CANCELLED', 'EXPIRED', 'NO_SHOW'].includes(bookingStatus ?? '');
 
                 return (
                   <div
@@ -278,12 +320,10 @@ export default function NotificationBell({ isSolid }: NotificationBellProps) {
                     onClick={() => void handleClickItem(item)}
                     className={`flex items-start gap-3 p-3 transition-colors cursor-pointer hover:bg-gray-50 ${
                       !item.isRead
-                        ? isConfirmed
+                          ? isPositive
                           ? 'bg-emerald-50/40'
-                          : isRejected
+                          : isNegative
                           ? 'bg-rose-50/40'
-                          : isRefunded
-                          ? 'bg-amber-50/40'
                           : 'bg-[#edfbf7]/50'
                         : 'bg-white'
                     }`}

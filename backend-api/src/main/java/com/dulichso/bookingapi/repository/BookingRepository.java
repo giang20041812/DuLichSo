@@ -116,4 +116,44 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, org.spr
         WHERE b.provider.id = :providerId AND b.status = com.dulichso.bookingapi.entity.enums.BookingStatus.PENDING
     """)
     java.util.List<Booking> findPendingByProviderId(@org.springframework.data.repository.query.Param("providerId") Long providerId);
+
+    @org.springframework.data.jpa.repository.Query("""
+        SELECT b FROM Booking b JOIN FETCH b.roomType rt JOIN FETCH b.place p
+        WHERE b.place.id = :placeId
+          AND b.status IN (com.dulichso.bookingapi.entity.enums.BookingStatus.PENDING,
+                           com.dulichso.bookingapi.entity.enums.BookingStatus.AWAITING_PAYMENT,
+                           com.dulichso.bookingapi.entity.enums.BookingStatus.CONFIRMED)
+          AND b.checkOut > :fromDate
+          AND b.checkIn < :toDate
+    """)
+    java.util.List<Booking> findActiveByPlaceAndDateRange(
+            @org.springframework.data.repository.query.Param("placeId") Long placeId,
+            @org.springframework.data.repository.query.Param("fromDate") java.time.LocalDate fromDate,
+            @org.springframework.data.repository.query.Param("toDate") java.time.LocalDate toDate);
+
+    @org.springframework.data.jpa.repository.Query("""
+        SELECT b FROM Booking b JOIN FETCH b.roomType rt JOIN FETCH b.place p
+        WHERE b.roomType.id = :roomTypeId
+          AND b.status IN (com.dulichso.bookingapi.entity.enums.BookingStatus.PENDING,
+                           com.dulichso.bookingapi.entity.enums.BookingStatus.AWAITING_PAYMENT,
+                           com.dulichso.bookingapi.entity.enums.BookingStatus.CONFIRMED)
+          AND b.checkOut > :fromDate
+          AND b.checkIn < :toDate
+    """)
+    java.util.List<Booking> findActiveByRoomTypeAndDateRange(
+            @org.springframework.data.repository.query.Param("roomTypeId") Long roomTypeId,
+            @org.springframework.data.repository.query.Param("fromDate") java.time.LocalDate fromDate,
+            @org.springframework.data.repository.query.Param("toDate") java.time.LocalDate toDate);
+
+    @org.springframework.data.jpa.repository.Query("""
+        SELECT b FROM Booking b JOIN FETCH b.roomType rt JOIN FETCH b.place p
+        WHERE b.provider.id = :providerId
+          AND b.status IN (com.dulichso.bookingapi.entity.enums.BookingStatus.PENDING,
+                           com.dulichso.bookingapi.entity.enums.BookingStatus.AWAITING_PAYMENT,
+                           com.dulichso.bookingapi.entity.enums.BookingStatus.CONFIRMED)
+          AND b.checkOut > :fromDate
+    """)
+    java.util.List<Booking> findActiveByProviderId(
+            @org.springframework.data.repository.query.Param("providerId") Long providerId,
+            @org.springframework.data.repository.query.Param("fromDate") java.time.LocalDate fromDate);
 }

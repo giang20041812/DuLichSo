@@ -7,9 +7,11 @@ import com.dulichso.bookingapi.dto.admin.AdminProviderApplicationDtos.Applicatio
 import com.dulichso.bookingapi.dto.admin.AdminProviderApplicationDtos.BulkActionResultDto;
 import com.dulichso.bookingapi.dto.admin.AdminProviderApplicationDtos.BulkFailureDto;
 import com.dulichso.bookingapi.dto.admin.AdminProviderApplicationDtos.PendingApplicationCountDto;
+import com.dulichso.bookingapi.dto.admin.PlaceShowcaseDtos.PlaceShowcaseDto;
 import com.dulichso.bookingapi.entity.enums.ProviderApplicationStatus;
 import com.dulichso.bookingapi.security.UserPrincipal;
 import com.dulichso.bookingapi.service.AdminProviderApplicationService;
+import com.dulichso.bookingapi.service.PlaceShowcaseService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotBlank;
@@ -37,6 +39,7 @@ import java.util.List;
 @RequestMapping("/api/v1/admin/provider-applications")
 public class AdminProviderApplicationController {
     private final AdminProviderApplicationService service;
+    private final PlaceShowcaseService showcaseService;
 
     @GetMapping
     public ResponseEntity<Page<ApplicationSummaryDto>> search(
@@ -58,6 +61,12 @@ public class AdminProviderApplicationController {
     @GetMapping("/{id}")
     public ResponseEntity<ApplicationDetailDto> detail(@PathVariable Long id) {
         return ResponseEntity.ok(service.detail(id));
+    }
+
+    /** Hình ảnh, tiện nghi, chính sách lưu trú của hồ sơ (lấy từ Homestay của đối tác khi hồ sơ đã được duyệt). */
+    @GetMapping("/{id}/showcase")
+    public ResponseEntity<PlaceShowcaseDto> showcase(@PathVariable Long id) {
+        return ResponseEntity.ok(showcaseService.forApplication(id));
     }
 
     @PostMapping("/{id}/approve")

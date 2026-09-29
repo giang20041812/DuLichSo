@@ -3,7 +3,6 @@ import { useLocation, useNavigate, Link } from 'react-router-dom';
 import {
   Compass,
   Mail,
-  User,
   Sparkles,
   FileText,
   Check,
@@ -19,8 +18,8 @@ import {
   Star,
   CheckCircle2,
   Banknote,
-  Phone,
   Mountain,
+  Clock,
   Bus,
   MapPin,
   Map as MapIcon,
@@ -32,7 +31,7 @@ import {
   Lock
 } from 'lucide-react';
 import { BookingNavigationState, BookingResponseDto, BookingServiceItemDto, BookedDateRangeDto } from '@/types/booking';
-import { createBooking, saveUserBooking, fetchBookedDatesByPlace, fetchBookedDatesByRoom } from '@/services/bookingService';
+import { createBooking, saveUserBooking, fetchBookedDatesByPlace, fetchBookedDatesByRoom, quoteRoom } from '@/services/bookingService';
 import { fetchNearbyPlaces, getHomestayById } from '@/services/homestayService';
 import { getCurrentCustomer } from '@/services/authService';
 import { NearbyPlaceDto } from '@/types/homestay';
@@ -41,6 +40,7 @@ import { VietTrackLogoMark } from '@/components/ui/logo';
 import VietmapView from '@/components/map/VietmapView';
 import type { VietmapMarkerItem } from '@/types/integrations/vietmap';
 import RoomAvailabilityCalendar from '@/components/homestay/RoomAvailabilityCalendar';
+import { openGoogleMapsDirections } from '@/lib/mapUtils';
 
 // Helper tính khoảng cách Haversine chuẩn theo tọa độ GPS
 function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -154,6 +154,22 @@ export default function BookingPage() {
 
   // Danh sách các khoảng ngày đã đặt của phòng này
   const [bookedDates, setBookedDates] = useState<BookedDateRangeDto[]>([]);
+
+  useEffect(() => {
+    // Ngăn Admin/Provider truy cập trang khách hàng
+    const rawPortal = localStorage.getItem('portal_user');
+    if (rawPortal) {
+      try {
+        const user = JSON.parse(rawPortal);
+        if (user && (user.role === 'ADMIN' || user.role === 'PROVIDER')) {
+          window.location.href = user.role === 'ADMIN' ? '/admin' : '/partner';
+        }
+      } catch (e) {
+        console.error('Lỗi khi đọc portal_user', e);
+      }
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
 
   useEffect(() => {
     if (navState?.roomTypeId) {
@@ -503,6 +519,26 @@ export default function BookingPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingResult, setBookingResult] = useState<BookingResponseDto | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [redirectCountdown, setRedirectCountdown] = useState(5);
+
+  // Tự động chuyển về trang chi tiết đơn sau 5 giây khi đặt phòng thành công
+  useEffect(() => {
+    if (!isBookingSuccess || !bookingResult?.bookingCode) return;
+
+    setRedirectCountdown(5);
+    const interval = setInterval(() => {
+      setRedirectCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          navigate(`/bookings/${bookingResult.bookingCode}`);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isBookingSuccess, bookingResult?.bookingCode, navigate]);
 
   const isPhoneValid = phone.trim().length >= 9;
 
@@ -552,6 +588,16 @@ export default function BookingPage() {
 
     setIsSubmitting(true);
     try {
+      const quote = await quoteRoom(navState.roomTypeId, checkIn, checkOut, roomCount, guestCount);
+      if (!quote.suitable || quote.availableRooms < roomCount) {
+        throw new Error('Phòng hoặc sức chứa không còn phù hợp với lựa chọn hiện tại.');
+      }
+      if (quote.totalAmount !== totalPrice) {
+        const accepted = window.confirm(
+          `Giá mới là ${quote.totalAmount.toLocaleString('vi-VN')}đ. Giá có thể đã thay đổi, bạn có xác nhận tiếp tục không?`
+        );
+        if (!accepted) return;
+      }
       const selectedRequests = (Object.entries(specialRequests) as [string, boolean][])
         .filter(([, v]) => v)
         .map(([k]) => k);
@@ -643,221 +689,126 @@ export default function BookingPage() {
         </div>
       </header>
 
-      {/* Nếu thành công, hiển thị toàn màn hình (Booking Result View) */}
+      {/* Nếu thành công, hiển thị Booking Result View hiện đại, tinh gọn */}
       {isBookingSuccess ? (
-        <div className="flex-1 bg-gray-50 py-8 md:py-12">
-          <div className="max-w-2xl mx-auto px-4 md:px-0 space-y-6 animate-in slide-in-from-bottom-4 duration-300">
-            {/* Header / Trạng thái */}
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden text-center p-8">
-              <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-5">
-                <CheckCircle2 className="w-8 h-8" />
-              </div>
-              <h2 className="text-2xl font-bold text-[var(--color-ink-deep)] mb-2">
-                Yêu cầu đặt phòng đã được gửi!
-              </h2>
-              <p className="text-sm text-[var(--color-muted)] mb-6">
-                Chỗ nghỉ đang xử lý yêu cầu của bạn. Vui lòng đợi xác nhận.
-              </p>
+        <div className="flex-1 bg-[#F6FAF8] py-8 md:py-14 flex items-center justify-center">
+          <div className="max-w-xl w-full mx-auto px-4 space-y-5 animate-in fade-in zoom-in-95 duration-300">
+            {/* Main Success Card */}
+            <div className="bg-white rounded-lg border border-gray-100 shadow-[0_4px_24px_-4px_rgba(4,140,115,0.1)] overflow-hidden transition-all duration-300 hover:-translate-y-0.5">
+              {/* Header Gradient Accent */}
+              <div className="h-1.5 w-full bg-gradient-to-r from-[var(--color-primary)] via-[#06B6D4] to-[var(--color-coral)]" />
               
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6">
-                <div className="bg-gray-50 border border-gray-200 rounded-md px-4 py-2 flex items-center gap-2">
-                  <span className="text-xs text-gray-500 font-medium">Mã đặt chỗ:</span>
-                  <span className="font-bold text-gray-900 tracking-wider">{bookingResult?.bookingCode ?? '—'}</span>
-                  <button
-                    type="button"
-                    className="text-gray-400 hover:text-[var(--color-primary)] ml-1 cursor-pointer"
-                    title="Sao chép mã đặt chỗ"
-                    onClick={() => { if (bookingResult?.bookingCode) navigator.clipboard.writeText(bookingResult.bookingCode); }}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-                  </button>
+              <div className="p-6 sm:p-8 text-center">
+                <div className="w-14 h-14 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-4 border border-emerald-100 shadow-2xs">
+                  <CheckCircle2 className="w-7 h-7" />
                 </div>
                 
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-sm font-semibold">
-                  <span className="relative flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
-                  </span>
-                  Chờ xác nhận
-                </div>
-              </div>
-            </div>
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                  Đặt phòng thành công!
+                </h2>
+                <p className="text-xs sm:text-sm text-gray-500 mt-1 max-w-md mx-auto">
+                  Yêu cầu của bạn đã được chuyển tới <span className="font-semibold text-slate-800">{roomInfo.placeName}</span>.
+                </p>
 
-            {/* Cảnh báo thời hạn chờ */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
-              <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-              <div>
-                {(() => {
-                  const holdHours = bookingResult?.holdExpiresAt
-                    ? Math.max(1, Math.round((new Date(bookingResult.holdExpiresAt).getTime() - new Date().getTime()) / 3_600_000))
-                    : 12;
-                  return (
-                    <>
-                      <h4 className="text-sm font-bold text-blue-900">Thời hạn chờ xác nhận: {holdHours} giờ</h4>
-                      <p className="text-xs text-blue-800 mt-1 leading-relaxed">
-                        Yêu cầu đặt phòng sẽ tự động bị hủy nếu chỗ nghỉ không phản hồi trong vòng {holdHours} giờ tới. Chúng tôi sẽ gửi email thông báo ngay khi có kết quả.
-                      </p>
-                    </>
-                  );
-                })()}
-              </div>
-            </div>
-
-            {/* Banner Chính sách hủy phòng nổi bật */}
-            {(() => {
-              const policy = bookingResult?.policySnapshot;
-              const policyName = typeof policy?.policyName === 'string' ? policy.policyName : 'Chưa công bố';
-              const policyDesc = typeof policy?.description === 'string'
-                ? policy.description
-                : 'Vui lòng liên hệ chỗ nghỉ để biết chính sách hủy.';
-              return (
-                <div className="bg-emerald-50/90 border-2 border-emerald-500/80 rounded-lg p-4 shadow-xs">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-md bg-emerald-100 text-emerald-700 shrink-0 mt-0.5">
-                      <ShieldCheck className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="text-sm md:text-base font-bold text-emerald-900">
-                          Chính sách hủy phòng: {policyName}
-                        </h4>
-                      </div>
-                      <p className="text-xs md:text-sm text-emerald-800 mt-1 leading-relaxed">
-                        {policyDesc}
-                      </p>
-                    </div>
+                {/* Booking Code & Status Pill */}
+                <div className="mt-5 p-3.5 bg-slate-50 border border-slate-200/80 rounded-md flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500 font-medium">Mã đặt phòng:</span>
+                    <span className="text-sm font-mono font-bold text-[var(--color-primary)] tracking-wide">
+                      {bookingResult?.bookingCode ?? '—'}
+                    </span>
+                    <button
+                      type="button"
+                      className="p-1 text-gray-400 hover:text-[var(--color-primary)] rounded hover:bg-white transition-colors cursor-pointer"
+                      title="Sao chép mã"
+                      onClick={() => {
+                        if (bookingResult?.bookingCode) {
+                          navigator.clipboard.writeText(bookingResult.bookingCode);
+                        }
+                      }}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                    </button>
                   </div>
-                </div>
-              );
-            })()}
-
-            {/* Thông tin snapshot */}
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-              <div className="p-5 border-b border-gray-100">
-                <h3 className="font-bold text-lg text-[var(--color-ink-deep)]">Chi tiết đặt phòng</h3>
-              </div>
-              
-              <div className="p-5 space-y-4 text-sm">
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="text-gray-500">Chỗ nghỉ</div>
-                  <div className="col-span-2 font-semibold text-gray-900">{roomInfo.placeName}</div>
-                </div>
-                
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="text-gray-500">Phòng</div>
-                  <div className="col-span-2 font-medium text-gray-800">{roomInfo.roomName}</div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="text-gray-500">Thời gian</div>
-                  <div className="col-span-2 font-medium text-gray-800">
-                    {roomInfo.checkInDateStr} <ArrowRight className="w-3 h-3 inline mx-1 text-gray-400" /> {roomInfo.checkOutDateStr} ({bookingResult?.nights ?? nights} đêm)
+                  
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-amber-50 text-amber-700 border border-amber-200 text-xs font-semibold">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                    </span>
+                    Chờ chủ nhà xác nhận
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="text-gray-500">Số lượng đặt</div>
-                  <div className="col-span-2 font-medium text-gray-800">
-                    {bookingResult?.roomCount ?? roomCount} phòng · {bookingResult?.guestCount ?? guestCount} khách
+                {/* Thông tin vắn tắt (Compact Snapshot) */}
+                <div className="mt-5 text-left border border-gray-100 rounded-md divide-y divide-gray-100 text-xs sm:text-sm bg-white">
+                  <div className="p-3 flex items-center justify-between gap-4">
+                    <span className="text-gray-500 shrink-0">Hạng phòng</span>
+                    <span className="font-semibold text-slate-800 text-right truncate">{roomInfo.roomName}</span>
                   </div>
-                </div>
-
-                {/* Dịch vụ đi kèm theo DB mới: booking_service_item */}
-                {bookingResult?.serviceItems && bookingResult.serviceItems.length > 0 && (
-                  <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-100">
-                    <div className="text-gray-500">Dịch vụ đi kèm đã lưu</div>
-                    <div className="col-span-2 space-y-2">
-                      {bookingResult.serviceItems.map((svc, idx) => (
-                        <div key={idx} className="p-2.5 rounded-md bg-[#edfbf7] border border-[#10b981]/20 text-xs">
-                          <div className="font-bold text-[#10b981] flex items-center gap-1.5">
-                            <Sparkles className="w-3.5 h-3.5 text-[#10b981]" />
-                            {svc.serviceName}
-                          </div>
-                          {svc.note && (
-                            <div className="text-gray-600 mt-1 italic">
-                              Ghi chú: {svc.note}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
+                  <div className="p-3 flex items-center justify-between gap-4">
+                    <span className="text-gray-500 shrink-0">Lưu trú</span>
+                    <span className="font-medium text-slate-700 text-right">
+                      {roomInfo.checkInDateStr} → {roomInfo.checkOutDateStr} ({bookingResult?.nights ?? nights} đêm)
+                    </span>
                   </div>
-                )}
-
-                {/* Thông tin liên hệ & người đặt phòng */}
-                <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-100">
-                  <div className="text-gray-500">Người đặt phòng</div>
-                  <div className="col-span-2 space-y-1">
-                    <div className="font-semibold text-gray-900 flex items-center gap-2">
-                      <User className="w-3.5 h-3.5 text-gray-500" />
-                      <span>{fullName || 'Chưa nhập họ tên'}</span>
-                    </div>
-                    <div className="text-xs text-gray-600 flex items-center gap-2">
-                      <Mail className="w-3.5 h-3.5 text-gray-500" />
-                      <span>{email || 'Chưa nhập email'}</span>
-                    </div>
-                    <div className="text-xs text-gray-600 flex items-center gap-2">
-                      <Phone className="w-3.5 h-3.5 text-gray-500" />
-                      <span>{countryCode} {phone || 'Chưa nhập số điện thoại'}</span>
-                    </div>
+                  <div className="p-3 flex items-center justify-between gap-4">
+                    <span className="text-gray-500 shrink-0">Khách & Phòng</span>
+                    <span className="font-medium text-slate-700 text-right">
+                      {bookingResult?.roomCount ?? roomCount} phòng · {bookingResult?.guestCount ?? guestCount} khách ({guestName || fullName})
+                    </span>
                   </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="text-gray-500">Khách lưu trú</div>
-                  <div className="col-span-2 font-medium text-gray-800">
-                    {guestName || fullName || 'Khách lưu trú'}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-100">
-                  <div className="text-gray-500">Chính sách hủy</div>
-                  <div className="col-span-2 text-gray-800">
-                    {(() => {
-                      const policy = bookingResult?.policySnapshot;
-                      const policyName = typeof policy?.policyName === 'string' ? policy.policyName : 'Chưa công bố';
-                      const cutoffHours = typeof policy?.freeCancelCutoffHours === 'number' ? policy.freeCancelCutoffHours : null;
-                      return (
-                        <>
-                          <span className="font-semibold text-emerald-700">{policyName}</span>
-                          <span className="text-gray-600 block text-xs mt-0.5">
-                            {cutoffHours == null ? 'Vui lòng liên hệ chỗ nghỉ để biết chính sách hủy.' : `Hủy miễn phí trước ${cutoffHours} giờ nhận phòng (${roomInfo.checkInDateStr}). Sau thời gian này, phí hủy áp dụng theo chính sách đã ghi nhận.`}
-                          </span>
-                        </>
-                      );
-                    })()}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-100">
-                  <div className="text-gray-500">Thanh toán (tại chỗ nghỉ)</div>
-                  <div className="col-span-2">
-                    <div className="font-bold text-lg text-[var(--color-coral)]">
+                  <div className="p-3 flex items-center justify-between gap-4 bg-emerald-50/30">
+                    <span className="text-gray-600 font-medium shrink-0">Tổng tiền thanh toán tại chỗ</span>
+                    <span className="text-base font-bold text-[var(--color-coral)]">
                       {new Intl.NumberFormat('vi-VN').format(bookingResult?.totalAmount ?? totalPrice)} VND
-                    </div>
-                    <div className="text-xs text-gray-500 mt-0.5">
-                      Không thanh toán trước · Thanh toán tiền mặt hoặc QR khi nhận phòng
-                    </div>
+                    </span>
                   </div>
                 </div>
-              </div>
-            </div>
 
-            {/* CTAs */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <Button
-                variant="outline"
-                onClick={() => navigate('/')}
-                className="flex-1 py-6 bg-white border-gray-300 text-gray-700 font-semibold rounded-md shadow-sm hover:bg-gray-50 transition-colors"
-              >
-                Về trang chủ
-              </Button>
-              <Button
-                onClick={() => navigate('/')} 
-                className="flex-1 py-6 bg-[var(--color-primary)] hover:bg-[#03725e] text-white font-bold rounded-md shadow-sm transition-colors"
-              >
-                Theo dõi đặt phòng
-              </Button>
+                {/* 5-second countdown notice with animated progress bar */}
+                <div className="mt-6 p-3 bg-teal-50/60 border border-teal-100 rounded-md text-left">
+                  <div className="flex items-center justify-between text-xs text-teal-900 font-medium mb-1.5">
+                    <span className="flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-[var(--color-primary)]" />
+                      Tự động chuyển đến chi tiết đơn sau:
+                    </span>
+                    <span className="font-bold text-[var(--color-primary)] font-mono text-sm">
+                      {redirectCountdown}s
+                    </span>
+                  </div>
+                  <div className="w-full bg-teal-200/60 rounded-full h-1.5 overflow-hidden">
+                    <div
+                      className="bg-[var(--color-primary)] h-1.5 rounded-full transition-all duration-1000 ease-linear"
+                      style={{ width: `${((5 - redirectCountdown) / 5) * 100}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="mt-6 flex flex-col sm:flex-row gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate('/')}
+                    className="flex-1 py-2.5 h-11 bg-white border-gray-200 text-gray-700 font-medium rounded-md hover:bg-gray-50 transition-colors text-xs sm:text-sm cursor-pointer"
+                  >
+                    Về trang chủ
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      if (bookingResult?.bookingCode) {
+                        navigate(`/bookings/${bookingResult.bookingCode}`);
+                      } else {
+                        navigate('/bookings');
+                      }
+                    }}
+                    className="flex-1 py-2.5 h-11 bg-[var(--color-primary)] hover:bg-[#03725e] text-white font-bold rounded-md shadow-sm transition-all text-xs sm:text-sm cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <span>Theo dõi đơn đặt</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1322,22 +1273,33 @@ export default function BookingPage() {
                                   {item.displayDistance < 1 ? Math.round(item.displayDistance * 1000) + ' m' : item.displayDistance + ' km'}
                                 </span>
 
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenAddService(item)}
-                                  className={`w-7 h-7 rounded-md flex items-center justify-center transition-all cursor-pointer ${
-                                    isAdded
-                                      ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs'
-                                      : 'bg-[var(--color-primary-50)] text-[var(--color-primary)] border border-[var(--color-primary-200)] hover:bg-[var(--color-primary)] hover:text-white shadow-2xs'
-                                  }`}
-                                  title={isAdded ? 'Đã thêm vào booking (bấm để chỉnh sửa/hủy)' : 'Thêm tư vấn dịch vụ này vào booking'}
-                                >
-                                  {isAdded ? (
-                                    <Check className="w-3.5 h-3.5 stroke-[3]" />
-                                  ) : (
-                                    <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                                  )}
-                                </button>
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => openGoogleMapsDirections(item.latitude, item.longitude, `${item.address || ''} ${item.name}`)}
+                                    className="w-7 h-7 rounded-md flex items-center justify-center bg-white text-[var(--color-primary)] border border-[var(--color-primary-200)] hover:bg-[var(--color-primary)] hover:text-white transition-all cursor-pointer shadow-2xs"
+                                    title="Chỉ đường đến địa điểm này"
+                                    aria-label={`Chỉ đường đến ${item.name}`}
+                                  >
+                                    <MapIcon className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenAddService(item)}
+                                    className={`w-7 h-7 rounded-md flex items-center justify-center transition-all cursor-pointer ${
+                                      isAdded
+                                        ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs'
+                                        : 'bg-[var(--color-primary-50)] text-[var(--color-primary)] border border-[var(--color-primary-200)] hover:bg-[var(--color-primary)] hover:text-white shadow-2xs'
+                                    }`}
+                                    title={isAdded ? 'Đã thêm vào booking (bấm để chỉnh sửa/hủy)' : 'Thêm tư vấn dịch vụ này vào booking'}
+                                  >
+                                    {isAdded ? (
+                                      <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                    ) : (
+                                      <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                                    )}
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           </div>

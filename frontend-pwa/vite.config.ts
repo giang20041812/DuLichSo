@@ -26,6 +26,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      devOptions: { enabled: true },
       includeAssets: ['favicon.ico', 'favicon.svg', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png', 'screenshots/desktop-wide.png', 'screenshots/mobile-narrow.png'],
       manifest: {
         id: '/',
@@ -105,6 +106,7 @@ export default defineConfig({
         ]
       },
       workbox: {
+        maximumFileSizeToCacheInBytes: 5000000,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.(png|jpg|jpeg|svg|gif|webp)$/,

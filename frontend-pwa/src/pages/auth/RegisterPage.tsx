@@ -40,6 +40,8 @@ export default function RegisterPage() {
   // Touched states for realtime validation
   const [touched, setTouched] = useState<{ [key: string]: boolean }>({});
   const [serverError, setServerError] = useState<string | null>(null);
+  // Lỗi trùng do server báo theo từng trường, kèm giá trị đã gửi: sửa ô đó thì lỗi tự mất, nhập lại đúng giá trị cũ thì hiện lại.
+  const [duplicates, setDuplicates] = useState<{ email?: { value: string; message: string }; phone?: { value: string; message: string } }>({});
   const [isLoading, setIsLoading] = useState(false);
 
   const markTouched = (field: string) => {
@@ -62,11 +64,17 @@ export default function RegisterPage() {
       errs.email = 'Vui lòng nhập địa chỉ email.';
     } else if (!EMAIL_REGEX.test(trimmedEmail)) {
       errs.email = 'Địa chỉ email không hợp lệ (VD: ban@email.com).';
+    } else if (duplicates.email && duplicates.email.value === trimmedEmail.toLowerCase()) {
+      errs.email = duplicates.email.message;
     }
 
     const trimmedPhone = phone.trim();
-    if (trimmedPhone && !VN_PHONE_REGEX.test(trimmedPhone)) {
+    if (!trimmedPhone) {
+      errs.phone = 'Vui lòng nhập số điện thoại.';
+    } else if (!VN_PHONE_REGEX.test(trimmedPhone)) {
       errs.phone = 'Số điện thoại không đúng định dạng (VD: 0912345678).';
+    } else if (duplicates.phone && duplicates.phone.value === trimmedPhone) {
+      errs.phone = duplicates.phone.message;
     }
 
     if (!password) {
@@ -86,7 +94,7 @@ export default function RegisterPage() {
     }
 
     return errs;
-  }, [fullName, email, phone, password, confirmPassword, agreedTerms]);
+  }, [fullName, email, phone, password, confirmPassword, agreedTerms, duplicates]);
 
   // Độ mạnh mật khẩu (Password Strength)
   const passwordStrength = useMemo(() => {
@@ -121,17 +129,30 @@ export default function RegisterPage() {
     if (!isFormValid) return;
 
     setIsLoading(true);
+    const submittedEmail = email.trim().toLowerCase();
+    const submittedPhone = phone.trim();
     try {
       const res = await travelerRegister({
         fullName: fullName.trim(),
-        email: email.trim().toLowerCase(),
-        phone: phone.trim() || undefined,
+        email: submittedEmail,
+        phone: submittedPhone,
         password,
         confirmPassword,
       });
       saveTravelerSession(res);
       navigate('/');
     } catch (err: unknown) {
+      // Trùng thông tin: báo ngay dưới từng ô bị trùng (có thể nhiều ô cùng lúc) thay vì một thông báo chung.
+      const fieldErrors = (err as AuthErrorResponse)?.fieldErrors ?? [];
+      const emailDup = fieldErrors.find((f) => f.field === 'email');
+      const phoneDup = fieldErrors.find((f) => f.field === 'phone');
+      if (emailDup || phoneDup) {
+        setDuplicates({
+          ...(emailDup ? { email: { value: submittedEmail, message: emailDup.message } } : {}),
+          ...(phoneDup ? { phone: { value: submittedPhone, message: phoneDup.message } } : {}),
+        });
+        return;
+      }
       const message =
         (err as AuthErrorResponse)?.message ||
         (err instanceof Error ? err.message : 'Đăng ký không thành công. Vui lòng kiểm tra lại thông tin.');
@@ -163,23 +184,31 @@ export default function RegisterPage() {
       image={AUTH_IMAGES.register}
       title="Tạo tài khoản mới"
       subtitle="Đăng ký để khám phá homestay, nhận ưu đãi độc quyền và quản lý chuyến đi Tây Bắc của bạn."
-      footer={
-        <div className="flex flex-col items-center gap-3">
-          <div className="flex items-center gap-1.5 text-sm text-ink-light">
-            <span>Đã có tài khoản?</span>
-            <Link
-              to="/login"
-              className="font-bold text-primary hover:text-primary-600 hover:underline"
-            >
-              Đăng nhập ngay
-            </Link>
-          </div>
-          <p className="text-center text-xs text-muted">
-            Dành cho chủ Homestay & Đối tác: Vui lòng liên hệ Quản trị viên để được cấp tài khoản nhà cung cấp.
-          </p>
-        </div>
-      }
+      footer={null}
     >
+      <div className="mb-6 flex flex-col gap-3 rounded-md bg-primary-50 p-3 text-sm text-ink-deep border border-primary-100">
+        <div className="flex items-center justify-between">
+          <span>Đã có tài khoản?</span>
+          <Link
+            to="/login"
+            className="font-bold text-primary hover:text-primary-600 hover:underline"
+          >
+            Đăng nhập ngay
+          </Link>
+        </div>
+        <div className="h-px w-full bg-primary-200/50"></div>
+        <div className="flex items-center justify-between">
+          <span>Dành cho Đối tác:</span>
+          <Link
+            to="/register/partner"
+            className="font-bold text-primary hover:text-primary-600 hover:underline"
+          >
+            Đăng ký cung cấp
+          </Link>
+        </div>
+      </div>
+
+
       {/* Nút Google Đăng nhập phát một qua Firebase */}
       <GoogleSignInButton
         text="signup_with"
@@ -268,10 +297,10 @@ export default function RegisterPage() {
           )}
         </div>
 
-        {/* Số điện thoại (tùy chọn) */}
+        {/* Số điện thoại (bắt buộc) */}
         <div>
           <label htmlFor="phone" className="mb-1.5 flex items-center justify-between text-sm font-semibold text-ink-deep">
-            <span>Số điện thoại <span className="text-xs font-normal text-muted">(Không bắt buộc)</span></span>
+            <span>Số điện thoại <span className="text-danger">*</span></span>
             {phone && touched.phone && !errors.phone && (
               <span className="flex items-center gap-1 text-xs text-emerald-600">
                 <CheckCircle2 className="h-3.5 w-3.5" /> Hợp lệ

@@ -281,10 +281,15 @@ export default function AdminDashboardPage() {
     if (changes.status === 'fulfilled' && changes.value !== null) setPendingChanges(changes.value);
   };
 
+  /** "Làm mới": đưa mục đang mở về trạng thái ban đầu (bỏ tab trạng thái trên URL, bộ lọc, tìm kiếm) rồi tải lại dữ liệu. */
   const refreshActiveTab = () => {
+    setSearchParams(clearStatusParam, { replace: true });
+    if (activeTab === 'bookings') setBookingsPreset((p) => ({ key: p.key + 1 }));
     if (activeTab === 'dashboard') loadDashboard();
-    else if (activeTab === 'providers') loadProviders();
-    else if (activeTab !== 'finance') {
+    else if (activeTab === 'providers') {
+      loadProviders();
+      setPanelKey((k) => k + 1);
+    } else if (activeTab !== 'finance') {
       setAccountsRefreshKey((k) => k + 1);
       setPanelKey((k) => k + 1);
     }
@@ -567,6 +572,7 @@ export default function AdminDashboardPage() {
           {/* Tab 2: Quản lý Tài khoản */}
           {activeTab === 'accounts' && (
             <AccountsPanel
+              key={panelKey}
               currentAccountId={currentUser?.accountId}
               refreshKey={accountsRefreshKey}
               onCreateAdmin={() => setShowCreateAdminModal(true)}
@@ -579,6 +585,7 @@ export default function AdminDashboardPage() {
           {/* Tab 3: Quản lý Đối tác / NCC */}
           {activeTab === 'providers' && (
             <ProvidersPanel
+              key={panelKey}
               providers={providers}
               loading={loading}
               error={providersError}
@@ -606,7 +613,7 @@ export default function AdminDashboardPage() {
           )}
 
           {/* Hàng đợi: duyệt điểm đến / homestay */}
-          {activeTab === 'places' && <PlacesPanel notify={showNotification} />}
+          {activeTab === 'places' && <PlacesPanel key={panelKey} notify={showNotification} />}
 
           {/* Hàng đợi: thay đổi homestay / phòng / giá do NCC gửi */}
           {activeTab === 'changes' && (

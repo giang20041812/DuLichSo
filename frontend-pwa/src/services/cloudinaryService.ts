@@ -7,10 +7,9 @@ export interface CloudinaryUploadConfig {
 }
 
 /**
- * Uploads an image file to Cloudinary using signed parameters from the backend.
- * Falls back to direct unsigned/signed upload if backend endpoint is available.
+ * Uploads an image file to Cloudinary using direct creator upload URL from the backend.
  */
-export async function uploadReviewImageToCloudinary(file: File): Promise<string> {
+export async function uploadReviewImageToCloudinary(file: File): Promise<{id: string, url: string}> {
   // 1. Get upload config from backend
   const res = await fetch('/api/public/bookings/media/upload-config');
   if (!res.ok) {
@@ -24,7 +23,7 @@ export async function uploadReviewImageToCloudinary(file: File): Promise<string>
     throw new Error('Cấu hình Cloudinary không hợp lệ.');
   }
 
-  // 2. Prepare FormData for Cloudinary
+  // 2. Prepare FormData
   const formData = new FormData();
   formData.append('file', file);
   formData.append('api_key', apiKey);
@@ -32,7 +31,8 @@ export async function uploadReviewImageToCloudinary(file: File): Promise<string>
   formData.append('signature', signature);
 
   // 3. Upload directly to Cloudinary
-  const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+  const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
+  const uploadRes = await fetch(uploadUrl, {
     method: 'POST',
     body: formData,
   });
@@ -40,8 +40,8 @@ export async function uploadReviewImageToCloudinary(file: File): Promise<string>
   if (!uploadRes.ok) {
     let errMsg = `Upload ảnh thất bại (HTTP ${uploadRes.status})`;
     try {
-      const errJson = (await uploadRes.json()) as { error?: { message?: string } };
-      if (errJson.error?.message) {
+      const errJson = (await uploadRes.json()) as any;
+      if (errJson?.error?.message) {
         errMsg = errJson.error.message;
       }
     } catch {
@@ -50,11 +50,6 @@ export async function uploadReviewImageToCloudinary(file: File): Promise<string>
     throw new Error(errMsg);
   }
 
-  const data = (await uploadRes.json()) as { secure_url?: string; url?: string };
-  const finalUrl = data.secure_url || data.url;
-  if (!finalUrl) {
-    throw new Error('Dịch vụ Cloudinary không trả về liên kết ảnh.');
-  }
-
-  return finalUrl;
+  const result = await uploadRes.json();
+  return { id: result.public_id, url: result.secure_url };
 }

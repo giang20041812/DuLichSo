@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useMemo } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   AlertCircle,
   ArrowRight,
@@ -22,6 +22,33 @@ const VN_PHONE_REGEX = /^(0|\+84)(3|5|7|8|9)[0-9]{8}$/;
 
 export default function PortalLoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const loginState = (() => {
+    const state: unknown = location.state;
+    if (!state || typeof state !== 'object') return null;
+    const candidate = state as { returnUrl?: unknown; returnTo?: unknown; bookingState?: unknown; message?: unknown };
+    const destination = typeof candidate.returnTo === 'string'
+      ? candidate.returnTo
+      : typeof candidate.returnUrl === 'string' ? candidate.returnUrl : null;
+    if (!destination || !destination.startsWith('/') || destination.startsWith('//') || destination === '/login') return null;
+    return {
+      destination,
+      bookingState: candidate.bookingState,
+      message: typeof candidate.message === 'string' ? candidate.message : undefined,
+    };
+  })();
+
+  const navigateAfterTravelerLogin = () => {
+    if (loginState) {
+      navigate(loginState.destination, {
+        replace: true,
+        ...(loginState.bookingState !== undefined ? { state: loginState.bookingState } : {}),
+      });
+      return;
+    }
+    navigate('/', { replace: true });
+  };
 
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -32,6 +59,20 @@ export default function PortalLoginPage() {
   const [touched, setTouched] = useState<{ [key: string]: boolean }>({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<AuthErrorResponse | null>(null);
+
+  // Redirect if already logged in
+  React.useEffect(() => {
+    const rawPortal = localStorage.getItem('portal_user');
+    const portalToken = localStorage.getItem('portal_token');
+    if (rawPortal && portalToken) {
+      try {
+        const parsed = JSON.parse(rawPortal);
+        if (parsed.role === 'ADMIN') navigate('/admin', { replace: true });
+        else if (parsed.role === 'PROVIDER') navigate('/partner', { replace: true });
+      } catch {}
+    }
+  }, [navigate]);
+
 
   // Forgot password modal state
   const [isForgotOpen, setIsForgotOpen] = useState(false);
@@ -90,7 +131,7 @@ export default function PortalLoginPage() {
         try {
           const travelerRes = await travelerLogin(cleanId, password);
           saveTravelerSession(travelerRes);
-          navigate('/');
+          navigateAfterTravelerLogin();
         } catch (travelerErr: unknown) {
           throw (travelerErr as AuthErrorResponse)?.errorCode === 'ACCOUNT_INACTIVE'
             ? travelerErr
@@ -109,7 +150,7 @@ export default function PortalLoginPage() {
     setError(null);
     try {
       saveTravelerSession(await googleLogin(idToken));
-      navigate('/');
+      navigateAfterTravelerLogin();
     } catch (err: unknown) {
       setError(err as AuthErrorResponse);
     } finally {
@@ -129,6 +170,28 @@ export default function PortalLoginPage() {
           </p>
         }
       >
+        <div className="mb-6 flex flex-col gap-3 rounded-md bg-primary-50 p-3 text-sm text-ink-deep border border-primary-100">
+          <div className="flex items-center justify-between">
+            <span>Chưa có tài khoản?</span>
+            <Link
+              to="/register"
+              className="font-bold text-primary hover:text-primary-600 hover:underline"
+            >
+              Đăng ký ngay
+            </Link>
+          </div>
+          <div className="h-px w-full bg-primary-200/50"></div>
+          <div className="flex items-center justify-between">
+            <span>Dành cho Đối tác:</span>
+            <Link
+              to="/register/partner"
+              className="font-bold text-primary hover:text-primary-600 hover:underline"
+            >
+              Đăng ký cung cấp
+            </Link>
+          </div>
+        </div>
+
         {/* Nút Đăng nhập phát một qua Google Firebase Popup */}
         <GoogleSignInButton
           text="signin_with"
@@ -278,16 +341,7 @@ export default function PortalLoginPage() {
             )}
           </button>
 
-          {/* Đặt lại nút đăng ký tài khoản vào form đăng nhập ở dưới cùng, cơ bản */}
-          <div className="pt-2 text-center text-xs text-muted">
-            Chưa có tài khoản?{' '}
-            <Link
-              to="/register"
-              className="font-semibold text-primary transition-colors hover:text-primary-600 hover:underline"
-            >
-              Đăng ký tài khoản
-            </Link>
-          </div>
+
         </form>
       </AuthShell>
 

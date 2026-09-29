@@ -1,6 +1,7 @@
 import axios from 'axios';
 import type { AdminBookingDto, BookingSearchParams, BookingStatusSummary, PageResponse } from '../types/admin';
-import type { AcceptBookingInput, BookingStatus, InfoRequestInput, PartnerBookingDetailDto, RejectBookingInput, StayActionInput } from '../types/booking';
+import type { BookingResponseDto } from '../types/booking';
+import type { AcceptBookingInput, BookingChangeRequestDto, BookingEvaluationInput, BookingStatus, InfoRequestInput, PartnerBookingDetailDto, PartnerBookingRowDto, RejectBookingInput, StayActionInput } from '../types/booking';
 
 const API_BASE = '/api/v1/partner/bookings';
 
@@ -11,8 +12,8 @@ const authHeaders = () => {
 
 /** Đơn đặt phòng của chính nhà cung cấp đang đăng nhập (backend tự lọc theo tài khoản). */
 export const partnerBookingService = {
-  async getBookings(params?: Omit<BookingSearchParams, 'providerId'>): Promise<PageResponse<AdminBookingDto>> {
-    const res = await axios.get<PageResponse<AdminBookingDto>>(API_BASE, { ...authHeaders(), params });
+  async getBookings(params?: Omit<BookingSearchParams, 'providerId'>): Promise<PageResponse<PartnerBookingRowDto>> {
+    const res = await axios.get<PageResponse<PartnerBookingRowDto>>(API_BASE, { ...authHeaders(), params });
     return res.data;
   },
 
@@ -28,6 +29,12 @@ export const partnerBookingService = {
 
   async getDetail(id: number): Promise<PartnerBookingDetailDto> {
     const res = await axios.get<PartnerBookingDetailDto>(`${API_BASE}/${id}`, authHeaders());
+    return res.data;
+  },
+
+  /** UC-NCC-07: lưu kết quả đánh giá khả năng đáp ứng (chưa xác nhận Booking). */
+  async evaluate(id: number, input: BookingEvaluationInput): Promise<PartnerBookingDetailDto> {
+    const res = await axios.post<PartnerBookingDetailDto>(`${API_BASE}/${id}/evaluation`, input, authHeaders());
     return res.data;
   },
 
@@ -49,6 +56,24 @@ export const partnerBookingService = {
 
   async reject(id: number, input: RejectBookingInput): Promise<PartnerBookingDetailDto> {
     const res = await axios.post<PartnerBookingDetailDto>(`${API_BASE}/${id}/reject`, input, authHeaders());
+    return res.data;
+  },
+
+  async getBookingChangeRequests(): Promise<BookingChangeRequestDto[]> {
+    const res = await axios.get<BookingChangeRequestDto[]>(`${API_BASE}/change-requests`, authHeaders());
+    return res.data;
+  },
+
+  async reviewBookingChangeRequest(
+    id: number,
+    approved: boolean,
+    rejectionReason?: string
+  ): Promise<BookingResponseDto> {
+    const res = await axios.post<BookingResponseDto>(
+      `${API_BASE}/change-requests/${id}/review`,
+      { approved, rejectionReason },
+      authHeaders()
+    );
     return res.data;
   },
 };

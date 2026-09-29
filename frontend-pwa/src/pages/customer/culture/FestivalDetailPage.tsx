@@ -503,7 +503,7 @@ export default function FestivalDetailPage() {
                 type="button"
                 onClick={() => openGoogleMapsDirections(geoInfo.lat, geoInfo.lng, geoInfo.address || festival.name)}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-bold rounded-md border border-blue-200 hover:bg-blue-100 transition-colors shrink-0 cursor-pointer"
-                title="Chỉ đường từ vị trí của bạn"
+                title="Mở Google Maps để chọn điểm xuất phát"
               >
                 <MapIcon className="w-3.5 h-3.5 text-blue-600" />
                 <span>Chỉ đường trên Google Maps</span>

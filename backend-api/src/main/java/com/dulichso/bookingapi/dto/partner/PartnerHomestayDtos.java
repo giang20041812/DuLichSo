@@ -40,6 +40,11 @@ public class PartnerHomestayDtos {
         @lombok.Getter(onMethod_ = @JsonProperty("isReadyToPublish"))
         @lombok.Setter(onMethod_ = @JsonProperty("isReadyToPublish"))
         private boolean isReadyToPublish;
+        /** UC-NCC-02 luồng phụ 4: các thông tin còn thiếu để được công khai/nhận Booking. */
+        @Builder.Default
+        private List<String> missingForPublish = List.of();
+        /** UC-NCC-02: đang có yêu cầu xuất bản chờ Admin duyệt ("Homestay đang chờ duyệt"). */
+        private boolean pendingPublish;
     }
 
     @Data
@@ -76,6 +81,7 @@ public class PartnerHomestayDtos {
     public static class UpdateStatusRequest {
         private PlaceVisibility visibility;
         private PlaceOperationStatus operationStatus;
+        private String reason;
     }
 
     /** Xác nhận nghiệp vụ (2026-09-28): NCC xin chuyển Homestay sang NCC khác quản lý — chờ Admin duyệt. */
@@ -112,12 +118,20 @@ public class PartnerHomestayDtos {
         private List<String> amenities;
         private String checkInFrom;
         private String checkOutUntil;
+        /** Khung giờ xử lý đơn "HH:mm"; rỗng = mặc định 05:00 - 21:00. */
+        private String processingStartTime;
+        private String processingEndTime;
         private String houseRules;
         private String cancellationPolicy;
         private String policyName;
         private Integer freeCancelCutoffHours;
         private RefundType refundOnLateCancel;
         private Integer policyVersion;
+        /** UC-NCC-05: thời điểm phiên bản chính sách hủy hiện hành có hiệu lực (read-only). */
+        private java.time.LocalDateTime policyEffectiveFrom;
+        @Builder.Default
+        private List<String> missingForPublish = List.of();
+        private boolean pendingPublish;
         private String surchargeNote;
         private String childrenPolicy;
         private String petsPolicy;

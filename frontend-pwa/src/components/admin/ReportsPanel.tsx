@@ -178,7 +178,10 @@ export default function ReportsPanel({ onDrill, notify }: ReportsPanelProps) {
           </label>
           <button
             type="button"
-            onClick={() => setReload((n) => n + 1)}
+            onClick={() => {
+              clear();
+              setReload((n) => n + 1);
+            }}
             aria-label="Tải lại báo cáo"
             className="ml-auto flex h-8 w-8 items-center justify-center rounded-md border border-border bg-white text-muted hover:text-primary"
           >

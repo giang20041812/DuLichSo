@@ -86,6 +86,14 @@ export default function ChangeRequestsPanel({ notify, onChanged }: ChangeRequest
     setPage(0);
   };
 
+  /** Nút tải lại: đưa màn hình về trạng thái ban đầu (bỏ mọi điều kiện tìm kiếm / lọc / sắp xếp, về tab mặc định, trang 1) rồi tải lại dữ liệu mới nhất. */
+  const reloadFromStart = () => {
+    clearFilters();
+    setStatus('PENDING');
+    setOpenId(null);
+    setReload((n) => n + 1);
+  };
+
   const load = useCallback(async () => {
     setLoading(true);
     setLoadError('');
@@ -179,7 +187,7 @@ export default function ChangeRequestsPanel({ notify, onChanged }: ChangeRequest
           }}
         />
         <div className="ml-auto flex shrink-0 items-center gap-2">
-          <RefreshButton loading={loading} onClick={() => setReload((n) => n + 1)} />
+          <RefreshButton loading={loading} onClick={reloadFromStart} />
         </div>
       </div>
 
@@ -282,8 +290,9 @@ export default function ChangeRequestsPanel({ notify, onChanged }: ChangeRequest
           finalConfirm={
             decision.type === 'reject'
               ? `Bạn sắp từ chối yêu cầu thay đổi của "${decision.request.placeName}". Dữ liệu chính thức giữ nguyên, nhà cung cấp được báo kết quả và không thể hoàn tác thao tác này.`
-              : undefined
+              : `Bạn sắp duyệt yêu cầu thay đổi của "${decision.request.placeName}" (${decision.request.changeSummary}). Nội dung mới được ghi vào dữ liệu chính thức và nhà cung cấp được báo kết quả.`
           }
+          hideReason={decision.type === 'approve'}
           tone={decision.type === 'reject' ? 'danger' : 'primary'}
           error={dialogError}
           onCancel={() => setDecision(null)}

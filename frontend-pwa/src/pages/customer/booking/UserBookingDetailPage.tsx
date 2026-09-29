@@ -16,14 +16,13 @@ import {
   CreditCard,
   BedDouble,
   ExternalLink,
-  Sparkles,
   Info,
   Ban,
   Home,
-  Check,
   Edit3,
   Compass,
 } from 'lucide-react';
+import { getCurrentCustomer } from '@/services/authService';
 import { getBookingByCode, fetchBookingReview } from '@/services/bookingService';
 import type { BookingResponseDto, BookingStatus } from '@/types/booking';
 import type { ReviewDto } from '@/types/review';
@@ -38,15 +37,20 @@ export default function UserBookingDetailPage() {
   const { bookingCode } = useParams<{ bookingCode: string }>();
   const navigate = useNavigate();
 
+  const currentUser = getCurrentCustomer();
+  useEffect(() => {
+    if (currentUser?.role === 'ADMIN' || currentUser?.role === 'PROVIDER') {
+      navigate(currentUser.role === 'ADMIN' ? '/admin' : '/partner', { replace: true });
+    }
+  }, [currentUser, navigate]);
+
   const [booking, setBooking] = useState<BookingResponseDto | null>(null);
   const [existingReview, setExistingReview] = useState<ReviewDto | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const phoneParam = searchParams.get('phone') || '';
-  const [phoneInput, setPhoneInput] = useState(phoneParam);
-  const [isPhoneVerified, setIsPhoneVerified] = useState(!!phoneParam);
 
   // Modal đánh giá
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
@@ -58,12 +62,12 @@ export default function UserBookingDetailPage() {
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
   const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlaceDto[]>([]);
 
-  const loadBookingData = useCallback(async (phoneToUse: string) => {
+  const loadBookingData = useCallback(async (phoneToUse?: string) => {
     if (!bookingCode) return;
     setIsLoading(true);
     setErrorMsg(null);
     try {
-      const data = await getBookingByCode(bookingCode, phoneToUse);
+      const data = await getBookingByCode(bookingCode, phoneToUse || undefined);
       setBooking(data);
 
       // Tải danh sách địa điểm/dịch vụ lân cận để liên kết bản đồ
@@ -75,8 +79,8 @@ export default function UserBookingDetailPage() {
         });
       }
 
-      // Nếu đơn đã hoàn thành, kiểm tra xem đã có đánh giá chưa
-      if (data.status === 'COMPLETED') {
+      // Backend quyết định eligibility; CHECKED_OUT và COMPLETED đều có thể hiển thị review.
+      if (data.status === 'CHECKED_OUT' || data.status === 'COMPLETED') {
         try {
           const rev = await fetchBookingReview(bookingCode);
           setExistingReview(rev);
@@ -93,17 +97,8 @@ export default function UserBookingDetailPage() {
   }, [bookingCode]);
 
   useEffect(() => {
-    if (isPhoneVerified && phoneParam) {
-      loadBookingData(phoneParam);
-    }
-  }, [loadBookingData, isPhoneVerified, phoneParam]);
-
-  const handlePhoneSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!phoneInput.trim()) return;
-    setSearchParams({ phone: phoneInput.trim() });
-    setIsPhoneVerified(true);
-  };
+    loadBookingData(phoneParam || undefined);
+  }, [loadBookingData, phoneParam]);
 
   const getStatusBadge = (status: BookingStatus) => {
     switch (status) {
@@ -120,53 +115,20 @@ export default function UserBookingDetailPage() {
           </div>
         );
       case 'CHECKED_IN':
-        return (
-          <div className="flex items-center gap-2 p-3 bg-teal-50 border border-teal-200 rounded-md text-teal-800 text-xs sm:text-sm font-semibold">
-            <Home className="w-5 h-5 text-teal-600 shrink-0" />
-            <div>
-              <span className="font-bold">Đang lưu trú tại homestay</span>
-              <p className="text-xs text-teal-700 font-normal mt-0.5">
-                Quý khách đang trong kỳ nghỉ. Chúc quý khách có trải nghiệm tuyệt vời!
-              </p>
-            </div>
-          </div>
-        );
       case 'CHECKED_OUT':
-        return (
-          <div className="flex items-center gap-2 p-3 bg-indigo-50 border border-indigo-200 rounded-md text-indigo-800 text-xs sm:text-sm font-semibold">
-            <Check className="w-5 h-5 text-indigo-600 shrink-0" />
-            <div>
-              <span className="font-bold">Đã hoàn tất trả phòng</span>
-              <p className="text-xs text-indigo-700 font-normal mt-0.5">
-                Quý khách đã trả phòng thành công. Cảm ơn quý khách đã lưu trú!
-              </p>
-            </div>
-          </div>
-        );
       case 'COMPLETED':
         return (
-          <div className="flex items-center gap-2 p-3 bg-[#E6F4F1] border border-[#10b981]/20 rounded-md text-[var(--color-primary)] text-xs sm:text-sm font-semibold">
-            <Sparkles className="w-5 h-5 text-[var(--color-sun)] shrink-0" />
+          <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-md text-emerald-800 text-xs sm:text-sm font-semibold">
+            <Home className="w-5 h-5 text-teal-600 shrink-0" />
             <div>
-              <span className="font-bold">Kỳ nghỉ đã hoàn thành!</span>
-              <p className="text-xs text-slate-600 font-normal mt-0.5">
-                Cảm ơn bạn đã lựa chọn trải nghiệm du lịch cộng đồng cùng chúng tôi.
+              <span className="font-bold">Đã xác nhận</span>
+              <p className="text-xs text-teal-700 font-normal mt-0.5">
+                Booking đang trong hoặc đã hoàn tất kỳ lưu trú.
               </p>
             </div>
           </div>
         );
-      case 'REFUNDED':
-        return (
-          <div className="flex items-center gap-2 p-3 bg-purple-50 border border-purple-200 rounded-md text-purple-800 text-xs sm:text-sm font-semibold">
-            <CreditCard className="w-5 h-5 text-purple-600 shrink-0" />
-            <div>
-              <span className="font-bold">Đơn đặt phòng đã được hoàn tiền</span>
-              <p className="text-xs text-purple-700 font-normal mt-0.5">
-                Số tiền hoàn đã được xử lý và chuyển trả vào tài khoản theo đúng chính sách hoàn hủy.
-              </p>
-            </div>
-          </div>
-        );
+
       case 'PENDING':
         return (
           <div className="flex items-center gap-2 p-3 bg-sky-50 border border-sky-200 rounded-md text-sky-800 text-xs sm:text-sm font-semibold">
@@ -174,18 +136,22 @@ export default function UserBookingDetailPage() {
             <div>
               <span className="font-bold">Đang chờ chủ nhà xác nhận</span>
               <p className="text-xs text-sky-700 font-normal mt-0.5">
-                Chủ nhà có tối đa <strong>120 phút</strong> để duyệt đơn đặt phòng. Quá thời gian này đơn sẽ tự động bị hủy.
+                Chủ nhà có tối đa <strong>120 phút</strong> để duyệt đơn đặt phòng. Hạn xử lý: {booking?.holdExpiresAt ? new Date(booking.holdExpiresAt).toLocaleString('vi-VN') : 'đang cập nhật'}.
               </p>
             </div>
           </div>
         );
       case 'CANCELLED':
       case 'REJECTED':
+      case 'EXPIRED':
+      case 'NO_SHOW':
         return (
           <div className="flex items-center gap-2 p-3 bg-rose-50 border border-rose-200 rounded-md text-rose-800 text-xs sm:text-sm font-semibold">
             <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
             <div>
-              <span className="font-bold">Đơn đặt phòng đã bị hủy / từ chối</span>
+                <span className="font-bold">
+                  {status === 'EXPIRED' ? 'Đơn đặt phòng đã hết hạn' : status === 'NO_SHOW' ? 'Không ghi nhận nhận phòng' : 'Đơn đặt phòng đã bị hủy / từ chối'}
+                </span>
               <p className="text-xs text-rose-700 font-normal mt-0.5">
                 Phòng đã được nhả lại trên hệ thống. Nếu có thắc mắc, vui lòng liên hệ bộ phận hỗ trợ.
               </p>
@@ -202,45 +168,7 @@ export default function UserBookingDetailPage() {
     }
   };
 
-  if (!isPhoneVerified) {
-    return (
-      <div className="min-h-screen bg-[#F6FAF8] flex flex-col items-center justify-center p-6">
-        <form onSubmit={handlePhoneSubmit} className="bg-white rounded-lg border border-gray-100 p-8 max-w-md w-full text-center space-y-6 shadow-[0_4px_20px_-4px_rgba(4,140,115,0.08)] transition-all duration-300 hover:-translate-y-0.5">
-          <div className="w-14 h-14 rounded-md bg-teal-50 flex items-center justify-center mx-auto text-[var(--color-primary)]">
-            <ShieldCheck className="w-7 h-7" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-slate-800 mb-2">Xác minh bảo mật</h2>
-            <p className="text-sm text-gray-500">
-              Vui lòng nhập số điện thoại bạn đã dùng để đặt phòng <strong>{bookingCode}</strong> để xem chi tiết.
-            </p>
-          </div>
-          <div className="text-left space-y-1.5">
-            <label className="text-xs font-semibold text-gray-700">Số điện thoại <span className="text-rose-500">*</span></label>
-            <input
-              type="tel"
-              value={phoneInput}
-              onChange={(e) => setPhoneInput(e.target.value)}
-              className="w-full bg-white border border-gray-200 text-sm rounded-md px-4 py-2.5 outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] transition-shadow"
-              placeholder="Ví dụ: 0912345678"
-              required
-            />
-          </div>
-          <button
-            type="submit"
-            className="w-full bg-[var(--color-primary)] hover:bg-teal-700 text-white font-semibold py-2.5 px-4 rounded-md text-sm transition-all shadow-sm active:scale-[0.98]"
-          >
-            Tra cứu đơn
-          </button>
-        </form>
-        
-        <Link to="/" className="mt-8 flex items-center gap-2 text-sm text-gray-500 hover:text-[var(--color-primary)] transition-colors">
-          <ArrowLeft className="w-4 h-4" />
-          Quay lại trang chủ
-        </Link>
-      </div>
-    );
-  }
+
 
   if (isLoading) {
     return (
@@ -277,7 +205,13 @@ export default function UserBookingDetailPage() {
     );
   }
 
-  const isCompleted = booking.status === 'COMPLETED';
+  const isCompleted = booking.status === 'CHECKED_OUT' || booking.status === 'COMPLETED';
+  const pendingChangeRequest = booking.changeRequests?.find((request) => request.status === 'PENDING');
+  const canRequestChange = ['PENDING', 'CONFIRMED'].includes(booking.status) && !pendingChangeRequest;
+  const reviewDeadline = new Date(`${booking.checkOut}T23:59:59`);
+  reviewDeadline.setDate(reviewDeadline.getDate() + 14);
+  const reviewDeadlineValid = !Number.isNaN(reviewDeadline.getTime());
+  const reviewExpired = booking.status === 'COMPLETED' && !existingReview && reviewDeadlineValid && new Date() > reviewDeadline;
 
   return (
     <div className="min-h-screen bg-[#F6FAF8] pb-20">
@@ -305,9 +239,49 @@ export default function UserBookingDetailPage() {
         {/* Banner trạng thái booking */}
         {getStatusBadge(booking.status)}
 
+        {pendingChangeRequest && (
+          <div className="flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 p-4 text-amber-900">
+            <Clock className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+            <div>
+              <p className="text-sm font-bold">Đơn đang chờ NCC duyệt thay đổi</p>
+              <p className="mt-1 text-xs leading-relaxed">
+                Yêu cầu thay đổi đã được gửi lúc {new Date(pendingChangeRequest.createdAt).toLocaleString('vi-VN')}. Booking hiện tại vẫn giữ nguyên cho đến khi NCC duyệt hoặc từ chối yêu cầu.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Khối đánh giá nếu hoàn thành */}
         {isCompleted && (
           <div className="bg-white rounded-lg border border-gray-200/90 p-5 shadow-xs">
+            {existingReview?.providerReply && (
+              <div className="mb-4 flex items-start gap-3 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-emerald-800">
+                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+                <div className="text-xs leading-relaxed">
+                  <p className="font-bold">Nhà cung cấp đã phản hồi đánh giá của bạn</p>
+                  <p className="mt-1">{existingReview.providerReply}</p>
+                  {existingReview.providerReplyAt && <p className="mt-1 text-[11px] text-emerald-700">{new Date(existingReview.providerReplyAt).toLocaleString('vi-VN')}</p>}
+                </div>
+              </div>
+            )}
+            {!existingReview && booking.status !== 'COMPLETED' && (
+              <div className="mb-4 flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-900">
+                <Clock className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                <div className="text-xs leading-relaxed">
+                  <p className="font-bold">Đánh giá sẽ mở sau khi đơn hoàn tất</p>
+                  <p className="mt-1">Đơn hiện đang ở trạng thái đã trả phòng. Hệ thống sẽ cho phép đánh giá khi booking chuyển sang Hoàn tất.</p>
+                </div>
+              </div>
+            )}
+            {reviewExpired && (
+              <div className="mb-4 flex items-start gap-3 rounded-md border border-rose-200 bg-rose-50 p-3 text-rose-800">
+                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
+                <div className="text-xs leading-relaxed">
+                  <p className="font-bold">Đã quá thời hạn đánh giá</p>
+                  <p className="mt-1">Bạn chỉ có thể gửi đánh giá trong vòng 14 ngày sau ngày trả phòng. Hạn cuối: {reviewDeadline.toLocaleDateString('vi-VN')}.</p>
+                </div>
+              </div>
+            )}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2">
@@ -323,7 +297,7 @@ export default function UserBookingDetailPage() {
                 </p>
               </div>
 
-              {!existingReview ? (
+              {!existingReview && !reviewExpired && booking.status === 'COMPLETED' ? (
                 <button
                   type="button"
                   onClick={() => setIsReviewModalOpen(true)}
@@ -622,7 +596,7 @@ export default function UserBookingDetailPage() {
               )}
 
               {/* Nút hành động thay đổi booking khi ở trạng thái PENDING hoặc CONFIRMED */}
-              {['PENDING', 'CONFIRMED'].includes(booking.status) && (
+              {canRequestChange && (
                 <div className="pt-3 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-amber-50/40 -mx-5 -mb-5 p-4 rounded-b-lg border-t border-amber-100">
                   <div className="text-xs">
                     <span className="font-bold text-slate-800 flex items-center gap-1.5">
@@ -767,9 +741,9 @@ export default function UserBookingDetailPage() {
                 Chính sách & Quy định
               </h4>
               <p className="text-xs text-gray-600 leading-relaxed">
-                {booking.policySnapshot?.name ? (
+                {booking.policySnapshot?.policyName ? (
                   <span>
-                    Chính sách: <strong>{String(booking.policySnapshot.name)}</strong>
+                    Chính sách: <strong>{String(booking.policySnapshot.policyName)}</strong>
                     {Boolean(booking.policySnapshot.description) && (
                       <span className="block mt-1 text-gray-500">
                         {String(booking.policySnapshot.description)}

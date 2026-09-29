@@ -113,6 +113,14 @@ export default function PlacesPanel({ notify }: PlacesPanelProps) {
     setSelected([]);
   };
 
+  /** Nút tải lại: đưa màn hình về trạng thái ban đầu (bỏ mọi điều kiện tìm kiếm / lọc / sắp xếp, về tab mặc định, trang 1) rồi tải lại dữ liệu mới nhất. */
+  const reloadFromStart = () => {
+    clearFilters();
+    setVerification('UNVERIFIED');
+    setSort('createdAt:desc');
+    setReload((n) => n + 1);
+  };
+
   const load = useCallback(async () => {
     const [sortBy, sortDir] = sort.split(':') as [string, 'asc' | 'desc'];
     setLoading(true);
@@ -264,7 +272,7 @@ export default function PlacesPanel({ notify }: PlacesPanelProps) {
         />
         <div className="ml-auto flex shrink-0 items-center gap-2">
           <SortSelect value={sort} options={SORT_OPTIONS} onChange={resetPage(setSort)} />
-          <RefreshButton loading={loading} onClick={() => setReload((n) => n + 1)} />
+          <RefreshButton loading={loading} onClick={reloadFromStart} />
         </div>
       </div>
 
@@ -476,8 +484,11 @@ export default function PlacesPanel({ notify }: PlacesPanelProps) {
               ? `Bạn sắp lưu trữ ${pending.label}.`
               : pending.type === 'visibility' && pending.visibility !== 'PUBLISHED'
               ? `Bạn sắp ẨN điểm đến "${pending.label}" khỏi khách du lịch.`
-              : undefined
+              : pending.type === 'verification'
+              ? `Bạn sắp duyệt ${pending.label}. Điểm đến được đánh dấu đã xác minh và nhà cung cấp được báo kết quả.`
+              : `Bạn sắp CÔNG KHAI ${pending.label}. Khách du lịch sẽ tìm thấy và xem được điểm đến này ngay.`
           }
+          hideReason={!reasonRequired}
           tone={reasonRequired ? 'danger' : 'primary'}
           error={dialogError}
           onCancel={() => setPending(null)}

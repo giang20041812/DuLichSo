@@ -12,7 +12,7 @@ import com.dulichso.bookingapi.service.PasswordResetService.InvalidResetExceptio
 import com.dulichso.bookingapi.service.GoogleTokenVerifier.GoogleProfile;
 import com.dulichso.bookingapi.service.GoogleTokenVerifier.InvalidGoogleTokenException;
 import com.dulichso.bookingapi.service.TravelerAuthService;
-import com.dulichso.bookingapi.service.TravelerAuthService.DuplicateAccountException;
+import com.dulichso.bookingapi.service.DuplicateFieldsException;
 import com.dulichso.bookingapi.service.TravelerAuthService.InvalidRegistrationException;
 import com.dulichso.bookingapi.service.TravelerAuthService.InvalidTravelerCredentialsException;
 import com.dulichso.bookingapi.service.TravelerAuthService.TravelerInactiveException;
@@ -134,8 +134,9 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(session));
         } catch (InvalidRegistrationException ex) {
             return error(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", ex.getMessage());
-        } catch (DuplicateAccountException ex) {
-            return error(HttpStatus.CONFLICT, "ACCOUNT_EXISTS", ex.getMessage());
+        } catch (DuplicateFieldsException ex) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(AuthErrorResponse.builder().status(HttpStatus.CONFLICT.value())
+                    .errorCode("ACCOUNT_EXISTS").message(ex.getReason()).fieldErrors(ex.getFieldErrors()).build());
         }
     }
 
