@@ -27,16 +27,20 @@ const CHECK_STYLE: Record<BookingCheckLevel, { icon: ReactNode; tone: string }> 
   FAIL: { icon: <XCircle className="h-4 w-4 text-danger" />, tone: 'border-danger/30 bg-danger/5' },
 };
 
-/** Thời gian còn lại tới hạn phản hồi, cập nhật mỗi 30 giây. */
-function useRemaining(dueAt: string | null) {
-  const [now, setNow] = useState(() => Date.now());
+/**
+ * Thời gian còn lại tới hạn phản hồi: lấy số phút máy chủ tính lúc tải trang rồi đếm lùi theo thời gian đã trôi qua,
+ * để không lệch với trạng thái đơn khi đồng hồ/múi giờ trình duyệt khác máy chủ. Cập nhật mỗi 30 giây.
+ */
+function useRemaining(serverMinutes: number | null) {
+  const [loadedAt] = useState(() => Date.now());
+  const [now, setNow] = useState(loadedAt);
   useEffect(() => {
-    if (!dueAt) return;
+    if (serverMinutes == null) return;
     const timer = window.setInterval(() => setNow(Date.now()), 30000);
     return () => window.clearInterval(timer);
-  }, [dueAt]);
-  if (!dueAt) return null;
-  return Math.floor((new Date(dueAt).getTime() - now) / 60000);
+  }, [serverMinutes]);
+  if (serverMinutes == null) return null;
+  return serverMinutes - Math.floor((now - loadedAt) / 60000);
 }
 
 /** UC-NCC-06/07/08: tiếp nhận – đánh giá – quyết định một yêu cầu Booking. */
@@ -87,7 +91,7 @@ export default function PartnerBookingProcessPage() {
             <span className={pill(BOOKING_STATUS_TONE[booking.status])}>{BOOKING_STATUS_LABEL[booking.status]}</span>
           </h1>
         </div>
-        {pending && <DeadlineChip dueAt={booking.responseDueAt} overdue={booking.overdue} />}
+        {pending && <DeadlineChip dueAt={booking.responseDueAt} minutesLeft={booking.responseMinutesLeft} overdue={booking.overdue} />}
       </div>
 
       {pending && booking.overdue && <Alert tone="error">Booking đã quá thời hạn xử lý. Hệ thống không ghi nhận quyết định muộn; phòng đã giữ sẽ được trả lại tự động.</Alert>}
@@ -191,8 +195,8 @@ export default function PartnerBookingProcessPage() {
   );
 }
 
-function DeadlineChip({ dueAt, overdue }: { dueAt: string | null; overdue: boolean }) {
-  const minutes = useRemaining(dueAt);
+function DeadlineChip({ dueAt, minutesLeft, overdue }: { dueAt: string | null; minutesLeft: number | null; overdue: boolean }) {
+  const minutes = useRemaining(minutesLeft);
   if (!dueAt) return null;
   const late = overdue || (minutes != null && minutes < 0);
   const urgent = !late && minutes != null && minutes <= 30;

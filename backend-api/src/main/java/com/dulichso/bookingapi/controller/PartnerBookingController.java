@@ -72,6 +72,7 @@ public class PartnerBookingController {
             @RequestParam(defaultValue = "20") int size) {
         Long providerId = resolveProviderId(principal);
         if (providerId == null) return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        partnerBookingService.expireOverdueFor(principal); // BOOK-BR-12: đơn quá hạn hiển thị đúng trạng thái Hết hạn
         return ResponseEntity.ok(partnerBookingService.rows(bookingService.search(status, keyword, providerId,
                 checkInFrom, checkInTo, createdFrom, createdTo, sortBy, sortDir, page, size)));
     }
@@ -148,6 +149,7 @@ public class PartnerBookingController {
     /** Chi tiết + kết quả kiểm tra + phương án phòng để xử lý đơn (FR-NCC-12..18). */
     @GetMapping("/{id}")
     public BookingDetailDto detail(@AuthenticationPrincipal UserPrincipal principal, @PathVariable Long id) {
+        partnerBookingService.expireOverdueFor(principal);
         return partnerBookingService.detail(principal, id);
     }
 
