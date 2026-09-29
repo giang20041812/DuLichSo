@@ -435,7 +435,7 @@ public class PartnerBookingService {
 
         boolean hasPolicy = b.getPolicySnapshot() != null && !b.getPolicySnapshot().isEmpty();
         list.add(new CheckDto("PRICE_POLICY", "Giá và chính sách áp dụng", hasPolicy ? CheckLevel.OK : CheckLevel.WARN,
-                hasPolicy ? "Giá theo từng đêm và chính sách hủy đã được chốt lúc khách đặt (BOOK-BR-16)." : "Giá đã chốt nhưng Homestay chưa có chính sách hủy lúc khách đặt."));
+                hasPolicy ? "Giá theo từng đêm và chính sách hủy đã được chốt lúc khách đặt." : "Giá đã chốt nhưng Homestay chưa có chính sách hủy lúc khách đặt."));
 
         boolean special = notBlank(b.getGuestNote()) || !services.isEmpty();
         list.add(new CheckDto("SPECIAL_REQUEST", "Yêu cầu đặc biệt", special ? CheckLevel.WARN : CheckLevel.OK,

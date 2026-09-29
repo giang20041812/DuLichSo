@@ -23,6 +23,9 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class PartnerDashboardService {
+    /** Chỉ đơn Hoàn thành mới tính doanh thu (yêu cầu BA): khách đã nhận và trả phòng đầy đủ. */
+    private static final List<BookingStatus> REVENUE_STATUSES = List.of(BookingStatus.COMPLETED, BookingStatus.CHECKED_OUT);
+
     private final PartnerHomestayService homestays;
     private final EntityManager em;
 
@@ -52,10 +55,13 @@ public class PartnerDashboardService {
         if (homestayId != null) q1.setParameter("placeId", homestayId);
         Long monthlyBookingsCount = q1.getSingleResult();
             
+        // Doanh thu chỉ tính đơn đã Hoàn thành (đã nhận và trả phòng đầy đủ), theo thời điểm hoàn thành (closedAt).
+        // CHECKED_OUT là trạng thái cũ trước khi Trả phòng gộp thành Hoàn thành.
         var q2 = em.createQuery(
-            "SELECT sum(b.totalAmount) FROM Booking b WHERE b.provider.id = :pid" + placeFilter + " AND b.status IN :statuses AND b.createdAt >= :start AND b.createdAt <= :end", BigDecimal.class)
+            "SELECT sum(b.totalAmount) FROM Booking b WHERE b.provider.id = :pid" + placeFilter + " AND b.status IN :statuses"
+                + " AND COALESCE(b.closedAt, b.createdAt) >= :start AND COALESCE(b.closedAt, b.createdAt) <= :end", BigDecimal.class)
             .setParameter("pid", providerId)
-            .setParameter("statuses", List.of(BookingStatus.COMPLETED, BookingStatus.CHECKED_OUT, BookingStatus.CHECKED_IN, BookingStatus.CONFIRMED))
+            .setParameter("statuses", REVENUE_STATUSES)
             .setParameter("start", startOfMonth)
             .setParameter("end", endOfMonth);
         if (homestayId != null) q2.setParameter("placeId", homestayId);
@@ -116,13 +122,13 @@ public class PartnerDashboardService {
 
         // 4. Revenue Trend (12 months of the selected year)
         var q8 = em.createQuery(
-            "SELECT YEAR(b.createdAt), MONTH(b.createdAt), SUM(b.totalAmount), COUNT(b) " +
+            "SELECT YEAR(COALESCE(b.closedAt, b.createdAt)), MONTH(COALESCE(b.closedAt, b.createdAt)), SUM(b.totalAmount), COUNT(b) " +
             "FROM Booking b " +
-            "WHERE b.provider.id = :pid" + placeFilter + " AND b.status NOT IN :excludedStatuses " +
-            "AND YEAR(b.createdAt) = :year " +
-            "GROUP BY YEAR(b.createdAt), MONTH(b.createdAt)", Object[].class)
+            "WHERE b.provider.id = :pid" + placeFilter + " AND b.status IN :statuses " +
+            "AND YEAR(COALESCE(b.closedAt, b.createdAt)) = :year " +
+            "GROUP BY YEAR(COALESCE(b.closedAt, b.createdAt)), MONTH(COALESCE(b.closedAt, b.createdAt))", Object[].class)
             .setParameter("pid", providerId)
-            .setParameter("excludedStatuses", List.of(BookingStatus.REJECTED, BookingStatus.CANCELLED, BookingStatus.EXPIRED, BookingStatus.NO_SHOW))
+            .setParameter("statuses", REVENUE_STATUSES)
             .setParameter("year", targetYear);
         if (homestayId != null) q8.setParameter("placeId", homestayId);
         List<Object[]> revenueData = q8.getResultList();

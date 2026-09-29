@@ -146,7 +146,7 @@ export default function PartnerBookingList() {
                 <td className={th}><div className="font-medium text-ink">{b.placeName}</div><div className="text-[11px] text-muted">{b.roomTypeName}</div></td>
                 <td className={`${th} text-ink`}><div>{date(b.checkIn)} → {date(b.checkOut)}</div><div className="text-[11px] text-muted">{b.nights} đêm · {b.roomCount} phòng · {b.guestCount} khách</div></td>
                 <td className={`${th} text-right font-semibold text-ink-deep`}>{vnd(b.totalAmount)}</td>
-                <td className={th}><span className={`rounded-sm border px-2 py-0.5 text-[10px] font-bold ${BOOKING_STATUS_TONE[b.status]}`}>{BOOKING_STATUS_LABEL[b.status]}</span></td>
+                <td className={th}><span className={`inline-block whitespace-nowrap rounded-sm border px-2 py-0.5 text-[10px] font-bold ${BOOKING_STATUS_TONE[b.status]}`}>{BOOKING_STATUS_LABEL[b.status]}</span></td>
                 <td className={`${th} text-muted`}>{dateTime(b.createdAt)}</td>
                 <td className={th}>{b.status === 'PENDING' ? <DueCell dueAt={b.responseDueAt} minutes={b.responseMinutesLeft} /> : <span className="text-muted">—</span>}</td>
                 <td className={`${th} text-right`}>
