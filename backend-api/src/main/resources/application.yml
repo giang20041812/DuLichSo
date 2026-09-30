@@ -56,9 +56,9 @@ app:
   # Tài khoản mẫu QA (admin@taybactrails.vn / ncc@taybactrails.vn...) — CHỈ bật khi dev. Production phải để false.
   qa-mock-accounts: ${APP_QA_MOCK_ACCOUNTS:false}
   # Mật khẩu khởi tạo cho tài khoản nạp bằng SQL (password_hash = '{seed-pending}') — xem SeedAccountPasswordInitializer.
-  # Chỉ đặt khi vừa chạy script seed; để trống thì các tài khoản đó chưa đăng nhập được. Không commit giá trị thật.
+  # Mật khẩu mặc định cho seed local/dev; có thể ghi đè bằng APP_SEED_INITIAL_PASSWORD.
   seed:
-    initial-password: ${APP_SEED_INITIAL_PASSWORD:}
+    initial-password: ${APP_SEED_INITIAL_PASSWORD:12345678}
     admin-email: ${APP_SEED_ADMIN_EMAIL:admin@dulichso.vn}
   # Nạp dữ liệu mẫu cho các màn Admin còn trống (hồ sơ NCC, yêu cầu chuyển NCC, đánh giá, thông báo) để xem thử giao diện.
   # Chỉ nạp vào bảng còn trống, chạy lại không đè dữ liệu thật. Đặt false khi chạy dữ liệu thật.
