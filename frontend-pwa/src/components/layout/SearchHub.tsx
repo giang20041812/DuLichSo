@@ -509,6 +509,19 @@ export default function SearchHub() {
     };
   }, [activeTab]);
 
+  // Modal mobile dùng portal nên cần khóa scroll của trang phía sau.
+  // Chỉ áp dụng dưới breakpoint md để không ảnh hưởng desktop popover.
+  useEffect(() => {
+    if (!mountedTab || !window.matchMedia('(max-width: 767px)').matches) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mountedTab]);
+
   const TAB_ORDER: Array<'location' | 'attractions' | 'dates'> = ['location', 'attractions', 'dates'];
 
   const goNext = () => {
@@ -924,6 +937,20 @@ export default function SearchHub() {
     );
   };
 
+  const searchBounds = searchRef.current?.getBoundingClientRect();
+  const popoverTop = isSticky ? headerHeight + 66 : (searchBounds?.bottom ?? 0) + 10;
+  const popoverStyle: React.CSSProperties = {
+    top: `${popoverTop}px`,
+    maxHeight: `calc(100dvh - ${popoverTop + 16}px)`,
+    ...(isSticky
+      ? {}
+      : {
+          left: `${searchBounds?.left ?? 0}px`,
+          width: `${Math.min(searchBounds?.width ?? 820, 820)}px`,
+          maxWidth: 'calc(100vw - 32px)',
+        }),
+  };
+
 
   return (
     <div 
@@ -1182,12 +1209,12 @@ export default function SearchHub() {
       {/* ---------------- DESKTOP UNIFIED 3-PHẦN POPOVER ---------------- */}
       {activeTab && (
         <div 
-          style={isSticky ? { top: `${headerHeight + 66}px` } : undefined}
+          style={popoverStyle}
           className={`search-popover-panel hidden md:flex ${
             isSticky 
               ? 'fixed left-1/2 -translate-x-1/2 w-[820px] max-w-[calc(100vw-32px)] shadow-2xl' 
-              : 'absolute top-[110%] left-0 w-full max-w-[820px] shadow-2xl'
-          } bg-white rounded-lg border border-gray-200 p-4 z-[100] flex-col gap-3.5 animate-in fade-in slide-in-from-top-2 duration-200`}
+              : 'fixed shadow-2xl'
+          } max-h-[calc(100dvh-1rem)] overflow-y-auto overscroll-contain bg-white rounded-lg border border-gray-200 p-4 z-[100] flex-col gap-3.5 animate-in fade-in slide-in-from-top-2 duration-200`}
           onClick={stopPropagation}
         >
           {/* Header Switcher: 3 Tabs */}
