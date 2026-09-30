@@ -23,6 +23,7 @@ export default function ProviderRegisterPage() {
   const [reviewing, setReviewing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
   const [result, setResult] = useState<ProviderRegisterResult | null>(null);
   // Lỗi trùng do server báo theo từng ô, kèm giá trị đã gửi: sửa ô đó thì lỗi tự mất.
   const [duplicates, setDuplicates] = useState<Partial<Record<DuplicateField, { value: string; message: string }>>>({});
@@ -33,6 +34,12 @@ export default function ProviderRegisterPage() {
   const set = <K extends keyof ProviderRegisterInput>(key: K, value: ProviderRegisterInput[K]) => setForm((f) => ({ ...f, [key]: value }));
 
   function review() {
+    if (!/^(0|\+84)[35789][0-9]{8}$/.test(form.contactPhone.trim())) {
+      setPhoneError('Số điện thoại không đúng định dạng (VD: 0912345678 hoặc +84912345678).');
+      setError('Vui lòng hoàn thiện các trường được đánh dấu');
+      return;
+    }
+    setPhoneError('');
     if (form.password !== confirm) { setError('Mật khẩu nhập lại không khớp.'); return; }
     if (DUPLICATE_FIELDS.some((f) => duplicateError(f))) { setError('Vui lòng sửa các thông tin bị trùng được đánh dấu.'); return; }
     setError(''); setReviewing(true);
@@ -40,7 +47,7 @@ export default function ProviderRegisterPage() {
 
   async function submit() {
     setBusy(true); setError('');
-    try { setResult(await providerApplicationService.register({ ...form, contactEmail: form.contactEmail.trim() })); }
+    try { setResult(await providerApplicationService.register({ ...form, contactPhone: form.contactPhone.trim(), contactEmail: form.contactEmail.trim() })); }
     catch (e: unknown) {
       // Trùng thông tin: quay về form, báo ngay dưới từng ô bị trùng (có thể nhiều ô cùng lúc).
       const found = getApiFieldErrors(e).filter((f): f is { field: DuplicateField; message: string } =>
@@ -122,8 +129,8 @@ export default function ProviderRegisterPage() {
             <input className={input} required maxLength={255} value={form.contactName} onChange={(e) => set('contactName', e.target.value)} />
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Số điện thoại (dùng để đăng nhập)" required error={duplicateError('contactPhone')}>
-              <input className={`${input} ${duplicateError('contactPhone') ? inputInvalid : ''}`} aria-invalid={Boolean(duplicateError('contactPhone'))} required type="tel" maxLength={20} pattern="[+0-9() .\-]{8,20}" value={form.contactPhone} onChange={(e) => set('contactPhone', e.target.value)} />
+            <Field label="Số điện thoại (dùng để đăng nhập)" required error={(duplicateError('contactPhone') ?? phoneError) || undefined}>
+              <input className={`${input} ${duplicateError('contactPhone') || phoneError ? inputInvalid : ''}`} aria-invalid={Boolean(duplicateError('contactPhone') || phoneError)} required type="tel" maxLength={20} pattern="[+0-9() .\-]{8,20}" value={form.contactPhone} onChange={(e) => { set('contactPhone', e.target.value); setPhoneError(''); }} />
             </Field>
             <Field label="Email" error={duplicateError('contactEmail')}>
               <input className={`${input} ${duplicateError('contactEmail') ? inputInvalid : ''}`} aria-invalid={Boolean(duplicateError('contactEmail'))} type="email" maxLength={255} value={form.contactEmail} onChange={(e) => set('contactEmail', e.target.value)} />

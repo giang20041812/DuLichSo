@@ -12,7 +12,7 @@ public final class ProviderApplicationDtos {
 
     public record RegisterInput(@NotBlank @Size(max = 255) String businessName,
                                 @NotBlank @Size(max = 255) String contactName,
-                                @NotBlank @Pattern(regexp = "[+0-9() .-]{8,20}", message = "không hợp lệ") String contactPhone,
+                                @NotBlank @Pattern(regexp = "^(0|\\+84)[35789][0-9]{8}$", message = "Số điện thoại không đúng định dạng (VD: 0912345678 hoặc +84912345678).") String contactPhone,
                                 @Email @Size(max = 255) String contactEmail,
                                 @NotBlank @Size(min = 8, max = 72) String password,
                                 @NotBlank @Size(max = 500) String address,

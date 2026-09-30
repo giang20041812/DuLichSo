@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Locale;
 
 /**
  * UC-NCC-08: NCC tự đăng ký → hồ sơ PENDING trong provider_application (mật khẩu đã băm BCrypt).
@@ -36,10 +37,14 @@ public class ProviderApplicationService {
         String phone = input.contactPhone().trim();
         String email = blankToNull(input.contactEmail());
         String businessLicenseNo = input.businessLicenseNo().trim();
+        if (!phone.matches("^(0|\\+84)[35789][0-9]{8}$"))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Số điện thoại không đúng định dạng.");
+        if (email != null) email = email.toLowerCase(Locale.ROOT);
+        String alternatePhone = phone.startsWith("+84") ? "0" + phone.substring(3) : "+84" + phone.substring(1);
         // Kiểm tra đủ mọi trường trước khi báo, để NCC thấy cùng lúc tất cả thông tin bị trùng (tên trường khớp RegisterInput).
         List<FieldErrorDto> duplicates = new ArrayList<>();
-        if (identifierTaken(phone)) duplicates.add(new FieldErrorDto("contactPhone", "Số điện thoại này đã được đăng ký"));
-        else if (pendingFor(phone).isPresent())
+        if (identifierTaken(phone) || identifierTaken(alternatePhone)) duplicates.add(new FieldErrorDto("contactPhone", "Số điện thoại này đã được đăng ký"));
+        else if (pendingFor(phone).isPresent() || pendingFor(alternatePhone).isPresent())
             duplicates.add(new FieldErrorDto("contactPhone", "Số điện thoại này đã có hồ sơ đăng ký đang chờ duyệt"));
         if (email != null && identifierTaken(email)) duplicates.add(new FieldErrorDto("contactEmail", "Email này đã được sử dụng"));
         else if (email != null && pendingFor(email).isPresent())
@@ -75,10 +80,12 @@ public class ProviderApplicationService {
         return new StatusResult(a.getId(), a.getBusinessName(), a.getStatus(), label, a.getReviewNote(), a.getCreatedAt(), a.getReviewedAt());
     }
 
-    private boolean identifierTaken(String identifier) {return accounts.findByIdentifier(identifier).isPresent();}
+    private boolean identifierTaken(String identifier) {
+        return accounts.existsByEmailIgnoreCase(identifier) || accounts.existsByPhone(identifier);
+    }
 
     private Optional<ProviderApplication> pendingFor(String identifier) {
-        return em.createQuery("select a from ProviderApplication a where (a.contactPhone=:id or a.contactEmail=:id) and a.status=:pending", ProviderApplication.class)
+        return em.createQuery("select a from ProviderApplication a where (a.contactPhone=:id or lower(a.contactEmail)=lower(:id)) and a.status=:pending", ProviderApplication.class)
                 .setParameter("id", identifier).setParameter("pending", ProviderApplicationStatus.PENDING).setMaxResults(1).getResultStream().findFirst();
     }
 
