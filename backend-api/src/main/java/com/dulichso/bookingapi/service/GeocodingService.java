@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -34,6 +35,9 @@ public class GeocodingService {
     @Value("${app.geocoding.vietmap-url:https://maps.vietmap.vn/api/search/v3}")
     private String endpoint;
 
+    @Value("${app.geocoding.vietmap-place-url:https://maps.vietmap.vn/api/place/v3}")
+    private String placeEndpoint;
+
     @Value("${app.geocoding.vietmap-api-key:${VIETMAP_API_KEY:}}")
     private String apiKey;
 
@@ -53,7 +57,8 @@ public class GeocodingService {
     private synchronized Optional<GeocodeResult> call(String address) {
         if (apiKey == null || apiKey.trim().isEmpty()) {
             log.warn("Chưa cấu hình VIETMAP_API_KEY");
-            return Optional.empty();
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "Dịch vụ bản đồ chưa được cấu hình. Bạn có thể nhập tọa độ thủ công.");
         }
         waitForSlot();
         java.net.URI url = UriComponentsBuilder.fromHttpUrl(endpoint)
@@ -66,22 +71,51 @@ public class GeocodingService {
             JsonNode[] body = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), JsonNode[].class).getBody();
             if (body != null && body.length > 0) {
                 JsonNode first = body[0];
-                if (first.has("lat") && first.has("lng")) {
-                    double lat = first.get("lat").asDouble();
-                    double lon = first.get("lng").asDouble();
+                // Search v3 returns ref_id; coordinates are provided by Place v3.
+                // https://maps.vietmap.vn/docs/vi/map-api/geocodev3/
+                String refId = first.path("ref_id").asText("");
+                if (refId.isBlank()) throw invalidResponse();
+                java.net.URI placeUrl = UriComponentsBuilder.fromHttpUrl(placeEndpoint)
+                        .queryParam("apikey", apiKey)
+                        .queryParam("refid", refId)
+                        .build().encode().toUri();
+                JsonNode place = restTemplate.exchange(placeUrl, HttpMethod.GET,
+                        new HttpEntity<>(headers), JsonNode.class).getBody();
+                if (place != null && place.path("lat").isNumber() && place.path("lng").isNumber()) {
+                    double lat = place.get("lat").asDouble();
+                    double lon = place.get("lng").asDouble();
                     String display = first.has("display") ? first.get("display").asText() : (first.has("name") ? first.get("name").asText() : address);
                     if (lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
                         return Optional.of(new GeocodeResult(lat, lon, display));
                     }
                 }
+                throw invalidResponse();
             }
+            if (body == null) throw invalidResponse();
             return Optional.empty();
+        } catch (RestClientResponseException e) {
+            // Log only the status: URLs and response bodies may contain credentials.
+            int status = e.getStatusCode().value();
+            log.warn("VietMap API HTTP status={}", status);
+            String message = switch (status) {
+                case 401, 403 -> "VietMap từ chối quyền truy cập. Hãy kiểm tra API key và quyền Search/Place của key.";
+                case 423 -> "VietMap chưa bật API cho key này hoặc đã hết hạn mức. Hãy dùng Services key có quyền Search/Place và kiểm tra hạn mức trong VietMap Console.";
+                case 429 -> "Dịch vụ bản đồ đang giới hạn lượt gọi. Vui lòng thử lại sau.";
+                default -> "Dịch vụ bản đồ từ chối yêu cầu (HTTP " + status + "). Bạn có thể nhập tọa độ thủ công.";
+            };
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, message);
         } catch (RestClientException e) {
-            log.warn("Không gọi được Vietmap API: {}", e.getMessage());
+            // Exception messages can contain the request URL, including the API key.
+            log.warn("Không gọi được Vietmap API ({})", e.getClass().getSimpleName());
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Không kết nối được dịch vụ bản đồ. Bạn có thể nhập tọa độ thủ công.");
         } finally {
             lastCallAt = System.currentTimeMillis();
         }
+    }
+
+    private ResponseStatusException invalidResponse() {
+        return new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+                "Dịch vụ bản đồ trả về dữ liệu tọa độ không hợp lệ. Bạn có thể nhập tọa độ thủ công.");
     }
 
     private void waitForSlot() {

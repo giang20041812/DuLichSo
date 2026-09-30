@@ -19,18 +19,32 @@ export default function ProviderRegisterPage() {
   const [reviewing, setReviewing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+  const [emailError, setEmailError] = useState('');
   const [result, setResult] = useState<ProviderRegisterResult | null>(null);
   const set = <K extends keyof ProviderRegisterInput>(key: K, value: ProviderRegisterInput[K]) => setForm((f) => ({ ...f, [key]: value }));
 
   function review() {
+    if (!/^(0|\+84)[35789][0-9]{8}$/.test(form.contactPhone.trim())) {
+      setPhoneError('Số điện thoại không đúng định dạng (VD: 0912345678 hoặc +84912345678).');
+      setError('Vui lòng hoàn thiện các trường được đánh dấu');
+      return;
+    }
+    setPhoneError('');
     if (form.password !== confirm) { setError('Mật khẩu nhập lại không khớp.'); return; }
     setError(''); setReviewing(true);
   }
 
   async function submit() {
     setBusy(true); setError('');
-    try { setResult(await providerApplicationService.register({ ...form, contactEmail: form.contactEmail.trim() })); }
-    catch (e: unknown) { setError(homestayError(e)); setReviewing(false); }
+    try { setResult(await providerApplicationService.register({ ...form, contactPhone: form.contactPhone.trim(), contactEmail: form.contactEmail.trim() })); }
+    catch (e: unknown) {
+      const message = homestayError(e);
+      setError(message);
+      if (message.includes('Thông tin đăng nhập đã được sử dụng: số điện thoại')) setPhoneError(message);
+      if (message.includes('Thông tin đăng nhập đã được sử dụng: email')) setEmailError(message);
+      setReviewing(false);
+    }
     finally { setBusy(false); }
   }
 
@@ -101,10 +115,12 @@ export default function ProviderRegisterPage() {
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Số điện thoại (dùng để đăng nhập)" required>
-              <input className={input} required type="tel" maxLength={20} pattern="[+0-9() .\-]{8,20}" value={form.contactPhone} onChange={(e) => set('contactPhone', e.target.value)} />
+              <input className={input} required type="tel" aria-invalid={Boolean(phoneError)} aria-describedby={phoneError ? 'provider-phone-error' : undefined} value={form.contactPhone} onChange={(e) => { set('contactPhone', e.target.value); setPhoneError(''); }} />
+              {phoneError && <span id="provider-phone-error" role="alert" className="text-xs font-normal text-danger">{phoneError}</span>}
             </Field>
             <Field label="Email">
-              <input className={input} type="email" maxLength={255} value={form.contactEmail} onChange={(e) => set('contactEmail', e.target.value)} />
+              <input className={input} type="email" maxLength={255} aria-invalid={Boolean(emailError)} aria-describedby={emailError ? 'provider-email-error' : undefined} value={form.contactEmail} onChange={(e) => { set('contactEmail', e.target.value); setEmailError(''); }} />
+              {emailError && <span id="provider-email-error" role="alert" className="text-xs font-normal text-danger">{emailError}</span>}
             </Field>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">

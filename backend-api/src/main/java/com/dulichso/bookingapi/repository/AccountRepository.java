@@ -44,6 +44,8 @@ public interface AccountRepository extends JpaRepository<Account, Long>, JpaSpec
 
     boolean existsByEmail(String email);
 
+    boolean existsByEmailIgnoreCase(String email);
+
     boolean existsByPhone(String phone);
 
     long countByStatus(com.dulichso.bookingapi.entity.enums.AccountStatus status);

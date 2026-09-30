@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.Locale;
 
 /**
  * UC-NCC-08: NCC tự đăng ký → hồ sơ PENDING trong provider_application (mật khẩu đã băm BCrypt).
@@ -29,10 +30,15 @@ public class ProviderApplicationService {
     public RegisterResult register(RegisterInput input) {
         String phone = input.contactPhone().trim();
         String email = blankToNull(input.contactEmail());
-        if (identifierTaken(phone) || (email != null && identifierTaken(email)))
-            throw conflict("Thông tin đăng nhập đã được sử dụng. Vui lòng kiểm tra tài khoản đối tác đã có.");
-        if (pendingFor(phone).isPresent() || (email != null && pendingFor(email).isPresent()))
-            throw conflict("Hồ sơ đang chờ xét duyệt với số điện thoại hoặc email này; không tạo hồ sơ trùng.");
+        if (!phone.matches("^(0|\\+84)[35789][0-9]{8}$"))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Số điện thoại không đúng định dạng.");
+        if (email != null) email = email.toLowerCase(Locale.ROOT);
+        String alternatePhone = phone.startsWith("+84") ? "0" + phone.substring(3) : "+84" + phone.substring(1);
+        if (identifierTaken(phone) || identifierTaken(alternatePhone)
+                || pendingFor(phone).isPresent() || pendingFor(alternatePhone).isPresent())
+            throw conflict("Thông tin đăng nhập đã được sử dụng: số điện thoại đã có tài khoản hoặc hồ sơ chờ xét duyệt.");
+        if (email != null && (identifierTaken(email) || pendingFor(email).isPresent()))
+            throw conflict("Thông tin đăng nhập đã được sử dụng: email đã có tài khoản hoặc hồ sơ chờ xét duyệt.");
         ProviderApplication application = ProviderApplication.builder()
                 .businessName(input.businessName().trim()).contactName(input.contactName().trim())
                 .contactPhone(phone).contactEmail(email).address(input.address().trim())
@@ -57,10 +63,12 @@ public class ProviderApplicationService {
         return new StatusResult(a.getId(), a.getBusinessName(), a.getStatus(), label, a.getReviewNote(), a.getCreatedAt(), a.getReviewedAt());
     }
 
-    private boolean identifierTaken(String identifier) {return accounts.findByIdentifier(identifier).isPresent();}
+    private boolean identifierTaken(String identifier) {
+        return accounts.existsByEmailIgnoreCase(identifier) || accounts.existsByPhone(identifier);
+    }
 
     private Optional<ProviderApplication> pendingFor(String identifier) {
-        return em.createQuery("select a from ProviderApplication a where (a.contactPhone=:id or a.contactEmail=:id) and a.status=:pending", ProviderApplication.class)
+        return em.createQuery("select a from ProviderApplication a where (a.contactPhone=:id or lower(a.contactEmail)=lower(:id)) and a.status=:pending", ProviderApplication.class)
                 .setParameter("id", identifier).setParameter("pending", ProviderApplicationStatus.PENDING).setMaxResults(1).getResultStream().findFirst();
     }
 
