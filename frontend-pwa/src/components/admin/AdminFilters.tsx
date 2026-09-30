@@ -75,13 +75,23 @@ const TAB_TEXT_ACTIVE: Record<StatusTone, string> = {
   brand: 'text-primary',
   neutral: 'text-ink-deep',
 };
+/** Rê chuột / chạm vào tab chưa chọn: nền đậm hơn một chút cùng tông. */
 const TAB_HOVER: Record<StatusTone, string> = {
-  success: 'hover:bg-accent/5 hover:text-primary-700',
-  warning: 'hover:bg-sun/10 hover:text-amber-700',
-  danger: 'hover:bg-danger/5 hover:text-danger',
-  info: 'hover:bg-secondary/5 hover:text-secondary-700',
-  brand: 'hover:bg-primary-50 hover:text-primary',
-  neutral: 'hover:bg-hover hover:text-ink-deep',
+  success: 'hover:bg-accent/10 hover:text-primary-700',
+  warning: 'hover:bg-sun/15 hover:text-amber-700',
+  danger: 'hover:bg-danger/10 hover:text-danger',
+  info: 'hover:bg-secondary/10 hover:text-secondary-700',
+  brand: 'hover:bg-primary-100 hover:text-primary',
+  neutral: 'hover:bg-muted/10 hover:text-ink-deep',
+};
+/** Số đếm của tab chưa chọn khi rê chuột / chạm vào tab: đậm hơn nền nhạt thường ngày. */
+const TAB_COUNT_IDLE_HOVER: Record<StatusTone, string> = {
+  success: 'group-hover:bg-accent/20',
+  warning: 'group-hover:bg-sun/30',
+  danger: 'group-hover:bg-danger/20',
+  info: 'group-hover:bg-secondary/20',
+  brand: 'group-hover:bg-primary-100',
+  neutral: 'group-hover:bg-muted/20',
 };
 const TAB_DOT: Record<StatusTone, string> = {
   success: 'bg-accent',
@@ -127,16 +137,25 @@ export function UnderlineTabs<T extends string>({
             role="tab"
             aria-selected={active}
             onClick={() => onChange(it.value)}
-            className={`relative flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-t-md px-2.5 py-2.5 text-xs font-semibold transition-colors duration-200 ${
-              active ? `${TAB_TEXT_ACTIVE[tone]} bg-canvas/70` : `text-muted ${TAB_HOVER[tone]}`
+            className={`group relative flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-t-md px-2.5 py-2.5 text-xs font-semibold transition-colors duration-200 ${
+              active ? `${TAB_TEXT_ACTIVE[tone]} bg-canvas/70 hover:bg-canvas` : `text-muted ${TAB_HOVER[tone]}`
             }`}
           >
-            {it.tone && <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${TAB_DOT[tone]} ${!active && it.count === 0 ? 'opacity-40' : ''}`} />}
+            {it.tone && (
+              <span
+                aria-hidden
+                className={`h-1.5 w-1.5 rounded-full transition-opacity duration-200 ${TAB_DOT[tone]} ${!active && it.count === 0 ? 'opacity-40 group-hover:opacity-70' : ''}`}
+              />
+            )}
             {it.label}
             {it.count != null && (
               <span
-                className={`rounded px-1.5 py-px text-[10px] font-bold tabular-nums transition-colors duration-200 ${
-                  active ? TAB_COUNT_ACTIVE[tone] : it.count > 0 ? TAB_COUNT_IDLE[tone] : 'bg-canvas text-muted/70'
+                className={`rounded px-1.5 py-px text-[10px] font-bold tabular-nums transition-all duration-200 ${
+                  active
+                    ? `${TAB_COUNT_ACTIVE[tone]} group-hover:brightness-95`
+                    : it.count > 0
+                    ? `${TAB_COUNT_IDLE[tone]} ${TAB_COUNT_IDLE_HOVER[tone]}`
+                    : 'bg-canvas text-muted/70 group-hover:bg-hover'
                 }`}
               >
                 {it.count}
