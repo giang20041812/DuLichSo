@@ -336,7 +336,8 @@ export interface PlaceStayPolicy {
   surchargeNote: string;
   childrenPolicy: string;
   petsPolicy: string;
-  guestPolicy: string;
+  /** Nhóm khách phù hợp (homestay_profile.suitability). */
+  suitability: string;
   cancellationPolicyName: string;
   cancellationPolicy: string;
   freeCancelCutoffHours: number | null;

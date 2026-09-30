@@ -142,7 +142,7 @@ export default function PartnerRoomsPage() {
         </div>
       )}
 
-      {selected && (
+      {selected && placeId !== null && (
         <section className={`${ui.card} flex flex-col gap-4 p-5`}>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Đang quản lý</p><h2 className=" text-lg font-bold text-ink-deep">{selected.name}</h2></div>
@@ -154,13 +154,13 @@ export default function PartnerRoomsPage() {
         </section>
       )}
 
-      <RoomEditor placeId={placeId} options={options} editor={editor} onClose={() => setEditor(null)}
+      {placeId !== null && <RoomEditor placeId={placeId} options={options} editor={editor} onClose={() => setEditor(null)}
         onSaved={(roomId, message) => {
           setEditor(null);
           if (message) setNotice(message);
           if (roomId != null) setSelectedId(roomId);
           setLoading(true); setReload(n => n + 1);
-        }} />
+        }} />}
     </div>
   );
 }

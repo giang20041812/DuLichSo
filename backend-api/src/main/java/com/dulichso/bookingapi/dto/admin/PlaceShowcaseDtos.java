@@ -18,7 +18,7 @@ public final class PlaceShowcaseDtos {
 
     /** Chính sách lưu trú của Homestay; các trường chữ để rỗng khi NCC chưa khai. */
     public record StayPolicyDto(String checkInFrom, String checkOutUntil, String houseRules, String surchargeNote,
-                                String childrenPolicy, String petsPolicy, String guestPolicy,
+                                String childrenPolicy, String petsPolicy, String suitability,
                                 String cancellationPolicyName, String cancellationPolicy, Integer freeCancelCutoffHours,
                                 RefundType refundOnLateCancel) {}
 

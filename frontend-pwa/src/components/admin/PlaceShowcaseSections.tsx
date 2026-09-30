@@ -186,7 +186,7 @@ function RoomCard({ room: r }: { room: PlaceShowcaseRoom }) {
 
 function hasPolicy(p: PlaceStayPolicy | null): p is PlaceStayPolicy {
   if (!p) return false;
-  return [p.checkInFrom, p.checkOutUntil, p.houseRules, p.surchargeNote, p.childrenPolicy, p.petsPolicy, p.guestPolicy, p.cancellationPolicy].some(
+  return [p.checkInFrom, p.checkOutUntil, p.houseRules, p.surchargeNote, p.childrenPolicy, p.petsPolicy, p.suitability, p.cancellationPolicy].some(
     (v) => v.trim().length > 0,
   );
 }
@@ -208,7 +208,7 @@ function StayPolicy({ policy: p }: { policy: PlaceStayPolicy }) {
       <PolicyItem label="Nội quy" wide>{p.houseRules}</PolicyItem>
       <PolicyItem label="Trẻ em" wide>{p.childrenPolicy}</PolicyItem>
       <PolicyItem label="Thú cưng" wide>{p.petsPolicy}</PolicyItem>
-      <PolicyItem label="Khách thêm / khách đến thăm" wide>{p.guestPolicy}</PolicyItem>
+      <PolicyItem label="Nhóm khách phù hợp" wide>{p.suitability}</PolicyItem>
       <PolicyItem label="Phụ thu" wide>{p.surchargeNote}</PolicyItem>
       <PolicyItem label={p.cancellationPolicyName ? `Chính sách hủy · ${p.cancellationPolicyName}` : 'Chính sách hủy'} wide>
         {p.cancellationPolicy && (

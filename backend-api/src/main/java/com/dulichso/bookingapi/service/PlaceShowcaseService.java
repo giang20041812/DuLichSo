@@ -121,7 +121,7 @@ public class PlaceShowcaseService {
                 profile.getCheckInFrom() == null ? "" : profile.getCheckInFrom().toString(),
                 profile.getCheckOutUntil() == null ? "" : profile.getCheckOutUntil().toString(),
                 text(profile.getHouseRules()), text(profile.getSurchargeNote()), text(profile.getChildrenPolicy()),
-                text(profile.getPetsPolicy()), text(profile.getGuestPolicy()),
+                text(profile.getPetsPolicy()), text(profile.getSuitability()),
                 c == null ? "" : text(c.getName()), c == null ? "" : text(c.getContentText()),
                 c == null ? null : c.getFreeCancelCutoffHours(), c == null ? null : c.getRefundOnLateCancel());
     }

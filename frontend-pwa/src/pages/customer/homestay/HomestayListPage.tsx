@@ -111,7 +111,7 @@ export default function HomestayListPage() {
   const [currentPage, setCurrentPage] = useState(() => Number(searchParams.get('page') || '1'));
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [showMap, setShowMap] = useState(false);
-  const filterPanelRef = useRef<HTMLElement>(null);
+  const filterPanelRef = useRef<HTMLDivElement>(null);
   const [filterPanelHeight, setFilterPanelHeight] = useState<number | null>(null);
 
   const ITEMS_PER_PAGE = 12;
