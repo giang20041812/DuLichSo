@@ -19,6 +19,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -38,6 +39,7 @@ public class AdminPlaceService {
     private final PlaceHighlightRepository placeHighlightRepository;
     private final HomestayProfileRepository homestayProfileRepository;
 
+    @Autowired
     public AdminPlaceService(PlaceRepository placeRepository, AuditLogService auditLogService,
                              BookingRepository bookingRepository,
                              PlaceContactRepository placeContactRepository,
@@ -49,6 +51,12 @@ public class AdminPlaceService {
         this.placeContactRepository = placeContactRepository;
         this.placeHighlightRepository = placeHighlightRepository;
         this.homestayProfileRepository = homestayProfileRepository;
+    }
+
+    /** Compatibility constructor for tests that exercise operations predating place metadata dependencies. */
+    public AdminPlaceService(PlaceRepository placeRepository, AuditLogService auditLogService,
+                             BookingRepository bookingRepository) {
+        this(placeRepository, auditLogService, bookingRepository, null, null, null);
     }
 
     /**

@@ -7,6 +7,7 @@ import com.dulichso.bookingapi.entity.enums.ReviewStatus;
 import com.dulichso.bookingapi.security.UserPrincipal;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,11 +15,23 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Service @RequiredArgsConstructor @Transactional(readOnly = true)
+@Service @Transactional(readOnly = true)
 public class PartnerReviewService {
     private final PartnerHomestayService homestays;
     private final NotificationService notificationService;
     private final EntityManager em;
+
+    @Autowired
+    public PartnerReviewService(PartnerHomestayService homestays, NotificationService notificationService, EntityManager em) {
+        this.homestays = homestays;
+        this.notificationService = notificationService;
+        this.em = em;
+    }
+
+    /** Compatibility constructor for tests that do not exercise review notifications. */
+    public PartnerReviewService(PartnerHomestayService homestays, EntityManager em) {
+        this(homestays, null, em);
+    }
 
     /** UC-NCC-09 (REV-BR-19): chỉ các đánh giá hợp lệ và đang công khai của Homestay thuộc NCC. */
     public List<ReviewDto> list(UserPrincipal principal, Long placeId) {

@@ -7,6 +7,7 @@ import com.dulichso.bookingapi.entity.keys.PlaceAmenityId;
 import com.dulichso.bookingapi.repository.*;
 import com.dulichso.bookingapi.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,7 +22,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class PartnerHomestayService {
     /** Nhận mọi link TikTok https (video, kênh, link rút gọn vt/vm). Trang khách nhúng video khi link có /video/<số>, còn lại hiện nút mở TikTok. */
@@ -32,6 +32,24 @@ public class PartnerHomestayService {
     private final PlaceAmenityRepository placeAmenities;
     private final PartnerChangeRequestRepository changeRequests;
     private final BookingImpactService bookingImpact;
+
+    @Autowired
+    public PartnerHomestayService(PartnerHomestayRepository repository, AccountRepository accounts,
+                                  PlaceContactRepository contacts, PlaceAmenityRepository placeAmenities,
+                                  PartnerChangeRequestRepository changeRequests, BookingImpactService bookingImpact) {
+        this.repository = repository;
+        this.accounts = accounts;
+        this.contacts = contacts;
+        this.placeAmenities = placeAmenities;
+        this.changeRequests = changeRequests;
+        this.bookingImpact = bookingImpact;
+    }
+
+    /** Compatibility constructor for the original partner homestay unit-test surface. */
+    public PartnerHomestayService(PartnerHomestayRepository repository, AccountRepository accounts,
+                                  PlaceContactRepository contacts, PlaceAmenityRepository placeAmenities) {
+        this(repository, accounts, contacts, placeAmenities, null, null);
+    }
 
     /** Dữ liệu cần để xác định Homestay đủ điều kiện công khai/nhận Booking (UC-NCC-02/03/05). */
     record PublishFacts(int rooms, int sellableRooms, String cover, String phone, HomestayProfile profile, boolean pendingPublish) {}

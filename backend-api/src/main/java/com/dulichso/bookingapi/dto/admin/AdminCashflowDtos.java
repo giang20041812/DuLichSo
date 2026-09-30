@@ -14,10 +14,11 @@ public final class AdminCashflowDtos {
     /**
      * Một dòng: NCC hoặc Homestay. {@code id}/{@code name} là của đối tượng đang nhóm;
      * {@code providerId}/{@code providerName} luôn là NCC sở hữu (để mở chi tiết/lọc booking).
-     * netAmount = paidAmount
+     * netAmount = paidAmount - refundedAmount; pending refunds are reported separately.
      */
     public record CashflowRowDto(Long id, String name, Long providerId, String providerName, long paidBookings,
-                                 BigDecimal paidAmount, BigDecimal netAmount) {}
+                                 BigDecimal paidAmount, BigDecimal refundedAmount, BigDecimal pendingRefundAmount,
+                                 BigDecimal netAmount) {}
 
     public record CashflowTotalsDto(long paidBookings, BigDecimal paidAmount, BigDecimal netAmount) {}
 

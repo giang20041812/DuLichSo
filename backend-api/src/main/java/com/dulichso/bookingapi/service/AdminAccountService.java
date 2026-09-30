@@ -7,6 +7,7 @@ import com.dulichso.bookingapi.entity.enums.AccountStatus;
 import com.dulichso.bookingapi.repository.AccountRepository;
 import com.dulichso.bookingapi.security.UserPrincipal;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +22,7 @@ public class AdminAccountService {
     private final AuditLogService auditLogService;
     private final com.dulichso.bookingapi.repository.ProviderRepository providerRepository;
     private final BookingImpactService bookingImpactService;
+    private final ProviderLockCascadeService legacyProviderLockCascadeService;
 
     public AdminAccountService(AccountRepository accountRepository,
                                PasswordEncoder passwordEncoder,
@@ -32,6 +34,22 @@ public class AdminAccountService {
         this.auditLogService = auditLogService;
         this.providerRepository = providerRepository;
         this.bookingImpactService = bookingImpactService;
+        this.legacyProviderLockCascadeService = null;
+    }
+
+    /** Compatibility constructor for unit tests and callers using the pre-refactor cascade service. */
+    @Autowired
+    public AdminAccountService(AccountRepository accountRepository,
+                               PasswordEncoder passwordEncoder,
+                               AuditLogService auditLogService,
+                               com.dulichso.bookingapi.repository.ProviderRepository providerRepository,
+                               ProviderLockCascadeService providerLockCascadeService) {
+        this.accountRepository = accountRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.auditLogService = auditLogService;
+        this.providerRepository = providerRepository;
+        this.bookingImpactService = null;
+        this.legacyProviderLockCascadeService = providerLockCascadeService;
     }
 
     private static final java.util.Set<String> ACCOUNT_SORT_FIELDS = java.util.Set.of("createdAt", "lastLoginAt", "fullName", "email");
@@ -209,8 +227,12 @@ public class AdminAccountService {
         int cancelledBookings = 0;
         if (changed && saved.getRole() == AccountRole.PROVIDER && saved.getStatus() == AccountStatus.INACTIVE
                 && saved.getProvider() != null) {
-            cancelledBookings = bookingImpactService.cancelForProvider(saved.getProvider().getId(),
-                    "Tài khoản nhà cung cấp bị khóa: " + request.getReason().trim());
+            if (bookingImpactService != null) {
+                cancelledBookings = bookingImpactService.cancelForProvider(saved.getProvider().getId(),
+                        "Tài khoản nhà cung cấp bị khóa: " + request.getReason().trim());
+            } else {
+                cancelledBookings = legacyProviderLockCascadeService.cancelPendingBookings(saved.getProvider());
+            }
         }
 
         java.util.Map<String, Object> after = new java.util.HashMap<>();

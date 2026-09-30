@@ -14,6 +14,7 @@ import com.dulichso.bookingapi.service.AdminBookingService.BookingDto;
 import com.dulichso.bookingapi.service.ResponseDeadlineService.BookingRef;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -30,7 +31,7 @@ import java.util.*;
  * đáp ứng) và UC-NCC-08 (chấp nhận / từ chối). Chỉ đơn PENDING, còn trong hạn 120 phút theo khung giờ xử lý mới được
  * quyết định; mọi thao tác ghi đều khóa booking và loại phòng trước khi đụng tồn kho.
  */
-@Service @RequiredArgsConstructor @Transactional(readOnly = true)
+@Service @Transactional(readOnly = true)
 public class PartnerBookingService {
     /** BR-50: khách phải thanh toán trong 15 phút kể từ lúc nhà cung cấp chấp nhận. */
     static final Duration PAYMENT_WINDOW = Duration.ofMinutes(15);
@@ -45,6 +46,31 @@ public class PartnerBookingService {
     private final NotificationRecorder notifications;
     private final NotificationService notificationService;
     private final ResponseDeadlineService deadlines;
+
+    @Autowired
+    public PartnerBookingService(PartnerHomestayService homestays, BookingRepository bookings,
+                                 BookingNightRepository bookingNights, RoomTypeRepository rooms,
+                                 RoomCalendarService calendar, EntityManager em,
+                                 NotificationRecorder notifications, NotificationService notificationService,
+                                 ResponseDeadlineService deadlines) {
+        this.homestays = homestays;
+        this.bookings = bookings;
+        this.bookingNights = bookingNights;
+        this.rooms = rooms;
+        this.calendar = calendar;
+        this.em = em;
+        this.notifications = notifications;
+        this.notificationService = notificationService;
+        this.deadlines = deadlines;
+    }
+
+    /** Compatibility constructor for tests covering the original booking workflow dependencies. */
+    public PartnerBookingService(PartnerHomestayService homestays, BookingRepository bookings,
+                                 BookingNightRepository bookingNights, RoomTypeRepository rooms,
+                                 RoomCalendarService calendar, EntityManager em,
+                                 NotificationRecorder notifications) {
+        this(homestays, bookings, bookingNights, rooms, calendar, em, notifications, null, null);
+    }
 
     public BookingDetailDto detail(UserPrincipal principal, Long id) {
         Account actor = homestays.actor(principal, false);

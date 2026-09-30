@@ -70,6 +70,12 @@ public class AdminCashflowService {
             a.paidBookings = ((Number) r[4]).longValue();
             a.paid = money(r[5]);
         }
+        for (Object[] r : refunds.sumProcessedByPlace(com.dulichso.bookingapi.entity.enums.RefundStatus.PROCESSED, fromTs, toTs, providerId)) {
+            acc(byPlace, r).refunded = money(r[4]);
+        }
+        for (Object[] r : refunds.sumByStatusPerPlace(com.dulichso.bookingapi.entity.enums.RefundStatus.PENDING, providerId)) {
+            acc(byPlace, r).pending = money(r[4]);
+        }
 
         List<CashflowRowDto> rows = effectiveLevel == CashflowLevel.PLACE ? placeRows(byPlace) : providerRows(byPlace);
         String kw = keyword == null || keyword.isBlank() ? null : keyword.trim().toLowerCase(Locale.ROOT);
@@ -112,7 +118,7 @@ public class AdminCashflowService {
 
     private static List<CashflowRowDto> placeRows(Map<Long, Acc> byPlace) {
         return byPlace.values().stream().map(a -> new CashflowRowDto(a.placeId, a.placeName, a.providerId, a.providerName,
-                a.paidBookings, a.paid, a.paid)).toList();
+                a.paidBookings, a.paid, a.refunded, a.pending, a.paid.subtract(a.refunded))).toList();
     }
 
     /** Gộp các Homestay theo NCC sở hữu. */
@@ -127,24 +133,30 @@ public class AdminCashflowService {
             });
             p.paidBookings += a.paidBookings;
             p.paid = p.paid.add(a.paid);
+            p.refunded = p.refunded.add(a.refunded);
+            p.pending = p.pending.add(a.pending);
         }
         return byProvider.values().stream().map(a -> new CashflowRowDto(a.providerId, a.providerName, a.providerId, a.providerName,
-                a.paidBookings, a.paid, a.paid)).toList();
+                a.paidBookings, a.paid, a.refunded, a.pending, a.paid.subtract(a.refunded))).toList();
     }
 
     private static CashflowTotalsDto totals(List<CashflowRowDto> rows) {
         long bookings = 0;
         BigDecimal paid = BigDecimal.ZERO;
+        BigDecimal net = BigDecimal.ZERO;
         for (CashflowRowDto r : rows) {
             bookings += r.paidBookings();
             paid = paid.add(r.paidAmount());
+            net = net.add(r.netAmount());
         }
-        return new CashflowTotalsDto(bookings, paid, paid);
+        return new CashflowTotalsDto(bookings, paid, net);
     }
 
     private static Comparator<CashflowRowDto> comparator(String sortBy) {
         return switch (sortBy) {
             case "paid" -> Comparator.comparing(CashflowRowDto::paidAmount);
+            case "refunded" -> Comparator.comparing(CashflowRowDto::refundedAmount);
+            case "pending" -> Comparator.comparing(CashflowRowDto::pendingRefundAmount);
             case "bookings" -> Comparator.comparingLong(CashflowRowDto::paidBookings);
             case "name" -> Comparator.comparing(CashflowRowDto::name, String.CASE_INSENSITIVE_ORDER);
             default -> Comparator.comparing(CashflowRowDto::netAmount);
