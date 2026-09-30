@@ -112,6 +112,10 @@ public class PartnerHomestayDtos {
         private String address;
         private Double latitude;
         private Double longitude;
+        /** Lưu thành liên hệ kênh GOOGLE_MAPS (place_contact), không có cột riêng trên place. */
+        private String googleMapLink;
+        /** Link fanpage Facebook, lưu thành liên hệ kênh FACEBOOK. */
+        private String facebookUrl;
         private String accessNote;
         private String coverImageUrl;
         private List<String> galleryUrls;
@@ -135,7 +139,11 @@ public class PartnerHomestayDtos {
         private String surchargeNote;
         private String childrenPolicy;
         private String petsPolicy;
-        private String guestPolicy;
+        private String viewHighlight;
+        /** Nhóm khách phù hợp (homestay_profile.suitability). */
+        private String suitability;
+        /** Điểm Google (0-5) do hệ thống nhập từ dữ liệu đã xác thực; NCC chỉ xem, không sửa. */
+        private BigDecimal googleRating;
         private PlaceVisibility visibility;
         private PlaceOperationStatus operationStatus;
         @lombok.Getter(onMethod_ = @JsonProperty("isReadyToPublish"))
@@ -150,6 +158,7 @@ public class PartnerHomestayDtos {
         private String roomTypesSummary;
         private BigDecimal priceRefMin;
         private BigDecimal priceRefMax;
+        private String priceUnitNote;
         private String pricingSummary;
         private String availabilitySummary;
         private String stopSellSummary;

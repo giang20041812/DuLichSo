@@ -15,7 +15,7 @@ const shortDate = (d: string) => new Date(d).toLocaleDateString('vi-VN', { day: 
 const dateTime = (d?: string | null) => (d ? new Date(d).toLocaleString('vi-VN') : '—');
 const timeDate = (d: string) => `${new Date(d).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}, ${new Date(d).toLocaleDateString('vi-VN')}`;
 const pill = (cls: string) => `inline-block whitespace-nowrap rounded-sm border px-2 py-0.5 text-[11px] font-bold ${cls}`;
-const REJECT_REASONS = ['Hết phòng trong thời gian yêu cầu', 'Homestay tạm ngừng đón khách', 'Không đáp ứng được yêu cầu đặc biệt', 'Số khách vượt quá khả năng phục vụ'];
+const REJECT_REASONS = ['Hết phòng trong thời gian yêu cầu', 'Homestay tạm ngừng đón khách', 'Không đáp ứng được yêu cầu đặc biệt'];
 const ACTOR_LABEL = { CUSTOMER: 'Khách hàng', PROVIDER: 'Nhà cung cấp', ADMIN: 'Quản trị viên', SYSTEM: 'Hệ thống' } as const;
 /** Trên màn hình NCC, đơn chờ hiển thị đúng thuật ngữ đặc tả "Chờ NCC xác nhận". */
 const statusLabel = (s: BookingStatus) => (s === 'PENDING' ? 'Chờ NCC xác nhận' : BOOKING_STATUS_LABEL[s]);
@@ -204,14 +204,12 @@ function PriceSection({ booking }: { booking: PartnerBookingDetailDto }) {
 }
 
 function AvailabilitySection({ booking, refreshing, onReload }: { booking: PartnerBookingDetailDto; refreshing: boolean; onReload: () => void }) {
-  const room = booking.roomOptions.find((o) => o.current);
   const shortNights = booking.availability.filter((d) => d.stopSell || d.heldRooms < booking.roomCount);
-  const capacityFail = booking.checks.some((c) => c.code === 'CAPACITY' && c.level === 'FAIL');
-  const ok = shortNights.length === 0 && !capacityFail && booking.availability.length > 0;
+  const ok = shortNights.length === 0 && booking.availability.length > 0;
   return (
     <Section title="Khả năng đáp ứng" hint="Xem trên cùng trang">
       <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-        <span className="font-semibold text-ink-deep">{booking.roomTypeName}{room?.maxOccupancy ? <span className="font-normal text-muted"> · tối đa {room.maxOccupancy} khách/phòng</span> : null}</span>
+        <span className="font-semibold text-ink-deep">{booking.roomTypeName}</span>
         <span className="text-ink">{booking.guestCount} khách</span>
       </div>
       <div className="overflow-x-auto rounded-md border border-border">
@@ -241,7 +239,7 @@ function AvailabilitySection({ booking, refreshing, onReload }: { booking: Partn
       ) : (
         <p className="flex items-start gap-2 rounded-md bg-danger/5 p-3 text-sm text-danger">
           <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>{capacityFail ? 'Số khách vượt sức chứa phương án phòng.' : `Không đủ phòng trong toàn bộ thời gian lưu trú (${shortNights.map((d) => shortDate(d.stayDate)).join(', ')}).`} Bạn có thể yêu cầu khách bổ sung/điều chỉnh hoặc từ chối.</span>
+          <span>{`Không đủ phòng trong toàn bộ thời gian lưu trú (${shortNights.map((d) => shortDate(d.stayDate)).join(', ')}).`} Bạn có thể yêu cầu khách bổ sung/điều chỉnh hoặc từ chối.</span>
         </p>
       )}
       <button type="button" onClick={onReload} disabled={refreshing} className="inline-flex w-fit items-center gap-1.5 text-sm font-semibold text-muted hover:text-primary disabled:opacity-50">
@@ -266,10 +264,9 @@ function DecisionSection({ booking, onDone }: { booking: PartnerBookingDetailDto
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
 
   const shortNights = booking.availability.filter((d) => d.stopSell || d.heldRooms < booking.roomCount);
-  const capacityFail = booking.checks.some((c) => c.code === 'CAPACITY' && c.level === 'FAIL');
   const waitingInfo = booking.infoRequests.some((r) => !r.respondedAt);
   const checkInPassed = booking.checks.some((c) => c.code === 'DATES' && c.level === 'FAIL');
-  const acceptBlocked = shortNights.length > 0 || capacityFail || waitingInfo || checkInPassed || (hasSpecial && !special);
+  const acceptBlocked = shortNights.length > 0 || waitingInfo || checkInPassed || (hasSpecial && !special);
   const specialResult = !hasSpecial ? undefined
     : `${special === 'yes' ? 'Có thể đáp ứng yêu cầu đặc biệt' : 'Không đáp ứng được yêu cầu đặc biệt'}${specialNote.trim() ? `: ${specialNote.trim()}` : ''}.`;
 
@@ -278,7 +275,7 @@ function DecisionSection({ booking, onDone }: { booking: PartnerBookingDetailDto
     try { onDone(await action()); setNotice(done); } catch (e: unknown) { setError(homestayError(e)); } finally { setBusy(false); }
   }
 
-  /** Lưu kết quả đánh giá "Đáp ứng" (UC-NCC-07) rồi chấp nhận (UC-NCC-08); backend kiểm tra lại phòng, sức chứa, hạn trước khi ghi. */
+  /** Lưu kết quả đánh giá "Đáp ứng" (UC-NCC-07) rồi chấp nhận (UC-NCC-08); backend kiểm tra lại phòng và hạn trước khi ghi. */
   const acceptFlow = () => run(async () => {
     await partnerBookingService.evaluate(booking.id, { conclusion: 'MEETS', specialRequestResult: specialResult });
     return partnerBookingService.accept(booking.id, { roomTypeId: null, note: specialResult ?? '' });

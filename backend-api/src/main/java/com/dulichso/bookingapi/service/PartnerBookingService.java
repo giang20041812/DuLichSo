@@ -76,7 +76,6 @@ public class PartnerBookingService {
             throw bad("Vui lòng ghi rõ đáp ứng hoặc không đáp ứng từng yêu cầu đặc biệt của khách.");
         if (input.conclusion() == Conclusion.MEETS) {
             RoomType room = rooms.findLockedById(booking.getRoomType().getId()).orElseThrow(PartnerBookingService::notFound);
-            if (!capacityOk(room, booking)) throw bad("Số khách vượt sức chứa phương án phòng.");
             if (!"ACTIVE".equals(room.getStatus()) || !holdStillValid(room, booking))
                 throw conflict("Không đủ phòng trong toàn bộ thời gian lưu trú.");
         }
@@ -112,7 +111,6 @@ public class PartnerBookingService {
             throw conflict("Cần lưu kết quả đánh giá \"Đáp ứng\" trước khi chấp nhận Booking.");
         if (isStale(evaluation, room))
             throw conflict("Dữ liệu phòng đã thay đổi sau khi đánh giá. Vui lòng kiểm tra lại khả năng đáp ứng.");
-        if (!capacityOk(room, booking)) throw conflict("Không thể xác nhận vì khả năng cung cấp đã thay đổi.");
         if (!"ACTIVE".equals(room.getStatus())) throw conflict("Không thể xác nhận vì khả năng cung cấp đã thay đổi.");
         for (LocalDate date = booking.getCheckIn(); date.isBefore(booking.getCheckOut()); date = date.plusDays(1)) {
             RoomInventoryDay day = calendar.lockedDay(room, date);
@@ -423,10 +421,8 @@ public class PartnerBookingService {
                 future ? b.getNights() + " đêm, từ " + b.getCheckIn() + " đến " + b.getCheckOut() + "." : "Ngày nhận phòng đã qua."));
 
         RoomType room = b.getRoomType();
-        boolean capacity = capacityOk(room, b);
-        list.add(new CheckDto("CAPACITY", "Sức chứa loại phòng", capacity ? CheckLevel.OK : CheckLevel.FAIL,
-                capacity ? b.getGuestCount() + " khách / " + b.getRoomCount() + " phòng, tối đa " + room.getMaxOccupancy() + " khách mỗi phòng."
-                        : "Số khách vượt sức chứa phương án phòng."));
+        list.add(new CheckDto("CAPACITY", "Số khách", CheckLevel.OK,
+                b.getGuestCount() + " khách / " + b.getRoomCount() + " phòng; không giới hạn theo sức chứa cấu hình."));
 
         boolean available = "ACTIVE".equals(room.getStatus()) && holdStillValid(room, b);
         list.add(new CheckDto("AVAILABILITY", "Tình trạng phòng", available ? CheckLevel.OK : CheckLevel.FAIL,
@@ -467,24 +463,23 @@ public class PartnerBookingService {
         List<RoomOptionDto> list = new ArrayList<>();
         for (RoomType room : rooms.findByPlaceId(b.getPlace().getId())) {
             boolean current = room.getId().equals(b.getRoomType().getId());
-            boolean capacity = capacityOk(room, b);
             if (current) {
                 boolean available = "ACTIVE".equals(room.getStatus()) && holdStillValid(room, b);
                 list.add(new RoomOptionDto(room.getId(), room.getName(), room.getMaxOccupancy(), true, available ? b.getRoomCount() : 0,
-                        capacity, capacity && available, b.getTotalAmount(), !capacity ? "Không đủ sức chứa" : available ? null : "Phòng ngừng bán hoặc giữ chỗ không còn hợp lệ"));
+                        true, available, b.getTotalAmount(), available ? null : "Phòng ngừng bán hoặc giữ chỗ không còn hợp lệ"));
                 continue;
             }
             if (!"ACTIVE".equals(room.getStatus())) {
-                list.add(new RoomOptionDto(room.getId(), room.getName(), room.getMaxOccupancy(), false, 0, capacity, false, null, "Đang ngừng bán"));
+                list.add(new RoomOptionDto(room.getId(), room.getName(), room.getMaxOccupancy(), false, 0, true, false, null, "Đang ngừng bán"));
                 continue;
             }
             try {
                 var quote = calendar.quote(room, b.getCheckIn(), b.getCheckOut(), b.getRoomCount(), b.getGuestCount());
-                String reason = quote.availableRooms() < b.getRoomCount() ? "Không đủ phòng trống" : capacity ? null : "Không đủ sức chứa";
+                String reason = quote.availableRooms() < b.getRoomCount() ? "Không đủ phòng trống" : null;
                 list.add(new RoomOptionDto(room.getId(), room.getName(), room.getMaxOccupancy(), false, quote.availableRooms(),
-                        capacity, quote.suitable(), quote.totalAmount(), reason));
+                        true, quote.suitable(), quote.totalAmount(), reason));
             } catch (ResponseStatusException ex) {
-                list.add(new RoomOptionDto(room.getId(), room.getName(), room.getMaxOccupancy(), false, 0, capacity, false, null, ex.getReason()));
+                list.add(new RoomOptionDto(room.getId(), room.getName(), room.getMaxOccupancy(), false, 0, true, false, null, ex.getReason()));
             }
         }
         list.sort(Comparator.comparing(RoomOptionDto::current).reversed().thenComparing(RoomOptionDto::suitable, Comparator.reverseOrder()));
@@ -524,10 +519,6 @@ public class PartnerBookingService {
 
     private static void requirePending(Booking b) {
         if (b.getStatus() != BookingStatus.PENDING) throw conflict("Đơn không còn ở trạng thái chờ xử lý.");
-    }
-
-    private static boolean capacityOk(RoomType room, Booking b) {
-        return room.getMaxOccupancy() != null && (long) room.getMaxOccupancy() * b.getRoomCount() >= b.getGuestCount();
     }
 
     private static boolean notBlank(String s) {return s != null && !s.isBlank();}

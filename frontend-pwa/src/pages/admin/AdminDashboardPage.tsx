@@ -105,8 +105,7 @@ export default function AdminDashboardPage() {
     if (!allowed) navigate('/portal/login', { replace: true });
   }, [currentUser, navigate]);
 
-  if (!currentUser || currentUser.role !== 'ADMIN') return null;
-
+  const isAdmin = currentUser !== null && currentUser.role === 'ADMIN';
 
   // 1. Dashboard State
   const [dashboardData, setDashboardData] = useState<AdminDashboardSummaryDto | null>(null);
@@ -203,6 +202,7 @@ export default function AdminDashboardPage() {
   };
 
   useEffect(() => {
+    if (!isAdmin) return;
     if (activeTab === 'dashboard') loadDashboard();
     else if (activeTab === 'providers') loadProviders();
     void loadNavCounts(activeTab !== 'dashboard');
@@ -314,6 +314,9 @@ export default function AdminDashboardPage() {
         : null,
   }));
   const meta = TAB_META[activeTab];
+
+  // Guard đặt sau toàn bộ hook để thứ tự hook không đổi giữa các lần render (rules-of-hooks).
+  if (!isAdmin) return null;
 
   return (
     <div className="min-h-screen bg-canvas font-sans text-ink">

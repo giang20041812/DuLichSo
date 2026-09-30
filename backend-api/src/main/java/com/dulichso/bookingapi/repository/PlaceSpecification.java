@@ -35,8 +35,7 @@ public class PlaceSpecification {
             String ward,
             List<Long> attractionIds,
             String keyword,
-            String needs,
-            Integer guestCount) {
+            String needs) {
             
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -56,19 +55,6 @@ public class PlaceSpecification {
             ));
             predicates.add(cb.isFalse(root.get("isDeleted")));
 
-            if (guestCount != null) {
-                Subquery<Long> guestRoomSq = query.subquery(Long.class);
-                Root<RoomType> guestRoomRoot = guestRoomSq.from(RoomType.class);
-                guestRoomSq.select(cb.count(guestRoomRoot));
-                guestRoomSq.where(
-                        cb.equal(guestRoomRoot.get("place"), root),
-                        cb.equal(guestRoomRoot.get("status"), "ACTIVE"),
-                        cb.greaterThanOrEqualTo(guestRoomRoot.get("maxOccupancy"), guestCount),
-                        cb.greaterThan(guestRoomRoot.get("totalRoomCount"), 0)
-                );
-                predicates.add(cb.greaterThan(guestRoomSq, 0L));
-            }
-            
             // 2. Date availability check (Nếu chỉ chọn checkIn thì kiểm tra đêm lưu trú checkIn đến checkIn + 1)
             LocalDate effectiveCheckIn = checkIn;
             LocalDate effectiveCheckOut = checkOut;

@@ -26,10 +26,10 @@ import { ui } from '@/lib/partnerUi';
 
 const EMPTY: PartnerHomestayDetailDto = {
   id: 0, code: '', slug: '', name: '', description: '', address: '', regionName: '', regionId: null,
-  latitude: null, longitude: null, contactPhone: '', contactEmail: '', reviewVideoUrl: '', accessNote: '',
+  latitude: null, longitude: null, googleMapLink: '', facebookUrl: '', contactPhone: '', contactEmail: '', reviewVideoUrl: '', accessNote: '',
   coverImageUrl: '', galleryUrls: [], amenities: [], checkInFrom: '', checkOutUntil: '', processingStartTime: '', processingEndTime: '',
   houseRules: '', cancellationPolicy: '', policyName: '', freeCancelCutoffHours: null, refundOnLateCancel: null,
-  surchargeNote: '', visibility: 'DRAFT', operationStatus: 'OPERATING', isReadyToPublish: false,
+  surchargeNote: '', childrenPolicy: '', petsPolicy: '', viewHighlight: '', suitability: '', visibility: 'DRAFT', operationStatus: 'OPERATING', isReadyToPublish: false,
   cooperativeName: '', providerCode: '',
 };
 
@@ -60,7 +60,7 @@ export default function PartnerHomestayEditPage() {
     if (invalidId) return;
     let active = true;
     Promise.all([fetchHomestayOptions(), id ? fetchPartnerHomestayDetail(Number(id)) : Promise.resolve({ ...EMPTY })])
-      .then(([catalog, detail]) => { if (active) { setOptions(catalog); setForm(detail); setInitialForm(detail); setLoadError(''); } })
+      .then(([catalog, detail]) => { if (active) { setOptions(catalog); setForm(detail); setInitialForm(detail); setMapLink(detail.googleMapLink ?? ''); setLoadError(''); } })
       .catch((error: unknown) => { if (active) setLoadError(homestayError(error)); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
@@ -91,6 +91,7 @@ export default function PartnerHomestayEditPage() {
 
   const handleMapLinkChange = (url: string) => {
     setMapLink(url);
+    set('googleMapLink', url);
     const latLngMatch = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
     const exclamationMatch = url.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
     const qMatch = url.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/) || url.match(/[?&]ll=(-?\d+\.\d+),(-?\d+\.\d+)/);
@@ -121,7 +122,7 @@ export default function PartnerHomestayEditPage() {
         if (placeMatch && placeMatch[1]) {
           try {
             next.address = decodeURIComponent(placeMatch[1].replace(/\+/g, ' '));
-          } catch (e) {
+          } catch {
             // ignore malformed URI
           }
         }
@@ -280,6 +281,19 @@ export default function PartnerHomestayEditPage() {
               : missing.length > 0
                 ? <Alert tone="error">Chưa đủ điều kiện công khai/nhận Booking. Còn thiếu: <b>{missing.join(', ')}</b>. Loại phòng, giá và ảnh phòng khai báo ở trang <Link to={`/partner/homestay/${id}/rooms`} className="font-semibold underline">Phòng & lịch</Link>.</Alert>
                 : <Alert tone="success">Hồ sơ đã đủ điều kiện. Vào tab Vận hành và bấm “Gửi duyệt xuất bản” để quản trị viên duyệt.</Alert>)}
+            {id && (
+              <Card title="Tóm tắt dữ liệu đang lưu" icon={Info}>
+                <div className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-5">
+                  <SummaryItem label="Số loại phòng" value={String(form.roomTypesCount ?? 0)} />
+                  <SummaryItem label="Giá tham khảo" value={form.priceRefMin != null || form.priceRefMax != null
+                    ? `${(form.priceRefMin ?? form.priceRefMax ?? 0).toLocaleString('vi-VN')}${form.priceRefMax != null && form.priceRefMax !== form.priceRefMin ? ` – ${form.priceRefMax.toLocaleString('vi-VN')}` : ''}${form.priceUnitNote ? ` / ${form.priceUnitNote}` : ''}`
+                    : 'Chưa có'} />
+                  <SummaryItem label="Khu vực" value={form.regionName || 'Chưa cập nhật'} />
+                  <SummaryItem label="Mã NCC" value={form.providerCode || 'Chưa có'} />
+                  <SummaryItem label="Điểm Google (hệ thống cập nhật)" value={form.googleRating != null ? `${Number(form.googleRating).toFixed(1)}/5` : 'Chưa có'} />
+                </div>
+              </Card>
+            )}
             <div className="flex flex-col gap-6">
               <nav role="tablist" aria-label="Các mục thông tin" className="-mx-1 flex gap-1 overflow-x-auto border-b border-primary/10 px-1 scrollbar-hide">
                 {tabs.map(({ id: tabId, label, icon: Icon }) => {
@@ -312,6 +326,12 @@ export default function PartnerHomestayEditPage() {
                           <Field label="Mô tả tổng quan" hint={`${form.description?.length ?? 0}/10000 ký tự`}>
                             <textarea className={ui.textarea} rows={6} maxLength={10000} value={form.description} onChange={e => set('description', e.target.value)} placeholder="Không gian, cảnh quan, trải nghiệm bản địa, món ăn đặc sản..." />
                           </Field>
+                          <Field label="Điểm nổi bật / view" hint="Nội dung này được hiển thị công khai trên trang chi tiết cho khách.">
+                            <textarea className={ui.textarea} rows={3} maxLength={10000} value={form.viewHighlight ?? ''} onChange={e => set('viewHighlight', e.target.value)} placeholder="VD: View ruộng bậc thang, núi rừng, thung lũng..." />
+                          </Field>
+                          <Field label="Nhóm khách phù hợp" hint="Hiển thị công khai ở mục “Phù hợp với” trên trang chi tiết.">
+                            <textarea className={ui.textarea} rows={3} maxLength={10000} value={form.suitability ?? ''} onChange={e => set('suitability', e.target.value)} placeholder="VD: Cặp đôi, gia đình nhỏ, nhóm bạn thích trekking..." />
+                          </Field>
                           <div className="grid gap-4 sm:grid-cols-2">
                             <Field label="Số điện thoại liên hệ" required><input className={ui.input} type="tel" required maxLength={32} value={form.contactPhone} onChange={e => set('contactPhone', e.target.value)} /></Field>
                             <Field label="Email liên hệ"><input className={ui.input} type="email" maxLength={254} value={form.contactEmail ?? ''} onChange={e => set('contactEmail', e.target.value)} /></Field>
@@ -319,6 +339,10 @@ export default function PartnerHomestayEditPage() {
                           <Field label="Link video review TikTok" hint="Dán link TikTok (bắt đầu bằng https://). Link video đầy đủ dạng .../video/số sẽ được nhúng xem trực tiếp; link kênh hoặc link rút gọn (vt.tiktok.com) hiện nút mở TikTok cho khách.">
                             <input className={ui.input} type="url" maxLength={500} placeholder="https://www.tiktok.com/@tenkenh/video/7123456789012345678"
                               value={form.reviewVideoUrl ?? ''} onChange={e => set('reviewVideoUrl', e.target.value)} />
+                          </Field>
+                          <Field label="Link Fanpage Facebook" hint="Dán link trang Facebook của cơ sở (bắt đầu bằng https://).">
+                            <input className={ui.input} type="url" maxLength={500} placeholder="https://www.facebook.com/ten-trang"
+                              value={form.facebookUrl ?? ''} onChange={e => set('facebookUrl', e.target.value)} />
                           </Field>
                         </Card>
                       )}
@@ -385,13 +409,12 @@ export default function PartnerHomestayEditPage() {
                               <Field label="Nhận phòng từ"><input className={ui.input} type="time" value={form.checkInFrom} onChange={e => set('checkInFrom', e.target.value)} /></Field>
                               <Field label="Trả phòng trước"><input className={ui.input} type="time" value={form.checkOutUntil} onChange={e => set('checkOutUntil', e.target.value)} /></Field>
                             </div>
-                            <Field label="Nội quy chung và đối tượng khách phù hợp"><textarea className={ui.textarea} rows={4} maxLength={10000} value={form.houseRules} onChange={e => set('houseRules', e.target.value)} /></Field>
+                            <Field label="Nội quy chung"><textarea className={ui.textarea} rows={4} maxLength={10000} value={form.houseRules} onChange={e => set('houseRules', e.target.value)} /></Field>
                             <Field label="Quy định phụ thu"><textarea className={ui.textarea} rows={3} maxLength={10000} value={form.surchargeNote ?? ''} onChange={e => set('surchargeNote', e.target.value)} placeholder="Thêm người, thêm giường, ăn uống..." /></Field>
                             <div className="grid gap-4 sm:grid-cols-2">
                               <Field label="Chính sách trẻ em"><textarea className={ui.textarea} rows={2} maxLength={10000} value={form.childrenPolicy ?? ''} onChange={e => set('childrenPolicy', e.target.value)} /></Field>
                               <Field label="Chính sách thú cưng"><textarea className={ui.textarea} rows={2} maxLength={10000} value={form.petsPolicy ?? ''} onChange={e => set('petsPolicy', e.target.value)} /></Field>
                             </div>
-                            <Field label="Số khách và khách phù hợp"><textarea className={ui.textarea} rows={2} maxLength={10000} value={form.guestPolicy ?? ''} onChange={e => set('guestPolicy', e.target.value)} /></Field>
                           </Card>
                           <ProcessingWindowCard start={form.processingStartTime ?? ''} end={form.processingEndTime ?? ''}
                             onChange={(start, end) => setForm(prev => ({ ...prev, processingStartTime: start, processingEndTime: end }))} />
@@ -480,7 +503,8 @@ function PolicyPreview({ open, onClose, form }: { open: boolean; onClose: () => 
     ['Chính sách hủy', form.cancellationPolicy ? `${form.policyName ? form.policyName + ': ' : ''}${form.cancellationPolicy}${form.freeCancelCutoffHours != null ? ` (hủy miễn phí trước ${form.freeCancelCutoffHours} giờ; hủy muộn: ${form.refundOnLateCancel === 'FULL_REFUND' ? 'hoàn toàn bộ' : 'không hoàn tiền'})` : ''}` : null],
     ['Trẻ em', form.childrenPolicy],
     ['Thú cưng', form.petsPolicy],
-    ['Số khách', form.guestPolicy],
+    ['Điểm nổi bật / view', form.viewHighlight],
+    ['Phù hợp với', form.suitability],
     ['Phụ thu', form.surchargeNote],
     ['Nội quy', form.houseRules],
   ];
@@ -513,6 +537,15 @@ function NoticeBar({ notice, onClose }: { notice: NonNullable<Notice>; onClose: 
     <Alert tone={notice.tone} action={<button type="button" aria-label="Đóng thông báo" className="text-current opacity-60 transition-opacity duration-200 hover:opacity-100" onClick={onClose}><X className="h-4 w-4" /></button>}>
       {notice.text}
     </Alert>
+  );
+}
+
+function SummaryItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md border border-border bg-canvas px-3 py-2">
+      <dt className="text-xs text-muted">{label}</dt>
+      <dd className="mt-1 font-semibold text-ink-deep">{value}</dd>
+    </div>
   );
 }
 

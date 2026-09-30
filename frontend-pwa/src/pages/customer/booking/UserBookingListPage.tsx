@@ -519,7 +519,7 @@ export default function UserBookingListPage() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid max-h-[calc(100dvh-18rem)] min-h-0 auto-rows-max items-start grid-cols-1 gap-4 overflow-y-auto overscroll-contain pr-1 md:grid-cols-2">
             {paginatedBookings.map((b) => {
               const isCompleted = b.status === 'COMPLETED';
               const canCancel = ['PENDING', 'CONFIRMED', 'AWAITING_PAYMENT'].includes(b.status);

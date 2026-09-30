@@ -77,10 +77,9 @@ public class Place {
     @Column(name = "is_deleted", nullable = false)
     @Builder.Default
     private Boolean isDeleted = false;
-    
-    @Column(name = "is_suitable_by_time", nullable = false)
-    @Builder.Default
-    private Boolean isSuitableByTime = false;
+    /** Điểm Google Maps (0.00 - 5.00) lấy từ dữ liệu đã xác thực; khác với rating_avg là điểm đánh giá nội bộ. */
+    @Column(name = "google_rating", precision = 3, scale = 2)
+    private BigDecimal googleRating;
     
     @Column(name = "suitable_date_start")
     private java.time.LocalDate suitableDateStart;
@@ -105,11 +104,7 @@ public class Place {
     
     @Column(name = "last_verified_at")
     private LocalDate lastVerifiedAt;
-    
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "master_place_id")
-    private Place masterPlace;
-    
+
     @Column(name = "rating_avg", precision = 3, scale = 2)
     private BigDecimal ratingAvg;
     @Column(name = "rating_count", nullable = false)

@@ -13,7 +13,6 @@ import {
   ShieldCheck,
   User,
 } from 'lucide-react';
-import { AUTH_IMAGES } from '@/config/authImages';
 import { AuthDivider, AuthShell, authInputClass } from '@/components/auth/AuthShell';
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 import { googleLogin, saveTravelerSession, travelerRegister } from '@/services/authService';
@@ -162,7 +161,6 @@ export default function RegisterPage() {
 
   return (
     <AuthShell
-      image={AUTH_IMAGES.register}
       title="Tạo tài khoản mới"
       subtitle="Đăng ký để khám phá homestay, nhận ưu đãi độc quyền và quản lý chuyến đi Tây Bắc của bạn."
       footer={null}

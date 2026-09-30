@@ -9,6 +9,7 @@ import {
   Calendar,
   BedDouble,
   CheckCircle2,
+  Phone,
 } from 'lucide-react';
 import { RoomTypeDto, HomestayDetailDto } from '@/types/homestay';
 import { BookedDateRangeDto } from '@/types/booking';
@@ -22,7 +23,6 @@ interface RoomBookingCardProps {
   bookedDates: BookedDateRangeDto[];
   defaultCheckIn?: string;
   defaultCheckOut?: string;
-  filterGuestCount?: number;
   filterRoomCount?: number;
 }
 
@@ -43,15 +43,48 @@ function parseLocalDate(dateStr: string) {
 }
 
 
-export default function RoomBookingCard({
+export default function RoomBookingCard(props: RoomBookingCardProps) {
+  // Loại phòng chưa có giá (dữ liệu nguồn không có giá cụ thể): không cho đặt, chỉ hướng khách liên hệ.
+  if (props.room.basePrice == null) return <UnpricedRoomCard room={props.room} homestay={props.homestay} />;
+  return <PricedRoomBookingCard {...props} basePrice={props.room.basePrice} />;
+}
+
+function UnpricedRoomCard({ room, homestay }: Pick<RoomBookingCardProps, 'room' | 'homestay'>) {
+  const phones = (homestay.contacts ?? []).filter(contact => contact.channel === 'PHONE');
+  return (
+    <div className="border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs p-4 md:p-5">
+      <div className="flex flex-col sm:flex-row gap-4">
+        <ImageCarousel images={room.images?.length ? room.images : (homestay.images ?? [])} alt={room.name} className="h-[140px] w-full sm:w-[220px] shrink-0 rounded-md border border-slate-200 bg-slate-100" imageClassName="h-full w-full object-cover" emptyContent={<div className="flex h-full flex-col items-center justify-center text-slate-400"><BedDouble className="mb-1 h-8 w-8 opacity-30" /><span className="text-xs">Chưa có ảnh phòng</span></div>} />
+        <div className="flex-1 flex flex-col justify-between gap-3">
+          <div>
+            <h3 className="font-bold text-xl text-[var(--color-ink-deep)]">{room.name}</h3>
+            <p className="mt-1 text-sm text-[var(--color-muted)]">
+              {room.totalRoomCount} phòng · Chỗ nghỉ chưa công bố giá cho loại phòng này nên chưa nhận đặt trực tuyến.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-sm">Giá: liên hệ chỗ nghỉ</span>
+            {phones.map(contact => (
+              <a key={contact.id} href={`tel:${contact.value}`} className="inline-flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-emerald-800 transition-colors duration-200 hover:bg-emerald-100">
+                <Phone className="w-3.5 h-3.5" /> {contact.value}
+              </a>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PricedRoomBookingCard({
   room,
   homestay,
   bookedDates,
   defaultCheckIn,
   defaultCheckOut,
-  filterGuestCount,
   filterRoomCount,
-}: RoomBookingCardProps) {
+  basePrice,
+}: RoomBookingCardProps & { basePrice: number }) {
   const navigate = useNavigate();
 
   const todayStr = useMemo(() => {
@@ -101,36 +134,22 @@ export default function RoomBookingCard({
     filterRoomCount ? Math.max(1, Math.min(maxRooms, filterRoomCount)) : 1
   );
 
-  // Số lượng khách (mặc định 2, tối đa theo sức chứa của số phòng đã chọn)
-  const maxGuests = Math.max(1, (room.maxOccupancy || 2) * roomCount);
+  // Số lượng khách chỉ cần là số dương; không giới hạn theo số phòng/sức chứa cấu hình.
   const [guestCount, setGuestCount] = useState<number>(() => {
-    if (filterGuestCount) {
-      return Math.max(1, Math.min(maxGuests, filterGuestCount));
-    }
-    return Math.min(2, room.maxOccupancy || 2);
+    return 2;
   });
 
-  // Đồng bộ khi bộ lọc ngoài thay đổi số khách hoặc số phòng
+  // Đồng bộ khi bộ lọc ngoài thay đổi số phòng
   useEffect(() => {
     if (filterRoomCount) {
       setRoomCount(Math.max(1, Math.min(maxRooms, filterRoomCount)));
     }
   }, [filterRoomCount, maxRooms]);
 
-  useEffect(() => {
-    if (filterGuestCount) {
-      setGuestCount(Math.max(1, Math.min(maxGuests, filterGuestCount)));
-    }
-  }, [filterGuestCount, maxGuests]);
-
-  // Tự động điều chỉnh số khách khi số phòng thay đổi
+  // Số phòng vẫn bị giới hạn bởi tồn kho; số khách không bị giảm theo số phòng.
   const handleRoomCountChange = (newCount: number) => {
     const clamped = Math.max(1, Math.min(maxRooms, newCount));
     setRoomCount(clamped);
-    const updatedMaxGuests = Math.max(1, (room.maxOccupancy || 2) * clamped);
-    if (guestCount > updatedMaxGuests) {
-      setGuestCount(updatedMaxGuests);
-    }
   };
 
   // Tính số đêm
@@ -145,18 +164,18 @@ export default function RoomBookingCard({
   // Tổng tiền phòng = đơn giá * số đêm * số phòng (có tính ngày cuối tuần)
   const totalPrice = useMemo(() => {
     let totalPerRoom = 0;
-    if (!checkIn || !checkOut) return room.basePrice * 1 * roomCount;
+    if (!checkIn || !checkOut) return basePrice * 1 * roomCount;
     const cur = parseLocalDate(checkIn);
     const end = parseLocalDate(checkOut);
     while (cur < end) {
       const dayOfWeek = cur.getDay(); // 0 is Sunday, 6 is Saturday
       const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-      const price = (isWeekend && room.weekendPrice) ? room.weekendPrice : room.basePrice;
+      const price = (isWeekend && room.weekendPrice) ? room.weekendPrice : basePrice;
       totalPerRoom += price;
       cur.setDate(cur.getDate() + 1);
     }
     return totalPerRoom * roomCount;
-  }, [room.basePrice, room.weekendPrice, checkIn, checkOut, roomCount]);
+  }, [basePrice, room.weekendPrice, checkIn, checkOut, roomCount]);
 
   // Lọc danh sách booking riêng của loại phòng này (hoặc booking chung không chỉ định roomTypeId)
   const roomBookedDates = useMemo(() => {
@@ -233,9 +252,9 @@ export default function RoomBookingCard({
         longitude: homestay.longitude,
         roomTypeId: Number(room.id),
         roomTypeName: room.name,
-        basePrice: room.basePrice,
+        basePrice: basePrice,
         weekendPrice: room.weekendPrice,
-        originalPrice: Math.round(room.basePrice * 1.25),
+        originalPrice: Math.round(basePrice * 1.25),
         totalRoomCount: maxRooms,
         maxOccupancy: room.maxOccupancy,
         bedInfo: room.bedType || '',
@@ -264,7 +283,7 @@ export default function RoomBookingCard({
           <div className="grid grid-cols-2 gap-2 text-xs md:text-sm text-[var(--color-muted)] font-medium">
             <div className="flex items-center gap-1.5 bg-slate-50 p-2 rounded-md border border-slate-100">
               <Users className="w-4 h-4 text-[var(--color-primary)] shrink-0" />
-              <span>Tối đa {room.maxOccupancy} khách/phòng</span>
+              <span>Phù hợp cho nhóm khách linh hoạt</span>
             </div>
             {room.areaSqm ? (
               <div className="flex items-center gap-1.5 bg-slate-50 p-2 rounded-md border border-slate-100">
@@ -298,7 +317,7 @@ export default function RoomBookingCard({
               <div className="sm:text-right shrink-0">
                 <div className="text-[11px] font-semibold text-[var(--color-muted)]">Giá tham khảo, tạm tính</div>
                 <span className="text-2xl md:text-3xl font-black text-[var(--color-coral)]">
-                  {new Intl.NumberFormat('vi-VN').format(room.basePrice)}đ
+                  {new Intl.NumberFormat('vi-VN').format(basePrice)}đ
                 </span>
                 <span className="text-sm text-[var(--color-muted)] font-medium"> /đêm</span>
                 {room.weekendPrice ? (
@@ -355,8 +374,7 @@ export default function RoomBookingCard({
                     </span>
                     <button
                       type="button"
-                      onClick={() => setGuestCount((prev) => Math.min(maxGuests, prev + 1))}
-                      disabled={guestCount >= maxGuests}
+                      onClick={() => setGuestCount((prev) => prev + 1)}
                       className="w-6 h-6 rounded-xs bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                     >
                       <Plus className="w-3 h-3" />
@@ -426,7 +444,7 @@ export default function RoomBookingCard({
           <div className="flex flex-col sm:flex-row items-center justify-between pt-3.5 border-t border-slate-100 gap-3">
             <div className="text-xs md:text-sm text-slate-700 space-y-1">
               <div>
-                Tạm tính: <strong>{new Intl.NumberFormat('vi-VN').format(room.basePrice)}đ</strong> ×{' '}
+                Tạm tính: <strong>{new Intl.NumberFormat('vi-VN').format(basePrice)}đ</strong> ×{' '}
                 {nights} đêm × {roomCount} phòng ={' '}
                 <strong className="text-base md:text-lg font-extrabold text-[var(--color-coral)]">
                   {new Intl.NumberFormat('vi-VN').format(totalPrice)}đ

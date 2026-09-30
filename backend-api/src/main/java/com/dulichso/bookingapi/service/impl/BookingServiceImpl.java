@@ -100,7 +100,7 @@ public class BookingServiceImpl implements BookingService {
             throw new IllegalStateException("Chỗ nghỉ hoặc loại phòng đang ngừng nhận đặt phòng.");
         if (request.getCheckIn().isBefore(LocalDate.now())) throw new IllegalArgumentException("Không thể đặt phòng trong quá khứ.");
         var quote = roomCalendarService.quote(roomType,request.getCheckIn(),request.getCheckOut(),requestedRooms,request.getGuestCount());
-        if (!quote.suitable()) throw new IllegalStateException("Không đủ phòng hoặc sức chứa cho yêu cầu.");
+        if (!quote.suitable()) throw new IllegalStateException("Không đủ phòng cho yêu cầu.");
         int totalCapacity = roomType.getTotalRoomCount() != null ? roomType.getTotalRoomCount() : 5;
 
         // 3. Chong race-condition: Kiem tra va giu cho ton kho phong (RoomInventoryDay) voi Pessimistic Lock.

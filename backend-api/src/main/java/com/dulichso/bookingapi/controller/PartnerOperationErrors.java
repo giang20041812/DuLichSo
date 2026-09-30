@@ -7,7 +7,8 @@ import java.util.Map;
 
 @RestControllerAdvice(assignableTypes={PartnerRoomController.class,PartnerOfferController.class,PartnerBookingController.class,
         PartnerReviewController.class,PartnerMediaController.class,ProviderApplicationController.class,
-        PartnerGeocodeController.class,PartnerCalendarController.class,PartnerChangeRequestController.class})
+        PartnerGeocodeController.class,PartnerCalendarController.class,PartnerChangeRequestController.class,
+        PartnerAccountController.class})
 public class PartnerOperationErrors {
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<Map<String,String>> status(ResponseStatusException ex) {return ResponseEntity.status(ex.getStatusCode()).body(Map.of("message",ex.getReason()==null?"Yêu cầu không hợp lệ.":ex.getReason()));}
@@ -19,5 +20,9 @@ public class PartnerOperationErrors {
                         ? e.getDefaultMessage() : "Dữ liệu không hợp lệ: " + e.getField() + " " + e.getDefaultMessage())
                 .findFirst().orElse("Vui lòng kiểm tra các thông tin được đánh dấu.");
         return ResponseEntity.badRequest().body(Map.of("message", message));
+    }
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String,String>> badRequest(IllegalArgumentException ex) {
+        return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage() == null ? "Yêu cầu không hợp lệ." : ex.getMessage()));
     }
 }

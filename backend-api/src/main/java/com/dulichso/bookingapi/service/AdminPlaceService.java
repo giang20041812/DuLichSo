@@ -1,10 +1,16 @@
 package com.dulichso.bookingapi.service;
 
+import com.dulichso.bookingapi.dto.PlaceDetailDto;
 import com.dulichso.bookingapi.dto.admin.AdminPlaceDtos.*;
+import com.dulichso.bookingapi.entity.HomestayProfile;
 import com.dulichso.bookingapi.entity.Place;
+import com.dulichso.bookingapi.entity.PlaceHighlight;
 import com.dulichso.bookingapi.entity.enums.CategoryKind;
 import com.dulichso.bookingapi.entity.enums.PlaceVerificationStatus;
 import com.dulichso.bookingapi.entity.enums.PlaceVisibility;
+import com.dulichso.bookingapi.repository.HomestayProfileRepository;
+import com.dulichso.bookingapi.repository.PlaceContactRepository;
+import com.dulichso.bookingapi.repository.PlaceHighlightRepository;
 import com.dulichso.bookingapi.repository.PlaceRepository;
 import com.dulichso.bookingapi.repository.PlaceSpecification;
 import org.springframework.data.domain.Page;
@@ -21,10 +27,19 @@ public class AdminPlaceService {
 
     private final PlaceRepository placeRepository;
     private final AuditLogService auditLogService;
+    private final PlaceContactRepository placeContactRepository;
+    private final PlaceHighlightRepository placeHighlightRepository;
+    private final HomestayProfileRepository homestayProfileRepository;
 
-    public AdminPlaceService(PlaceRepository placeRepository, AuditLogService auditLogService) {
+    public AdminPlaceService(PlaceRepository placeRepository, AuditLogService auditLogService,
+                             PlaceContactRepository placeContactRepository,
+                             PlaceHighlightRepository placeHighlightRepository,
+                             HomestayProfileRepository homestayProfileRepository) {
         this.placeRepository = placeRepository;
         this.auditLogService = auditLogService;
+        this.placeContactRepository = placeContactRepository;
+        this.placeHighlightRepository = placeHighlightRepository;
+        this.homestayProfileRepository = homestayProfileRepository;
     }
 
     private static final java.util.Set<String> PLACE_SORT_FIELDS = java.util.Set.of("createdAt", "updatedAt", "name", "ratingAvg");
@@ -179,6 +194,16 @@ public class AdminPlaceService {
     }
 
     private AdminPlaceDetailDto mapToDetailDto(Place p) {
+        HomestayProfile profile = homestayProfileRepository.findById(p.getId()).orElse(null);
+        var contacts = placeContactRepository.findByPlaceIdAndIsPublicTrue(p.getId()).stream()
+                .sorted(java.util.Comparator.comparing(com.dulichso.bookingapi.entity.PlaceContact::getSortOrder))
+                .map(c -> PlaceDetailDto.ContactItemDto.builder().id(c.getId()).channel(c.getChannel()).value(c.getValue())
+                        .isPublic(c.getIsPublic()).sortOrder(c.getSortOrder()).build())
+                .toList();
+        var highlights = placeHighlightRepository.findByPlaceIdAndIsPublicTrue(p.getId()).stream()
+                .sorted(java.util.Comparator.comparing(PlaceHighlight::getSortOrder).thenComparing(PlaceHighlight::getId))
+                .map(h -> PlaceDetailDto.HighlightItemDto.builder().id(h.getId()).type(h.getType()).content(h.getContent()).build())
+                .toList();
         return AdminPlaceDetailDto.builder()
                 .id(p.getId())
                 .slug(p.getSlug())
@@ -204,6 +229,11 @@ public class AdminPlaceService {
                 .lastVerifiedAt(p.getLastVerifiedAt())
                 .ratingAvg(p.getRatingAvg())
                 .ratingCount(p.getRatingCount())
+                .googleRating(p.getGoogleRating())
+                .viewHighlight(profile == null ? null : profile.getViewHighlight())
+                .suitability(profile == null ? null : profile.getSuitability())
+                .contacts(contacts)
+                .highlights(highlights)
                 .attributes(p.getAttributes())
                 .createdAt(p.getCreatedAt())
                 .updatedAt(p.getUpdatedAt())

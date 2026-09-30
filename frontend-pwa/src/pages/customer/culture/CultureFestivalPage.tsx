@@ -17,6 +17,7 @@ import {
 export default function CultureFestivalPage() {
   const [festivals, setFestivals] = useState<FestivalDto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeSeason, setActiveSeason] = useState<'ALL' | 'CURRENT' | 'SPRING' | 'AUTUMN'>('ALL');
 
   const currentMonth = new Date().getMonth() + 1;
@@ -38,20 +39,25 @@ export default function CultureFestivalPage() {
 
   useEffect(() => {
     setLoading(true);
-    fetchFestivals().then(data => {
-      setFestivals(data);
-      setLoading(false);
-    });
+    setError(null);
+    fetchFestivals()
+      .then(data => setFestivals(data))
+      .catch(fetchError => {
+        console.error('Không thể tải dữ liệu lễ hội:', fetchError);
+        setFestivals([]);
+        setError('Không thể tải dữ liệu lễ hội lúc này. Vui lòng thử lại.');
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   // Các lễ hội thích hợp theo mùa / thời điểm hiện tại
-  const currentSeasonFestivals = festivals.filter(f => f.isSuitableByTime || f.isCurrentSeason);
+  const currentSeasonFestivals = festivals.filter(f => f.isCurrentSeason);
 
   // Lọc theo tabs & keyword
   const filteredFestivals = festivals.filter(f => {
     let matchSeason = true;
     if (activeSeason === 'CURRENT') {
-      matchSeason = Boolean(f.isSuitableByTime || f.isCurrentSeason);
+      matchSeason = Boolean(f.isCurrentSeason);
     } else if (activeSeason === 'AUTUMN') {
       matchSeason = hasMonthInRange(f, [9, 10, 11]);
     } else if (activeSeason === 'SPRING') {
@@ -223,6 +229,10 @@ export default function CultureFestivalPage() {
             Đang tải dữ liệu lễ hội văn hóa...
             </div>
           </>
+        ) : error ? (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-5 py-8 text-center text-sm text-amber-900">
+            {error}
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {filteredFestivals.map((fest) => (
@@ -244,7 +254,7 @@ export default function CultureFestivalPage() {
                     <Badge className="bg-[var(--color-primary)] text-white text-xs font-bold rounded-sm px-2.5 py-1 shadow-xs">
                       {fest.highlightTag}
                     </Badge>
-                    {(fest.isSuitableByTime || fest.isCurrentSeason) && (
+                    {fest.isCurrentSeason && (
                       <Badge className="festival-season-badge bg-amber-500 text-white text-xs font-bold rounded-sm px-2.5 py-0.5 shadow-xs flex items-center gap-1 [&>svg:nth-child(2)]:hidden">
                         <SakuraBlossomIcon className="w-3.5 h-3.5" />
                         <Flame className="w-3 h-3 fill-white" /> Thích hợp theo mùa

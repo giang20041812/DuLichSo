@@ -65,6 +65,10 @@ export interface PartnerHomestayDetailDto {
   address: string;
   latitude: number | null;
   longitude: number | null;
+  /** Lưu thành liên hệ kênh GOOGLE_MAPS (place_contact). */
+  googleMapLink?: string | null;
+  /** Link fanpage Facebook, lưu thành liên hệ kênh FACEBOOK. */
+  facebookUrl?: string | null;
   accessNote?: string;
   coverImageUrl: string;
   galleryUrls: string[];
@@ -87,7 +91,11 @@ export interface PartnerHomestayDetailDto {
   surchargeNote?: string;
   childrenPolicy?: string;
   petsPolicy?: string;
-  guestPolicy?: string;
+  viewHighlight?: string;
+  /** Nhóm khách phù hợp (homestay_profile.suitability). */
+  suitability?: string;
+  /** Điểm Google Maps do hệ thống nhập từ dữ liệu đã xác thực — NCC chỉ xem. */
+  googleRating?: number | null;
   visibility: PlaceVisibility;
   operationStatus: PlaceOperationStatus;
   isReadyToPublish: boolean;
@@ -98,6 +106,7 @@ export interface PartnerHomestayDetailDto {
   roomTypesSummary?: string;
   priceRefMin?: number | null;
   priceRefMax?: number | null;
+  priceUnitNote?: string | null;
   pricingSummary?: string;
   availabilitySummary?: string;
   stopSellSummary?: string;

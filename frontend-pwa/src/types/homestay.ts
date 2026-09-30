@@ -24,6 +24,13 @@ export interface PlaceAmenityItem {
   note?: string;
 }
 
+/** Tiện ích cho bộ lọc tìm kiếm — GET /api/public/places/amenities (PublicAmenityDto). */
+export interface PublicAmenityItem {
+  code: string;
+  name: string;
+  scope: 'PLACE' | 'ROOM';
+}
+
 export interface PlaceContactItem {
   id: number;
   channel: ContactChannel;
@@ -57,7 +64,9 @@ export interface HomestayProfileDetail {
   surchargeNote?: string | null;
   childrenPolicy?: string | null;
   petsPolicy?: string | null;
-  guestPolicy?: string | null;
+  viewHighlight?: string | null;
+  /** Nhóm khách phù hợp (homestay_profile.suitability). */
+  suitability?: string | null;
   currentPolicy?: CancellationPolicySummary | null;
 }
 
@@ -80,10 +89,11 @@ export interface PlaceDetail {
   verification: PlaceVerificationStatus;
   ratingAvg?: number;
   ratingCount: number;
+  /** Điểm Google Maps (0-5) từ dữ liệu đã xác thực, tách biệt với ratingAvg nội bộ. */
+  googleRating?: number | null;
   description?: string;
   altitudeMeters?: number;
   verifiedGpsText?: string;
-  isSuitableByTime?: boolean;
   suitableDateStart?: string;
   suitableDateEnd?: string;
   
@@ -111,6 +121,8 @@ export interface HomestayDto {
   ratingScore: number;
   ratingText: string;
   reviewCount: number;
+  /** Điểm Google Maps (0-5) từ dữ liệu đã xác thực. */
+  googleRating?: number | null;
   
   // Badges
   isGenius?: boolean;
@@ -140,7 +152,6 @@ export interface HomestayDto {
   availableForSelectedDates?: boolean;
   contacts?: PlaceContactItem[];
   amenities?: string[];
-  isSuitableByTime?: boolean;
   suitableDateStart?: string;
   suitableDateEnd?: string;
 }
@@ -158,20 +169,24 @@ export interface HomestayDetailDto {
   operationStatus: PlaceOperationStatus;
   operationStatusReason?: string | null;
   address: string;
+  accessNote?: string | null;
   district?: string;
   latitude: number;
   longitude: number;
   priceRefMin: number;
   priceRefMax: number;
+  priceUnitNote?: string | null;
   ratingAvg: number;
   ratingCount: number;
-  isSuitableByTime?: boolean;
+  /** Điểm Google Maps (0-5) từ dữ liệu đã xác thực, tách biệt với ratingAvg nội bộ. */
+  googleRating?: number | null;
   suitableDateStart?: string;
   suitableDateEnd?: string;
   attributes: Record<string, unknown>;
   
   images: string[];
   amenities: string[];
+  amenityItems?: PlaceAmenityItem[];
   rooms: RoomTypeDto[];
   regionName?: string;
   homestayProfile?: HomestayProfileDetail | null;

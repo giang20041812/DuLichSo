@@ -13,6 +13,7 @@ export type PlaceVerificationStatus = 'VERIFIED' | 'UNVERIFIED' | 'NEEDS_UPDATE'
 /** Khớp enum CategoryKind ở backend — định nghĩa gốc nằm ở types/home.ts. */
 export type { CategoryKind } from './home';
 import type { CategoryKind } from './home';
+import type { PlaceContactItem, PlaceHighlightItem } from './homestay';
 
 export interface AdminAccountDto {
   id: number;
@@ -273,6 +274,13 @@ export interface AdminPlaceDetailDto {
   lastVerifiedAt?: string | null;
   ratingAvg?: number | null;
   ratingCount?: number | null;
+  /** Điểm Google Maps (0-5) từ dữ liệu đã xác thực; Admin chỉ xem. */
+  googleRating?: number | null;
+  /** Hồ sơ Homestay — chỉ có với kind = HOMESTAY. */
+  viewHighlight?: string | null;
+  suitability?: string | null;
+  contacts?: PlaceContactItem[];
+  highlights?: PlaceHighlightItem[];
   attributes?: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;

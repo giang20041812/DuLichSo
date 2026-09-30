@@ -17,9 +17,8 @@ export default function RecentBookingTag() {
       const customer = getCurrentCustomer();
       if (!customer) {
         const localBookings = getUserSavedBookings();
-        if (localBookings && localBookings.length > 0 && mounted) {
-          const first = localBookings[0];
-          if (first) setLatestBooking(first);
+        if (mounted) {
+          setLatestBooking(localBookings[0] ?? null);
         }
         return;
       }
@@ -30,23 +29,17 @@ export default function RecentBookingTag() {
           if (data && data.length > 0) {
             const sorted = [...data].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
             const first = sorted[0];
-            if (first) setLatestBooking(first);
+            setLatestBooking(first ?? null);
           } else {
-            const localBookings = getUserSavedBookings();
-            if (localBookings && localBookings.length > 0) {
-              const first = localBookings[0];
-              if (first) setLatestBooking(first);
-            }
+            // An authenticated user's server response is authoritative. Do not show
+            // a stale guest booking from local storage when there are no server bookings.
+            setLatestBooking(null);
           }
         }
       } catch (error) {
         console.warn('Cannot fetch recent bookings for tag', error);
         if (mounted) {
-          const localBookings = getUserSavedBookings();
-          if (localBookings && localBookings.length > 0) {
-            const first = localBookings[0];
-            if (first) setLatestBooking(first);
-          }
+          setLatestBooking(null);
         }
       }
     };

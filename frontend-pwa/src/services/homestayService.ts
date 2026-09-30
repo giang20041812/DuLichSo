@@ -1,4 +1,4 @@
-import { HomestayDto, HomestayDetailDto } from "../types/homestay";
+import { HomestayDto, HomestayDetailDto, PublicAmenityItem } from "../types/homestay";
 import { apiOrigin } from '@/lib/apiBase';
 
 export interface HomestayFilterParams {
@@ -13,7 +13,6 @@ export interface HomestayFilterParams {
   ward?: string;
   attractions?: string[];
   keyword?: string;
-  guestCount?: number;
   page?: number;
   sort?: 'recommended' | 'price_asc' | 'price_desc' | 'rating_desc';
 }
@@ -35,6 +34,7 @@ interface PlaceSummaryApiItem {
   attributes?: Record<string, unknown> | null;
   ratingAvg?: number | null;
   ratingCount?: number | null;
+  googleRating?: number | null;
   priceRefMin?: number | null;
   address?: string | null;
   latitude?: number | null;
@@ -63,6 +63,21 @@ const readPageResponse = (value: unknown): PageResponse<PlaceSummaryApiItem> => 
   };
 };
 
+/** Danh mục tiện ích đang có ở ít nhất một homestay công khai — dùng cho bộ lọc tìm kiếm. */
+export const fetchHomestayAmenities = async (): Promise<PublicAmenityItem[]> => {
+  const url = new URL('/api/public/places/amenities', apiOrigin());
+  url.searchParams.append('kind', 'HOMESTAY');
+  const response = await fetch(url.toString());
+  if (!response.ok) throw new Error(`Không tải được danh mục tiện ích (HTTP ${response.status}).`);
+  const raw: unknown = await response.json();
+  if (!Array.isArray(raw)) throw new Error('Danh mục tiện ích không hợp lệ.');
+  return raw.filter((item): item is PublicAmenityItem =>
+    !!item && typeof item === 'object'
+    && typeof (item as { code?: unknown }).code === 'string'
+    && typeof (item as { name?: unknown }).name === 'string'
+    && ((item as { scope?: unknown }).scope === 'PLACE' || (item as { scope?: unknown }).scope === 'ROOM'));
+};
+
 export const fetchHomestays = async (params?: HomestayFilterParams): Promise<PageResponse<HomestayDto>> => {
     const url = new URL('/api/public/places', apiOrigin());
     url.searchParams.append('kind', 'HOMESTAY');
@@ -85,7 +100,6 @@ export const fetchHomestays = async (params?: HomestayFilterParams): Promise<Pag
     if (params?.amenities && params.amenities.length > 0) {
       params.amenities.forEach(amenity => url.searchParams.append('amenities', amenity));
     }
-    if (params?.guestCount !== undefined) url.searchParams.append('guestCount', params.guestCount.toString());
     url.searchParams.append('page', String(params?.page ?? 0));
     url.searchParams.append('size', '12');
     url.searchParams.append('sort', params?.sort ?? 'recommended');
@@ -118,6 +132,7 @@ export const fetchHomestays = async (params?: HomestayFilterParams): Promise<Pag
         ratingScore: item.ratingAvg || 0,
         ratingText: typeof attrs.ratingText === 'string' ? attrs.ratingText : '',
         reviewCount: item.ratingCount || 0,
+        googleRating: item.googleRating ?? null,
         isGenius: attrs.isGenius === true,
         promotionalBadge: item.tagBadge || undefined,
         roomType: typeof attrs.roomType === 'string' ? attrs.roomType : 'Phòng Homestay',
@@ -238,7 +253,6 @@ export const fetchRegionalDestinations = async (id: string, limit: number = 4): 
       longitude: item.longitude,
       roomType: 'Điểm tham quan',
       bedInfo: '',
-      isSuitableByTime: Boolean(item.isSuitableByTime),
       suitableDateStart: item.suitableDateStart,
       suitableDateEnd: item.suitableDateEnd,
     }));

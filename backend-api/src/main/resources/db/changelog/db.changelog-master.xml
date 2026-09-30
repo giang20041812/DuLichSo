@@ -59,4 +59,10 @@
     <!-- Hạn phản hồi 120 phút đã chốt, đơn hết hạn, kết quả đánh giá khả năng đáp ứng (UC-NCC-06/07/08) -->
     <include file="db/changelog/changes/017-ncc-booking-deadline-evaluation.xml"/>
     <include file="db/changelog/changes/018-add-place-needs.xml"/>
+    <include file="db/changelog/changes/019-adjust-homestay-fields.xml"/>
+    <include file="db/changelog/changes/020-add-google-map-link-to-place.xml"/>
+
+    <!-- Đối chiếu DATA ĐÃ XÁC THỰC: suitability thay guest_policy, Google Maps về place_contact, bỏ master_place_id -->
+    <include file="db/changelog/changes/021-align-homestay-with-verified-data.xml"/>
+    <include file="db/changelog/changes/022-complete-festival-content.xml"/>
 </databaseChangeLog>

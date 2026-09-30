@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- Public culture cards must be complete so the frontend does not render a placeholder. -->
+    <changeSet id="022-complete-festival-content" author="dulichso">
+        <update tableName="festival">
+            <column name="cover_image_url" value="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&amp;fit=crop&amp;w=1200&amp;q=80"/>
+            <column name="location" value="Bản Dế Xu Phình &amp; Bản Chế Cu Nha"/>
+            <where>slug = 'gau-tao' AND (cover_image_url IS NULL OR location IS NULL)</where>
+        </update>
+        <update tableName="festival">
+            <column name="cover_image_url" value="https://images.unsplash.com/photo-1542159040-3b03f0b2f059?auto=format&amp;fit=crop&amp;w=1200&amp;q=80"/>
+            <column name="location" value="Bản Lìm Mông, Tú Lệ &amp; Bản Nậm Khắt"/>
+            <where>slug = 'mung-com-moi' AND (cover_image_url IS NULL OR location IS NULL)</where>
+        </update>
+        <update tableName="festival">
+            <column name="cover_image_url" value="https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&amp;fit=crop&amp;w=1200&amp;q=80"/>
+            <column name="location" value="Trung tâm Thị trấn Mù Cang Chải"/>
+            <where>slug = 'festival-khen-mong' AND (cover_image_url IS NULL OR location IS NULL)</where>
+        </update>
+        <update tableName="festival">
+            <column name="cover_image_url" value="https://images.unsplash.com/photo-1522383225653-ed111181a951?auto=format&amp;fit=crop&amp;w=1200&amp;q=80"/>
+            <column name="location" value="Xã Nậm Khắt, Púng Luông, La Pán Tẩn"/>
+            <where>slug = 'hoa-to-day' AND (cover_image_url IS NULL OR location IS NULL)</where>
+        </update>
+        <update tableName="festival">
+            <column name="cover_image_url" value="https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&amp;fit=crop&amp;w=1200&amp;q=80"/>
+            <column name="location" value="Đồi Mâm Xôi, Đồi Móng Ngựa, La Pán Tẩn"/>
+            <where>slug = 'mua-vang-kham-pha-ruong-bac-thang' AND (cover_image_url IS NULL OR location IS NULL)</where>
+        </update>
+        <update tableName="festival">
+            <column name="cover_image_url" value="https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&amp;fit=crop&amp;w=1200&amp;q=80"/>
+            <column name="location" value="Khu di tích ruộng bậc thang Mù Cang Chải"/>
+            <column name="season_note" value="Mùa lúa chín tháng 9"/>
+            <column name="core_value" value="Tôn vinh di sản ruộng bậc thang và sinh kế nông nghiệp bản địa"/>
+            <column name="suitable_experience" value="Trekking, nhiếp ảnh và tìm hiểu văn hóa canh tác khi được phép"/>
+            <column name="etiquette_dont" value="Không tự ý đi vào ruộng, phá bờ thửa hoặc gây cản trở sản xuất"/>
+            <where>slug = 'le-hoi-kham-pha-ruong-bac-thang-2026' AND (cover_image_url IS NULL OR core_value IS NULL)</where>
+        </update>
+    </changeSet>
+</databaseChangeLog>

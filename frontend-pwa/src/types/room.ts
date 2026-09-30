@@ -15,8 +15,9 @@ export interface RoomTypeItem {
   totalRoomCount: number;
   privateBathroom: AmenityValue;
   areaSqm?: number;
-  basePrice: number;
-  weekendPrice?: number;
+  /** null = chưa có giá, không đặt được. */
+  basePrice: number | null;
+  weekendPrice?: number | null;
   status: 'ACTIVE' | 'INACTIVE';
   
   // Dynamic fields
@@ -37,8 +38,9 @@ export interface RoomTypeDto {
   maxOccupancy: number;
   totalRoomCount: number;
   areaSqm: number;
-  basePrice: number;
-  weekendPrice?: number;
+  /** null = chưa có giá (dữ liệu nguồn không có giá cụ thể) — không đặt được, hiển thị "Liên hệ". */
+  basePrice: number | null;
+  weekendPrice?: number | null;
   images: string[];
   amenities?: string[];
   bedType?: string;
@@ -87,7 +89,8 @@ export interface PartnerRoomInput {
   beds: RoomBedInfo[];
   amenityIds: number[];
 }
-export interface PartnerRoom extends PartnerRoomInput { id: number; placeId: number }
+/** Loại phòng đã lưu: basePrice có thể null khi dữ liệu nạp từ nguồn chưa có giá — NCC cần nhập giá trước khi mở bán. */
+export interface PartnerRoom extends Omit<PartnerRoomInput, 'basePrice'> { id: number; placeId: number; basePrice: number | null }
 export interface RoomPriceInput { name: string; periodStart: string; periodEnd: string; price: number }
 export interface RoomPrice extends RoomPriceInput { id: number }
 /** UC-NCC-04 luồng phụ 6: giá trị NCC đã thấy trên lịch, để backend phát hiện dữ liệu đã bị sửa đồng thời. */

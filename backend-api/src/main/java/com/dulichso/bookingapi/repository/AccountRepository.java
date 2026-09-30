@@ -48,6 +48,11 @@ public interface AccountRepository extends JpaRepository<Account, Long>, JpaSpec
 
     long countByStatus(com.dulichso.bookingapi.entity.enums.AccountStatus status);
 
+    long countByRole(com.dulichso.bookingapi.entity.enums.AccountRole role);
+
+    /** Tài khoản seed chưa được đặt mật khẩu (xem SeedAccountPasswordInitializer.PENDING_HASH). */
+    List<Account> findAllByPasswordHash(String passwordHash);
+
     long countByRoleAndStatus(com.dulichso.bookingapi.entity.enums.AccountRole role, com.dulichso.bookingapi.entity.enums.AccountStatus status);
 
     @Query("""

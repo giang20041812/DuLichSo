@@ -21,7 +21,8 @@ import { ui, vnd } from '@/lib/partnerUi';
 const BLANK: PartnerRoomInput = { name: '', description: '', maxOccupancy: 2, totalRoomCount: 1, privateBathroom: 'UNVERIFIED', areaSqm: null, basePrice: 0, weekendPrice: undefined, status: 'ACTIVE', viewDescription: '', beds: [], amenityIds: [] };
 const localDate = (offset: number) => { const d = new Date(); d.setDate(d.getDate() + offset); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 const bedsText = (room: PartnerRoom) => room.beds.length ? room.beds.map(b => `${b.quantity} ${b.bedType.toLowerCase()}`).join(', ') : 'Chưa khai báo giường';
-const toInput = (room: PartnerRoom): PartnerRoomInput => ({ ...room, description: room.description ?? '', viewDescription: room.viewDescription ?? '' });
+// Phòng chưa có giá -> 0 để ô giá hiển thị trống và bắt buộc nhập (MoneyInput chỉ nhận giá > 0).
+const toInput = (room: PartnerRoom): PartnerRoomInput => ({ ...room, basePrice: room.basePrice ?? 0, description: room.description ?? '', viewDescription: room.viewDescription ?? '' });
 
 type WorkTab = 'calendar' | 'quote';
 const WORK_TABS: TabItem<WorkTab>[] = [
@@ -30,9 +31,10 @@ const WORK_TABS: TabItem<WorkTab>[] = [
 ];
 
 export default function PartnerRoomsPage() {
-  const { id } = useParams();
-  const placeId = Number(id);
+  const { id } = useParams<{ id?: string }>();
+  const routePlaceId = id ? Number(id) : null;
   const navigate = useNavigate();
+  const [placeId, setPlaceId] = useState<number | null>(Number.isFinite(routePlaceId) ? routePlaceId : null);
   const [homestays, setHomestays] = useState<{ id: number; name: string }[]>([]);
   const [rooms, setRooms] = useState<PartnerRoom[]>([]);
   const [options, setOptions] = useState<HomestayOptionsDto['amenities']>([]);
@@ -47,12 +49,25 @@ export default function PartnerRoomsPage() {
   useEffect(() => {
     let active = true;
     fetchPartnerHomestays()
-      .then(res => { if (active) setHomestays(res.homestays.map(h => ({ id: h.id, name: h.name }))); })
+      .then(res => {
+        if (!active) return;
+        const items = res.homestays.map(h => ({ id: h.id, name: h.name }));
+        setHomestays(items);
+        setPlaceId(current => current && items.some(h => h.id === current) ? current : items[0]?.id ?? null);
+      })
       .catch(() => { /* Bộ chọn Homestay chỉ để chuyển nhanh; lỗi thì ẩn đi. */ });
     return () => { active = false; };
   }, []);
 
   useEffect(() => {
+    if (routePlaceId !== null && Number.isFinite(routePlaceId)) setPlaceId(routePlaceId);
+  }, [routePlaceId]);
+
+  useEffect(() => {
+    if (placeId === null) {
+      setLoading(false);
+      return;
+    }
     let active = true;
     Promise.all([api.list(placeId), api.options(placeId)])
       .then(([r, o]) => {
@@ -72,14 +87,16 @@ export default function PartnerRoomsPage() {
     <div className="flex flex-col gap-6 pb-10">
       <PageHeader 
         breadcrumbs={[{ label: 'Bảng điều khiển', to: '/partner' }, { label: 'Cơ sở lưu trú', to: '/partner/homestays' }, { label: 'Phòng & giá' }]}
-        title="Phòng, giá và lịch bán" description="Khai báo từng loại phòng, đặt giá theo mùa và quản lý số phòng mở bán mỗi ngày."
-        actions={<>
-          {homestays.length > 1 && (
-            <select aria-label="Chọn Homestay" className={`${ui.select} w-auto max-w-[240px] font-semibold`} value={placeId}
+        title={<span className="flex flex-wrap items-center gap-3">
+          <span>Phòng, giá và lịch bán</span>
+          {homestays.length > 0 && (
+            <select aria-label="Chọn Homestay" className={`${ui.select} w-auto max-w-[240px] text-sm font-semibold`} value={placeId ?? ''}
               onChange={(e) => { setLoading(true); setSelectedId(null); setNotice(''); navigate(`/partner/homestay/${e.target.value}/rooms`); }}>
               {homestays.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
             </select>
           )}
+        </span>} description="Khai báo từng loại phòng, đặt giá theo mùa và quản lý số phòng mở bán mỗi ngày."
+        actions={<>
           <button type="button" className={ui.btnCoral} onClick={openNew}><Plus className="h-4 w-4" />Thêm loại phòng</button>
         </>} />
 
@@ -111,7 +128,7 @@ export default function PartnerRoomsPage() {
                 </div>
                 <div className="mt-auto flex items-end justify-between gap-2 border-t border-primary/10 pt-3">
                   <div>
-                    <p className=" text-lg font-extrabold text-ink-deep">{vnd(room.basePrice)}<span className="text-xs font-medium text-muted"> /đêm</span></p>
+                    <p className=" text-lg font-extrabold text-ink-deep">{room.basePrice == null ? 'Chưa có giá' : vnd(room.basePrice)}{room.basePrice == null ? null : <span className="text-xs font-medium text-muted"> /đêm</span>}</p>
                     {room.weekendPrice ? <p className="text-[11px] text-muted">Cuối tuần {vnd(room.weekendPrice)}</p> : null}
                   </div>
                   <button type="button" aria-label={`Sửa ${room.name}`} className={ui.iconBtn}
@@ -290,7 +307,7 @@ function RoomEditor({ placeId, options, editor, onClose, onSaved }: {
 
 /** Giá theo mùa / dịp lễ, ưu tiên hơn giá ngày thường và cuối tuần. */
 function SeasonalPrices({ placeId, room }: { placeId: number; room: PartnerRoom }) {
-  const empty: RoomPriceInput = { name: '', periodStart: localDate(0), periodEnd: localDate(1), price: room.basePrice };
+  const empty: RoomPriceInput = { name: '', periodStart: localDate(0), periodEnd: localDate(1), price: room.basePrice ?? 0 };
   const [prices, setPrices] = useState<RoomPrice[]>([]);
   const [form, setForm] = useState<RoomPriceInput>(empty);
   const [editId, setEditId] = useState<number | null>(null);

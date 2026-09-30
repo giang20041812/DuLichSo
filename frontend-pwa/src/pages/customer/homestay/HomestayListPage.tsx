@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { fetchHomestays, HomestayFilterParams } from '@/services/homestayService';
-import { HomestayDto } from '@/types/homestay';
+import { fetchHomestays, fetchHomestayAmenities, HomestayFilterParams } from '@/services/homestayService';
+import { HomestayDto, PublicAmenityItem } from '@/types/homestay';
 import SearchHub from '@/components/layout/SearchHub';
 import { PriceSlider } from '@/components/ui/price-slider';
 import { Button } from '@/components/ui/button';
@@ -24,7 +24,8 @@ import {
   Bath,
   Utensils,
   Flame,
-  Phone
+  Phone,
+  type LucideIcon
 } from 'lucide-react';
 import VietmapView from '@/components/map/VietmapView';
 
@@ -44,36 +45,14 @@ function TikTokIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
   );
 }
 
-export interface AmenityItem {
-  code: string;
-  name: string;
-  scope: 'ROOM' | 'PLACE';
-  tag?: string;
-}
-
-// Tiện nghi cấp phòng (Room Scope)
-const ROOM_AMENITIES: AmenityItem[] = [
-  { code: 'AIR_CONDITIONING', name: 'Điều hòa không khí', scope: 'ROOM', tag: 'Phòng' },
-  { code: 'BALCONY', name: 'Ban công view núi / ruộng', scope: 'ROOM', tag: 'Phòng' },
-  { code: 'BATHTUB', name: 'Bồn tắm ngâm thảo dược', scope: 'ROOM', tag: 'Phòng' },
+// Chip "Lọc nhanh": chỉ hiện khi mã tiện ích có trong danh mục đang dùng (GET /api/public/places/amenities).
+const QUICK_AMENITY_ICONS: [string, LucideIcon][] = [
+  ['AIR_CONDITIONING', Wind],
+  ['TERRACE', Mountain],
+  ['BATHTUB', Bath],
+  ['KITCHEN', Utensils],
+  ['BREAKFAST', Utensils],
 ];
-
-// Tiện nghi cấp homestay / cơ sở (Place Scope)
-const PLACE_AMENITIES: AmenityItem[] = [
-  { code: 'WIFI', name: 'Wifi tốc độ cao', scope: 'PLACE' },
-  { code: 'HOT_WATER', name: 'Nước nóng tắm', scope: 'PLACE' },
-  { code: 'HEATER', name: 'Sưởi / điều hòa ấm', scope: 'PLACE' },
-  { code: 'PARKING', name: 'Bãi đỗ xe ô tô', scope: 'PLACE' },
-  { code: 'RESTAURANT', name: 'Nhà hàng tại chỗ', scope: 'PLACE' },
-  { code: 'KITCHEN', name: 'Bếp nấu tự do', scope: 'PLACE' },
-  { code: 'BBQ_AREA', name: 'Sân nướng BBQ ngoài trời', scope: 'PLACE' },
-  { code: 'MOTORBIKE_RENTAL', name: 'Cho thuê xe máy', scope: 'PLACE' },
-  { code: 'FIREPLACE', name: 'Lò sưởi củi sinh hoạt chung', scope: 'PLACE' },
-  { code: 'BACKUP_POWER', name: 'Điện dự phòng', scope: 'PLACE' },
-  { code: 'STABLE_WATER', name: 'Nước ổn định vùng cao', scope: 'PLACE' },
-];
-
-const ALL_AMENITIES = [...ROOM_AMENITIES, ...PLACE_AMENITIES];
 
 export default function HomestayListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -83,6 +62,21 @@ export default function HomestayListPage() {
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'recommended' | 'price_asc' | 'price_desc' | 'rating_desc'>('recommended');
   const [keywordInput, setKeywordInput] = useState('');
+  const [amenityCatalog, setAmenityCatalog] = useState<PublicAmenityItem[]>([]);
+
+  useEffect(() => {
+    let alive = true;
+    fetchHomestayAmenities()
+      .then(items => { if (alive) setAmenityCatalog(items); })
+      .catch(() => { if (alive) setAmenityCatalog([]); });
+    return () => { alive = false; };
+  }, []);
+
+  const roomAmenities = amenityCatalog.filter(a => a.scope === 'ROOM');
+  const placeAmenities = amenityCatalog.filter(a => a.scope === 'PLACE');
+  const quickAmenities = QUICK_AMENITY_ICONS
+    .map(([code, Icon]) => ({ item: amenityCatalog.find(a => a.code === code), Icon }))
+    .filter((q): q is { item: PublicAmenityItem; Icon: LucideIcon } => q.item !== undefined);
 
   // Khởi tạo filters từ URL params
   const [filters, setFilters] = useState<HomestayFilterParams>(() => {
@@ -98,7 +92,6 @@ export default function HomestayListPage() {
     const ward = searchParams.get('ward');
     const attractionsStr = searchParams.get('attractions');
     const keywordStr = searchParams.get('keyword');
-    const guestCount = searchParams.get('guestCount');
 
     if (checkIn) initialFilters.checkIn = checkIn;
     if (checkOut) initialFilters.checkOut = checkOut;
@@ -111,7 +104,6 @@ export default function HomestayListPage() {
     if (ward) initialFilters.ward = ward;
     if (attractionsStr) initialFilters.attractions = attractionsStr.split(',');
     if (keywordStr) initialFilters.keyword = keywordStr;
-    if (guestCount) initialFilters.guestCount = Number(guestCount);
 
     return initialFilters;
   });
@@ -119,6 +111,8 @@ export default function HomestayListPage() {
   const [currentPage, setCurrentPage] = useState(() => Number(searchParams.get('page') || '1'));
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [showMap, setShowMap] = useState(false);
+  const filterPanelRef = useRef<HTMLElement>(null);
+  const [filterPanelHeight, setFilterPanelHeight] = useState<number | null>(null);
 
   const ITEMS_PER_PAGE = 12;
   const [totalElements, setTotalElements] = useState(0);
@@ -163,7 +157,7 @@ export default function HomestayListPage() {
       if (newFilters.ward) newParams.set('ward', newFilters.ward); else newParams.delete('ward');
       if (newFilters.attractions && newFilters.attractions.length > 0) newParams.set('attractions', newFilters.attractions.join(',')); else newParams.delete('attractions');
       if (newFilters.keyword) newParams.set('keyword', newFilters.keyword); else newParams.delete('keyword');
-      if (newFilters.guestCount !== undefined) newParams.set('guestCount', String(newFilters.guestCount)); else newParams.delete('guestCount');
+      newParams.delete('guestCount');
       newParams.set('page', '1');
 
       setSearchParams(newParams, { replace: true });
@@ -210,7 +204,6 @@ export default function HomestayListPage() {
     const ward = searchParams.get('ward');
     const attractionsStr = searchParams.get('attractions');
     const keywordStr = searchParams.get('keyword');
-    const guestCount = searchParams.get('guestCount');
     const page = Number(searchParams.get('page') || '1');
     const urlSort = searchParams.get('sort') as typeof sortBy | null;
 
@@ -226,7 +219,6 @@ export default function HomestayListPage() {
       ward: ward || undefined,
       attractions: attractionsStr ? attractionsStr.split(',') : undefined,
       keyword: keywordStr || undefined,
-      guestCount: guestCount ? Number(guestCount) : undefined,
     });
     setKeywordInput(keywordStr || '');
     if (Number.isFinite(page) && page > 0) setCurrentPage(page);
@@ -249,7 +241,7 @@ export default function HomestayListPage() {
   }, [filters, currentPage, sortBy]);
 
   const hasActiveFilters = Boolean(
-    filters.amenities?.length || filters.minRating || filters.maxPrice || filters.minPrice || filters.guestCount || filters.ward || (filters.province && filters.province !== 'Yên Bái') || filters.attractions?.length
+    filters.amenities?.length || filters.minRating || filters.maxPrice || filters.minPrice || filters.ward || (filters.province && filters.province !== 'Yên Bái') || filters.attractions?.length
   );
 
   const paginatedHomestays = [...homestays].sort((a, b) => {
@@ -262,11 +254,11 @@ export default function HomestayListPage() {
   };
 
   const roomAmenitiesSelectedCount = filters.amenities?.filter(code =>
-    ROOM_AMENITIES.some(ra => ra.code === code)
+    roomAmenities.some(ra => ra.code === code)
   ).length || 0;
 
   const placeAmenitiesSelectedCount = filters.amenities?.filter(code =>
-    PLACE_AMENITIES.some(pa => pa.code === code)
+    placeAmenities.some(pa => pa.code === code)
   ).length || 0;
 
   const renderKeywordSearch = () => (
@@ -310,8 +302,20 @@ export default function HomestayListPage() {
     </div>
   );
 
+  useEffect(() => {
+    const panel = filterPanelRef.current;
+    if (!panel) return;
+
+    const updatePanelHeight = () => setFilterPanelHeight(panel.getBoundingClientRect().height);
+    updatePanelHeight();
+
+    const observer = new ResizeObserver(updatePanelHeight);
+    observer.observe(panel);
+    return () => observer.disconnect();
+  }, [mobileFilterOpen]);
+
   const renderFilters = () => (
-    <div className="bg-white border border-gray-200/90 rounded-lg overflow-hidden shadow-xs">
+    <div ref={filterPanelRef} className="bg-white border border-gray-200/90 rounded-lg overflow-hidden shadow-xs">
       <div className="p-4 border-b border-gray-200/90 bg-gradient-to-r from-gray-50 to-white flex items-center justify-between">
         <div className="flex items-center gap-2">
           <SlidersHorizontal className="w-4 h-4 text-[var(--color-primary)]" />
@@ -362,25 +366,8 @@ export default function HomestayListPage() {
         </div>
       </div>
 
-      <div className="p-4 border-b border-gray-100 bg-white">
-        <label htmlFor="guest-count" className="block font-bold text-[var(--color-ink-deep)] mb-2 text-sm">Số khách</label>
-        <input
-          id="guest-count"
-          type="number"
-          min={1}
-          step={1}
-          value={filters.guestCount ?? ''}
-          onChange={(event) => {
-            const value = event.target.value ? Number(event.target.value) : undefined;
-            handleFilterChange({ guestCount: value && value > 0 ? value : undefined });
-          }}
-          className="w-full h-10 px-3 text-sm bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)]"
-          placeholder="Ví dụ: 2"
-        />
-        <p className="mt-1 text-xs text-[var(--color-muted)]">Lọc theo sức chứa phòng đang hoạt động.</p>
-      </div>
-
-      {/* 1. Tiện nghi phòng ngủ (Room Scope) */}
+      {/* 1. Tiện nghi phòng ngủ (Room Scope) — chỉ hiện khi có homestay khai báo tiện nghi cấp phòng */}
+      {roomAmenities.length > 0 && (
       <div className="p-4 border-b border-gray-100">
         <h4 className="font-bold text-[var(--color-ink-deep)] mb-3 text-sm flex items-center justify-between">
           <span className="flex items-center gap-1.5">
@@ -393,7 +380,7 @@ export default function HomestayListPage() {
           )}
         </h4>
         <div className="flex flex-col gap-2.5">
-          {ROOM_AMENITIES.map(amenity => {
+          {roomAmenities.map(amenity => {
             const isChecked = filters.amenities?.includes(amenity.code) || false;
             return (
               <label key={amenity.code} className="flex items-center gap-2.5 cursor-pointer group">
@@ -421,6 +408,7 @@ export default function HomestayListPage() {
           })}
         </div>
       </div>
+      )}
 
       {/* 2. Tiện nghi & Dịch vụ Homestay (Place Scope) */}
       <div className="p-4 border-b border-gray-100">
@@ -435,7 +423,10 @@ export default function HomestayListPage() {
           )}
         </h4>
         <div className="flex flex-col gap-2.5">
-          {PLACE_AMENITIES.map(amenity => {
+          {placeAmenities.length === 0 && (
+            <p className="text-xs text-[var(--color-muted)]">Chưa tải được danh mục tiện ích.</p>
+          )}
+          {placeAmenities.map(amenity => {
             const isChecked = filters.amenities?.includes(amenity.code) || false;
             return (
               <label key={amenity.code} className="flex items-center gap-2.5 cursor-pointer group">
@@ -609,81 +600,26 @@ export default function HomestayListPage() {
               <Sparkles className="w-3.5 h-3.5 text-[var(--color-sun)]" /> Lọc nhanh:
             </span>
 
-            {/* Quick Điều hòa (Room) */}
-            <button
-              onClick={() => {
-                const current = filters.amenities || [];
-                const target = 'AIR_CONDITIONING';
-                handleFilterChange({
-                  amenities: current.includes(target)
-                    ? current.filter(a => a !== target)
-                    : [...current, target]
-                });
-              }}
-              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all hover:-translate-y-0.5 ${filters.amenities?.includes('AIR_CONDITIONING')
-                  ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-xs'
-                  : 'bg-gray-50 text-[var(--color-ink)] border-gray-200 hover:border-gray-300 hover:bg-white'
-                }`}
-            >
-              <Wind className="w-3 h-3" /> Điều hòa (Phòng)
-            </button>
-
-            {/* Quick Ban công view núi (Room) */}
-            <button
-              onClick={() => {
-                const current = filters.amenities || [];
-                const target = 'BALCONY';
-                handleFilterChange({
-                  amenities: current.includes(target)
-                    ? current.filter(a => a !== target)
-                    : [...current, target]
-                });
-              }}
-              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all hover:-translate-y-0.5 ${filters.amenities?.includes('BALCONY')
-                  ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-xs'
-                  : 'bg-gray-50 text-[var(--color-ink)] border-gray-200 hover:border-gray-300 hover:bg-white'
-                }`}
-            >
-              <Mountain className="w-3 h-3" /> View núi / ruộng
-            </button>
-
-            {/* Quick Bồn tắm thảo dược (Room) */}
-            <button
-              onClick={() => {
-                const current = filters.amenities || [];
-                const target = 'BATHTUB';
-                handleFilterChange({
-                  amenities: current.includes(target)
-                    ? current.filter(a => a !== target)
-                    : [...current, target]
-                });
-              }}
-              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all hover:-translate-y-0.5 ${filters.amenities?.includes('BATHTUB')
-                  ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-xs'
-                  : 'bg-gray-50 text-[var(--color-ink)] border-gray-200 hover:border-gray-300 hover:bg-white'
-                }`}
-            >
-              <Bath className="w-3 h-3" /> Bồn tắm thảo dược
-            </button>
-
-            {/* Quick Bếp nấu tự do (Place) */}
-            <button
-              onClick={() => {
-                const current = filters.amenities || [];
-                const target = 'KITCHEN';
-                handleFilterChange({
-                  amenities: current.includes(target)
-                    ? current.filter(a => a !== target)
-                    : [...current, target]
-                });
-              }}
-              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all hover:-translate-y-0.5 ${filters.amenities?.includes('KITCHEN')
-                  ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-xs'
-                  : 'bg-gray-50 text-[var(--color-ink)] border-gray-200 hover:border-gray-300 hover:bg-white'
-                }`}
-            >
-              <Utensils className="w-3 h-3" /> Bếp tự do
-            </button>
+            {quickAmenities.map(({ item, Icon }) => {
+              const active = filters.amenities?.includes(item.code) ?? false;
+              return (
+                <button
+                  key={item.code}
+                  onClick={() => {
+                    const current = filters.amenities || [];
+                    handleFilterChange({
+                      amenities: active ? current.filter(a => a !== item.code) : [...current, item.code]
+                    });
+                  }}
+                  className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all hover:-translate-y-0.5 ${active
+                      ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-xs'
+                      : 'bg-gray-50 text-[var(--color-ink)] border-gray-200 hover:border-gray-300 hover:bg-white'
+                    }`}
+                >
+                  <Icon className="w-3 h-3" /> {item.name}
+                </button>
+              );
+            })}
 
             {/* Quick Đánh giá 4.5+ */}
             <button
@@ -765,7 +701,7 @@ export default function HomestayListPage() {
               )}
 
               {filters.amenities?.map(amenityCode => {
-                const item = ALL_AMENITIES.find(a => a.code === amenityCode);
+                const item = amenityCatalog.find(a => a.code === amenityCode);
                 const name = item ? `${item.name}${item.scope === 'ROOM' ? ' (Phòng)' : ''}` : amenityCode;
                 return (
                   <button
@@ -812,7 +748,7 @@ export default function HomestayListPage() {
         </div>
 
         {/* Main Content Layout with Sidebar */}
-        <div className="w-full flex flex-col md:flex-row gap-6">
+        <div className="w-full flex flex-col gap-6 md:flex-row md:items-stretch">
           {/* Mobile Filter Button */}
           <div className="flex md:hidden mb-2">
             <button
@@ -846,12 +782,12 @@ export default function HomestayListPage() {
           )}
 
           {/* Sidebar (Desktop) */}
-          <aside className="hidden md:flex flex-col w-[300px] shrink-0 gap-4">
+          <aside className="hidden w-[300px] shrink-0 flex-col gap-4 md:flex">
             {renderFilters()}
           </aside>
 
           {/* Main List */}
-          <div className="flex-1 flex flex-col gap-4">
+          <div className="flex min-h-0 flex-1 flex-col gap-4">
             {/* VietMap Interactive Viewer */}
             {showMap && (
               <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-xs mb-2 animate-in fade-in duration-300">
@@ -888,7 +824,7 @@ export default function HomestayListPage() {
               </div>
             )}
 
-            <div className="flex-1 flex flex-col gap-4 relative min-h-[350px]">
+            <div className="relative flex min-h-0 flex-1 flex-col gap-4 md:min-h-full">
               {loading ? (
                 <CardSkeleton count={ITEMS_PER_PAGE} layout="grid-2" imageHeight="h-48" />
               ) : error ? (
@@ -922,7 +858,10 @@ export default function HomestayListPage() {
                 </div>
               ) : (
                 /* 2 Ô 1 DÒNG KHI CHƯA RESPONSIVE (grid-cols-1 md:grid-cols-2) */
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5">
+                <div
+                  className="grid min-w-0 auto-rows-max items-start grid-cols-1 gap-4 overflow-y-auto overscroll-contain pr-1 lg:gap-5 md:grid-cols-2"
+                  style={{ maxHeight: filterPanelHeight ? `${filterPanelHeight}px` : undefined }}
+                >
                   {paginatedHomestays.map((hs) => {
                     const phone = getHomestayPhone(hs);
                     const fb = getHomestayFacebook(hs);
@@ -931,7 +870,7 @@ export default function HomestayListPage() {
                       return (
                         <div
                           key={hs.id}
-                          className="bg-white border border-gray-200/90 rounded-xl overflow-hidden shadow-xs hover:shadow-md hover:border-[var(--color-primary-300)] transition-all flex flex-col justify-between"
+                          className="h-[500px] bg-white border border-gray-200/90 rounded-lg overflow-hidden shadow-xs hover:-translate-y-0.5 hover:shadow-md hover:border-[var(--color-primary-300)] transition-all duration-300 flex flex-col"
                         >
                           {/* Image */}
                           <div className="relative w-full h-[190px] shrink-0 overflow-hidden bg-slate-100 flex items-center justify-center">
@@ -961,6 +900,19 @@ export default function HomestayListPage() {
                                 )}
                               </div>
                             )}
+                            {/* Điểm Google (dữ liệu đã xác thực) — hiện khi chưa có đánh giá nội bộ */}
+                            {hs.ratingScore <= 0 && hs.googleRating != null && (
+                              <div
+                                className="absolute bottom-2.5 left-2.5 bg-white/95 backdrop-blur-xs px-2.5 py-1 rounded-md shadow-xs flex items-center gap-1 border border-black/5"
+                                title="Điểm đánh giá trên Google Maps"
+                              >
+                                <Star className="w-3.5 h-3.5 text-[#f59e0b] fill-[#f59e0b]" />
+                                <span className="font-extrabold text-[#78350f] text-xs sm:text-sm leading-none">
+                                  {hs.googleRating.toFixed(1).replace('.', ',')}
+                                </span>
+                                <span className="text-[11px] text-gray-500 font-semibold">Google</span>
+                              </div>
+                            )}
                             {hs.isGenius && (
                               <span className="absolute top-2.5 left-2.5 bg-[var(--color-primary)] text-white text-xs font-extrabold px-2.5 py-0.5 rounded-md shadow-xs">
                                 Genius
@@ -969,8 +921,8 @@ export default function HomestayListPage() {
                           </div>
 
                           {/* Content */}
-                          <div className="p-4 flex-1 flex flex-col justify-between">
-                            <div>
+                          <div className="min-h-0 flex-1 p-4 flex flex-col justify-between">
+                            <div className="min-h-0 flex-1 overflow-hidden">
                               <Link to={homestayDetailPath(hs.id)}>
                                 <h2 className="text-lg font-extrabold text-[var(--color-ink-deep)] hover:text-[var(--color-primary)] transition-colors leading-snug line-clamp-1 mb-1.5">
                                   {hs.name}
@@ -1005,7 +957,7 @@ export default function HomestayListPage() {
                               </div>
 
                               {hs.description && (
-                                <p className="text-xs sm:text-[13px] text-slate-600 font-medium line-clamp-4 leading-relaxed mb-3">
+                                  <p className="min-h-[72px] text-xs sm:text-[13px] text-slate-600 font-medium line-clamp-4 leading-relaxed mb-3">
                                   {hs.description}
                                 </p>
                               )}

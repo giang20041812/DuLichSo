@@ -121,24 +121,16 @@ export default function BookingPage() {
   const maxRooms = Math.max(1, navState?.totalRoomCount || 5);
   const [roomCount, setRoomCount] = useState<number>(() => Math.max(1, Math.min(maxRooms, navState?.roomCount || 1)));
 
-  // Số lượng khách (mặc định 2, tối đa theo sức chứa của số phòng)
+  // Số lượng khách không bị giới hạn theo số phòng hoặc sức chứa cấu hình.
   const roomMaxOccupancy = Math.max(1, navState?.maxOccupancy || 2);
-  const maxGuests = Math.max(1, roomMaxOccupancy * roomCount);
   const [guestCount, setGuestCount] = useState<number>(() => {
-    if (navState?.guestCount) {
-      return Math.max(1, Math.min(maxGuests, navState.guestCount));
-    }
-    return Math.min(2, maxGuests);
+    return navState?.guestCount && navState.guestCount > 0 ? navState.guestCount : 2;
   });
 
   // Tự động điều chỉnh số lượng phòng và khách khi người dùng thay đổi
   const handleRoomCountChange = (newCount: number) => {
     const clamped = Math.max(1, Math.min(maxRooms, newCount));
     setRoomCount(clamped);
-    const updatedMaxGuests = Math.max(1, roomMaxOccupancy * clamped);
-    if (guestCount > updatedMaxGuests) {
-      setGuestCount(updatedMaxGuests);
-    }
   };
 
   // 1. Tính toán số đêm lưu trú chính xác từ khoảng ngày checkIn - checkOut
@@ -1052,8 +1044,7 @@ export default function BookingPage() {
                             </span>
                             <button
                               type="button"
-                              onClick={() => setGuestCount((prev) => Math.min(maxGuests, prev + 1))}
-                              disabled={guestCount >= maxGuests}
+                              onClick={() => setGuestCount((prev) => prev + 1)}
                               className="w-5 h-5 rounded-xs bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                               title="Tăng số khách"
                             >

@@ -31,8 +31,13 @@ public class HomestayProfile {
     private String surchargeNote;
     @Column(name="children_policy",columnDefinition="TEXT") private String childrenPolicy;
     @Column(name="pets_policy",columnDefinition="TEXT") private String petsPolicy;
-    @Column(name="guest_policy",columnDefinition="TEXT") private String guestPolicy;
-    
+
+    @Column(name = "view_highlight", columnDefinition = "TEXT")
+    private String viewHighlight;
+    /** Nhóm khách phù hợp (cột "Phù hợp nhóm khách nào" trong dữ liệu đã xác thực). */
+    @Column(name = "suitability", columnDefinition = "TEXT")
+    private String suitability;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "current_policy_id")
     private CancellationPolicy currentPolicy;

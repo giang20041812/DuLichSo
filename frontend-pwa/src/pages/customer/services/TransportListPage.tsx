@@ -321,7 +321,7 @@ export default function TransportListPage() {
           {/* List Area */}
           <div className="lg:col-span-3">
             {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="grid max-h-[calc(100dvh-18rem)] min-h-0 auto-rows-max items-start grid-cols-1 gap-5 overflow-y-auto overscroll-contain pr-1 md:grid-cols-2">
                 {[1, 2, 3, 4].map(n => (
                   <div key={n} className="bg-white rounded-lg p-4 border border-gray-100 shadow-xs animate-pulse h-80">
                     <div className="w-full h-44 bg-gray-200 rounded-md mb-3"></div>
@@ -345,7 +345,7 @@ export default function TransportListPage() {
                     </button>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="grid max-h-[calc(100dvh-18rem)] min-h-0 auto-rows-max items-start grid-cols-1 gap-5 overflow-y-auto overscroll-contain pr-1 md:grid-cols-2">
                     {paginatedTransports.map((t) => (
                       <div
                         key={t.id}

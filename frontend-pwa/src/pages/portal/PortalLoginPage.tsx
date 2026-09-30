@@ -10,7 +10,6 @@ import {
   Mail,
   RefreshCw,
 } from 'lucide-react';
-import { AUTH_IMAGES } from '@/config/authImages';
 import { AuthDivider, AuthShell, authInputClass } from '@/components/auth/AuthShell';
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 import { ForgotPasswordModal } from '@/components/auth/ForgotPasswordModal';
@@ -161,7 +160,6 @@ export default function PortalLoginPage() {
   return (
     <>
       <AuthShell
-        image={AUTH_IMAGES.login}
         title="Đăng nhập tài khoản"
         subtitle="Khám phá homestay Tây Bắc, quản lý đặt phòng và dịch vụ của bạn."
         footer={

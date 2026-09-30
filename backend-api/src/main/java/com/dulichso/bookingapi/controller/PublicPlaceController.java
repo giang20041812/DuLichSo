@@ -42,10 +42,9 @@ public class PublicPlaceController {
              @RequestParam(value = "attractions", required = false) List<Long> attractions,
              @RequestParam(value = "keyword", required = false) String keyword,
              @RequestParam(value = "needs", required = false) String needs,
-             @RequestParam(value = "guestCount", required = false) Integer guestCount,
              @PageableDefault(size = 12) Pageable pageable) {
 
-        return ResponseEntity.ok(publicPlaceService.getPlaces(kind, minPrice, maxPrice, minRating, amenities, checkIn, checkOut, province, district, ward, attractions, keyword, needs, guestCount, pageable));
+        return ResponseEntity.ok(publicPlaceService.getPlaces(kind, minPrice, maxPrice, minRating, amenities, checkIn, checkOut, province, district, ward, attractions, keyword, needs, pageable));
     }
 
     @GetMapping("/{identifier}")
@@ -83,6 +82,12 @@ public class PublicPlaceController {
     @GetMapping("/{slug}/rooms")
     public ResponseEntity<List<RoomTypeDetailDto>> getPlaceRooms(@PathVariable("slug") String slug) {
         return ResponseEntity.ok(placeDetailService.getPlaceRooms(slug));
+    }
+
+    @GetMapping("/amenities")
+    public ResponseEntity<List<com.dulichso.bookingapi.dto.PublicAmenityDto>> getAmenities(
+            @RequestParam(value = "kind", required = false) CategoryKind kind) {
+        return ResponseEntity.ok(publicPlaceService.getAmenitiesInUse(kind));
     }
 
     @GetMapping("/regions")

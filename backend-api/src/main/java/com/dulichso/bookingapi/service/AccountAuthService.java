@@ -159,11 +159,12 @@ public class AccountAuthService {
 
     private boolean checkPassword(String plainPassword, String storedHash) {
         if (storedHash == null || plainPassword == null) return false;
-        // Tài khoản tạo qua Admin lưu BCrypt; dữ liệu seed cũ có thể là plain text (dev).
+        // Chỉ chấp nhận BCrypt. Tài khoản seed chưa có mật khẩu mang marker
+        // SeedAccountPasswordInitializer.PENDING_HASH — không bao giờ so khớp như plain text.
         if (storedHash.startsWith("$2a$") || storedHash.startsWith("$2b$") || storedHash.startsWith("$2y$")) {
             return passwordEncoder.matches(plainPassword, storedHash);
         }
-        return storedHash.equals(plainPassword);
+        return false;
     }
 
     /**

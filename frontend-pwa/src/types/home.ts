@@ -31,10 +31,11 @@ export interface PlaceSummaryDto {
   priceRefMin: number;
   ratingAvg: number;
   ratingCount: number;
+  /** Điểm Google Maps (0-5) từ dữ liệu đã xác thực. */
+  googleRating?: number | null;
   attributesJson: string;
   kind: CategoryKind;
   priceUnitNote?: string;
-  isSuitableByTime?: boolean;
   suitableDateStart?: string;
   suitableDateEnd?: string;
   

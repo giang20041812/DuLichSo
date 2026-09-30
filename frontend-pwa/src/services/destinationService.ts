@@ -64,7 +64,6 @@ export const fetchDestinations = async (params?: DestinationFilterParams): Promi
       longitude?: number | null;
       address?: string | null;
       contacts?: PlaceContactItem[];
-      isSuitableByTime?: boolean | null;
       suitableDateStart?: string | null;
       suitableDateEnd?: string | null;
       needs?: 'enjoy' | 'adventure' | null;
@@ -107,7 +106,6 @@ export const fetchDestinations = async (params?: DestinationFilterParams): Promi
         scenicType: scenic,
         amenities: [],
         contacts: item.contacts || [],
-        isSuitableByTime: Boolean(item.isSuitableByTime),
         suitableDateStart: item.suitableDateStart || undefined,
         suitableDateEnd: item.suitableDateEnd || undefined,
         needs: item.needs || undefined,

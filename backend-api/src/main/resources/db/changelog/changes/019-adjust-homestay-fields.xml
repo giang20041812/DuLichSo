@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <changeSet id="adjust-homestay-fields" author="ai">
+        <addColumn tableName="homestay_profile">
+            <column name="view_highlight" type="TEXT"/>
+            <column name="suitability" type="TEXT"/>
+
+        </addColumn>
+
+        <addColumn tableName="place">
+            <column name="google_rating" type="DECIMAL(5,2)"/>
+        </addColumn>
+
+        <dropColumn tableName="place" columnName="is_suitable_by_time"/>
+        <dropColumn tableName="festival" columnName="is_suitable_by_time"/>
+    </changeSet>
+
+</databaseChangeLog>

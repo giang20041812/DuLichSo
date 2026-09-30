@@ -46,6 +46,24 @@ public class PublicPlaceService {
     private final com.dulichso.bookingapi.repository.ReviewRepository reviewRepository;
     private final com.dulichso.bookingapi.repository.RegionRepository regionRepository;
     private final RoomInventoryDayRepository roomInventoryDayRepository;
+    private final com.dulichso.bookingapi.repository.RoomAmenityRepository roomAmenityRepository;
+
+    /**
+     * Danh mục tiện ích cho bộ lọc tìm kiếm: chỉ trả các tiện ích đang có ở ít nhất một chỗ nghỉ công khai,
+     * để khách không chọn phải tiện ích luôn cho 0 kết quả. Mã trả về khớp tham số {@code amenities} của /places.
+     */
+    @Transactional(readOnly = true)
+    public List<com.dulichso.bookingapi.dto.PublicAmenityDto> getAmenitiesInUse(CategoryKind kind) {
+        CategoryKind target = kind == null ? CategoryKind.HOMESTAY : kind;
+        Map<String, com.dulichso.bookingapi.entity.Amenity> byCode = new java.util.LinkedHashMap<>();
+        placeAmenityRepository.findAmenitiesInUseByKind(target).forEach(a -> byCode.putIfAbsent(a.getCode(), a));
+        roomAmenityRepository.findAmenitiesInUseByKind(target).forEach(a -> byCode.putIfAbsent(a.getCode(), a));
+        return byCode.values().stream()
+                .sorted(java.util.Comparator.comparing(com.dulichso.bookingapi.entity.Amenity::getSortOrder)
+                        .thenComparing(com.dulichso.bookingapi.entity.Amenity::getName))
+                .map(a -> new com.dulichso.bookingapi.dto.PublicAmenityDto(a.getCode(), a.getName(), a.getScope()))
+                .toList();
+    }
 
     @Transactional(readOnly = true)
     public List<com.dulichso.bookingapi.dto.PublicRegionHierarchyDto> getPublicRegions() {
@@ -119,15 +137,11 @@ public class PublicPlaceService {
         return getPlaces(kind, minPrice, maxPrice, minRating, amenities, checkIn, checkOut, province, district, ward, attractionIds, keyword, null, pageable);
     }
 
-    @Transactional(readOnly = true)
-    public Page<PlaceSummaryDto> getPlaces(CategoryKind kind, BigDecimal minPrice, BigDecimal maxPrice, BigDecimal minRating, List<String> amenities, LocalDate checkIn, LocalDate checkOut, String province, String district, String ward, List<Long> attractionIds, String keyword, Integer guestCount, Pageable pageable) {
-        return getPlaces(kind, minPrice, maxPrice, minRating, amenities, checkIn, checkOut, province, district, ward, attractionIds, keyword, null, guestCount, pageable);
-    }
 
     @Transactional(readOnly = true)
-    public Page<PlaceSummaryDto> getPlaces(CategoryKind kind, BigDecimal minPrice, BigDecimal maxPrice, BigDecimal minRating, List<String> amenities, LocalDate checkIn, LocalDate checkOut, String province, String district, String ward, List<Long> attractionIds, String keyword, String needs, Integer guestCount, Pageable pageable) {
-        validateFilters(minPrice, maxPrice, checkIn, checkOut, guestCount);
-        Specification<Place> spec = PlaceSpecification.filterPublicPlaces(kind, minPrice, maxPrice, minRating, amenities, checkIn, checkOut, province, district, ward, attractionIds, keyword, needs, guestCount);
+    public Page<PlaceSummaryDto> getPlaces(CategoryKind kind, BigDecimal minPrice, BigDecimal maxPrice, BigDecimal minRating, List<String> amenities, LocalDate checkIn, LocalDate checkOut, String province, String district, String ward, List<Long> attractionIds, String keyword, String needs, Pageable pageable) {
+        validateFilters(minPrice, maxPrice, checkIn, checkOut);
+        Specification<Place> spec = PlaceSpecification.filterPublicPlaces(kind, minPrice, maxPrice, minRating, amenities, checkIn, checkOut, province, district, ward, attractionIds, keyword, needs);
         Pageable listingPageable = PageRequest.of(pageable.getPageNumber(), 12, normalizeSort(pageable.getSort()));
         
         Page<Place> placesPage = placeRepository.findAll(spec, listingPageable);
@@ -188,15 +202,16 @@ public class PublicPlaceService {
                     p.getLongitude(),
                     p.getAddress()
             );
-            dto.setIsSuitableByTime(p.getIsSuitableByTime());
+
             dto.setSuitableDateStart(p.getSuitableDateStart());
             dto.setSuitableDateEnd(p.getSuitableDateEnd());
             dto.setNeeds(p.getNeeds());
+            dto.setGoogleRating(p.getGoogleRating());
             dto.setOperationStatus(p.getOperationStatus());
             Object statusReason = p.getAttributes() == null ? null : p.getAttributes().get("operationStatusReason");
             dto.setOperationStatusReason(statusReason instanceof String ? (String) statusReason : null);
             dto.setAvailableForSelectedDates(isAvailableForSelection(
-                    p, activeRoomsByPlaceId.getOrDefault(p.getId(), Collections.emptyList()), checkIn, checkOut, guestCount));
+                    p, activeRoomsByPlaceId.getOrDefault(p.getId(), Collections.emptyList()), checkIn, checkOut));
             dto.setContacts(contactsByPlaceId.getOrDefault(p.getId(), Collections.emptyList()));
             dto.setAmenities(amenitiesByPlaceId.getOrDefault(p.getId(), Collections.emptyList()));
             if (p.getAttributes() != null && p.getAttributes().containsKey("tagBadge")) {
@@ -207,12 +222,13 @@ public class PublicPlaceService {
     }
 
     private boolean isAvailableForSelection(Place place, List<RoomType> rooms, LocalDate checkIn,
-                                             LocalDate checkOut, Integer guestCount) {
+                                             LocalDate checkOut) {
         if (place.getOperationStatus() != com.dulichso.bookingapi.entity.enums.PlaceOperationStatus.OPERATING) return false;
         if (checkIn == null || checkOut == null) return true;
         return rooms.stream().anyMatch(room -> {
-            if (room.getTotalRoomCount() == null || room.getTotalRoomCount() < 1
-                    || (guestCount != null && (room.getMaxOccupancy() == null || room.getMaxOccupancy() < guestCount))) return false;
+            if (room.getTotalRoomCount() == null || room.getTotalRoomCount() < 1) return false;
+            // Loại phòng chưa có giá không đặt được (RoomCalendarService báo "Loại phòng chưa có giá").
+            if (room.getBasePrice() == null) return false;
             for (LocalDate date = checkIn; date.isBefore(checkOut); date = date.plusDays(1)) {
                 var inventory = roomInventoryDayRepository.findById(new RoomInventoryDayId(room.getId(), date));
                 if (inventory.isPresent()) {
@@ -226,7 +242,7 @@ public class PublicPlaceService {
         });
     }
 
-    private void validateFilters(BigDecimal minPrice, BigDecimal maxPrice, LocalDate checkIn, LocalDate checkOut, Integer guestCount) {
+    private void validateFilters(BigDecimal minPrice, BigDecimal maxPrice, LocalDate checkIn, LocalDate checkOut) {
         if (minPrice != null && minPrice.signum() < 0) {
             throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Giá từ không được âm");
         }
@@ -241,9 +257,6 @@ public class PublicPlaceService {
         }
         if (checkIn != null && checkOut != null && !checkOut.isAfter(checkIn)) {
             throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Check-out phải sau Check-in");
-        }
-        if (guestCount != null && guestCount < 1) {
-            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Số khách phải lớn hơn 0");
         }
     }
 
@@ -324,8 +337,9 @@ public class PublicPlaceService {
                 .priceRefMax(place.getPriceRefMax())
                 .ratingAvg(place.getRatingAvg())
                 .ratingCount(place.getRatingCount())
+                .googleRating(place.getGoogleRating())
                 .attributes(place.getAttributes())
-                .isSuitableByTime(place.getIsSuitableByTime())
+                
                 .suitableDateStart(place.getSuitableDateStart())
                 .suitableDateEnd(place.getSuitableDateEnd())
                 .images(images)
@@ -411,10 +425,11 @@ public class PublicPlaceService {
                     .coverImageUrl(coverImage)
                     .ratingAvg(p.getRatingAvg())
                     .ratingCount(p.getRatingCount())
+                    .googleRating(p.getGoogleRating())
                     .priceRefMin(p.getPriceRefMin())
                     .priceRefMax(p.getPriceRefMax())
                     .priceUnitNote(p.getPriceUnitNote())
-                    .isSuitableByTime(p.getIsSuitableByTime())
+                    
                     .suitableDateStart(p.getSuitableDateStart())
                     .suitableDateEnd(p.getSuitableDateEnd())
                     .build();

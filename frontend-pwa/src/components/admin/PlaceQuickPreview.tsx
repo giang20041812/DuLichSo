@@ -17,6 +17,9 @@ interface PlaceQuickPreviewProps {
 }
 
 const vnd = (n?: number | null) => (n == null ? null : new Intl.NumberFormat('vi-VN').format(n) + 'đ');
+const CONTACT_LABEL: Partial<Record<string, string>> = {
+  PHONE: 'Điện thoại', EMAIL: 'Email', FACEBOOK: 'Facebook', TIKTOK: 'TikTok', ZALO: 'Zalo', WEBSITE: 'Website', YOUTUBE: 'YouTube',
+};
 const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString('vi-VN') : '—');
 
 /** Ngăn xem nhanh bên phải: Admin đọc chi tiết điểm đến và Duyệt / Yêu cầu bổ sung ngay. */
@@ -54,6 +57,10 @@ export default function PlaceQuickPreview({ place, onClose, onApprove, onRequest
     p.priceRefMin != null || p.priceRefMax != null
       ? [vnd(p.priceRefMin), vnd(p.priceRefMax)].filter(Boolean).join(' – ') + (detail?.priceUnitNote ? ` · ${detail.priceUnitNote}` : '')
       : null;
+  const googleMapsUrl = detail?.contacts?.find((c) => c.channel === 'GOOGLE_MAPS')?.value;
+  const otherContacts = detail?.contacts?.filter((c) => c.channel !== 'GOOGLE_MAPS') ?? [];
+  const pros = detail?.highlights?.filter((h) => h.type === 'PRO') ?? [];
+  const cons = detail?.highlights?.filter((h) => h.type === 'CON') ?? [];
   const attributes = detail?.attributes ? Object.entries(detail.attributes).filter(([, v]) => v !== null && v !== '' && typeof v !== 'object') : [];
 
   return (
@@ -107,11 +114,29 @@ export default function PlaceQuickPreview({ place, onClose, onApprove, onRequest
                 'Chưa có'
               )}
             </Field>
-            <Field label="Giá tham khảo" wide>{price || '—'}</Field>
+            <Field label="Điểm Google">
+              {detail?.googleRating != null ? (
+                <span className="inline-flex items-center gap-1">
+                  <Star className="h-3.5 w-3.5 fill-sun text-sun" /> {Number(detail.googleRating).toFixed(1)}/5
+                </span>
+              ) : (
+                'Chưa có'
+              )}
+            </Field>
+            <Field label="Giá tham khảo">{price || '—'}</Field>
             <Field label="Địa chỉ" wide>
               <span className="inline-flex items-start gap-1">
                 <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted" /> {p.address || '—'}
               </span>
+            </Field>
+            <Field label="Google Maps" wide>
+              {googleMapsUrl ? (
+                <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
+                  Mở liên kết Google Maps
+                </a>
+              ) : (
+                'Chưa có'
+              )}
             </Field>
             <Field label="Ngày tạo">{fmtDate(p.createdAt)}</Field>
             <Field label="Kiểm duyệt gần nhất">{fmtDate(p.lastVerifiedAt)}</Field>
@@ -132,6 +157,46 @@ export default function PlaceQuickPreview({ place, onClose, onApprove, onRequest
           {detail?.accessNote && (
             <Block title="Hướng dẫn đường đi">
               <p className="whitespace-pre-line text-xs leading-relaxed text-ink">{detail.accessNote}</p>
+            </Block>
+          )}
+          {detail?.viewHighlight && (
+            <Block title="Điểm nổi bật / View">
+              <p className="whitespace-pre-line text-xs leading-relaxed text-ink">{detail.viewHighlight}</p>
+            </Block>
+          )}
+          {detail?.suitability && (
+            <Block title="Nhóm khách phù hợp">
+              <p className="whitespace-pre-line text-xs leading-relaxed text-ink">{detail.suitability}</p>
+            </Block>
+          )}
+          {(pros.length > 0 || cons.length > 0) && (
+            <Block title="Ưu điểm / Hạn chế">
+              <ul className="space-y-1 text-xs leading-relaxed text-ink">
+                {pros.map((h) => (
+                  <li key={h.id} className="flex gap-1.5"><span className="font-semibold text-accent-600">+</span>{h.content}</li>
+                ))}
+                {cons.map((h) => (
+                  <li key={h.id} className="flex gap-1.5"><span className="font-semibold text-amber-700">−</span>{h.content}</li>
+                ))}
+              </ul>
+            </Block>
+          )}
+          {otherContacts.length > 0 && (
+            <Block title="Liên hệ">
+              <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-xs">
+                {otherContacts.map((c) => (
+                  <div key={c.id} className="contents">
+                    <dt className="text-muted">{CONTACT_LABEL[c.channel] ?? c.channel}</dt>
+                    <dd className="break-all text-ink">
+                      {/^https?:\/\//i.test(c.value) ? (
+                        <a href={c.value} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{c.value}</a>
+                      ) : (
+                        c.value
+                      )}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
             </Block>
           )}
           {attributes.length > 0 && (

@@ -108,6 +108,7 @@ export function AppRoutes() {
       <Route element={<PartnerLayout />}>
         <Route path="partner" element={<PartnerDashboardPage />} />
         <Route path="partner/homestays" element={<PartnerHomestaysPage />} />
+        <Route path="partner/rooms" element={<PartnerRoomsPage />} />
         <Route path="partner/bookings" element={<PartnerBookingsPage />} />
         <Route path="partner/bookings/:id" element={<PartnerBookingProcessPage />} />
         <Route path="partner/reviews" element={<PartnerReviewsPage />} />

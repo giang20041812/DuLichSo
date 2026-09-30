@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   AlertTriangle,
@@ -185,9 +186,9 @@ export default function BookingEditModal({
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-[9999] flex items-start justify-center p-2 sm:p-4 pt-20 sm:pt-24 pb-8 bg-slate-900/65 backdrop-blur-xs animate-in fade-in duration-200 overflow-y-auto">
-      <div className="bg-white rounded-lg max-w-3xl w-full max-h-[calc(100vh-6.5rem)] flex flex-col shadow-2xl border border-gray-200 overflow-hidden my-auto sm:my-0">
+  return createPortal((
+    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center p-2 sm:p-4 pt-[12rem] pb-8 bg-slate-900/65 backdrop-blur-xs animate-in fade-in duration-200 overflow-y-auto">
+      <div className="bg-white rounded-lg max-w-3xl w-full max-h-[calc(100dvh-14rem)] flex flex-col shadow-2xl border border-gray-200 overflow-hidden my-0">
         {/* Header Modal */}
         <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between bg-slate-50/70 shrink-0">
           <div>
@@ -249,9 +250,9 @@ export default function BookingEditModal({
         )}
 
         {/* Form Body cuộn mượt */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-5 py-3.5 space-y-4 text-xs">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-4 py-2.5 space-y-2.5 text-xs sm:px-5">
           {/* Nhóm 1: Thông tin khách liên hệ */}
-          <div className="space-y-3 p-3.5 bg-[#F6FAF8] rounded-md border border-gray-100">
+          <div className="space-y-2 p-2.5 bg-canvas rounded-md border border-gray-100">
             <span className="font-bold text-slate-800 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
               <User className="w-3.5 h-3.5 text-[var(--color-primary)]" />
               Thông tin người liên hệ
@@ -307,7 +308,7 @@ export default function BookingEditModal({
           </div>
 
           {/* Nhóm 2: Lịch trình & Số lượng phòng + NÚT CHECK LỊCH PHÒNG */}
-          <div className="space-y-3 p-3.5 bg-[#F6FAF8] rounded-md border border-gray-100">
+          <div className="space-y-2 p-2.5 bg-canvas rounded-md border border-gray-100">
             <div className="flex items-center justify-between">
               <span className="font-bold text-slate-800 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
                 <Calendar className="w-3.5 h-3.5 text-[var(--color-primary)]" />
@@ -390,7 +391,7 @@ export default function BookingEditModal({
               </div>
             </div>
 
-            <div className="bg-slate-50/70 p-2 md:p-3 rounded-md border border-slate-200 mt-3">
+            <div className="bg-slate-50/70 p-1.5 rounded-md border border-slate-200 mt-2">
               <RoomAvailabilityCalendar
                 bookedDates={roomBookedDates}
                 totalRoomCount={booking.roomCount || 1} // Fallback to current if max unknown
@@ -463,7 +464,7 @@ export default function BookingEditModal({
 
           {/* Lý do thay đổi (bắt buộc khi CONFIRMED) */}
           {isConfirmed && (
-            <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-md space-y-1.5">
+            <div className="p-2.5 bg-amber-50/70 border border-amber-200/80 rounded-md space-y-1.5">
               <label className="block text-amber-900 font-bold text-xs">
                 Lý do yêu cầu thay đổi <span className="text-rose-500">*</span>
               </label>
@@ -482,7 +483,7 @@ export default function BookingEditModal({
           )}
 
           {/* Footer Buttons */}
-          <div className="pt-2 flex items-center justify-end gap-3 border-t border-gray-100">
+          <div className="pt-1.5 flex items-center justify-end gap-3 border-t border-gray-100">
             <button
               type="button"
               onClick={onClose}
@@ -494,7 +495,7 @@ export default function BookingEditModal({
             <button
               type="submit"
               disabled={isSubmitting || (availabilityResult !== null && !availabilityResult.available)}
-              className="px-5 py-2 text-xs font-bold text-white bg-[var(--color-primary)] hover:bg-[#059669] rounded-md transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="px-5 py-2 text-xs font-bold text-white bg-[var(--color-primary)] hover:bg-primary-600 rounded-md transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               {isSubmitting ? (
                 <>
@@ -517,6 +518,6 @@ export default function BookingEditModal({
         </form>
       </div>
     </div>
-  );
+  ), document.body);
 }
 

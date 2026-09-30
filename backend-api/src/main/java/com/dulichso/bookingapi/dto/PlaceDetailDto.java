@@ -39,10 +39,11 @@ public class PlaceDetailDto {
     private PlaceVerificationStatus verification;
     private BigDecimal ratingAvg;
     private Integer ratingCount;
+    /** Điểm Google Maps từ dữ liệu đã xác thực (0-5), hiển thị tách biệt với ratingAvg nội bộ. */
+    private BigDecimal googleRating;
     private String description;
     private Integer altitudeMeters;
     private String verifiedGpsText;
-    private Boolean isSuitableByTime;
     private java.time.LocalDate suitableDateStart;
     private java.time.LocalDate suitableDateEnd;
     private Map<String, Object> attributes;
@@ -117,7 +118,8 @@ public class PlaceDetailDto {
         private String surchargeNote;
         private String childrenPolicy;
         private String petsPolicy;
-        private String guestPolicy;
+        private String viewHighlight;
+        private String suitability;
         private PolicyDto currentPolicy;
     }
 

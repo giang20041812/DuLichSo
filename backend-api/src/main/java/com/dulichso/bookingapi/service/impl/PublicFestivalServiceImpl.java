@@ -74,7 +74,7 @@ public class PublicFestivalServiceImpl implements PublicFestivalService {
                     .location(f.getLocation())
                     .highlightTag(isCurrent ? "Đang Diễn Ra" : "Di Sản Văn Hóa")
                     .activities(activities)
-                    .isSuitableByTime(Boolean.TRUE.equals(f.getIsSuitableByTime()) || isCurrent)
+                    
                     .suitableDateStart(f.getSuitableDateStart() != null ? f.getSuitableDateStart() : nextStart)
                     .suitableDateEnd(f.getSuitableDateEnd() != null ? f.getSuitableDateEnd() : nextEnd)
                     .isCurrentSeason(isCurrent)

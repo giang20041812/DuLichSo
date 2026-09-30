@@ -166,13 +166,7 @@ export default function HomePage() {
         return reg.includes(prov) || name.includes(prov) || desc.includes(prov);
       });
     }
-    // Sắp xếp ưu tiên các điểm đến có isSuitableByTime = true
-    const sorted = [...list].sort((a, b) => {
-      const aVal = a.isSuitableByTime ? 1 : 0;
-      const bVal = b.isSuitableByTime ? 1 : 0;
-      return bVal - aVal;
-    });
-    return sorted.slice(0, 6);
+    return list.slice(0, 6);
   }, [allDestinations, selectedProvince]);
 
   // Homestays: max 8 items
@@ -249,7 +243,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="w-full flex flex-col">
+    <div className="w-full min-w-0 overflow-x-hidden flex flex-col">
       {/* 1. Hero Section */}
       <section className="relative z-30 w-full min-h-[100dvh] md:min-h-[700px] flex flex-col pt-[100px] pb-10 md:pb-20">
         <div
@@ -261,12 +255,12 @@ export default function HomePage() {
           <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-[#0f2d3c]/80"></div>
         </div>
 
-        <div className="relative z-30 flex flex-col flex-1 px-4 md:px-8 max-w-[1280px] mx-auto w-full">
-          <div className="w-[75%] md:w-[70%] lg:w-[60%] text-left my-auto py-8 md:py-12">
-            <h1 className="italic font-bold text-5xl sm:text-6xl md:text-[90px] lg:text-[115px] text-[var(--color-sun)] leading-[0.95] mb-3 md:mb-4 drop-shadow-lg text-left" style={{ fontFamily: 'var(--font-brush)' }}>
+        <div className="relative z-30 flex min-w-0 flex-col flex-1 px-4 md:px-8 max-w-[1280px] mx-auto w-full overflow-x-hidden">
+          <div className="self-start w-full min-w-0 max-w-[760px] text-left my-auto py-8 md:py-12">
+            <h1 className="max-w-full break-words [overflow-wrap:anywhere] italic font-bold text-[clamp(2.75rem,8vw,7.1875rem)] text-[var(--color-sun)] leading-[0.95] mb-3 md:mb-4 drop-shadow-lg text-left" style={{ fontFamily: 'var(--font-brush)' }}>
               Đi Du Lịch
             </h1>
-            <p className="text-[20px] sm:text-xl md:text-2xl lg:text-[32px] font-bold text-white leading-[1.4] md:leading-relaxed mb-0 drop-shadow-md text-left" style={{ fontFamily: 'var(--font-brush)' }}>
+            <p className="max-w-full break-words [overflow-wrap:anywhere] text-[20px] sm:text-xl md:text-2xl lg:text-[32px] font-bold text-white leading-[1.4] md:leading-relaxed mb-0 drop-shadow-md text-left" style={{ fontFamily: 'var(--font-brush)' }}>
               Nền tảng đặt phòng Homestay & khám phá trải nghiệm du lịch di sản, sinh thái Việt Nam. Tìm nơi phù hợp cho chuyến đi của bạn
             </p>
           </div>
@@ -334,7 +328,7 @@ export default function HomePage() {
                   return dStr;
                 };
 
-                const isSuitable = Boolean(dest.isSuitableByTime);
+                const isSuitable = false;
                 const startFormatted = formatDate(dest.suitableDateStart);
                 const endFormatted = formatDate(dest.suitableDateEnd);
 

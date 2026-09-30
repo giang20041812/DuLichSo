@@ -60,7 +60,7 @@ public class RoomCalendarService {
         if(roomCount<1 || guestCount<1) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Số phòng và số khách phải lớn hơn 0.");
         var days=calendar(room,start,end);
         int available=days.stream().mapToInt(InventoryDto::availableRooms).min().orElse(0);
-        return new QuoteDto(room.getId(), available,available>=roomCount && (long)room.getMaxOccupancy()*roomCount>=guestCount,
+        return new QuoteDto(room.getId(), available,available>=roomCount,
                 days.stream().map(InventoryDto::price).reduce(BigDecimal.ZERO,BigDecimal::add).multiply(BigDecimal.valueOf(roomCount)),days);
     }
 }

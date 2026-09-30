@@ -23,13 +23,14 @@ public class PlaceSummaryDto {
     private BigDecimal priceRefMin;
     private BigDecimal ratingAvg;
     private Integer ratingCount;
+    /** Điểm Google Maps từ dữ liệu đã xác thực (0-5). */
+    private BigDecimal googleRating;
     private java.util.Map<String, Object> attributes;
     private CategoryKind kind;
     private String needs;
     private BigDecimal latitude;
     private BigDecimal longitude;
     private String address;
-    private Boolean isSuitableByTime;
     private java.time.LocalDate suitableDateStart;
     private java.time.LocalDate suitableDateEnd;
     

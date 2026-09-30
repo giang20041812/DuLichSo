@@ -31,7 +31,9 @@ import {
   Globe,
   ExternalLink,
   Video,
-  Play
+  Play,
+  Eye,
+  Users
 } from 'lucide-react';
 import SearchHub from '@/components/layout/SearchHub';
 import {
@@ -67,6 +69,14 @@ function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: num
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return Math.round(R * c * 10) / 10;
 }
+
+const CONTACT_LABELS: Partial<Record<string, string>> = {
+  PHONE: 'Điện thoại',
+  EMAIL: 'Email',
+  FACEBOOK: 'Fanpage Facebook',
+  WEBSITE: 'Website',
+  ZALO: 'Zalo',
+};
 
 export default function HomestayDetailPage() {
   const { id, slug } = useParams<{ id?: string; slug?: string }>();
@@ -141,6 +151,12 @@ export default function HomestayDetailPage() {
   const tiktokContact = useMemo(() => {
     if (!homestay?.contacts) return null;
     return homestay.contacts.find((c) => c.channel === 'TIKTOK' && c.value);
+  }, [homestay]);
+
+  // Link Google Maps đã xác thực (place_contact kênh GOOGLE_MAPS)
+  const googleMapsContact = useMemo(() => {
+    if (!homestay?.contacts) return null;
+    return homestay.contacts.find((c) => c.channel === 'GOOGLE_MAPS' && c.value) ?? null;
   }, [homestay]);
 
   // Selected place for focusing map in modal
@@ -303,11 +319,7 @@ export default function HomestayDetailPage() {
 
   // Sắp xếp ưu tiên các điểm du lịch nổi bật theo mùa (isSuitableByTime = true) lên trên đầu
   const sortedRegionalDestinations = useMemo(() => {
-    return [...regionalDestinations].sort((a, b) => {
-      const aVal = a.isSuitableByTime ? 1 : 0;
-      const bVal = b.isSuitableByTime ? 1 : 0;
-      return bVal - aVal;
-    });
+    return [...regionalDestinations];
   }, [regionalDestinations]);
 
   if (loading) {
@@ -381,6 +393,16 @@ export default function HomestayDetailPage() {
               ) : (
                 <span className="text-xs md:text-sm text-slate-400 font-normal">Chưa có đánh giá</span>
               )}
+              {homestay.googleRating != null && (
+                <span
+                  className="flex items-center gap-1 bg-white px-2 py-0.5 rounded-xs border border-slate-200 text-xs md:text-sm"
+                  title="Điểm đánh giá trên Google Maps (dữ liệu đã xác thực)"
+                >
+                  <Star className="w-3.5 h-3.5 fill-[var(--color-sun)] text-[var(--color-sun)]" />
+                  <span className="font-bold text-slate-800">{homestay.googleRating.toFixed(1)}/5</span>
+                  <span className="text-slate-500">Google</span>
+                </span>
+              )}
             </div>
 
             <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
@@ -394,8 +416,8 @@ export default function HomestayDetailPage() {
               <button
                 type="button"
                 onClick={() => openGoogleMapsDirections(
-                  homestay.latitude,
-                  homestay.longitude,
+                  homestay.latitude ?? undefined,
+                  homestay.longitude ?? undefined,
                   `${homestay.address || homestay.district || ''} ${homestay.name}`
                 )}
                 className="text-[0px] text-[#10b981] font-semibold hover:underline cursor-pointer flex items-center gap-1"
@@ -405,6 +427,16 @@ export default function HomestayDetailPage() {
                 <span className="text-sm">Chỉ đường</span>
                 <MapIcon className="w-4 h-4" /> Xem bản đồ
               </button>
+              {googleMapsContact && (
+                <a
+                  href={googleMapsContact.value}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="text-[#10b981] font-semibold hover:underline inline-flex items-center gap-1"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" /> Google Maps
+                </a>
+              )}
             </div>
           </div>
 
@@ -480,8 +512,54 @@ export default function HomestayDetailPage() {
             </div>
 
             <div className="text-sm md:text-base text-slate-700 leading-relaxed space-y-2">
-              <p>{homestay.description}</p>
+              <p className="whitespace-pre-line">{homestay.description}</p>
             </div>
+          </div>
+        )}
+
+        {/* ĐIỂM NỔI BẬT / VIEW & NHÓM KHÁCH PHÙ HỢP */}
+        {(homestay.homestayProfile?.viewHighlight || homestay.homestayProfile?.suitability) && (
+          <div className="mb-6 grid gap-3 md:grid-cols-2">
+            {homestay.homestayProfile?.viewHighlight && (
+              <div className="rounded-md border border-emerald-100 bg-emerald-50/60 p-4">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <Eye className="w-4 h-4 text-emerald-700" />
+                  <h2 className="text-base font-bold text-slate-900">Điểm nổi bật / View</h2>
+                </div>
+                <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{homestay.homestayProfile.viewHighlight}</p>
+              </div>
+            )}
+            {homestay.homestayProfile?.suitability && (
+              <div className="rounded-md border border-sky-100 bg-sky-50/60 p-4">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <Users className="w-4 h-4 text-sky-700" />
+                  <h2 className="text-base font-bold text-slate-900">Phù hợp với</h2>
+                </div>
+                <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{homestay.homestayProfile.suitability}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {(homestay.accessNote || homestay.priceRefMin != null || homestay.priceRefMax != null) && (
+          <div className="mb-6 grid gap-3 sm:grid-cols-2">
+            {homestay.accessNote && (
+              <div className="rounded-md border border-slate-200 bg-white p-3 text-sm text-slate-700">
+                <strong className="block text-slate-900 mb-1">Hướng dẫn tiếp cận</strong>
+                <p className="whitespace-pre-line">{homestay.accessNote}</p>
+              </div>
+            )}
+            {(homestay.priceRefMin != null || homestay.priceRefMax != null) && (
+              <div className="rounded-md border border-amber-200 bg-amber-50/60 p-3 text-sm text-amber-950">
+                <strong className="block mb-1">Giá tham khảo</strong>
+                <span>
+                  {homestay.priceRefMin != null && homestay.priceRefMax != null && homestay.priceRefMin !== homestay.priceRefMax
+                    ? `${homestay.priceRefMin.toLocaleString('vi-VN')} – ${homestay.priceRefMax.toLocaleString('vi-VN')}`
+                    : (homestay.priceRefMin ?? homestay.priceRefMax)?.toLocaleString('vi-VN')}
+                  {homestay.priceUnitNote ? ` / ${homestay.priceUnitNote}` : ''}
+                </span>
+              </div>
+            )}
           </div>
         )}
 
@@ -514,6 +592,33 @@ export default function HomestayDetailPage() {
                     {getAmenityIcon(amenity)}
                   </div>
                   <span className="truncate">{amenity}</span>
+                </div>
+              ))}
+            </div>
+            {homestay.amenityItems?.some(item => item.note || item.value !== 'YES') && (
+              <div className="mt-3 space-y-1 text-xs text-slate-600">
+                {homestay.amenityItems.filter(item => item.note || item.value !== 'YES').map(item => (
+                  <p key={item.id}><strong>{item.name}:</strong> {item.note || item.value}</p>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {homestay.services && homestay.services.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-100">
+              <Sparkles className="w-5 h-5 text-[#10b981]" />
+              <h2 className="text-xl md:text-2xl font-bold text-slate-900">Dịch vụ tại chỗ</h2>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {homestay.services.filter(service => service.active).map(service => (
+                <div key={service.id} className="rounded-md border border-slate-200 bg-white p-3 text-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <strong className="text-slate-900">{service.name}</strong>
+                    {service.price != null && <span className="font-semibold text-emerald-700">{service.price.toLocaleString('vi-VN')} {service.priceUnit ? `/ ${service.priceUnit}` : ''}</span>}
+                  </div>
+                  {service.description && <p className="mt-1 text-slate-600">{service.description}</p>}
                 </div>
               ))}
             </div>
@@ -573,6 +678,26 @@ export default function HomestayDetailPage() {
           {homestay.homestayProfile && (
             <div className="mb-6 rounded-md border border-slate-200 bg-white p-4">
               <HomestayPoliciesSection profile={homestay.homestayProfile} />
+            </div>
+          )}
+          {homestay.contacts?.some(contact => ['PHONE', 'EMAIL', 'FACEBOOK', 'WEBSITE', 'ZALO'].includes(contact.channel)) && (
+            <div className="mb-6 rounded-md border border-slate-200 bg-white p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Phone className="w-5 h-5 text-emerald-700" />
+                <h2 className="text-xl font-bold text-slate-900">Liên hệ homestay</h2>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {homestay.contacts.filter(contact => ['PHONE', 'EMAIL', 'FACEBOOK', 'WEBSITE', 'ZALO'].includes(contact.channel)).map(contact => {
+                  const href = contact.channel === 'PHONE' ? `tel:${contact.value}`
+                    : contact.channel === 'EMAIL' ? `mailto:${contact.value}` : contact.value;
+                  return (
+                    <a key={contact.id} href={href} target={contact.channel === 'PHONE' || contact.channel === 'EMAIL' ? undefined : '_blank'} rel="noreferrer noopener" className="inline-flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100">
+                      <span>{CONTACT_LABELS[contact.channel] ?? contact.channel}</span>
+                      <span className="font-normal break-all">{contact.channel === 'FACEBOOK' ? 'Mở trang' : contact.value}</span>
+                    </a>
+                  );
+                })}
+              </div>
             </div>
           )}
           <div className="mb-4">
@@ -956,7 +1081,7 @@ export default function HomestayDetailPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             {sortedRegionalDestinations.map((dest) => {
-              const isSuitable = Boolean(dest.isSuitableByTime);
+              const isSuitable = false;
               return (
                 <div
                   key={dest.id}

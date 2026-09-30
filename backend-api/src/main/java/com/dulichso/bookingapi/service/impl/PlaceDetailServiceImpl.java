@@ -317,7 +317,9 @@ public class PlaceDetailServiceImpl implements PlaceDetailService {
         }
 
         // 6. Highlights (Ưu nhược điểm từ bảng place_highlight: PRO, CON, TIP)
-        List<PlaceHighlight> placeHighlights = placeHighlightRepository.findByPlaceIdAndIsPublicTrue(place.getId());
+        List<PlaceHighlight> placeHighlights = new ArrayList<>(placeHighlightRepository.findByPlaceIdAndIsPublicTrue(place.getId()));
+        // Ưu/hạn chế được tách thành từng dòng; giữ đúng thứ tự nhập.
+        placeHighlights.sort(java.util.Comparator.comparing(PlaceHighlight::getSortOrder).thenComparing(PlaceHighlight::getId));
         List<PlaceDetailDto.HighlightItemDto> highlightDtos = new ArrayList<>();
         for (PlaceHighlight ph : placeHighlights) {
             highlightDtos.add(PlaceDetailDto.HighlightItemDto.builder()
@@ -340,7 +342,8 @@ public class PlaceDetailServiceImpl implements PlaceDetailService {
                     .checkInFrom(profile.getCheckInFrom() == null ? null : profile.getCheckInFrom().toString())
                     .checkOutUntil(profile.getCheckOutUntil() == null ? null : profile.getCheckOutUntil().toString())
                     .houseRules(profile.getHouseRules()).surchargeNote(profile.getSurchargeNote())
-                    .childrenPolicy(profile.getChildrenPolicy()).petsPolicy(profile.getPetsPolicy()).guestPolicy(profile.getGuestPolicy())
+                    .childrenPolicy(profile.getChildrenPolicy()).petsPolicy(profile.getPetsPolicy())
+                    .viewHighlight(profile.getViewHighlight()).suitability(profile.getSuitability())
                     .currentPolicy(policy == null ? null : PlaceDetailDto.PolicyDto.builder().id(policy.getId())
                             .name(policy.getName()).description(policy.getContentText()).build()).build();
         }).orElse(null);
@@ -367,10 +370,11 @@ public class PlaceDetailServiceImpl implements PlaceDetailService {
                 .verification(place.getVerification() != null ? place.getVerification() : PlaceVerificationStatus.UNVERIFIED)
                 .ratingAvg(place.getRatingAvg())
                 .ratingCount(place.getRatingCount() != null ? place.getRatingCount() : 0)
+                .googleRating(place.getGoogleRating())
                 .description(place.getDescription())
                 .altitudeMeters(altitudeMeters)
                 .verifiedGpsText(verifiedGpsText)
-                .isSuitableByTime(place.getIsSuitableByTime())
+                
                 .suitableDateStart(place.getSuitableDateStart())
                 .suitableDateEnd(place.getSuitableDateEnd())
                 .attributes(place.getAttributes())

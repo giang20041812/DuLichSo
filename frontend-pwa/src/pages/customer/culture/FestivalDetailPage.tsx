@@ -312,7 +312,7 @@ export default function FestivalDetailPage() {
             <Badge className="bg-[var(--color-primary)] text-white text-xs font-bold px-3 py-1 rounded-sm shadow-xs">
               {festival.highlightTag || 'Di Sản Văn Hóa'}
             </Badge>
-            {(festival.isSuitableByTime || festival.isCurrentSeason) && (
+            {(festival.isCurrentSeason) && (
               <Badge className="bg-[var(--color-coral)] text-white text-xs font-bold px-3 py-1 rounded-sm shadow-xs flex items-center gap-1">
                 <Flame className="w-3.5 h-3.5 fill-white" />
                 Thời Điểm Đẹp Nhất Đang Diễn Ra

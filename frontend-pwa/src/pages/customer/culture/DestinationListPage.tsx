@@ -475,7 +475,7 @@ export default function DestinationListPage() {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="grid max-h-[calc(100dvh-18rem)] min-h-0 auto-rows-max items-start grid-cols-1 gap-5 overflow-y-auto overscroll-contain pr-1 md:grid-cols-2">
                 {paginatedDestinations.map((dest) => {
                   const formatDate = (dStr?: string) => {
                     if (!dStr) return '';
@@ -484,7 +484,7 @@ export default function DestinationListPage() {
                     return dStr;
                   };
 
-                  const isSuitable = Boolean(dest.isSuitableByTime);
+                  const isSuitable = false;
                   const startFormatted = formatDate(dest.suitableDateStart);
                   const endFormatted = formatDate(dest.suitableDateEnd);
 

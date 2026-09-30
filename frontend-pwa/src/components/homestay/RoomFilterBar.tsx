@@ -1,10 +1,9 @@
-import { Calendar, Users, Filter, RotateCcw, CheckCircle2, XCircle, ArrowUpDown, Coffee, ShieldCheck } from 'lucide-react';
+import { Calendar, Filter, RotateCcw, CheckCircle2, XCircle, ArrowUpDown, Coffee, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export interface RoomFilterState {
   checkIn: string;
   checkOut: string;
-  guestCount: number;
   roomCount: number;
   statusTab: 'ALL' | 'AVAILABLE' | 'BOOKED';
   priceSort: 'NONE' | 'ASC' | 'DESC';
@@ -67,7 +66,6 @@ export default function RoomFilterBar({
     onChange({
       checkIn: d1.toISOString().slice(0, 10),
       checkOut: d2.toISOString().slice(0, 10),
-      guestCount: 2,
       roomCount: 1,
       statusTab: 'ALL',
       priceSort: 'NONE',
@@ -78,7 +76,6 @@ export default function RoomFilterBar({
 
   const hasActiveFilters =
     filters.statusTab !== 'ALL' ||
-    filters.guestCount > 2 ||
     filters.roomCount > 1 ||
     filters.priceSort !== 'NONE' ||
     filters.hasBreakfastOnly ||
@@ -110,7 +107,7 @@ export default function RoomFilterBar({
         )}
       </div>
 
-      {/* Hàng 2: Chọn ngày đến - về & Số lượng khách / phòng */}
+      {/* Hàng 2: Chọn ngày đến - về & sắp xếp */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 mb-3">
         {/* Check-in date */}
         <div className="flex flex-col gap-1">
@@ -149,26 +146,6 @@ export default function RoomFilterBar({
             onChange={(e) => onChange({ ...filters, checkOut: e.target.value })}
             className="w-full px-2.5 py-1.5 rounded-md border border-slate-300 text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#10b981] focus:border-[#10b981] bg-white shadow-2xs"
           />
-        </div>
-
-        {/* Guest count */}
-        <div className="flex flex-col gap-1">
-          <label className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
-            <Users className="w-3 h-3 text-[#10b981]" />
-            <span>Số lượng khách:</span>
-          </label>
-          <select
-            value={filters.guestCount}
-            onChange={(e) => onChange({ ...filters, guestCount: Number(e.target.value) })}
-            className="w-full px-2.5 py-1.5 rounded-md border border-slate-300 text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#10b981] focus:border-[#10b981] bg-white shadow-2xs"
-          >
-            <option value={1}>1 khách</option>
-            <option value={2}>2 khách</option>
-            <option value={3}>3 khách</option>
-            <option value={4}>4 khách</option>
-            <option value={6}>5 - 6 khách</option>
-            <option value={10}>7 - 10 khách (Đoàn)</option>
-          </select>
         </div>
 
         {/* Room count requested */}

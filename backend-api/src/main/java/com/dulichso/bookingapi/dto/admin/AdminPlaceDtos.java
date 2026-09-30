@@ -76,6 +76,13 @@ public class AdminPlaceDtos {
         private LocalDate lastVerifiedAt;
         private BigDecimal ratingAvg;
         private Integer ratingCount;
+        /** Điểm Google Maps từ dữ liệu đã xác thực; Admin chỉ xem. */
+        private BigDecimal googleRating;
+        /** Hồ sơ Homestay (chỉ có với kind = HOMESTAY). */
+        private String viewHighlight;
+        private String suitability;
+        private java.util.List<com.dulichso.bookingapi.dto.PlaceDetailDto.ContactItemDto> contacts;
+        private java.util.List<com.dulichso.bookingapi.dto.PlaceDetailDto.HighlightItemDto> highlights;
         private Map<String, Object> attributes;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;

@@ -9,12 +9,12 @@ import type { PortalLoginResponse } from '@/types/user';
 
 const getNavItems = (pathname: string) => {
   const match = pathname.match(/^\/partner\/homestay\/(\d+)/);
-  const homestayId = match ? match[1] : '1';
-  
+  const roomsPath = match ? `/partner/homestay/${match[1]}/rooms` : '/partner/rooms';
+
   return [
     { to: '/partner', label: 'Tổng quan', icon: BarChart3, end: true, soon: false },
     { to: '/partner/homestays', label: 'Homestay của tôi', icon: Home, end: false, soon: false },
-    { to: `/partner/homestay/${homestayId}/rooms`, label: 'Phòng và lịch', icon: BedDouble, end: false, soon: false },
+    { to: roomsPath, label: 'Phòng và lịch', icon: BedDouble, end: false, soon: false },
     { to: '/partner/bookings', label: 'Đơn đặt phòng', icon: CalendarDays, end: false, soon: false },
     { to: '/partner/reviews', label: 'Đánh giá của khách', icon: Star, end: false, soon: false },
   ];

@@ -228,7 +228,9 @@ export default function PlaceDetailPage() {
     }
   };
 
-  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+  // Link Google Maps lưu ở place_contact (kênh GOOGLE_MAPS); không có thì tìm theo tọa độ.
+  const googleMapsUrl = place.contacts?.find(contact => contact.channel === 'GOOGLE_MAPS' && contact.value)?.value
+    || `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
 
   // Resolve category link & name for breadcrumb
   let parentRoute = '/destinations';

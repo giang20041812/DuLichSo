@@ -209,7 +209,6 @@ export default function UserBookingDetailPage() {
 
   const isCompleted = booking.status === 'CHECKED_OUT' || booking.status === 'COMPLETED';
   const pendingChangeRequest = booking.changeRequests?.find((request) => request.status === 'PENDING');
-  const canRequestChange = ['PENDING', 'CONFIRMED'].includes(booking.status) && !pendingChangeRequest;
   const reviewDeadline = new Date(`${booking.checkOut}T23:59:59`);
   reviewDeadline.setDate(reviewDeadline.getDate() + 14);
   const reviewDeadlineValid = !Number.isNaN(reviewDeadline.getTime());
@@ -449,16 +448,6 @@ export default function UserBookingDetailPage() {
                   <BedDouble className="w-4 h-4 text-[var(--color-primary)]" />
                   Thông tin lưu trú
                 </h3>
-                {['PENDING', 'CONFIRMED'].includes(booking.status) && (
-                  <button
-                    type="button"
-                    onClick={() => setIsEditModalOpen(true)}
-                    className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold text-[var(--color-primary)] bg-[var(--color-primary)]/10 hover:bg-[var(--color-primary)] hover:text-white transition-all cursor-pointer"
-                  >
-                    <Edit3 className="w-3.5 h-3.5" />
-                    <span>{booking.status === 'PENDING' ? 'Thay đổi thông tin' : 'Gửi yêu cầu thay đổi'}</span>
-                  </button>
-                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -619,30 +608,6 @@ export default function UserBookingDetailPage() {
                 </div>
               )}
 
-              {/* Nút hành động thay đổi booking khi ở trạng thái PENDING hoặc CONFIRMED */}
-              {canRequestChange && (
-                <div className="pt-3 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-amber-50/40 -mx-5 -mb-5 p-4 rounded-b-lg border-t border-amber-100">
-                  <div className="text-xs">
-                    <span className="font-bold text-slate-800 flex items-center gap-1.5">
-                      <Edit3 className="w-3.5 h-3.5 text-[var(--color-primary)]" />
-                      <span>{booking.status === 'PENDING' ? 'Cần cập nhật lại thông tin?' : 'Muốn điều chỉnh chuyến đi?'}</span>
-                    </span>
-                    <p className="text-[11px] text-gray-500 mt-0.5">
-                      {booking.status === 'PENDING'
-                        ? 'Đơn đang chờ duyệt: Bạn có thể sửa trực tiếp thông tin liên hệ, thời gian, số phòng/khách.'
-                        : 'Đơn đã xác nhận: Mọi thay đổi sẽ được gửi đến nhà quản lý duyệt trước khi chấp thuận.'}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsEditModalOpen(true)}
-                    className="px-4 py-2 text-xs font-bold text-white bg-[var(--color-primary)] hover:bg-[#059669] rounded-md transition-all shadow-xs shrink-0 flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <Edit3 className="w-3.5 h-3.5" />
-                    <span>{booking.status === 'PENDING' ? 'Thay đổi thông tin' : 'Gửi yêu cầu thay đổi'}</span>
-                  </button>
-                </div>
-              )}
             </div>
 
             {/* Danh sách các yêu cầu thay đổi đã gửi (nếu có) */}
@@ -871,18 +836,6 @@ export default function UserBookingDetailPage() {
         />
       )}
 
-      {/* Floating Action Button (FAB) trên Mobile: Lơ lửng góc phải bên dưới màn hình, CHỈ CÓ ICON, KHÔNG CÓ CHỮ */}
-      {booking && ['PENDING', 'CONFIRMED'].includes(booking.status) && (
-        <button
-          type="button"
-          onClick={() => setIsEditModalOpen(true)}
-          className="fixed bottom-6 right-6 z-40 sm:hidden w-12 h-12 rounded-full bg-[var(--color-primary)] text-white shadow-lg shadow-teal-900/30 flex items-center justify-center cursor-pointer hover:bg-[var(--color-primary)]/90 active:scale-95 transition-all"
-          title={booking.status === 'PENDING' ? 'Thay đổi thông tin' : 'Gửi yêu cầu thay đổi'}
-          aria-label={booking.status === 'PENDING' ? 'Thay đổi thông tin' : 'Gửi yêu cầu thay đổi'}
-        >
-          <Edit3 className="w-5 h-5" />
-        </button>
-      )}
     </div>
   );
 }

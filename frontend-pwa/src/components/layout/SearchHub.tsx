@@ -27,7 +27,6 @@ export interface AttractionItem {
   ratingAvg?: number;
   latitude?: number;
   longitude?: number;
-  isSuitableByTime?: boolean;
   suitableDateStart?: string;
   suitableDateEnd?: string;
   needs?: 'enjoy' | 'adventure';
@@ -61,7 +60,6 @@ interface RawPlaceItem {
   ratingAvg?: number;
   latitude?: number;
   longitude?: number;
-  isSuitableByTime?: boolean;
   suitableDateStart?: string;
   suitableDateEnd?: string;
   needs?: 'enjoy' | 'adventure';
@@ -435,7 +433,6 @@ export default function SearchHub() {
           ratingAvg: item.ratingAvg,
           latitude: item.latitude,
           longitude: item.longitude,
-          isSuitableByTime: Boolean(item.isSuitableByTime),
           suitableDateStart: item.suitableDateStart,
           suitableDateEnd: item.suitableDateEnd,
           needs: item.needs || undefined,
@@ -659,12 +656,7 @@ export default function SearchHub() {
       );
     }
 
-    // 5. Ưu tiên các điểm đến thích hợp theo mùa (isSuitableByTime = true) lên trên đầu
-    return [...result].sort((a, b) => {
-      const aVal = a.isSuitableByTime ? 1 : 0;
-      const bVal = b.isSuitableByTime ? 1 : 0;
-      return bVal - aVal;
-    });
+    return result;
   }, [dbAttractions, selectedProvince, selectedDistrict, selectedWard, currentProvinceObj, attractionSearch, selectedNeeds]);
 
   // Perform actual search
@@ -1501,7 +1493,7 @@ export default function SearchHub() {
                 <div className="grid grid-cols-2 gap-2 max-h-[230px] overflow-y-auto p-1">
                   {filteredAttractions.map(att => {
                     const isChecked = selectedAttractions.some(a => a.id === att.id);
-                    const isSeasonal = Boolean(att.isSuitableByTime);
+                    const isSeasonal = false;
                     const formatDate = (dStr?: string) => {
                       if (!dStr) return '';
                       const parts = dStr.split('-');

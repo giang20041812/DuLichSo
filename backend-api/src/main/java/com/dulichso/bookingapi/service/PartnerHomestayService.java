@@ -104,7 +104,7 @@ public class PartnerHomestayService {
         Category category = repository.category().orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT, "Chưa có danh mục Homestay đang hoạt động."));
         Place place = Place.builder().category(category).kind(CategoryKind.HOMESTAY).provider(account.getProvider())
                 .slug("homestay-" + UUID.randomUUID()).name(dto.getName().trim()).nameNorm(normalize(dto.getName()))
-                .attributes(new HashMap<>()).isSuitableByTime(false).sourceType(SourceType.PROVIDER).createdBy(account).updatedBy(account).build();
+                .attributes(new HashMap<>()).sourceType(SourceType.PROVIDER).createdBy(account).updatedBy(account).build();
         // New properties always start as drafts. Client-supplied IDs and ownership are never used.
         place.setVisibility(PlaceVisibility.DRAFT);
         repository.persist(place);
@@ -245,6 +245,8 @@ public class PartnerHomestayService {
         saveContact(place, ContactChannel.PHONE, dto.getContactPhone());
         saveContact(place, ContactChannel.EMAIL, dto.getContactEmail());
         saveContact(place, ContactChannel.TIKTOK, dto.getReviewVideoUrl());
+        saveContact(place, ContactChannel.FACEBOOK, dto.getFacebookUrl());
+        saveContact(place, ContactChannel.GOOGLE_MAPS, dto.getGoogleMapLink());
 
         List<String> requested = dto.getAmenities() == null ? List.of() : dto.getAmenities();
         List<PlaceAmenity> existing = placeAmenities.findByPlaceIdWithAmenity(place.getId());
@@ -274,7 +276,8 @@ public class PartnerHomestayService {
         profile.setSurchargeNote(text(dto.getSurchargeNote()));
         profile.setChildrenPolicy(text(dto.getChildrenPolicy()));
         profile.setPetsPolicy(text(dto.getPetsPolicy()));
-        profile.setGuestPolicy(text(dto.getGuestPolicy()));
+        profile.setViewHighlight(text(dto.getViewHighlight()));
+        profile.setSuitability(text(dto.getSuitability()));
         CancellationPolicy current = profile.getCurrentPolicy();
         if (!text(dto.getCancellationPolicy()).isEmpty()) {
             if (current == null || !Objects.equals(current.getName(), dto.getPolicyName().trim())
@@ -316,6 +319,7 @@ public class PartnerHomestayService {
                 .name(p.getName()).description(text(p.getDescription())).address(text(p.getAddress()))
                 .regionId(p.getRegion() == null ? null : p.getRegion().getId()).regionName(p.getRegion() == null ? "" : p.getRegion().getName())
                 .latitude(p.getLatitude() == null ? null : p.getLatitude().doubleValue()).longitude(p.getLongitude() == null ? null : p.getLongitude().doubleValue())
+                .googleMapLink(contact(cs, ContactChannel.GOOGLE_MAPS)).facebookUrl(contact(cs, ContactChannel.FACEBOOK))
                 .accessNote(text(p.getAccessNote())).contactPhone(contact(cs, ContactChannel.PHONE)).contactEmail(contact(cs, ContactChannel.EMAIL))
                 .reviewVideoUrl(contact(cs, ContactChannel.TIKTOK))
                 .coverImageUrl(cover).galleryUrls(ms.stream().map(m -> m.getMedia().getPublicUrl()).filter(Objects::nonNull).toList())
@@ -325,7 +329,9 @@ public class PartnerHomestayService {
                 .processingStartTime(profile == null || profile.getProcessingStartTime() == null ? "" : profile.getProcessingStartTime().toString())
                 .processingEndTime(profile == null || profile.getProcessingEndTime() == null ? "" : profile.getProcessingEndTime().toString())
                 .houseRules(profile == null ? "" : text(profile.getHouseRules())).surchargeNote(profile == null ? "" : text(profile.getSurchargeNote()))
-                .childrenPolicy(profile==null?"":text(profile.getChildrenPolicy())).petsPolicy(profile==null?"":text(profile.getPetsPolicy())).guestPolicy(profile==null?"":text(profile.getGuestPolicy()))
+                .childrenPolicy(profile==null?"":text(profile.getChildrenPolicy())).petsPolicy(profile==null?"":text(profile.getPetsPolicy()))
+                .viewHighlight(profile == null ? "" : text(profile.getViewHighlight()))
+                .suitability(profile == null ? "" : text(profile.getSuitability())).googleRating(p.getGoogleRating())
                 .cancellationPolicy(policy == null ? "" : policy.getContentText()).policyName(policy == null ? "" : policy.getName())
                 .freeCancelCutoffHours(policy == null ? null : policy.getFreeCancelCutoffHours())
                 .refundOnLateCancel(policy == null ? null : policy.getRefundOnLateCancel()).policyVersion(policy == null ? null : policy.getVersion())
@@ -401,7 +407,10 @@ public class PartnerHomestayService {
     }
 
     private void validate(PartnerHomestayDetailDto dto) {
-        if(text(dto.getChildrenPolicy()).length()>10000 || text(dto.getPetsPolicy()).length()>10000 || text(dto.getGuestPolicy()).length()>10000) throw bad("Nội dung chính sách tối đa 10.000 ký tự.");
+        if(text(dto.getChildrenPolicy()).length()>10000 || text(dto.getPetsPolicy()).length()>10000) throw bad("Nội dung chính sách tối đa 10.000 ký tự.");
+        if (text(dto.getViewHighlight()).length() > 10000 || text(dto.getSuitability()).length() > 10000) throw bad("Nội dung tối đa 10.000 ký tự.");
+        if (!isHttpUrl(dto.getGoogleMapLink())) throw bad("Link Google Maps phải bắt đầu bằng http:// hoặc https:// và tối đa 500 ký tự.");
+        if (!isHttpUrl(dto.getFacebookUrl())) throw bad("Link Facebook phải bắt đầu bằng http:// hoặc https:// và tối đa 500 ký tự.");
         if (text(dto.getName()).isEmpty() || dto.getName().trim().length() > 255) throw bad("Tên Homestay phải có từ 1 đến 255 ký tự.");
         if (text(dto.getAddress()).isEmpty() || dto.getAddress().length() > 500) throw bad("Địa chỉ phải có từ 1 đến 500 ký tự.");
         if (text(dto.getDescription()).length() > 10000 || text(dto.getHouseRules()).length() > 10000
@@ -434,6 +443,11 @@ public class PartnerHomestayService {
         try { return Enum.valueOf(type, value); } catch (IllegalArgumentException ex) { throw bad("Bộ lọc trạng thái không hợp lệ."); }
     }
     private static String text(String value) { return value == null ? "" : value.trim(); }
+    /** Rỗng là hợp lệ (xóa liên hệ); có giá trị thì phải là link http(s) vừa cột place_contact.value. */
+    private static boolean isHttpUrl(String value) {
+        String clean = text(value);
+        return clean.isEmpty() || (clean.length() <= 500 && clean.matches("(?i)https?://\\S+"));
+    }
     private static String normalize(String value) { return Normalizer.normalize(text(value), Normalizer.Form.NFD).replaceAll("\\p{M}", "").replace('đ', 'd').replace('Đ', 'D').toLowerCase(Locale.ROOT); }
     private static ResponseStatusException bad(String message) { return new ResponseStatusException(HttpStatus.BAD_REQUEST, message); }
 }

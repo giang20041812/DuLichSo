@@ -249,7 +249,7 @@ export default function UtilityListPage() {
                   <p className="text-gray-500">Không tìm thấy dịch vụ nào phù hợp.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div className="grid max-h-[calc(100dvh-18rem)] min-h-0 auto-rows-max items-start grid-cols-1 gap-5 overflow-y-auto overscroll-contain pr-1 md:grid-cols-2 lg:grid-cols-3">
                   {paginatedServices.map((srv) => {
                     const tiktokContact = srv.contacts?.find((contact) => contact.channel === 'TIKTOK');
 

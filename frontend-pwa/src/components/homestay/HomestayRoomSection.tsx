@@ -20,7 +20,7 @@ export default function HomestayRoomSection({ rooms, onSelectRoom }: HomestayRoo
 
       <div className="space-y-4">
         {rooms.map((room) => {
-          const formattedPrice = new Intl.NumberFormat('vi-VN').format(room.basePrice);
+          const formattedPrice = room.basePrice == null ? 'Liên hệ' : `${new Intl.NumberFormat('vi-VN').format(room.basePrice)}đ`;
           const isAvailable = room.availableRooms > 0;
 
           return (
@@ -67,7 +67,7 @@ export default function HomestayRoomSection({ rooms, onSelectRoom }: HomestayRoo
 
                   <div className="flex items-center gap-2">
                     <Users className="w-4 h-4 text-slate-400 shrink-0" />
-                    <span>Tối đa {room.maxOccupancy} người</span>
+                    <span>Nhóm khách linh hoạt</span>
                   </div>
 
                   {room.features && room.features.length > 0 && (
@@ -85,7 +85,7 @@ export default function HomestayRoomSection({ rooms, onSelectRoom }: HomestayRoo
                     <div className="flex flex-col">
                       <div className="flex items-baseline">
                         <span className="text-base sm:text-lg font-extrabold text-amber-900">
-                          {formattedPrice}đ
+                          {formattedPrice}
                         </span>
                         <span className="text-xs text-slate-500 ml-1">
                           {room.unitNote || '/ đêm'}

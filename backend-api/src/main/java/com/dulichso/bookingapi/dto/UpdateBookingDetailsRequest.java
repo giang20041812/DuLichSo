@@ -32,7 +32,6 @@ public class UpdateBookingDetailsRequest {
     private Integer roomCount;
 
     @Min(value = 1, message = "Số lượng khách tối thiểu là 1")
-    @Max(value = 100, message = "Số lượng khách tối đa là 100")
     private Integer guestCount;
 
     /**

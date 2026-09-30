@@ -10,7 +10,6 @@ import {
   Bus, 
   Layers,
   LogIn,
-  UserPlus,
   User,
   LogOut,
   ChevronDown,
@@ -129,14 +128,14 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
         }`}
       >
         <div
-          className={`relative w-full px-3.5 sm:px-6 md:px-8 flex flex-wrap min-[1400px]:flex-nowrap items-center justify-between transition-all duration-300 ${
+          className={`relative w-full px-3.5 sm:px-6 md:px-8 flex flex-wrap min-[1920px]:flex-nowrap items-center justify-between transition-all duration-300 ${
             isScrolled 
               ? 'py-2 min-h-[58px]' 
               : 'py-2.5 sm:py-3.5 min-h-[68px]'
           } gap-y-2`}
         >
           {/* Logo & Menu Drawer Toggle */}
-          <div className="flex items-center gap-2 shrink-0 min-[1400px]:w-1/4">
+          <div className="flex items-center gap-2 shrink-0 min-[1920px]:w-1/4">
             {toggleSidebar && (
               <button
                 type="button"
@@ -177,7 +176,7 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
           </div>
 
           {/* Navigation Desktop */}
-          <nav className="hidden md:flex order-3 basis-full w-full items-center justify-center gap-1 lg:gap-2 min-[1400px]:order-none min-[1400px]:basis-auto min-[1400px]:w-auto min-[1400px]:flex-1 min-w-0 overflow-x-auto scrollbar-hide border-t border-gray-200/80 py-1 min-[1400px]:border-t-0 min-[1400px]:py-0">
+          <nav className="hidden md:flex order-3 basis-full w-full items-center justify-center gap-1 lg:gap-2 min-[1920px]:order-none min-[1920px]:basis-auto min-[1920px]:w-auto min-[1920px]:flex-1 min-w-0 overflow-x-auto scrollbar-hide border-t border-gray-200/80 py-1 min-[1920px]:border-t-0 min-[1920px]:py-0">
             {navLinks.map((item) => {
               const active = isPathActive(item.path);
               return (
@@ -202,7 +201,7 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
           </nav>
 
           {/* Cụm bên phải: Nút Đăng nhập/Đăng ký HOẶC Icon người dùng kèm Tên & Dropdown */}
-          <div className="flex items-center justify-end gap-1.5 sm:gap-2 min-w-[40px] sm:min-w-[80px] shrink-0 z-20 min-[1400px]:w-1/4" ref={dropdownRef}>
+          <div className="flex items-center justify-end gap-1.5 sm:gap-2 min-w-[40px] sm:min-w-[80px] shrink-0 z-20 min-[1920px]:w-1/4" ref={dropdownRef}>
             {user ? (
               <div className="flex items-center gap-1.5 sm:gap-2">
                 {/* Icon hình thông báo ở bên cạnh icon ava */}
@@ -333,6 +332,7 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
                 <Link
                   to="/login"
                   title="Đăng nhập"
+                  aria-label="Đăng nhập"
                   className={`inline-flex items-center justify-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-md text-xs transition-all shadow-xs border-2 active:scale-95 cursor-pointer ${
                     isSolid
                       ? 'bg-[var(--color-primary)] text-white border-[#059669] hover:bg-[#059669]'
@@ -340,7 +340,6 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
                   }`}
                 >
                   <LogIn className="w-3.5 h-3.5 shrink-0" />
-                  <span className="hidden xs:inline">Đăng nhập</span>
                 </Link>
                 <Link
                   to="/register"
@@ -351,8 +350,7 @@ export default function Header({ isSidebarOpen = false, toggleSidebar }: HeaderP
                       : 'border-white/80 text-white hover:bg-white/20'
                   }`}
                 >
-                  <UserPlus className="w-3.5 h-3.5 shrink-0" />
-                  <span className="hidden sm:inline">Đăng ký</span>
+                  <span>Đăng ký</span>
                 </Link>
               </div>
             )}

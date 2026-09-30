@@ -3,22 +3,23 @@ import { FestivalDto } from '@/types/festival';
 export type { FestivalDto };
 
 export const fetchFestivals = async (): Promise<FestivalDto[]> => {
-  try {
-    const response = await fetch('/api/public/festivals');
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    const result = await response.json();
-    if (Array.isArray(result)) {
-      return result;
-    }
-    if (result && Array.isArray(result.data)) {
-      return result.data;
-    }
-  } catch (error) {
-    console.warn('Lỗi khi fetch festivals từ backend:', error);
+  const response = await fetch('/api/public/festivals');
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
   }
-  return [];
+
+  const result: unknown = await response.json();
+  if (Array.isArray(result)) {
+    return result as FestivalDto[];
+  }
+  if (typeof result === 'object' && result !== null && 'data' in result) {
+    const data = result.data;
+    if (Array.isArray(data)) {
+      return data as FestivalDto[];
+    }
+  }
+
+  throw new Error('Invalid festivals response from backend');
 };
 
 export const fetchFestivalByIdOrSlug = async (identifier: string): Promise<FestivalDto | null> => {

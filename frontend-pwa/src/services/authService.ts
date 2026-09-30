@@ -87,6 +87,22 @@ export const resetPasswordWithOtp = async (identifier: string, otp: string, newP
   }
 };
 
+export interface ChangePortalPasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export const changePortalPassword = async (request: ChangePortalPasswordRequest): Promise<void> => {
+  try {
+    await axios.patch('/api/v1/partner/account/password', request, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('portal_token') ?? ''}` },
+      timeout: 10000,
+    });
+  } catch (err: unknown) {
+    throw toAuthError(err);
+  }
+};
+
 /** Đăng nhập khách du lịch bằng Google: backend xác minh ID token rồi cấp JWT hệ thống. */
 export const googleLogin = (idToken: string) => postTravelerAuth('/google/login', { idToken });
 

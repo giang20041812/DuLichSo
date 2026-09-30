@@ -27,7 +27,6 @@ public class FestivalDto {
     private List<String> activities;
     
     // Thuộc tính tính toán thời gian diễn ra
-    private Boolean isSuitableByTime;
     private LocalDate suitableDateStart;
     private LocalDate suitableDateEnd;
     private Boolean isCurrentSeason;

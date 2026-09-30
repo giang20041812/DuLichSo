@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!--
+        Đối chiếu cấu trúc Homestay với "DATA ĐÃ XÁC THỰC.xlsx":
+        - "Phù hợp nhóm khách nào" lưu ở homestay_profile.suitability; guest_policy (số khách + khách phù hợp)
+          trùng ý và sức chứa được bỏ qua → chuyển dữ liệu sang suitability rồi xóa cột.
+        - Link Google Maps dùng place_contact kênh GOOGLE_MAPS (như các kênh liên hệ khác), không giữ cột riêng
+          place.google_map_link do changeset 020 thêm vào.
+        - place.master_place_id không còn được dùng ở đâu.
+        - google_rating là thang 0-5 như rating_avg: DECIMAL(3,2) cho khớp entity.
+    -->
+
+    <changeSet id="021-suitability-replaces-guest-policy" author="dulichso">
+        <preConditions onFail="MARK_RAN">
+            <columnExists tableName="homestay_profile" columnName="guest_policy"/>
+        </preConditions>
+        <sql>
+            UPDATE homestay_profile
+            SET suitability = guest_policy
+            WHERE (suitability IS NULL OR TRIM(suitability) = '')
+              AND guest_policy IS NOT NULL AND TRIM(guest_policy) &lt;&gt; ''
+        </sql>
+        <dropColumn tableName="homestay_profile" columnName="guest_policy"/>
+        <rollback>
+            <addColumn tableName="homestay_profile">
+                <column name="guest_policy" type="TEXT"/>
+            </addColumn>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="021-google-map-link-to-place-contact" author="dulichso">
+        <preConditions onFail="MARK_RAN">
+            <columnExists tableName="place" columnName="google_map_link"/>
+        </preConditions>
+        <sql>
+            INSERT INTO place_contact (place_id, channel, value, is_public, sort_order)
+            SELECT p.id, 'GOOGLE_MAPS', LEFT(TRIM(p.google_map_link), 500), 1, 30
+            FROM place p
+            WHERE p.google_map_link IS NOT NULL AND TRIM(p.google_map_link) &lt;&gt; ''
+              AND NOT EXISTS (SELECT 1 FROM place_contact c WHERE c.place_id = p.id AND c.channel = 'GOOGLE_MAPS')
+        </sql>
+        <dropColumn tableName="place" columnName="google_map_link"/>
+        <rollback>
+            <addColumn tableName="place">
+                <column name="google_map_link" type="VARCHAR(1000)"/>
+            </addColumn>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="021-drop-master-place" author="dulichso">
+        <preConditions onFail="MARK_RAN">
+            <columnExists tableName="place" columnName="master_place_id"/>
+        </preConditions>
+        <sql>
+            SET @fk := (SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE
+                        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'place'
+                          AND COLUMN_NAME = 'master_place_id' AND REFERENCED_TABLE_NAME IS NOT NULL LIMIT 1);
+            SET @stmt := IF(@fk IS NULL, 'SELECT 1', CONCAT('ALTER TABLE place DROP FOREIGN KEY ', @fk));
+            PREPARE drop_fk FROM @stmt;
+            EXECUTE drop_fk;
+            DEALLOCATE PREPARE drop_fk;
+        </sql>
+        <dropColumn tableName="place" columnName="master_place_id"/>
+        <rollback>
+            <addColumn tableName="place">
+                <column name="master_place_id" type="BIGINT UNSIGNED"/>
+            </addColumn>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="021-google-rating-scale" author="dulichso">
+        <preConditions onFail="MARK_RAN">
+            <columnExists tableName="place" columnName="google_rating"/>
+        </preConditions>
+        <modifyDataType tableName="place" columnName="google_rating" newDataType="DECIMAL(3,2)"/>
+        <sql>ALTER TABLE place ADD CONSTRAINT chk_place_google_rating CHECK (google_rating IS NULL OR (google_rating &gt;= 0 AND google_rating &lt;= 5))</sql>
+        <rollback>
+            <sql>ALTER TABLE place DROP CHECK chk_place_google_rating</sql>
+            <modifyDataType tableName="place" columnName="google_rating" newDataType="DECIMAL(5,2)"/>
+        </rollback>
+    </changeSet>
+
+    <!-- Dữ liệu nháp của lần import trước (vùng/ảnh ghi thô từ Excel) không thuộc attributes công khai. -->
+    <changeSet id="021-clean-excel-import-attributes" author="dulichso">
+        <sql>
+            UPDATE place
+            SET attributes = JSON_REMOVE(attributes, '$.excelArea', '$.excelImageStatus')
+            WHERE JSON_CONTAINS_PATH(attributes, 'one', '$.excelArea', '$.excelImageStatus')
+        </sql>
+        <rollback/>
+    </changeSet>
+</databaseChangeLog>

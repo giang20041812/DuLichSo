@@ -1,7 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { CheckCircle2, Search } from 'lucide-react';
-import { AUTH_IMAGES } from '@/config/authImages';
 import { AuthShell } from '@/components/auth/AuthShell';
 import { providerApplicationService } from '@/services/providerApplicationService';
 import { homestayError } from '@/services/partnerHomestayService';
@@ -45,7 +44,7 @@ export default function ProviderRegisterPage() {
 
   if (mode === 'status') {
     return (
-      <AuthShell image={AUTH_IMAGES.register} title="Xem trạng thái hồ sơ" subtitle="Nhập mã hồ sơ và số điện thoại đã dùng khi đăng ký." footer={footer}>
+          <AuthShell title="Xem trạng thái hồ sơ" subtitle="Nhập mã hồ sơ và số điện thoại đã dùng khi đăng ký." footer={footer}>
         <StatusLookup initialId={result?.applicationId} initialPhone={result ? form.contactPhone : ''} />
       </AuthShell>
     );
@@ -53,7 +52,7 @@ export default function ProviderRegisterPage() {
 
   if (result) {
     return (
-      <AuthShell image={AUTH_IMAGES.register} title="Đã gửi hồ sơ" subtitle="Cảm ơn bạn đã đăng ký trở thành đối tác." footer={footer}>
+          <AuthShell title="Đã gửi hồ sơ" subtitle="Cảm ơn bạn đã đăng ký trở thành đối tác." footer={footer}>
         <div className="flex flex-col items-center gap-3 rounded-lg border border-primary/30 bg-primary-50 p-6 text-center">
           <CheckCircle2 className="h-10 w-10 text-accent-600" />
           <p className="font-semibold text-ink-deep">Đã tiếp nhận hồ sơ đăng ký Nhà cung cấp</p>
@@ -72,7 +71,7 @@ export default function ProviderRegisterPage() {
       ['Tên cơ sở', form.businessName], ['Địa chỉ cơ sở', form.address], ['Số giấy phép', form.businessLicenseNo || '—'], ['Giới thiệu', form.description || '—'],
     ];
     return (
-      <AuthShell image={AUTH_IMAGES.register} title="Xem lại hồ sơ" subtitle="Kiểm tra thông tin trước khi gửi cho quản trị viên thẩm định." footer={footer}>
+          <AuthShell title="Xem lại hồ sơ" subtitle="Kiểm tra thông tin trước khi gửi cho quản trị viên thẩm định." footer={footer}>
         <div className="flex flex-col gap-4">
           <dl className="flex flex-col divide-y divide-border rounded-lg border border-border bg-white text-sm">
             {rows.map(([k, v]) => (
@@ -92,7 +91,7 @@ export default function ProviderRegisterPage() {
   }
 
   return (
-    <AuthShell image={AUTH_IMAGES.register} title="Đăng ký đối tác" subtitle="Dành cho chủ Homestay, hợp tác xã và cơ sở lưu trú muốn đón khách qua nền tảng." footer={footer}>
+    <AuthShell title="Đăng ký đối tác" subtitle="Dành cho chủ Homestay, hợp tác xã và cơ sở lưu trú muốn đón khách qua nền tảng." footer={footer}>
       <form onSubmit={(e) => { e.preventDefault(); review(); }}
         onInvalidCapture={() => setError('Vui lòng hoàn thiện các trường được đánh dấu')} className="flex flex-col gap-4">
         <fieldset disabled={busy} className="flex flex-col gap-4">

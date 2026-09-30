@@ -14,9 +14,7 @@ export default function RecentBookingBanner() {
     if (!customer) {
       // If not logged in, we check local storage just in case they booked as guest on this device
       const localBookings = getUserSavedBookings();
-      if (localBookings.length > 0) {
-        setBooking(localBookings[0] || null);
-      }
+      setBooking(localBookings[0] || null);
       setLoading(false);
       return;
     }
@@ -31,19 +29,14 @@ export default function RecentBookingBanner() {
           );
           setBooking(sorted[0] || null);
         } else {
-          // fallback to local storage
-          const localBookings = getUserSavedBookings();
-          if (localBookings.length > 0) {
-            setBooking(localBookings[0] || null);
-          }
+          // An authenticated user's server response is authoritative. Do not show
+          // a stale guest booking from local storage when there are no server bookings.
+          setBooking(null);
         }
       })
       .catch((err) => {
         console.warn('Cannot fetch recent bookings', err);
-        const localBookings = getUserSavedBookings();
-        if (localBookings.length > 0) {
-          setBooking(localBookings[0] || null);
-        }
+        setBooking(null);
       })
       .finally(() => {
         setLoading(false);
