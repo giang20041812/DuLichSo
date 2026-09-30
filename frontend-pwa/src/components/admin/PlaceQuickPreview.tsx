@@ -1,11 +1,13 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { AlertTriangle, CheckCircle2, Eye, EyeOff, FilePenLine, MapPin, Star, X } from 'lucide-react';
 import { adminService } from '@/services/adminService';
+import { useAdminPermission } from '@/hooks/useAdminPermission';
 import { getApiErrorMessage } from '@/lib/apiError';
-import type { AdminPlaceDetailDto, AdminPlaceSummaryDto } from '@/types/admin';
+import type { AdminPlaceDetailDto, AdminPlaceSummaryDto, PlaceShowcase } from '@/types/admin';
 import { StatusBadge } from './StatusBadge';
 import { kindMeta, VERIFICATION_LABEL, VERIFICATION_TONE, VISIBILITY_LABEL, VISIBILITY_TONE } from './placeMeta';
 import OverlayPortal from './OverlayPortal';
+import PlaceShowcaseSections from './PlaceShowcaseSections';
 
 interface PlaceQuickPreviewProps {
   /** Dữ liệu dòng đã có sẵn trong bảng — hiển thị ngay trong lúc tải chi tiết. */
@@ -24,8 +26,12 @@ const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString('vi-V
 
 /** Ngăn xem nhanh bên phải: Admin đọc chi tiết điểm đến và Duyệt / Yêu cầu bổ sung ngay. */
 export default function PlaceQuickPreview({ place, onClose, onApprove, onRequestUpdate, onToggleVisibility }: PlaceQuickPreviewProps) {
+  // Admin cấp 3 chỉ xem: không hiện nút duyệt / yêu cầu bổ sung / ẩn.
+  const canOperate = useAdminPermission().can('operate');
   const [detail, setDetail] = useState<AdminPlaceDetailDto | null>(null);
   const [error, setError] = useState('');
+  const [showcase, setShowcase] = useState<PlaceShowcase | null>(null);
+  const [showcaseError, setShowcaseError] = useState('');
 
   useEffect(() => {
     let alive = true;
@@ -36,6 +42,15 @@ export default function PlaceQuickPreview({ place, onClose, onApprove, onRequest
       })
       .catch((err: unknown) => {
         if (alive) setError(getApiErrorMessage(err, 'Không tải được chi tiết điểm đến.'));
+      });
+    // Hình ảnh / tiện nghi / chính sách tải song song, lỗi riêng không chặn phần thông tin chính.
+    adminService
+      .getPlaceShowcase(place.id)
+      .then((s) => {
+        if (alive) setShowcase(s);
+      })
+      .catch((err: unknown) => {
+        if (alive) setShowcaseError(getApiErrorMessage(err, 'Không tải được hình ảnh, tiện nghi của điểm đến.'));
       });
     return () => {
       alive = false;
@@ -211,6 +226,7 @@ export default function PlaceQuickPreview({ place, onClose, onApprove, onRequest
               </dl>
             </Block>
           )}
+          <PlaceShowcaseSections showcase={showcase} error={showcaseError} name={p.name} showStayPolicy={p.kind === 'HOMESTAY'} />
           {detail && !detail.description && !detail.accessNote && (
             <p className="mt-4 rounded-md bg-sun/10 px-3 py-2 text-[11px] text-amber-700">
               Điểm đến chưa có mô tả — cân nhắc yêu cầu NCC bổ sung trước khi duyệt.
@@ -218,6 +234,7 @@ export default function PlaceQuickPreview({ place, onClose, onApprove, onRequest
           )}
         </div>
 
+        {canOperate && (
         <footer className="flex flex-wrap items-center gap-2 border-t border-border bg-canvas/60 px-5 py-3">
           {p.verification !== 'VERIFIED' && (
             <button
@@ -247,6 +264,7 @@ export default function PlaceQuickPreview({ place, onClose, onApprove, onRequest
             {p.visibility === 'PUBLISHED' ? 'Ẩn' : 'Công khai'}
           </button>
         </footer>
+        )}
       </aside>
     </div>
     </OverlayPortal>

@@ -5,6 +5,7 @@ import com.dulichso.bookingapi.entity.Account;
 import com.dulichso.bookingapi.entity.enums.AccountRole;
 import com.dulichso.bookingapi.entity.enums.AccountStatus;
 import com.dulichso.bookingapi.repository.AccountRepository;
+import com.dulichso.bookingapi.security.UserPrincipal;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -96,12 +97,16 @@ public class AdminAccountService {
 
         String encodedPassword = passwordEncoder.encode(request.getPassword());
 
+        // Không nêu cấp thì cấp thấp nhất (ít quyền nhất): cấp cao phải được gán chủ động.
+        int level = request.getAdminLevel() == null ? UserPrincipal.LOWEST_ADMIN_LEVEL : validLevel(request.getAdminLevel());
+
         Account account = Account.builder()
                 .email(request.getEmail().trim().toLowerCase())
                 .phone(request.getPhone() != null ? request.getPhone().trim() : null)
                 .passwordHash(encodedPassword)
                 .fullName(request.getFullName().trim())
                 .role(AccountRole.ADMIN)
+                .adminLevel(level)
                 .status(AccountStatus.ACTIVE)
                 .build();
 
@@ -112,9 +117,9 @@ public class AdminAccountService {
                 "CREATE_ADMIN_ACCOUNT",
                 "Account",
                 saved.getId(),
-                "Tạo tài khoản quản trị viên mới: " + saved.getEmail(),
+                "Tạo tài khoản quản trị viên mới: " + saved.getEmail() + " (cấp " + level + ")",
                 null,
-                Map.of("email", saved.getEmail(), "fullName", saved.getFullName(), "role", saved.getRole().name())
+                Map.of("email", saved.getEmail(), "fullName", saved.getFullName(), "role", saved.getRole().name(), "adminLevel", level)
         );
 
         return mapToDto(saved);
@@ -176,6 +181,7 @@ public class AdminAccountService {
         // tuần tự, không được cùng đọc một trạng thái cũ rồi cùng ghi đè (double-submit).
         Account account = accountRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản với ID: " + id));
+        requireLevelOneForAdminTarget(account, callerAccountId);
 
         // BV-08 / AGENTS.md: Chặn không thể tự khoá chính tài khoản đang đăng nhập
         if (Objects.equals(callerAccountId, id) && request.getStatus() == AccountStatus.INACTIVE) {
@@ -268,6 +274,8 @@ public class AdminAccountService {
             account.setProvider(null);
         }
         account.setRole(newRole);
+        // Nâng lên ADMIN: mặc định cấp thấp nhất (cấp cao phải được gán riêng); chuyển sang PROVIDER: bỏ cấp.
+        account.setAdminLevel(newRole == AccountRole.ADMIN ? UserPrincipal.LOWEST_ADMIN_LEVEL : null);
         // NFR-SEC-03: đổi quyền có hiệu lực ngay, mọi phiên đang có bị thu hồi.
         account.setTokenVersion(account.getTokenVersion() + 1);
         Account saved = accountRepository.save(account);
@@ -281,6 +289,7 @@ public class AdminAccountService {
     public void resetPassword(Long id, ResetPasswordRequest request, Long callerAccountId) {
         Account account = accountRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản với ID: " + id));
+        requireLevelOneForAdminTarget(account, callerAccountId);
 
         account.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         // NFR-SEC-03: đặt lại mật khẩu thu hồi các phiên cũ.
@@ -298,6 +307,64 @@ public class AdminAccountService {
         );
     }
 
+    /** Thông tin (gồm cấp quản trị) của chính người đang đăng nhập — giao diện dùng để ẩn/hiện chức năng theo cấp. */
+    @Transactional(readOnly = true)
+    public AccountDto me(Long callerAccountId) {
+        if (callerAccountId == null) {
+            // Tài khoản QA mẫu không có trong DB: cấp 1.
+            return AccountDto.builder().role(AccountRole.ADMIN).status(AccountStatus.ACTIVE).adminLevel(1).fullName("Quản trị viên").build();
+        }
+        return mapToDto(accountRepository.findById(callerAccountId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản với ID: " + callerAccountId)));
+    }
+
+    /**
+     * Đổi cấp quản trị (chỉ cấp 1, do SecurityConfig chặn). Không tự đổi cấp của chính mình và luôn còn ít nhất một
+     * quản trị viên cấp 1 đang hoạt động để không ai bị khóa khỏi việc quản lý tài khoản.
+     */
+    @Transactional
+    public AccountDto updateAdminLevel(Long id, UpdateAdminLevelRequest request, Long callerAccountId) {
+        Account account = accountRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản với ID: " + id));
+        if (account.getRole() != AccountRole.ADMIN) {
+            throw new IllegalArgumentException("Chỉ tài khoản quản trị viên mới có cấp quản trị.");
+        }
+        if (Objects.equals(callerAccountId, id)) {
+            throw new IllegalStateException("Bạn không thể tự đổi cấp của chính mình");
+        }
+        int newLevel = validLevel(request.getAdminLevel());
+        int oldLevel = account.effectiveAdminLevel();
+        if (oldLevel == newLevel) {
+            throw new IllegalArgumentException("Tài khoản đã ở cấp " + newLevel + ".");
+        }
+        if (oldLevel == 1 && account.getStatus() == AccountStatus.ACTIVE && accountRepository.countActiveLevelOneAdmins() <= 1) {
+            throw new IllegalStateException("Không thể hạ cấp quản trị viên cấp 1 đang hoạt động cuối cùng.");
+        }
+        account.setAdminLevel(newLevel);
+        Account saved = accountRepository.save(account);
+        auditLogService.record(callerAccountId, "UPDATE_ADMIN_LEVEL", "Account", saved.getId(),
+                request.getReason() != null && !request.getReason().isBlank() ? request.getReason().trim() : "Đổi cấp quản trị viên",
+                Map.of("adminLevel", oldLevel), Map.of("adminLevel", newLevel));
+        return mapToDto(saved);
+    }
+
+    private static int validLevel(Integer level) {
+        if (level == null || level < 1 || level > UserPrincipal.LOWEST_ADMIN_LEVEL) {
+            throw new IllegalArgumentException("Cấp quản trị không hợp lệ (chỉ từ 1 đến " + UserPrincipal.LOWEST_ADMIN_LEVEL + ").");
+        }
+        return level;
+    }
+
+    /** Cấp 2 không được khóa/mở khóa hay đặt lại mật khẩu của tài khoản Admin (tránh leo thang đặc quyền). */
+    private void requireLevelOneForAdminTarget(Account target, Long callerAccountId) {
+        if (target.getRole() != AccountRole.ADMIN || callerAccountId == null) return;
+        Integer callerLevel = accountRepository.findById(callerAccountId).map(Account::effectiveAdminLevel).orElse(1);
+        if (callerLevel == null || callerLevel != 1) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN,
+                    "Chỉ quản trị viên cấp 1 mới được thao tác trên tài khoản quản trị viên.");
+        }
+    }
+
     private AccountDto mapToDto(Account a) {
         return AccountDto.builder()
                 .id(a.getId())
@@ -305,6 +372,7 @@ public class AdminAccountService {
                 .phone(a.getPhone())
                 .fullName(a.getFullName())
                 .role(a.getRole())
+                .adminLevel(a.effectiveAdminLevel())
                 .status(a.getStatus())
                 .providerId(a.getProvider() != null ? a.getProvider().getId() : null)
                 .providerName(a.getProvider() != null ? a.getProvider().getName() : null)

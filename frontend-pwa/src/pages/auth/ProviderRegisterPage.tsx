@@ -1,13 +1,18 @@
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { CheckCircle2, Search } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Search } from 'lucide-react';
 import { AuthShell } from '@/components/auth/AuthShell';
 import { providerApplicationService } from '@/services/providerApplicationService';
 import { homestayError } from '@/services/partnerHomestayService';
+import { getApiFieldErrors } from '@/lib/apiError';
 import type { ProviderApplicationStatusResult, ProviderRegisterInput, ProviderRegisterResult } from '@/types/partner';
 
 const input = 'h-11 w-full rounded-md border border-border bg-white px-3 text-sm text-ink placeholder:text-muted/70 transition-all duration-200 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
 const blank: ProviderRegisterInput = { businessName: '', contactName: '', contactPhone: '', contactEmail: '', password: '', address: '', businessLicenseNo: '', description: '' };
+const inputInvalid = '!border-danger focus:!border-danger focus:!ring-danger/20';
+/** Các ô được server kiểm tra trùng (tên khớp RegisterInput bên backend). */
+type DuplicateField = 'contactPhone' | 'contactEmail' | 'businessLicenseNo';
+const DUPLICATE_FIELDS: readonly DuplicateField[] = ['contactPhone', 'contactEmail', 'businessLicenseNo'];
 const STATUS_TONE = { PENDING: 'border-sun/40 bg-sun-light text-ink-deep', APPROVED: 'border-accent/40 bg-accent-50 text-accent-700', REJECTED: 'border-danger/30 bg-danger/5 text-danger' } as const;
 
 /** UC-NCC-01: nhà cung cấp tự đăng ký, xem lại rồi gửi; hồ sơ chờ Admin thẩm định trước khi được cấp quyền. Có tra cứu trạng thái hồ sơ. */
@@ -19,17 +24,35 @@ export default function ProviderRegisterPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<ProviderRegisterResult | null>(null);
+  // Lỗi trùng do server báo theo từng ô, kèm giá trị đã gửi: sửa ô đó thì lỗi tự mất.
+  const [duplicates, setDuplicates] = useState<Partial<Record<DuplicateField, { value: string; message: string }>>>({});
+  const duplicateError = (field: DuplicateField) => {
+    const dup = duplicates[field];
+    return dup && dup.value === form[field].trim() ? dup.message : undefined;
+  };
   const set = <K extends keyof ProviderRegisterInput>(key: K, value: ProviderRegisterInput[K]) => setForm((f) => ({ ...f, [key]: value }));
 
   function review() {
     if (form.password !== confirm) { setError('Mật khẩu nhập lại không khớp.'); return; }
+    if (DUPLICATE_FIELDS.some((f) => duplicateError(f))) { setError('Vui lòng sửa các thông tin bị trùng được đánh dấu.'); return; }
     setError(''); setReviewing(true);
   }
 
   async function submit() {
     setBusy(true); setError('');
     try { setResult(await providerApplicationService.register({ ...form, contactEmail: form.contactEmail.trim() })); }
-    catch (e: unknown) { setError(homestayError(e)); setReviewing(false); }
+    catch (e: unknown) {
+      // Trùng thông tin: quay về form, báo ngay dưới từng ô bị trùng (có thể nhiều ô cùng lúc).
+      const found = getApiFieldErrors(e).filter((f): f is { field: DuplicateField; message: string } =>
+        (DUPLICATE_FIELDS as readonly string[]).includes(f.field));
+      if (found.length) {
+        setDuplicates(Object.fromEntries(found.map((f) => [f.field, { value: form[f.field].trim(), message: f.message }])));
+        setError('');
+      } else {
+        setError(homestayError(e));
+      }
+      setReviewing(false);
+    }
     finally { setBusy(false); }
   }
 
@@ -99,11 +122,11 @@ export default function ProviderRegisterPage() {
             <input className={input} required maxLength={255} value={form.contactName} onChange={(e) => set('contactName', e.target.value)} />
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Số điện thoại (dùng để đăng nhập)" required>
-              <input className={input} required type="tel" maxLength={20} pattern="[+0-9() .\-]{8,20}" value={form.contactPhone} onChange={(e) => set('contactPhone', e.target.value)} />
+            <Field label="Số điện thoại (dùng để đăng nhập)" required error={duplicateError('contactPhone')}>
+              <input className={`${input} ${duplicateError('contactPhone') ? inputInvalid : ''}`} aria-invalid={Boolean(duplicateError('contactPhone'))} required type="tel" maxLength={20} pattern="[+0-9() .\-]{8,20}" value={form.contactPhone} onChange={(e) => set('contactPhone', e.target.value)} />
             </Field>
-            <Field label="Email">
-              <input className={input} type="email" maxLength={255} value={form.contactEmail} onChange={(e) => set('contactEmail', e.target.value)} />
+            <Field label="Email" error={duplicateError('contactEmail')}>
+              <input className={`${input} ${duplicateError('contactEmail') ? inputInvalid : ''}`} aria-invalid={Boolean(duplicateError('contactEmail'))} type="email" maxLength={255} value={form.contactEmail} onChange={(e) => set('contactEmail', e.target.value)} />
             </Field>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -120,8 +143,8 @@ export default function ProviderRegisterPage() {
           <Field label="Địa chỉ cơ sở" required>
             <input className={input} required maxLength={500} value={form.address} onChange={(e) => set('address', e.target.value)} />
           </Field>
-          <Field label="Số giấy phép / đăng ký kinh doanh">
-            <input className={input} maxLength={64} value={form.businessLicenseNo} onChange={(e) => set('businessLicenseNo', e.target.value)} />
+          <Field label="Số giấy phép / đăng ký kinh doanh" required error={duplicateError('businessLicenseNo')}>
+            <input className={`${input} ${duplicateError('businessLicenseNo') ? inputInvalid : ''}`} aria-invalid={Boolean(duplicateError('businessLicenseNo'))} required maxLength={64} value={form.businessLicenseNo} onChange={(e) => set('businessLicenseNo', e.target.value)} />
           </Field>
           <Field label="Giới thiệu cơ sở (số phòng, loại hình, kinh nghiệm đón khách...)">
             <textarea className={`${input} h-auto py-2`} rows={3} maxLength={5000} value={form.description} onChange={(e) => set('description', e.target.value)} />
@@ -178,11 +201,16 @@ function StatusLookup({ initialId, initialPhone }: { initialId?: number; initial
   );
 }
 
-function Field({ label, required, children }: { label: string; required?: boolean; children: ReactNode }) {
+function Field({ label, required, error, children }: { label: string; required?: boolean; error?: string; children: ReactNode }) {
   return (
     <label className="flex flex-col gap-1.5 text-sm font-semibold text-ink-deep">
       <span>{label}{required && <span className="text-danger"> *</span>}</span>
       {children}
+      {error && (
+        <span role="alert" className="flex items-center gap-1 text-xs font-normal text-danger">
+          <AlertCircle className="h-3 w-3 shrink-0" /> {error}
+        </span>
+      )}
     </label>
   );
 }

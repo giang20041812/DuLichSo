@@ -93,7 +93,7 @@ public class AdminProviderApplicationService {
         requireAdmin(adminAccountId);
         // Kiểm tra lại ngay trước khi tạo: trong lúc chờ duyệt SĐT/email có thể đã được cấp cho tài khoản khác.
         if (identifierTaken(application.getContactPhone()) || identifierTaken(application.getContactEmail())) {
-            throw new IllegalStateException("Số điện thoại hoặc email của hồ sơ đã thuộc một tài khoản khác, không thể duyệt. Hãy từ chối hồ sơ kèm lý do.");
+            throw new IllegalStateException("Nhà cung cấp đã có tài khoản hoặc email/số điện thoại đã được sử dụng");
         }
         Provider provider = providers.save(Provider.builder()
                 .name(application.getBusinessName()).contactName(application.getContactName())
@@ -136,7 +136,7 @@ public class AdminProviderApplicationService {
         ProviderApplication application = applications.findByIdForUpdate(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy hồ sơ đăng ký với ID: " + id));
         if (application.getStatus() != ProviderApplicationStatus.PENDING) {
-            throw new IllegalStateException("Hồ sơ đã được xử lý (" + application.getStatus() + "), không thể duyệt hoặc từ chối lại.");
+            throw new IllegalStateException("Hồ sơ không còn ở trạng thái có thể xử lý");
         }
         return application;
     }

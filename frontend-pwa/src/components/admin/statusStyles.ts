@@ -15,6 +15,6 @@ export function actionButtonClass(tone: StatusTone): string {
 
 export const PROVIDER_STATUS: Record<'ACTIVE' | 'SUSPENDED' | 'TERMINATED', { tone: StatusTone; label: string }> = {
   ACTIVE: { tone: 'success', label: 'Đang hoạt động' },
-  SUSPENDED: { tone: 'warning', label: 'Đình chỉ' },
+  SUSPENDED: { tone: 'danger', label: 'Đình chỉ' }, // "Bị khóa" (đỏ) = đình chỉ hoặc chấm dứt
   TERMINATED: { tone: 'danger', label: 'Chấm dứt' },
 };

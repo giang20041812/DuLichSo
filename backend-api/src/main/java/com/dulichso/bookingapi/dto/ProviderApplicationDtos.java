@@ -16,7 +16,7 @@ public final class ProviderApplicationDtos {
                                 @Email @Size(max = 255) String contactEmail,
                                 @NotBlank @Size(min = 8, max = 72) String password,
                                 @NotBlank @Size(max = 500) String address,
-                                @Size(max = 64) String businessLicenseNo,
+                                @NotBlank @Size(max = 64) String businessLicenseNo,
                                 @Size(max = 5000) String description) {}
 
     public record RegisterResult(Long applicationId, ProviderApplicationStatus status, String message) {}

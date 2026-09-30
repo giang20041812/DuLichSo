@@ -1,4 +1,5 @@
 package com.dulichso.bookingapi.controller;
+import com.dulichso.bookingapi.service.DuplicateFieldsException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
@@ -10,6 +11,11 @@ import java.util.Map;
         PartnerGeocodeController.class,PartnerCalendarController.class,PartnerChangeRequestController.class,
         PartnerAccountController.class})
 public class PartnerOperationErrors {
+    /** Đăng ký trùng thông tin: trả thêm danh sách trường bị trùng để form báo lỗi dưới từng ô. */
+    @ExceptionHandler(DuplicateFieldsException.class)
+    public ResponseEntity<Map<String,Object>> duplicate(DuplicateFieldsException ex) {
+        return ResponseEntity.status(ex.getStatusCode()).body(Map.of("message", ex.getReason(), "fieldErrors", ex.getFieldErrors()));
+    }
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<Map<String,String>> status(ResponseStatusException ex) {return ResponseEntity.status(ex.getStatusCode()).body(Map.of("message",ex.getReason()==null?"Yêu cầu không hợp lệ.":ex.getReason()));}
     @ExceptionHandler(MethodArgumentNotValidException.class)

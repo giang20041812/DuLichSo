@@ -34,9 +34,17 @@ export interface PortalLoginResponse {
   message: string;
 }
 
+/** Lỗi gắn với một ô nhập — khớp FieldErrorDto (backend). `field` là tên thuộc tính trong request (vd "email", "contactPhone"). */
+export interface FieldError {
+  field: string;
+  message: string;
+}
+
 export interface AuthErrorResponse {
   status: number;
   errorCode: string;
   message: string;
+  /** Các trường bị lỗi (vd trùng email / số điện thoại khi đăng ký); không có khi lỗi không gắn với trường cụ thể. */
+  fieldErrors?: FieldError[];
   timestamp?: string;
 }

@@ -44,6 +44,17 @@ export default function CashflowPanel({ onDrill }: CashflowPanelProps) {
   const activeLevel: CashflowLevel = level || 'PROVIDER';
   const activeCount = [debouncedKeyword, from || to].filter(Boolean).length;
 
+  /** Nút tải lại: đưa màn hình về trạng thái ban đầu (bỏ mọi điều kiện tìm kiếm / lọc / sắp xếp, về tab mặc định, trang 1) rồi tải lại dữ liệu mới nhất. */
+  const reloadFromStart = () => {
+    setLevel('PROVIDER');
+    setKeyword('');
+    setFrom('');
+    setTo('');
+    setSort('net:desc');
+    setPage(0);
+    setReload((n) => n + 1);
+  };
+
   const load = useCallback(async () => {
     const [sortBy, sortDir] = sort.split(':') as [string, 'asc' | 'desc'];
     setLoading(true);
@@ -125,7 +136,7 @@ export default function CashflowPanel({ onDrill }: CashflowPanelProps) {
               setPage(0);
             }}
           />
-          <RefreshButton loading={loading} onClick={() => setReload((n) => n + 1)} />
+          <RefreshButton loading={loading} onClick={reloadFromStart} />
         </div>
       </div>
 

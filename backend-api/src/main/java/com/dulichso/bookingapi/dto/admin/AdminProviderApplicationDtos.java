@@ -3,6 +3,7 @@ package com.dulichso.bookingapi.dto.admin;
 import com.dulichso.bookingapi.entity.enums.ProviderApplicationStatus;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /** FR-AD-16: hồ sơ đăng ký NCC để Admin thẩm định. Không bao giờ trả mật khẩu/băm mật khẩu. */
 public final class AdminProviderApplicationDtos {
@@ -20,4 +21,10 @@ public final class AdminProviderApplicationDtos {
     public record ApplicationDetailDto(ApplicationSummaryDto summary, String description, boolean phoneTaken, boolean emailTaken) {}
 
     public record PendingApplicationCountDto(long pending) {}
+
+    /** Lỗi khi xử lý 1 hồ sơ trong yêu cầu duyệt/từ chối hàng loạt (vd: hồ sơ đã xử lý, SĐT/email đã thuộc tài khoản khác). */
+    public record BulkFailureDto(Long id, String message) {}
+
+    /** Kết quả duyệt/từ chối hàng loạt: mỗi hồ sơ xử lý độc lập, hồ sơ lỗi không chặn các hồ sơ còn lại. */
+    public record BulkActionResultDto(List<Long> succeededIds, List<BulkFailureDto> failed) {}
 }

@@ -60,6 +60,9 @@ app:
   seed:
     initial-password: ${APP_SEED_INITIAL_PASSWORD:}
     admin-email: ${APP_SEED_ADMIN_EMAIL:admin@dulichso.vn}
+  # Nạp dữ liệu mẫu cho các màn Admin còn trống (hồ sơ NCC, yêu cầu chuyển NCC, đánh giá, thông báo) để xem thử giao diện.
+  # Chỉ nạp vào bảng còn trống, chạy lại không đè dữ liệu thật. Đặt false khi chạy dữ liệu thật.
+  seed-demo-data: ${APP_SEED_DEMO_DATA:true}
   # NFR-PRI-02: thời hạn lưu giữ dữ liệu theo từng loại; job dọn chạy mỗi ngày. Booking/đánh giá/tài khoản không tự xóa.
   retention:
     enabled: ${RETENTION_ENABLED:true}

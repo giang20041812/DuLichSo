@@ -15,8 +15,8 @@ function initialsOf(name: string) {
 }
 
 /** Avatar tròn: ảnh nếu có, không thì chữ cái đầu với màu cố định theo tên. */
-export default function Avatar({ name, src, size = 'md' }: { name: string; src?: string | null; size?: 'sm' | 'md' }) {
-  const dim = size === 'sm' ? 'h-7 w-7 text-[10px]' : 'h-8 w-8 text-[11px]';
+export default function Avatar({ name, src, size = 'md' }: { name: string; src?: string | null; size?: 'sm' | 'md' | 'lg' }) {
+  const dim = size === 'sm' ? 'h-7 w-7 text-[10px]' : size === 'lg' ? 'h-12 w-12 text-sm' : 'h-8 w-8 text-[11px]';
   if (src) {
     return <img src={src} alt="" referrerPolicy="no-referrer" className={`${dim} shrink-0 rounded-full object-cover ring-1 ring-border`} />;
   }

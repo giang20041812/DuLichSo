@@ -9,6 +9,7 @@ import com.dulichso.bookingapi.entity.enums.ChangeRequestStatus;
 import com.dulichso.bookingapi.entity.enums.ChangeTargetType;
 import com.dulichso.bookingapi.security.UserPrincipal;
 import com.dulichso.bookingapi.service.AdminChangeRequestService;
+import com.dulichso.bookingapi.service.ChangeRequestPresenter;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -31,6 +32,7 @@ import java.time.LocalDate;
 @RequestMapping("/api/v1/admin/change-requests")
 public class AdminChangeRequestController {
     private final AdminChangeRequestService service;
+    private final ChangeRequestPresenter presenter;
 
     @GetMapping
     public ResponseEntity<Page<ChangeRequestSummaryDto>> search(
@@ -55,7 +57,7 @@ public class AdminChangeRequestController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ChangeRequestDetailDto> detail(@PathVariable Long id) {
-        return ResponseEntity.ok(service.detail(id));
+        return ResponseEntity.ok(presenter.detail(id));
     }
 
     @PostMapping("/{id}/approve")

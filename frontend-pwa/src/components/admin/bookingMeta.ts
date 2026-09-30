@@ -1,5 +1,4 @@
 import type {
-  BookingAttentionReason,
   BookingNoteOutcome,
   BookingStatus,
 } from '@/types/admin';
@@ -19,18 +18,32 @@ export const STATUS_LABEL: Record<BookingStatus, string> = {
   REFUNDED: 'Đã hoàn tiền',
 };
 
+/** Màu theo nhóm trạng thái của trang Đặt phòng: Mới = lam · Đã xác nhận = xanh · Hoàn thành / Đã hủy = xám. */
 export const STATUS_TONE: Record<BookingStatus, StatusTone> = {
-  PENDING: 'warning',
+  PENDING: 'info',
   AWAITING_PAYMENT: 'info',
   CONFIRMED: 'success',
-  CHECKED_IN: 'info',
-  CHECKED_OUT: 'brand',
-  COMPLETED: 'brand',
-  REJECTED: 'danger',
-  CANCELLED: 'danger',
+  CHECKED_IN: 'success',
+  CHECKED_OUT: 'neutral',
+  COMPLETED: 'neutral',
+  REFUNDED: 'neutral',
+  REJECTED: 'neutral',
+  CANCELLED: 'neutral',
   EXPIRED: 'neutral',
   NO_SHOW: 'neutral',
-  REFUNDED: 'neutral',
+};
+
+/**
+ * Nhóm trạng thái của tab lọc trang Đặt phòng (một tab gồm nhiều trạng thái thật trong DB):
+ *  Mới = PENDING + AWAITING_PAYMENT · Đã xác nhận = CONFIRMED + CHECKED_IN · Hoàn thành = CHECKED_OUT + COMPLETED ·
+ *  Đã hủy = CANCELLED + REJECTED + EXPIRED + NO_SHOW + REFUNDED.
+ */
+export type BookingGroup = 'NEW' | 'CONFIRMED' | 'DONE' | 'CANCELLED';
+export const BOOKING_GROUP_STATUSES: Record<BookingGroup, BookingStatus[]> = {
+  NEW: ['PENDING', 'AWAITING_PAYMENT'],
+  CONFIRMED: ['CONFIRMED', 'CHECKED_IN'],
+  DONE: ['CHECKED_OUT', 'COMPLETED'],
+  CANCELLED: ['CANCELLED', 'REJECTED', 'EXPIRED', 'NO_SHOW', 'REFUNDED'],
 };
 
 export const isPendingStatus = (s: BookingStatus) => s === 'PENDING' || s === 'AWAITING_PAYMENT';
@@ -48,20 +61,6 @@ export const STATUS_FILL: Record<BookingStatus, string> = {
   EXPIRED: 'bg-muted/10',
   NO_SHOW: 'bg-muted/10',
   REFUNDED: 'bg-muted/10',
-};
-
-export const ATTENTION_TONE: Record<BookingAttentionReason, StatusTone> = {
-  PENDING_STALE: 'warning',
-  PAYMENT_OVERDUE: 'danger',
-  STAY_UNRESOLVED: 'info',
-  FOLLOW_UP: 'brand',
-};
-
-export const ATTENTION_LABEL: Record<BookingAttentionReason, string> = {
-  PENDING_STALE: 'Chờ NCC xác nhận quá 24 giờ',
-  PAYMENT_OVERDUE: 'Quá hạn thanh toán, chưa được đóng',
-  STAY_UNRESOLVED: 'Đã qua ngày trả phòng nhưng chưa hoàn tất',
-  FOLLOW_UP: 'Admin đánh dấu cần theo dõi',
 };
 
 export const OUTCOME_LABEL: Record<BookingNoteOutcome, string> = {

@@ -39,6 +39,8 @@ export default function RegisterPage() {
   // Touched states for realtime validation
   const [touched, setTouched] = useState<{ [key: string]: boolean }>({});
   const [serverError, setServerError] = useState<string | null>(null);
+  // Lỗi trùng do server báo theo từng trường, kèm giá trị đã gửi: sửa ô đó thì lỗi tự mất, nhập lại đúng giá trị cũ thì hiện lại.
+  const [duplicates, setDuplicates] = useState<{ email?: { value: string; message: string }; phone?: { value: string; message: string } }>({});
   const [isLoading, setIsLoading] = useState(false);
 
   const markTouched = (field: string) => {
@@ -61,6 +63,8 @@ export default function RegisterPage() {
       errs.email = 'Vui lòng nhập địa chỉ email.';
     } else if (!EMAIL_REGEX.test(trimmedEmail)) {
       errs.email = 'Địa chỉ email không hợp lệ (VD: ban@email.com).';
+    } else if (duplicates.email && duplicates.email.value === trimmedEmail.toLowerCase()) {
+      errs.email = duplicates.email.message;
     }
 
     const trimmedPhone = phone.trim();
@@ -68,6 +72,8 @@ export default function RegisterPage() {
       errs.phone = 'Vui lòng nhập số điện thoại.';
     } else if (!VN_PHONE_REGEX.test(trimmedPhone)) {
       errs.phone = 'Số điện thoại không đúng định dạng (VD: 0912345678).';
+    } else if (duplicates.phone && duplicates.phone.value === trimmedPhone) {
+      errs.phone = duplicates.phone.message;
     }
 
     if (!password) {
@@ -83,7 +89,7 @@ export default function RegisterPage() {
     }
 
     return errs;
-  }, [fullName, email, phone, password, confirmPassword]);
+  }, [fullName, email, phone, password, confirmPassword, duplicates]);
 
   // Độ mạnh mật khẩu (Password Strength)
   const passwordStrength = useMemo(() => {
@@ -120,11 +126,13 @@ export default function RegisterPage() {
     }
 
     setIsLoading(true);
+    const submittedEmail = email.trim().toLowerCase();
+    const submittedPhone = phone.trim();
     try {
       const res = await travelerRegister({
         fullName: fullName.trim(),
-        email: email.trim().toLowerCase(),
-        phone: phone.trim(),
+        email: submittedEmail,
+        phone: submittedPhone,
         password,
         confirmPassword,
       });
@@ -132,6 +140,17 @@ export default function RegisterPage() {
       const state = location.state as { from?: string } | null;
       navigate(state?.from || '/', { replace: true });
     } catch (err: unknown) {
+      // Trùng thông tin: báo ngay dưới từng ô bị trùng (có thể nhiều ô cùng lúc) thay vì một thông báo chung.
+      const fieldErrors = (err as AuthErrorResponse)?.fieldErrors ?? [];
+      const emailDup = fieldErrors.find((f) => f.field === 'email');
+      const phoneDup = fieldErrors.find((f) => f.field === 'phone');
+      if (emailDup || phoneDup) {
+        setDuplicates({
+          ...(emailDup ? { email: { value: submittedEmail, message: emailDup.message } } : {}),
+          ...(phoneDup ? { phone: { value: submittedPhone, message: phoneDup.message } } : {}),
+        });
+        return;
+      }
       const message =
         (err as AuthErrorResponse)?.message ||
         (err instanceof Error ? err.message : 'Đăng ký không thành công. Vui lòng kiểm tra lại thông tin.');

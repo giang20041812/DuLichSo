@@ -33,6 +33,14 @@ public class Account {
     
     @Column(name = "full_name")
     private String fullName;
+    /**
+     * Cấp quản trị (chỉ áp dụng cho role ADMIN): 1 = cao nhất (toàn quyền), 2 = vận hành, 3 = chỉ xem + kiểm duyệt đánh giá.
+     * null với tài khoản không phải ADMIN; ADMIN cũ chưa gán được coi là cấp 1 (xem {@link #effectiveAdminLevel()}).
+     */
+    // Cột là TINYINT (migration 016): khai báo rõ để ddl-auto=validate không đòi INTEGER.
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.TINYINT)
+    @Column(name = "admin_level")
+    private Integer adminLevel;
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
     /** Tăng khi đổi quyền/khóa/đặt lại mật khẩu/đăng xuất: mọi JWT cũ mang phiên bản khác sẽ bị từ chối. */
@@ -45,4 +53,10 @@ public class Account {
     @Column(name = "created_at", nullable = false, updatable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    /** Cấp quản trị hiệu lực: null với ADMIN cũ → cấp 1; không phải ADMIN → null. */
+    public Integer effectiveAdminLevel() {
+        if (role != AccountRole.ADMIN) return null;
+        return adminLevel == null ? 1 : adminLevel;
+    }
 }

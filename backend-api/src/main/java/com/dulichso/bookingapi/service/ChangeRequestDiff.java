@@ -2,6 +2,7 @@ package com.dulichso.bookingapi.service;
 
 import com.dulichso.bookingapi.dto.ChangeRequestDtos.ChangeRequestSummaryDto;
 import com.dulichso.bookingapi.dto.ChangeRequestDtos.FieldChangeDto;
+import com.dulichso.bookingapi.dto.ChangeRequestDtos.FieldDiffDto;
 import com.dulichso.bookingapi.entity.PartnerChangeRequest;
 import com.dulichso.bookingapi.entity.enums.ChangeOperation;
 import com.dulichso.bookingapi.entity.enums.ChangeTargetType;
@@ -31,13 +32,24 @@ final class ChangeRequestDiff {
             "policyName", "Tên chính sách hủy", "cancellationPolicy", "Nội dung chính sách hủy",
             "freeCancelCutoffHours", "Số giờ hủy miễn phí", "refundOnLateCancel", "Hoàn tiền khi hủy muộn");
 
+    /** Trường loại phòng theo đúng thứ tự và nhãn của form NCC (Cổng NCC → Loại phòng). */
     static final Map<String, String> ROOM = fields(
-            "name", "Tên loại phòng", "description", "Mô tả", "maxOccupancy", "Số khách tối đa", "totalRoomCount", "Tổng số phòng",
-            "privateBathroom", "Phòng tắm riêng", "areaSqm", "Diện tích (m²)", "basePrice", "Giá cơ bản", "weekendPrice", "Giá cuối tuần",
-            "status", "Trạng thái", "viewDescription", "Tầm nhìn", "beds", "Giường", "amenityIds", "Tiện nghi phòng (mã)");
+            "name", "Tên loại phòng", "totalRoomCount", "Tổng số phòng", "maxOccupancy", "Khách tối đa mỗi phòng",
+            "areaSqm", "Diện tích (m²)", "privateBathroom", "Phòng tắm riêng", "basePrice", "Giá ngày thường / phòng / đêm",
+            "weekendPrice", "Giá cuối tuần (T7, CN)", "beds", "Giường ngủ", "viewDescription", "Vị trí / hướng nhìn",
+            "description", "Mô tả", "amenityIds", "Tiện nghi phòng", "status", "Trạng thái bán");
 
+    /** Giá theo mùa của loại phòng, theo form NCC. */
     static final Map<String, String> PRICE = fields(
-            "name", "Tên bảng giá", "periodStart", "Từ ngày", "periodEnd", "Đến ngày", "price", "Giá");
+            "name", "Tên đợt giá", "periodStart", "Từ ngày", "periodEnd", "Đến ngày", "price", "Giá / phòng / đêm");
+
+    /** Chuyển giá trị gốc của một trường thành chuỗi hiển thị cho Admin (vd mã tiện nghi → tên); so sánh vẫn dùng {@link #norm}. */
+    @FunctionalInterface
+    interface Display {
+        String of(String field, Object raw, String normalized);
+
+        Display RAW = (field, raw, normalized) -> normalized;
+    }
 
     private static Map<String, String> fields(String... pairs) {
         Map<String, String> map = new LinkedHashMap<>();
@@ -63,38 +75,54 @@ final class ChangeRequestDiff {
 
     /** Danh sách trường có thay đổi giữa nội dung cũ và mới của một yêu cầu. */
     static List<FieldChangeDto> changes(PartnerChangeRequest request) {
+        return changes(request, Display.RAW);
+    }
+
+    /** Như {@link #changes(PartnerChangeRequest)} nhưng giá trị hiển thị theo {@code display}. */
+    static List<FieldChangeDto> changes(PartnerChangeRequest request, Display display) {
+        return fields(request, display).stream().filter(FieldDiffDto::changed)
+                .map(f -> new FieldChangeDto(f.field(), f.label(), f.before(), f.after())).toList();
+    }
+
+    static List<FieldDiffDto> fields(PartnerChangeRequest request) {
+        return fields(request, Display.RAW);
+    }
+
+    /**
+     * Toàn bộ trường của đối tượng trong yêu cầu theo thứ tự hiển thị, kể cả trường không đổi (before = after),
+     * để Admin xem đủ nội dung: trường có thay đổi so sánh cũ/mới, trường không đổi giữ nguyên giá trị.
+     * Việc so sánh luôn dùng giá trị chuẩn hóa ({@link #norm}); {@code display} chỉ quyết định chuỗi hiển thị.
+     */
+    static List<FieldDiffDto> fields(PartnerChangeRequest request, Display display) {
+        Map<String, Object> before = request.getBeforeData();
+        Map<String, Object> after = request.getPayload();
         // HOM-MGT-BR-04: yêu cầu xuất bản không nằm trong danh sách trường whitelist của HOMESTAY (visibility
         // không phải trường NCC được sửa nội dung) — hiển thị riêng một dòng "Trạng thái hiển thị".
         if (request.getOperation() == ChangeOperation.PUBLISH) {
-            Map<String, Object> before = request.getBeforeData();
-            Map<String, Object> after = request.getPayload();
-            String oldValue = before == null ? "" : norm(before.get("visibility"));
-            String newValue = after == null ? "" : norm(after.get("visibility"));
-            List<FieldChangeDto> out = new ArrayList<>();
-            if (!oldValue.equals(newValue)) out.add(new FieldChangeDto("visibility", "Trạng thái hiển thị", oldValue, newValue));
-            return out;
+            return List.of(diff("visibility", "Trạng thái hiển thị", value(before, "visibility"), value(after, "visibility"), false, display));
         }
         // Chuyển NCC: cũng không nằm trong whitelist trường HOMESTAY — hiển thị riêng một dòng "Nhà cung cấp quản lý".
         if (request.getOperation() == ChangeOperation.TRANSFER) {
-            Map<String, Object> before = request.getBeforeData();
-            Map<String, Object> after = request.getPayload();
-            String oldValue = before == null ? "" : norm(before.get("providerName"));
-            String newValue = after == null ? "" : norm(after.get("providerName"));
-            List<FieldChangeDto> out = new ArrayList<>();
-            if (!oldValue.equals(newValue)) out.add(new FieldChangeDto("providerId", "Nhà cung cấp quản lý", oldValue, newValue));
-            return out;
+            return List.of(diff("providerId", "Nhà cung cấp quản lý", value(before, "providerName"), value(after, "providerName"), false, display));
         }
-        Map<String, String> labels = fieldsOf(request.getTargetType());
-        Map<String, Object> before = request.getBeforeData();
-        Map<String, Object> after = request.getPayload();
         boolean delete = request.getOperation() == ChangeOperation.DELETE;
-        List<FieldChangeDto> out = new ArrayList<>();
-        for (Map.Entry<String, String> field : labels.entrySet()) {
-            String oldValue = before == null ? "" : norm(before.get(field.getKey()));
-            String newValue = delete ? "(xóa)" : after == null ? "" : norm(after.get(field.getKey()));
-            if (!oldValue.equals(newValue)) out.add(new FieldChangeDto(field.getKey(), field.getValue(), oldValue, newValue));
+        List<FieldDiffDto> out = new ArrayList<>();
+        for (Map.Entry<String, String> field : fieldsOf(request.getTargetType()).entrySet()) {
+            out.add(diff(field.getKey(), field.getValue(), value(before, field.getKey()), value(after, field.getKey()), delete, display));
         }
         return out;
+    }
+
+    private static Object value(Map<String, Object> data, String key) {
+        return data == null ? null : data.get(key);
+    }
+
+    private static FieldDiffDto diff(String field, String label, Object before, Object after, boolean delete, Display display) {
+        String oldNorm = norm(before);
+        String newNorm = delete ? "(xóa)" : norm(after);
+        String oldText = display.of(field, before, oldNorm);
+        String newText = delete ? "(xóa)" : display.of(field, after, newNorm);
+        return new FieldDiffDto(field, label, oldText, newText, !oldNorm.equals(newNorm));
     }
 
     /** Các trường có thay đổi giữa hai bản dữ liệu (không gắn với một yêu cầu cụ thể). */

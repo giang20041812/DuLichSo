@@ -24,6 +24,10 @@ export interface AuditLogItem {
 }
 
 export interface AuditLogSearchParams {
+  /** Tìm nhanh theo tên người thao tác, mã hành động, lý do hoặc mã đối tượng. */
+  keyword?: string;
+  /** Mã hành động bổ sung để khớp từ khóa (giao diện tra nhãn tiếng Việt → mã), phân tách bằng dấu phẩy. */
+  actionCodes?: string;
   from?: string;
   to?: string;
   actor?: AuditActor;

@@ -41,9 +41,13 @@ public class AdminReportService {
     static final int DAILY_MAX_DAYS = 62;
     static final int TOP_LIMIT = 5;
 
+    /**
+     * averageValue/confirmationRate = null khi mẫu số bằng 0 (chưa có đơn xác nhận nào trong kỳ): tỷ lệ/giá trị trung
+     * bình không xác định được, hệ thống không tự quy về 0 để tránh hiểu nhầm là "0đ"/"0%" thật (RPT-BR-02).
+     */
     public record Kpi(long totalBookings, long confirmedBookings, long openBookings, long lostBookings,
                       BigDecimal bookingValue, BigDecimal averageValue, BigDecimal paidRevenue,
-                      double confirmationRate, Long newProviders, Long newPlaces) {}
+                      Double confirmationRate, Long newProviders, Long newPlaces) {}
 
     public record StatusCount(BookingStatus status, long count) {}
 
@@ -53,8 +57,9 @@ public class AdminReportService {
 
     public record TopPlace(Long id, String name, Long providerId, String providerName, long bookings, BigDecimal value) {}
 
-    public record OverviewReport(LocalDate from, LocalDate to, Long providerId, String granularity, Kpi kpi,
-                                 List<StatusCount> byStatus, List<SeriesPoint> series,
+    /** generatedAt = thời điểm chốt số liệu (cũng là lần cập nhật gần nhất, vì báo cáo luôn tính lại theo thời gian thực mỗi lần tải). */
+    public record OverviewReport(LocalDate from, LocalDate to, Long providerId, String granularity, LocalDateTime generatedAt,
+                                 Kpi kpi, List<StatusCount> byStatus, List<SeriesPoint> series,
                                  List<TopProvider> topProviders, List<TopPlace> topPlaces) {}
 
     private final BookingRepository bookingRepository;
@@ -125,10 +130,15 @@ public class AdminReportService {
             Long pid = (Long) r[3];
             Long plid = (Long) r[5];
 
-            total++;
             if (earns) { confirmed++; value = value.add(amount); }
             else if (OPEN_STATUSES.contains(status)) open++;
             else if (LOST_STATUSES.contains(status)) lost++;
+
+            // RPT-BR-04/05: "Tổng Booking" (chế độ Tất cả) đếm 1 lần mỗi Booking theo ngày tạo, loại Đã hủy tại thời
+            // điểm chốt; Đã từ chối/Hết hạn KHÔNG bị loại. Khi Admin đã chọn một nhóm cụ thể (vd: Hủy/từ chối/hết hạn)
+            // thì xem đúng nhóm đó nên không áp dụng loại trừ này.
+            if (filter == null && status == BookingStatus.CANCELLED) continue;
+            total++;
 
             String key = daily ? created.toLocalDate().toString() : YearMonth.from(created).toString();
             bucketCount.computeIfAbsent(key, k -> new long[1])[0]++;
@@ -143,9 +153,10 @@ public class AdminReportService {
             if (earns) placeValue.merge(plid, amount, BigDecimal::add);
         }
 
-        BigDecimal avg = confirmed == 0 ? BigDecimal.ZERO : value.divide(BigDecimal.valueOf(confirmed), 0, RoundingMode.HALF_UP);
+        // Không đủ dữ liệu để tính (chưa có đơn xác nhận/chưa có đơn nào trong kỳ) thì để null, không tự quy về 0 (RPT-BR-02).
+        BigDecimal avg = confirmed == 0 ? null : value.divide(BigDecimal.valueOf(confirmed), 0, RoundingMode.HALF_UP);
         BigDecimal paid = paymentRepository.sumPaidInRange(PaymentStatus.SUCCESS, fromTs, toTs, providerId);
-        double rate = total == 0 ? 0 : Math.round(confirmed * 1000.0 / total) / 10.0;
+        Double rate = total == 0 ? null : Math.round(confirmed * 1000.0 / total) / 10.0;
         Long newProviders = providerId != null ? null
                 : providerRepository.countByCreatedAtGreaterThanEqualAndCreatedAtLessThan(fromTs, toTs);
         Long newPlaces = providerId != null ? null
@@ -171,7 +182,7 @@ public class AdminReportService {
         List<StatusCount> byStatus = new ArrayList<>();
         statusCounts.forEach((s, c) -> byStatus.add(new StatusCount(s, c)));
 
-        return new OverviewReport(start, end, providerId, daily ? "DAY" : "MONTH",
+        return new OverviewReport(start, end, providerId, daily ? "DAY" : "MONTH", LocalDateTime.now(),
                 new Kpi(total, confirmed, open, lost, value, avg, paid, rate, newProviders, newPlaces),
                 byStatus, series, topProviders, topPlaces);
     }

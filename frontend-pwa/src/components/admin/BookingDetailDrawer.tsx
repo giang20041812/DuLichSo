@@ -15,8 +15,6 @@ import { StatusBadge } from './StatusBadge';
 import Avatar from './Avatar';
 import { SegmentedTabs } from './AdminFilters';
 import {
-  ATTENTION_LABEL,
-  ATTENTION_TONE,
   OUTCOME_LABEL,
   OUTCOME_TONE,
   STATUS_LABEL,
@@ -117,10 +115,8 @@ export default function BookingDetailDrawer({ booking, scope, onClose, onChanged
   };
 
   const handleNoteAdded = (note: BookingNoteDto) => {
-    // Cần tải lại để cập nhật cờ "cần chú ý" do kết quả mới nhất quyết định.
     setDetail((d) => (d ? { ...d, notes: [note, ...d.notes] } : d));
     onChanged?.();
-    void load();
   };
 
   return (
@@ -148,11 +144,6 @@ export default function BookingDetailDrawer({ booking, scope, onClose, onChanged
                 <StatusBadge tone={STATUS_TONE[b.status]} pulse={isPendingStatus(b.status)}>
                   {STATUS_LABEL[b.status]}
                 </StatusBadge>
-                {detail?.attention.map((a) => (
-                  <StatusBadge key={a} tone={ATTENTION_TONE[a]} pulse>
-                    {ATTENTION_LABEL[a]}
-                  </StatusBadge>
-                ))}
               </div>
             </div>
             <button type="button" onClick={onClose} aria-label="Đóng" className="rounded-md p-1.5 text-muted transition-colors hover:bg-hover hover:text-ink">

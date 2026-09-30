@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+  <!--
+    Phân cấp quản trị viên: 1 = cao nhất (toàn quyền), 2 = vận hành, 3 = chỉ xem + kiểm duyệt đánh giá.
+    Các ADMIN hiện có được gán cấp 1 để giữ nguyên quyền như trước khi phân cấp.
+  -->
+  <changeSet id="016-account-admin-level" author="claude">
+    <addColumn tableName="account">
+      <column name="admin_level" type="TINYINT"/>
+    </addColumn>
+    <sql>UPDATE account SET admin_level = 1 WHERE role = 'ADMIN' AND admin_level IS NULL;</sql>
+  </changeSet>
+
+  <!-- Thông báo trong ứng dụng gửi tới các Admin khi có NCC gửi hồ sơ đăng ký / khách du lịch đăng ký mới. -->
+  <changeSet id="016-admin-notification-templates" author="claude">
+    <sql>
+      INSERT IGNORE INTO notification_template (code, channel, subject, body_template, is_active) VALUES
+        ('ADMIN_NEW_PROVIDER_APPLICATION', 'IN_APP', 'Hồ sơ đăng ký NCC mới', 'Nhà cung cấp "{{business_name}}" ({{contact_name}}) vừa gửi hồ sơ đăng ký, đang chờ duyệt.', TRUE),
+        ('ADMIN_NEW_TRAVELER', 'IN_APP', 'Khách du lịch mới đăng ký', 'Khách "{{full_name}}" vừa đăng ký tài khoản.', TRUE);
+    </sql>
+  </changeSet>
+</databaseChangeLog>

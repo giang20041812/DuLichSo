@@ -55,6 +55,12 @@ public interface AccountRepository extends JpaRepository<Account, Long>, JpaSpec
 
     long countByRoleAndStatus(com.dulichso.bookingapi.entity.enums.AccountRole role, com.dulichso.bookingapi.entity.enums.AccountStatus status);
 
+    /** Số quản trị viên cấp 1 đang hoạt động (ADMIN chưa gán cấp được coi là cấp 1). */
+    @Query("select count(a) from Account a where a.role = com.dulichso.bookingapi.entity.enums.AccountRole.ADMIN "
+            + "and a.status = com.dulichso.bookingapi.entity.enums.AccountStatus.ACTIVE "
+            + "and (a.adminLevel is null or a.adminLevel = 1)")
+    long countActiveLevelOneAdmins();
+
     @Query("""
         SELECT a FROM Account a LEFT JOIN FETCH a.provider 
         WHERE (:role IS NULL OR a.role = :role)

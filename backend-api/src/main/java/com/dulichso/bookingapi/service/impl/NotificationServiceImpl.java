@@ -189,7 +189,9 @@ public class NotificationServiceImpl implements NotificationService {
     @Transactional
     public NotificationDto markAsRead(Long id) {
         if (id == null) return null;
-        Optional<Notification> opt = notificationRepository.findById(id);
+        // Endpoint công khai: chỉ thông báo của khách; thông báo gửi cho Admin có API riêng (cần đăng nhập ADMIN).
+        Optional<Notification> opt = notificationRepository.findById(id)
+                .filter(n -> n.getRecipientType() == com.dulichso.bookingapi.entity.enums.RecipientType.CUSTOMER);
         if (opt.isPresent()) {
             Notification n = opt.get();
             Map<String, Object> payload = n.getPayload();

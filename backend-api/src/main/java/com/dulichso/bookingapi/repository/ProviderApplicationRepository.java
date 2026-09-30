@@ -19,4 +19,10 @@ public interface ProviderApplicationRepository extends JpaRepository<ProviderApp
     Optional<ProviderApplication> findByIdForUpdate(@Param("id") Long id);
 
     long countByStatus(ProviderApplicationStatus status);
+
+    /**
+     * Số giấy phép/đăng ký kinh doanh trùng với một hồ sơ chưa bị từ chối (đang chờ duyệt hoặc đã duyệt) thì không cho
+     * gửi hồ sơ mới — hồ sơ đã bị từ chối trước đó không tính vì NCC có thể đăng ký lại với cùng giấy phép thật.
+     */
+    boolean existsByBusinessLicenseNoAndStatusNot(String businessLicenseNo, ProviderApplicationStatus status);
 }

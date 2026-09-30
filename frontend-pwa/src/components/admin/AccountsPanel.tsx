@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Building2, Eye, Lock, Mail, Plus, Unlock, UserPlus } from 'lucide-react';
+import { Building2, Eye, Lock, Mail, Plus, RotateCcw, Unlock, UserPlus } from 'lucide-react';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useAdminPermission } from '@/hooks/useAdminPermission';
 import { adminService } from '@/services/adminService';
 import type { AccountStatus, AdminTravelerDto, PageResponse, TravelerSignupMethod } from '@/types/admin';
 import {
@@ -11,12 +12,14 @@ import {
   RefreshButton,
   SortSelect,
   TableFooter,
-  UnderlineTabs,
   type SelectOption,
   type SortOption,
-  type TabItem,
 } from './AdminFilters';
 import { StatusBadge } from './StatusBadge';
+import StatusFilter, { type StatusFilterItem } from './StatusFilter';
+import { STATUS_COLOR } from './statusColor';
+import { useUrlStatus } from '@/hooks/useUrlStatus';
+import { useStatusCounts } from '@/hooks/useStatusCounts';
 import AccountDetailDrawer, { type AccountDetailTarget } from './AccountDetailDrawer';
 import CreateTravelerModal from './CreateTravelerModal';
 import Avatar from './Avatar';
@@ -41,11 +44,12 @@ interface AccountsPanelProps {
 
 const PAGE_SIZE = 15;
 
-const STATUS_TABS: TabItem<AccountStatus>[] = [
-  { value: '', label: 'Tất cả' },
-  { value: 'ACTIVE', label: 'Hoạt động', tone: 'success' },
-  { value: 'INACTIVE', label: 'Bị khóa', tone: 'danger' },
+/** Trạng thái khách = traveler.status: ACTIVE (Hoạt động) / INACTIVE (Bị khóa). */
+const STATUS_ITEMS: StatusFilterItem<AccountStatus>[] = [
+  { value: 'ACTIVE', label: 'Hoạt động', tone: STATUS_COLOR.green },
+  { value: 'INACTIVE', label: 'Bị khóa', tone: STATUS_COLOR.red },
 ];
+const STATUS_VALUES = STATUS_ITEMS.map((i) => i.value);
 const SIGNUP_OPTIONS: SelectOption<TravelerSignupMethod>[] = [
   { value: '', label: 'Tất cả' },
   { value: 'GOOGLE', label: 'Google' },
@@ -57,6 +61,7 @@ const SORT_OPTIONS: SortOption[] = [
   { value: 'lastLoginAt:desc', label: 'Đăng nhập gần đây' },
   { value: 'fullName:asc', label: 'Tên A → Z' },
 ];
+const DEFAULT_SORT = 'createdAt:desc';
 
 const formatDate = (iso?: string | null) => (iso ? new Date(iso).toLocaleString('vi-VN') : '—');
 
@@ -64,12 +69,15 @@ const createBtnCls =
   'flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-semibold shadow-xs transition-all duration-200 hover:-translate-y-0.5';
 
 export default function AccountsPanel({ currentAccountId, refreshKey = 0, onCreateAdmin, onCreateProvider, onResetPassword, notify }: AccountsPanelProps) {
+  // Nút tạo/khóa theo cấp: tạo Admin chỉ cấp 1; tạo NCC/khách và khóa từ cấp 2; cấp 3 chỉ xem.
+  const { can } = useAdminPermission();
+  const canOperate = can('operate');
   const [keyword, setKeyword] = useState('');
-  const [status, setStatus] = useState<AccountStatus | ''>('');
+  const [status, setStatus] = useUrlStatus<AccountStatus>(STATUS_VALUES, '');
   const [signup, setSignup] = useState<TravelerSignupMethod | ''>('');
   const [createdFrom, setCreatedFrom] = useState('');
   const [createdTo, setCreatedTo] = useState('');
-  const [sort, setSort] = useState('createdAt:desc');
+  const [sort, setSort] = useState(DEFAULT_SORT);
   const [page, setPage] = useState(0);
 
   const [travelers, setTravelers] = useState<PageResponse<AdminTravelerDto> | null>(null);
@@ -92,13 +100,21 @@ export default function AccountsPanel({ currentAccountId, refreshKey = 0, onCrea
     setPage(0);
   };
 
+  /** Đặt lại: xóa toàn bộ điều kiện tra cứu đang nhập (kể cả sắp xếp) và đưa danh sách về trạng thái ban đầu. */
   const clearFilters = () => {
     setKeyword('');
     setStatus('');
     setSignup('');
     setCreatedFrom('');
     setCreatedTo('');
+    setSort(DEFAULT_SORT);
     setPage(0);
+  };
+
+  /** Nút tải lại: đưa màn hình về trạng thái ban đầu (bỏ mọi điều kiện tìm kiếm / lọc / sắp xếp, về tab mặc định, trang 1) rồi tải lại dữ liệu mới nhất. */
+  const reloadFromStart = () => {
+    clearFilters();
+    setReload((n) => n + 1);
   };
 
   const load = useCallback(async () => {
@@ -129,6 +145,25 @@ export default function AccountsPanel({ currentAccountId, refreshKey = 0, onCrea
   useEffect(() => {
     void load();
   }, [load, reload, refreshKey]);
+
+  /** Số lượng trên từng tab: áp dụng cùng ô tìm kiếm / cách đăng ký / khoảng ngày, chỉ khác trạng thái. */
+  const counts = useStatusCounts(
+    STATUS_VALUES,
+    async (s) =>
+      (
+        await adminService.getTravelers({
+          status: s || undefined,
+          keyword: debouncedKeyword.trim() || undefined,
+          createdFrom: createdFrom || undefined,
+          createdTo: createdTo || undefined,
+          signupMethod: signup || undefined,
+          page: 0,
+          size: 1,
+        })
+      ).totalElements,
+    JSON.stringify([debouncedKeyword.trim(), signup, createdFrom, createdTo]),
+    reload + refreshKey,
+  );
 
   const confirmLock = async (reason: string) => {
     if (!lockTarget) return;
@@ -167,19 +202,25 @@ export default function AccountsPanel({ currentAccountId, refreshKey = 0, onCrea
       <header className="flex flex-wrap items-center justify-between gap-3 px-4 pt-4 pb-3">
         <h3 className="font-display text-sm font-bold text-ink-deep">Khách du lịch</h3>
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" onClick={onCreateAdmin} className={`${createBtnCls} border border-primary text-primary hover:bg-primary-50`}>
-            <Plus className="h-4 w-4" /> Tạo Admin
-          </button>
-          <button type="button" onClick={onCreateProvider} className={`${createBtnCls} border border-sun/50 text-amber-700 hover:bg-sun/10`}>
-            <Building2 className="h-4 w-4" /> Tạo NCC
-          </button>
-          <button type="button" onClick={() => setShowCreateTraveler(true)} className={`${createBtnCls} bg-secondary text-white hover:bg-secondary-600`}>
-            <UserPlus className="h-4 w-4" /> Tạo tài khoản khách
-          </button>
+          {can('manageAdmins') && (
+            <button type="button" onClick={onCreateAdmin} className={`${createBtnCls} border border-primary text-primary hover:bg-primary-50`}>
+              <Plus className="h-4 w-4" /> Tạo Admin
+            </button>
+          )}
+          {canOperate && (
+            <>
+              <button type="button" onClick={onCreateProvider} className={`${createBtnCls} border border-sun/50 text-amber-700 hover:bg-sun/10`}>
+                <Building2 className="h-4 w-4" /> Tạo NCC
+              </button>
+              <button type="button" onClick={() => setShowCreateTraveler(true)} className={`${createBtnCls} bg-secondary text-white hover:bg-secondary-600`}>
+                <UserPlus className="h-4 w-4" /> Tạo tài khoản khách
+              </button>
+            </>
+          )}
         </div>
       </header>
 
-      <UnderlineTabs ariaLabel="Trạng thái tài khoản" items={STATUS_TABS} value={status} onChange={resetPage(setStatus)} />
+      <StatusFilter ariaLabel="Trạng thái tài khoản" items={STATUS_ITEMS} value={status} counts={counts} onChange={resetPage(setStatus)} />
 
       {/* Toolbar một dòng */}
       <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2.5">
@@ -197,7 +238,16 @@ export default function AccountsPanel({ currentAccountId, refreshKey = 0, onCrea
         />
         <div className="ml-auto flex shrink-0 items-center gap-2">
           <SortSelect value={sort} options={SORT_OPTIONS} onChange={resetPage(setSort)} />
-          <RefreshButton loading={loading} onClick={() => setReload((n) => n + 1)} />
+          <button
+            type="button"
+            onClick={clearFilters}
+            title="Đặt lại: xóa điều kiện tra cứu và về trạng thái ban đầu"
+            className="flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-border bg-white px-2.5 text-xs font-semibold text-muted transition-colors hover:border-primary/40 hover:text-primary"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Đặt lại</span>
+          </button>
+          <RefreshButton loading={loading} onClick={reloadFromStart} />
         </div>
       </div>
 
@@ -258,7 +308,7 @@ export default function AccountsPanel({ currentAccountId, refreshKey = 0, onCrea
                       >
                         <Eye className="h-3.5 w-3.5" />
                       </button>
-                      <LockButton status={t.status} onClick={() => openLock(t.id, label, t.status)} />
+                      {canOperate && <LockButton status={t.status} onClick={() => openLock(t.id, label, t.status)} />}
                     </div>
                   </td>
                 </tr>
@@ -306,6 +356,11 @@ export default function AccountsPanel({ currentAccountId, refreshKey = 0, onCrea
           }
           confirmLabel={lockTarget.next === 'INACTIVE' ? 'Khóa' : 'Mở khóa'}
           reasonRequired={lockTarget.next === 'INACTIVE'}
+          finalConfirm={
+            lockTarget.next === 'INACTIVE'
+              ? `Bạn sắp KHÓA tài khoản ${lockTarget.name}. Người này sẽ không đăng nhập được cho đến khi bạn mở khóa lại.`
+              : `Bạn sắp MỞ KHÓA tài khoản ${lockTarget.name}. Người này sẽ đăng nhập được trở lại ngay sau khi xác nhận.`
+          }
           tone={lockTarget.next === 'INACTIVE' ? 'danger' : 'primary'}
           error={lockError}
           onCancel={() => setLockTarget(null)}

@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import ImageLightbox from './ImageLightbox';
 
 interface ImageCarouselProps {
   images: string[];
@@ -20,17 +21,6 @@ export default function ImageCarousel({ images, alt, className = '', imageClassN
     if (activeIndex >= validImages.length) setActiveIndex(0);
   }, [activeIndex, validImages.length]);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsOpen(false);
-      if (event.key === 'ArrowLeft' && canNavigate) setActiveIndex((index) => (index - 1 + validImages.length) % validImages.length);
-      if (event.key === 'ArrowRight' && canNavigate) setActiveIndex((index) => (index + 1) % validImages.length);
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [canNavigate, isOpen, validImages.length]);
-
   if (validImages.length === 0) return <div className={className}>{emptyContent}</div>;
   const previous = () => setActiveIndex((index) => (index - 1 + validImages.length) % validImages.length);
   const next = () => setActiveIndex((index) => (index + 1) % validImages.length);
@@ -47,17 +37,7 @@ export default function ImageCarousel({ images, alt, className = '', imageClassN
           <span className="pointer-events-none absolute bottom-2 right-2 rounded-sm bg-black/65 px-2 py-1 text-xs font-semibold text-white">{activeIndex + 1}/{validImages.length}</span>
         </>}
       </div>
-      {isOpen && <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/90 p-4" role="dialog" aria-modal="true" aria-label={`Xem ảnh ${alt}`} onClick={() => setIsOpen(false)}>
-        <button type="button" onClick={() => setIsOpen(false)} aria-label="Đóng xem ảnh" className="absolute right-4 top-4 rounded-md bg-white/15 p-2 text-white hover:bg-white/25"><X className="h-6 w-6" /></button>
-        <div className="relative flex h-full w-full max-w-6xl items-center justify-center" onClick={(event) => event.stopPropagation()}>
-          <img src={validImages[activeIndex]} alt={`${alt} ${activeIndex + 1}`} className="max-h-[82vh] max-w-[calc(100%-5rem)] object-contain" />
-          {canNavigate && <>
-            <button type="button" onClick={previous} aria-label="Ảnh trước" className="absolute left-0 rounded-md bg-white/15 p-3 text-white hover:bg-white/25"><ChevronLeft className="h-7 w-7" /></button>
-            <button type="button" onClick={next} aria-label="Ảnh tiếp theo" className="absolute right-0 rounded-md bg-white/15 p-3 text-white hover:bg-white/25"><ChevronRight className="h-7 w-7" /></button>
-          </>}
-          <span className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-sm bg-black/65 px-3 py-1 text-sm font-semibold text-white">{activeIndex + 1}/{validImages.length}</span>
-        </div>
-      </div>}
+      {isOpen && <ImageLightbox images={validImages} index={activeIndex} alt={alt} onIndexChange={setActiveIndex} onClose={() => setIsOpen(false)} />}
     </>
   );
 }

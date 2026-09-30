@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import axios from 'axios';
 import { BadgePercent, Building2, CalendarCheck, ChevronRight, Home, RefreshCw, Wallet } from 'lucide-react';
 import { adminService } from '@/services/adminService';
 import { getApiErrorMessage } from '@/lib/apiError';
@@ -11,11 +12,17 @@ import type {
 import { ChipGroup, DateRangeFilter, type ChipOption } from './AdminFilters';
 import type { BookingsPreset } from './BookingsPanel';
 import { StatusBadge } from './StatusBadge';
-import { STATUS_FILL, STATUS_LABEL, STATUS_TONE, fmtDate, vnd } from './bookingMeta';
+import { STATUS_FILL, STATUS_LABEL, STATUS_TONE, fmtDate, fmtDateTime, vnd } from './bookingMeta';
+
+const INVALID_FILTER_MESSAGE = 'Điều kiện báo cáo không hợp lệ';
+const AGGREGATE_FAILED_MESSAGE = 'Không thể tổng hợp báo cáo. Vui lòng thử lại.';
+const NO_DATA_MESSAGE = 'Không có dữ liệu';
+const INSUFFICIENT_DATA_MESSAGE = 'Không đủ dữ liệu';
 
 interface ReportsPanelProps {
   /** Mở danh sách Booking đã lọc sẵn theo mục Admin vừa chọn trong báo cáo. */
   onDrill: (preset: BookingsPreset) => void;
+  notify: (type: 'success' | 'error', text: string) => void;
 }
 
 const GROUP_OPTIONS: ChipOption<ReportGroup>[] = [
@@ -56,7 +63,7 @@ const QUICK_RANGES: { label: string; range: () => [string, string] }[] = [
   },
 ];
 
-export default function ReportsPanel({ onDrill }: ReportsPanelProps) {
+export default function ReportsPanel({ onDrill, notify }: ReportsPanelProps) {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [providerId, setProviderId] = useState<number | ''>('');
@@ -84,11 +91,18 @@ export default function ReportsPanel({ onDrill }: ReportsPanelProps) {
         }),
       );
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, 'Không tải được báo cáo. Vui lòng thử lại.'));
+      // 400 (điều kiện lọc không hợp lệ, vd: ngày bắt đầu sau ngày kết thúc) hiển thị tại khu vực bộ lọc;
+      // các lỗi khác (mạng, máy chủ) là sự cố xử lý nên báo bằng toast.
+      if (axios.isAxiosError(err) && err.response?.status === 400) {
+        setError(INVALID_FILTER_MESSAGE);
+      } else {
+        setError(getApiErrorMessage(err, AGGREGATE_FAILED_MESSAGE));
+        notify('error', AGGREGATE_FAILED_MESSAGE);
+      }
     } finally {
       setLoading(false);
     }
-  }, [from, to, providerId, group]);
+  }, [from, to, providerId, group, notify]);
 
   useEffect(() => {
     void load();
@@ -100,6 +114,7 @@ export default function ReportsPanel({ onDrill }: ReportsPanelProps) {
       providerId: providerId === '' ? undefined : providerId,
       createdFrom: report.from,
       createdTo: report.to,
+      generatedAt: report.generatedAt,
       ...extra,
     });
   };
@@ -116,6 +131,8 @@ export default function ReportsPanel({ onDrill }: ReportsPanelProps) {
   const maxStatusCount = Math.max(1, ...(report?.byStatus.map((s) => s.count) ?? [0]));
   const useValue = maxValue > 1;
   const kpi = report?.kpi;
+  // RPT-BR-02: không có bản ghi nào theo kỳ/bộ lọc hiện tại -> hiển thị trạng thái "Không có dữ liệu" thay vì lưới KPI toàn số 0.
+  const noData = !!report && report.byStatus.every((s) => s.count === 0);
 
   return (
     <div className="flex flex-col gap-5">
@@ -161,19 +178,23 @@ export default function ReportsPanel({ onDrill }: ReportsPanelProps) {
           </label>
           <button
             type="button"
-            onClick={() => setReload((n) => n + 1)}
+            onClick={() => {
+              clear();
+              setReload((n) => n + 1);
+            }}
             aria-label="Tải lại báo cáo"
             className="ml-auto flex h-8 w-8 items-center justify-center rounded-md border border-border bg-white text-muted hover:text-primary"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
-        <ChipGroup label="Nhóm đơn" options={GROUP_OPTIONS} value={group} onChange={(v) => setGroup(v || 'ALL')} />
-        <div className="flex items-center justify-between text-xs text-muted">
+        <ChipGroup label="Trạng thái đơn" options={GROUP_OPTIONS} value={group} onChange={(v) => setGroup(v || 'ALL')} />
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-muted">
           <span>
             {report ? (
               <>
                 Kỳ báo cáo: <strong className="text-ink">{fmtDate(report.from)} → {fmtDate(report.to)}</strong> · tính theo ngày đặt
+                {' · '}Thời điểm chốt / cập nhật gần nhất: <strong className="text-ink">{fmtDateTime(report.generatedAt)}</strong>
               </>
             ) : (
               'Đang tải...'
@@ -194,12 +215,28 @@ export default function ReportsPanel({ onDrill }: ReportsPanelProps) {
         </div>
       )}
 
-      {kpi && report && (
+      {kpi && report && noData && (
+        <div className="rounded-lg border border-border bg-white p-10 text-center text-sm text-muted">{NO_DATA_MESSAGE}</div>
+      )}
+
+      {kpi && report && !noData && (
         <div className={`flex flex-col gap-5 transition-opacity ${loading ? 'opacity-60' : ''}`}>
           <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
             <Kpi icon={<CalendarCheck className="h-5 w-5" />} tone="bg-primary-50 text-primary" label="Tổng số đơn" value={`${kpi.totalBookings}`} sub={`${kpi.openBookings} đang chờ · ${kpi.lostBookings} hủy / từ chối`} onClick={() => drill({ label: 'Toàn bộ kỳ báo cáo' })} />
-            <Kpi icon={<BadgePercent className="h-5 w-5" />} tone="bg-accent/10 text-primary-700" label="Đã xác nhận / hoàn tất" value={`${kpi.confirmedBookings}`} sub={`Tỷ lệ ${kpi.confirmationRate}% trên tổng đơn`} />
-            <Kpi icon={<Wallet className="h-5 w-5" />} tone="bg-sun/15 text-amber-700" label="Giá trị đặt phòng" value={vnd(kpi.bookingValue)} sub={`TB ${vnd(kpi.averageValue)} / đơn · đã thu ${vnd(kpi.paidRevenue)}`} />
+            <Kpi
+              icon={<BadgePercent className="h-5 w-5" />}
+              tone="bg-accent/10 text-primary-700"
+              label="Đã xác nhận / hoàn tất"
+              value={`${kpi.confirmedBookings}`}
+              sub={kpi.confirmationRate == null ? INSUFFICIENT_DATA_MESSAGE : `Tỷ lệ ${kpi.confirmationRate}% trên tổng đơn`}
+            />
+            <Kpi
+              icon={<Wallet className="h-5 w-5" />}
+              tone="bg-sun/15 text-amber-700"
+              label="Giá trị đặt phòng"
+              value={vnd(kpi.bookingValue)}
+              sub={kpi.averageValue == null ? `${INSUFFICIENT_DATA_MESSAGE} (TB/đơn) · đã thu ${vnd(kpi.paidRevenue)}` : `TB ${vnd(kpi.averageValue)} / đơn · đã thu ${vnd(kpi.paidRevenue)}`}
+            />
             <Kpi
               icon={<Building2 className="h-5 w-5" />}
               tone="bg-secondary/10 text-secondary-700"

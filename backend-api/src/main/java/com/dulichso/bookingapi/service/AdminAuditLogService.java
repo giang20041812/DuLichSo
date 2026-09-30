@@ -33,6 +33,8 @@ import java.util.Set;
 public class AdminAuditLogService {
 
     static final int MAX_PAGE_SIZE = 100;
+    /** Kết quả mặc định cho bản ghi cũ chưa có cột result. */
+    private static final String LEGACY_RESULT = "SUCCESS";
 
     private final AuditLogRepository auditLogRepository;
     private final AccountRepository accountRepository;
@@ -45,18 +47,53 @@ public class AdminAuditLogService {
         this.travelerRepository = travelerRepository;
     }
 
-    @Transactional(readOnly = true)
     public Page<AuditLogDto> search(LocalDate from, LocalDate to, ActorType actor, Long actorId, String action,
                                     String entityType, Long entityId, String result, int page, int size) {
+        return search(from, to, actor, actorId, action, entityType, entityId, result, null, null, page, size);
+    }
+
+    /**
+     * @param keyword     tìm nhanh (không phân biệt hoa thường) theo mã hành động, loại đối tượng, lý do, tên/email người
+     *                    thao tác, hoặc mã đối tượng khi keyword là số
+     * @param actionCodes mã hành động bổ sung để khớp keyword (giao diện tra nhãn tiếng Việt → mã hành động)
+     */
+    @Transactional(readOnly = true)
+    public Page<AuditLogDto> search(LocalDate from, LocalDate to, ActorType actor, Long actorId, String action,
+                                    String entityType, Long entityId, String result, String keyword,
+                                    List<String> actionCodes, int page, int size) {
         if (from != null && to != null && to.isBefore(from)) {
             throw new IllegalArgumentException("Khoảng thời gian không hợp lệ: ngày kết thúc phải sau hoặc bằng ngày bắt đầu.");
         }
         String actionFilter = normalize(action);
         String entityFilter = normalize(entityType);
         String resultFilter = normalize(result);
+        String kw = keyword == null || keyword.isBlank() ? null : keyword.trim().toLowerCase(Locale.ROOT);
+        List<String> codes = actionCodes == null ? List.of()
+                : actionCodes.stream().map(AdminAuditLogService::normalize).filter(java.util.Objects::nonNull).limit(50).toList();
 
         Specification<AuditLog> spec = (root, query, cb) -> {
             List<Predicate> ps = new ArrayList<>();
+            if (kw != null) {
+                String like = "%" + kw.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
+                List<Predicate> any = new ArrayList<>();
+                any.add(cb.like(cb.lower(root.get("action")), like, '\\'));
+                any.add(cb.like(cb.lower(root.get("entityType")), like, '\\'));
+                any.add(cb.like(cb.lower(root.get("reason")), like, '\\'));
+                if (kw.matches("\\d{1,18}")) any.add(cb.equal(root.get("entityId"), Long.parseLong(kw)));
+                if (!codes.isEmpty()) any.add(cb.upper(root.get("action")).in(codes));
+                // Tên/email người thao tác nằm ở bảng account (ADMIN, PROVIDER) hoặc traveler (CUSTOMER).
+                var byAccount = query.subquery(Long.class);
+                var acc = byAccount.from(Account.class);
+                byAccount.select(acc.<Long>get("id")).where(cb.or(
+                        cb.like(cb.lower(acc.get("fullName")), like, '\\'), cb.like(cb.lower(acc.get("email")), like, '\\')));
+                any.add(cb.and(root.get("actor").in(ActorType.ADMIN, ActorType.PROVIDER), root.get("actorId").in(byAccount)));
+                var byTraveler = query.subquery(Long.class);
+                var trav = byTraveler.from(Traveler.class);
+                byTraveler.select(trav.<Long>get("id")).where(cb.or(
+                        cb.like(cb.lower(trav.get("fullName")), like, '\\'), cb.like(cb.lower(trav.get("email")), like, '\\')));
+                any.add(cb.and(cb.equal(root.get("actor"), ActorType.CUSTOMER), root.get("actorId").in(byTraveler)));
+                ps.add(cb.or(any.toArray(new Predicate[0])));
+            }
             if (from != null) ps.add(cb.greaterThanOrEqualTo(root.get("createdAt"), from.atStartOfDay()));
             if (to != null) ps.add(cb.lessThan(root.get("createdAt"), to.plusDays(1).atStartOfDay()));
             if (actor != null) ps.add(cb.equal(root.get("actor"), actor));
@@ -64,7 +101,11 @@ public class AdminAuditLogService {
             if (actionFilter != null) ps.add(cb.equal(cb.upper(root.get("action")), actionFilter));
             if (entityFilter != null) ps.add(cb.equal(cb.upper(root.get("entityType")), entityFilter));
             if (entityId != null) ps.add(cb.equal(root.get("entityId"), entityId));
-            if (resultFilter != null) ps.add(cb.equal(cb.upper(root.get("result")), resultFilter));
+            if (resultFilter != null) {
+                Predicate matches = cb.equal(cb.upper(root.get("result")), resultFilter);
+                // Bản ghi cũ (trước khi có cột result) chưa có kết quả: đó đều là thao tác đã thực hiện thành công.
+                ps.add(LEGACY_RESULT.equals(resultFilter) ? cb.or(matches, cb.isNull(root.get("result"))) : matches);
+            }
             return cb.and(ps.toArray(new Predicate[0]));
         };
         PageRequest pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), MAX_PAGE_SIZE),
@@ -116,7 +157,7 @@ public class AdminAuditLogService {
                 .action(l.getAction())
                 .entityType(l.getEntityType())
                 .entityId(l.getEntityId())
-                .result(l.getResult())
+                .result(l.getResult() != null ? l.getResult() : LEGACY_RESULT)
                 .ip(l.getIp())
                 .reason(l.getReason())
                 .beforeData(withData ? l.getBeforeData() : null)

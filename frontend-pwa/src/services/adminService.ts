@@ -17,6 +17,7 @@ import type {
   AdminDashboardSummaryDto,
   AuditLogEntryDto,
   AdminPlaceDetailDto,
+  PlaceShowcase,
   AccountStatus,
   ProviderStatus,
   PlaceVerificationStatus,
@@ -24,7 +25,6 @@ import type {
   AdminBookingDto,
   BookingSearchParams,
   BookingStatusSummary,
-  BookingAttentionItem,
   AdminBookingDetailDto,
   AddBookingNoteRequest,
   BookingNoteDto,
@@ -36,12 +36,15 @@ import type {
   AdminTravelerDto,
   AccountSearchParams,
   TravelerSearchParams,
+  AdminNotificationFeed,
+  UpdateAdminLevelRequest,
 } from '../types/admin';
 import type { CashflowReport, CashflowSearchParams } from '../types/cashflow';
 import type { AuditLogItem, AuditLogSearchParams } from '../types/auditLog';
 import type { AdminReview, AdminReviewSearchParams, ReviewModerationAction } from '../types/adminReview';
 import type {
   PendingApplicationCount,
+  ProviderApplicationBulkResult,
   ProviderApplicationDetail,
   ProviderApplicationSearchParams,
   ProviderApplicationSummary,
@@ -128,6 +131,34 @@ export const adminService = {
     await axios.patch(`${API_BASE}/accounts/${id}/reset-password`, data, getAuthHeaders());
   },
 
+  /** Thông tin và cấp quản trị của chính người đang đăng nhập (mọi cấp Admin). */
+  async getMe(): Promise<AdminAccountDto> {
+    const res = await axios.get<AdminAccountDto>(`${API_BASE}/accounts/me`, getAuthHeaders());
+    return res.data;
+  },
+
+  /** Đổi cấp quản trị viên (chỉ cấp 1; không tự đổi cấp của mình). */
+  async updateAdminLevel(id: number, data: UpdateAdminLevelRequest): Promise<AdminAccountDto> {
+    const res = await axios.patch<AdminAccountDto>(`${API_BASE}/accounts/${id}/admin-level`, data, getAuthHeaders());
+    return res.data;
+  },
+
+  // ─────────────────────────────────────────────
+  // Thông báo cho Admin (/notifications): NCC gửi hồ sơ đăng ký, khách đăng ký mới
+  // ─────────────────────────────────────────────
+  async getNotifications(): Promise<AdminNotificationFeed> {
+    const res = await axios.get<AdminNotificationFeed>(`${API_BASE}/notifications`, getAuthHeaders());
+    return res.data;
+  },
+
+  async markNotificationRead(id: number): Promise<void> {
+    await axios.post(`${API_BASE}/notifications/${id}/read`, null, getAuthHeaders());
+  },
+
+  async markAllNotificationsRead(): Promise<void> {
+    await axios.post(`${API_BASE}/notifications/read-all`, null, getAuthHeaders());
+  },
+
   // ─────────────────────────────────────────────
   // Duyệt thay đổi Homestay / phòng / giá của NCC (/change-requests)
   // ─────────────────────────────────────────────
@@ -200,6 +231,12 @@ export const adminService = {
     return res.data;
   },
 
+  /** Hình ảnh, tiện nghi, chính sách lưu trú của hồ sơ NCC (có dữ liệu khi hồ sơ đã được duyệt và đối tác đã tạo Homestay). */
+  async getProviderApplicationShowcase(id: number): Promise<PlaceShowcase> {
+    const res = await axios.get<PlaceShowcase>(`${API_BASE}/provider-applications/${id}/showcase`, getAuthHeaders());
+    return res.data;
+  },
+
   async approveProviderApplication(id: number, note?: string): Promise<ProviderApplicationDetail> {
     const res = await axios.post<ProviderApplicationDetail>(`${API_BASE}/provider-applications/${id}/approve`, { note }, getAuthHeaders());
     return res.data;
@@ -207,6 +244,18 @@ export const adminService = {
 
   async rejectProviderApplication(id: number, reason: string): Promise<ProviderApplicationDetail> {
     const res = await axios.post<ProviderApplicationDetail>(`${API_BASE}/provider-applications/${id}/reject`, { reason }, getAuthHeaders());
+    return res.data;
+  },
+
+  /** Duyệt nhiều hồ sơ đăng ký cùng lúc; hồ sơ lỗi (đã xử lý, SĐT/email trùng...) không chặn các hồ sơ còn lại. */
+  async bulkApproveProviderApplications(ids: number[], note?: string): Promise<ProviderApplicationBulkResult> {
+    const res = await axios.post<ProviderApplicationBulkResult>(`${API_BASE}/provider-applications/bulk-approve`, { ids, note }, getAuthHeaders());
+    return res.data;
+  },
+
+  /** Từ chối nhiều hồ sơ đăng ký cùng lúc với cùng một lý do. */
+  async bulkRejectProviderApplications(ids: number[], reason: string): Promise<ProviderApplicationBulkResult> {
+    const res = await axios.post<ProviderApplicationBulkResult>(`${API_BASE}/provider-applications/bulk-reject`, { ids, reason }, getAuthHeaders());
     return res.data;
   },
 
@@ -259,6 +308,12 @@ export const adminService = {
     return res.data;
   },
 
+  /** Hình ảnh, tiện nghi, chính sách lưu trú của điểm đến (màn Duyệt điểm đến). */
+  async getPlaceShowcase(id: number): Promise<PlaceShowcase> {
+    const res = await axios.get<PlaceShowcase>(`${API_BASE}/places/${id}/showcase`, getAuthHeaders());
+    return res.data;
+  },
+
   async getPlaces(params?: PlaceSearchParams): Promise<PageResponse<AdminPlaceSummaryDto>> {
     const res = await axios.get<PageResponse<AdminPlaceSummaryDto>>(`${API_BASE}/places`, {
       ...getAuthHeaders(),
@@ -268,9 +323,11 @@ export const adminService = {
   },
 
   async getBookings(params?: BookingSearchParams): Promise<PageResponse<AdminBookingDto>> {
+    // Axios mặc định gửi mảng dạng status[]=A; backend nhận danh sách phân tách bằng dấu phẩy.
+    const { statuses, ...rest } = params ?? {};
     const res = await axios.get<PageResponse<AdminBookingDto>>(`${API_BASE}/bookings`, {
       ...getAuthHeaders(),
-      params,
+      params: { ...rest, status: statuses && statuses.length > 0 ? statuses.join(',') : rest.status },
     });
     return res.data;
   },
@@ -280,10 +337,6 @@ export const adminService = {
     return res.data;
   },
 
-  async getBookingAttention(): Promise<BookingAttentionItem[]> {
-    const res = await axios.get<BookingAttentionItem[]>(`${API_BASE}/bookings/attention`, getAuthHeaders());
-    return res.data;
-  },
 
   async getBookingDetail(id: number): Promise<AdminBookingDetailDto> {
     const res = await axios.get<AdminBookingDetailDto>(`${API_BASE}/bookings/${id}`, getAuthHeaders());
@@ -332,6 +385,12 @@ export const adminService = {
 
   async updatePlaceVisibility(id: number, data: UpdatePlaceVisibilityRequest): Promise<AdminPlaceSummaryDto> {
     const res = await axios.patch<AdminPlaceSummaryDto>(`${API_BASE}/places/${id}/visibility`, data, getAuthHeaders());
+    return res.data;
+  },
+
+  /** Xóa mềm một hoặc nhiều điểm đến (bắt buộc lý do, ghi nhật ký hoạt động). */
+  async deletePlaces(data: { ids: number[]; reason: string }): Promise<{ deleted: number }> {
+    const res = await axios.post<{ deleted: number }>(`${API_BASE}/places/delete`, data, getAuthHeaders());
     return res.data;
   },
 

@@ -1,9 +1,11 @@
 package com.dulichso.bookingapi.service;
 
+import com.dulichso.bookingapi.dto.FieldErrorDto;
 import com.dulichso.bookingapi.dto.ProviderApplicationDtos.*;
 import com.dulichso.bookingapi.entity.ProviderApplication;
 import com.dulichso.bookingapi.entity.enums.ProviderApplicationStatus;
 import com.dulichso.bookingapi.repository.AccountRepository;
+import com.dulichso.bookingapi.repository.ProviderApplicationRepository;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -12,6 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -23,22 +27,36 @@ import java.util.Optional;
 public class ProviderApplicationService {
     private final EntityManager em;
     private final AccountRepository accounts;
+    private final ProviderApplicationRepository applications;
     private final PasswordEncoder passwordEncoder;
+    private final NotificationRecorder notifications;
 
     @Transactional
     public RegisterResult register(RegisterInput input) {
         String phone = input.contactPhone().trim();
         String email = blankToNull(input.contactEmail());
-        if (identifierTaken(phone) || (email != null && identifierTaken(email)))
-            throw conflict("Thông tin đăng nhập đã được sử dụng. Vui lòng kiểm tra tài khoản đối tác đã có.");
-        if (pendingFor(phone).isPresent() || (email != null && pendingFor(email).isPresent()))
-            throw conflict("Hồ sơ đang chờ xét duyệt với số điện thoại hoặc email này; không tạo hồ sơ trùng.");
+        String businessLicenseNo = input.businessLicenseNo().trim();
+        // Kiểm tra đủ mọi trường trước khi báo, để NCC thấy cùng lúc tất cả thông tin bị trùng (tên trường khớp RegisterInput).
+        List<FieldErrorDto> duplicates = new ArrayList<>();
+        if (identifierTaken(phone)) duplicates.add(new FieldErrorDto("contactPhone", "Số điện thoại này đã được đăng ký"));
+        else if (pendingFor(phone).isPresent())
+            duplicates.add(new FieldErrorDto("contactPhone", "Số điện thoại này đã có hồ sơ đăng ký đang chờ duyệt"));
+        if (email != null && identifierTaken(email)) duplicates.add(new FieldErrorDto("contactEmail", "Email này đã được sử dụng"));
+        else if (email != null && pendingFor(email).isPresent())
+            duplicates.add(new FieldErrorDto("contactEmail", "Email này đã có hồ sơ đăng ký đang chờ duyệt"));
+        // Giấy phép trùng với hồ sơ chưa bị từ chối (đang chờ duyệt hoặc đã duyệt) thì không cho gửi hồ sơ mới.
+        if (applications.existsByBusinessLicenseNoAndStatusNot(businessLicenseNo, ProviderApplicationStatus.REJECTED))
+            duplicates.add(new FieldErrorDto("businessLicenseNo", "Số giấy phép đăng ký kinh doanh này đã được sử dụng"));
+        if (!duplicates.isEmpty()) throw new DuplicateFieldsException(duplicates);
         ProviderApplication application = ProviderApplication.builder()
                 .businessName(input.businessName().trim()).contactName(input.contactName().trim())
                 .contactPhone(phone).contactEmail(email).address(input.address().trim())
-                .businessLicenseNo(blankToNull(input.businessLicenseNo())).description(blankToNull(input.description()))
+                .businessLicenseNo(businessLicenseNo).description(blankToNull(input.description()))
                 .passwordHash(passwordEncoder.encode(input.password())).createdAt(LocalDateTime.now()).build();
         em.persist(application);
+        notifications.toAdmins("ADMIN_NEW_PROVIDER_APPLICATION", "ProviderApplication", application.getId(),
+                "Nhà cung cấp \"" + application.getBusinessName() + "\" (" + application.getContactName() + ") vừa gửi hồ sơ đăng ký, đang chờ duyệt.",
+                "applications");
         return new RegisterResult(application.getId(), application.getStatus(),
                 "Đã tiếp nhận hồ sơ đăng ký Nhà cung cấp. Mã hồ sơ: " + application.getId()
                         + ". Quản trị viên sẽ thẩm định; bạn đăng nhập được bằng số điện thoại/email này sau khi hồ sơ được duyệt.");
@@ -65,5 +83,4 @@ public class ProviderApplicationService {
     }
 
     private static String blankToNull(String s) {return s == null || s.isBlank() ? null : s.trim();}
-    private static ResponseStatusException conflict(String text) {return new ResponseStatusException(HttpStatus.CONFLICT, text);}
 }

@@ -2,6 +2,7 @@ package com.dulichso.bookingapi.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -56,8 +57,23 @@ public class SecurityConfig {
                         .requestMatchers("/api/public/**", "/error").permitAll()
                         // Auth endpoints (đăng nhập portal, google)
                         .requestMatchers("/api/v1/auth/**").permitAll()
-                        // Admin endpoints: chỉ ADMIN
-                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                        // Admin endpoints: chỉ ADMIN, phân theo cấp (thứ tự khai báo quan trọng — khớp quy tắc đầu tiên).
+                        //   Cấp 1 = toàn quyền · Cấp 2 = vận hành (duyệt, xử lý) · Cấp 3 = xem + kiểm duyệt đánh giá + ghi nhận giám sát.
+                        // Mọi ADMIN: thông tin cấp của chính mình và thông báo của mình.
+                        .requestMatchers("/api/v1/admin/accounts/me", "/api/v1/admin/notifications/**").hasRole("ADMIN")
+                        // Cấp 2: khóa/mở khóa và đặt lại mật khẩu (dịch vụ chặn cấp 2 tác động lên tài khoản Admin).
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/admin/accounts/*/status", "/api/v1/admin/accounts/*/reset-password").hasAuthority("ADMIN_L2")
+                        // Cấp 1: quản lý tài khoản (tạo Admin, đổi quyền/cấp), tài chính, xóa điểm đến.
+                        .requestMatchers("/api/v1/admin/accounts/**", "/api/v1/admin/finance/**").hasAuthority("ADMIN_L1")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/admin/places/delete").hasAuthority("ADMIN_L1")
+                        // Cấp 3 trở lên được ghi nhận giám sát Booking và kiểm duyệt đánh giá.
+                        .requestMatchers(HttpMethod.POST, "/api/v1/admin/reviews/*/moderate", "/api/v1/admin/bookings/*/notes").hasAuthority("ADMIN_L3")
+                        // Nhật ký hoạt động và hàng đợi hồ sơ NCC / yêu cầu thay đổi (chứa SĐT, email, thông tin cơ sở): từ cấp 2.
+                        .requestMatchers(HttpMethod.GET, "/api/v1/admin/audit-logs/**", "/api/v1/admin/dashboard/activity",
+                                "/api/v1/admin/provider-applications/**", "/api/v1/admin/change-requests/**").hasAuthority("ADMIN_L2")
+                        // Còn lại: đọc dữ liệu (mọi cấp), ghi/xử lý (từ cấp 2).
+                        .requestMatchers(HttpMethod.GET, "/api/v1/admin/**").hasAuthority("ADMIN_L3")
+                        .requestMatchers("/api/v1/admin/**").hasAuthority("ADMIN_L2")
                         // Partner endpoints: PROVIDER hoặc ADMIN
                         .requestMatchers("/api/v1/partner/**").hasAnyRole("PROVIDER", "ADMIN")
                         // Tất cả còn lại: phải đăng nhập

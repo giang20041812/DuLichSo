@@ -33,7 +33,7 @@ export const VERIFICATION_TONE: Record<PlaceVerificationStatus, StatusTone> = {
   UNVERIFIED: 'warning',
   VERIFIED: 'success',
   NEEDS_UPDATE: 'info',
-  ARCHIVED: 'danger',
+  ARCHIVED: 'neutral',
 };
 
 export const VISIBILITY_LABEL: Record<PlaceVisibility, string> = {

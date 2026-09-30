@@ -23,11 +23,41 @@ export interface AdminAccountDto {
   /** null khi tài khoản chưa cập nhật họ tên. */
   fullName: string | null;
   role: AccountRole;
+  /** Cấp quản trị 1..3 — chỉ có với role ADMIN (khớp AccountDto.adminLevel ở backend). */
+  adminLevel?: AdminLevel | null;
   status: AccountStatus;
   providerId?: number;
   providerName?: string;
   lastLoginAt?: string;
   createdAt: string;
+}
+
+/** Cấp quản trị viên: 1 = cao nhất (toàn quyền) … 3 = thấp nhất (chỉ xem + kiểm duyệt đánh giá). */
+export type AdminLevel = 1 | 2 | 3;
+
+/** Khớp AdminNotificationDtos.NotificationItemDto (thông báo trong ứng dụng gửi cho Admin). */
+export interface AdminNotificationItem {
+  id: number;
+  title: string | null;
+  message: string | null;
+  /** Mục của cổng quản trị cần mở khi bấm thông báo (vd: "applications", "accounts"). */
+  target: string | null;
+  entityType: string | null;
+  entityId: number | null;
+  read: boolean;
+  createdAt: string;
+}
+
+/** Khớp AdminNotificationDtos.NotificationFeedDto */
+export interface AdminNotificationFeed {
+  items: AdminNotificationItem[];
+  unread: number;
+}
+
+/** Khớp AdminAccountDtos.UpdateAdminLevelRequest */
+export interface UpdateAdminLevelRequest {
+  adminLevel: AdminLevel;
+  reason?: string;
 }
 
 /** Khớp Spring Data Page<T> trả về từ backend-api. */
@@ -84,6 +114,8 @@ export interface CreateAdminAccountRequest {
   phone: string;
   password: string;
   fullName: string;
+  /** Không nêu thì backend gán cấp 3 (ít quyền nhất). */
+  adminLevel?: AdminLevel;
 }
 
 export interface UpdateAccountRequest {
@@ -286,6 +318,68 @@ export interface AdminPlaceDetailDto {
   updatedAt: string;
 }
 
+// ─────────────────────────────────────────────
+// Hình ảnh / tiện nghi / chính sách lưu trú ở màn chi tiết Admin (khớp PlaceShowcaseDtos)
+// ─────────────────────────────────────────────
+export interface PlaceShowcaseImage {
+  url: string;
+  caption: string | null;
+  /** Ảnh bìa (luôn đứng đầu danh sách). */
+  cover: boolean;
+}
+
+/** Chính sách lưu trú của Homestay; trường chữ rỗng khi NCC chưa khai. */
+export interface PlaceStayPolicy {
+  checkInFrom: string;
+  checkOutUntil: string;
+  houseRules: string;
+  surchargeNote: string;
+  childrenPolicy: string;
+  petsPolicy: string;
+  guestPolicy: string;
+  cancellationPolicyName: string;
+  cancellationPolicy: string;
+  freeCancelCutoffHours: number | null;
+  refundOnLateCancel: 'FULL_REFUND' | 'NO_REFUND' | null;
+}
+
+/** SeasonalPriceDto — giá theo mùa của loại phòng. */
+export interface PlaceSeasonalPrice {
+  name: string;
+  periodStart: string;
+  periodEnd: string;
+  price: number;
+}
+
+/** RoomShowcaseDto — loại phòng với đủ các trường NCC khai; `beds` đã ghép sẵn dạng "2 giường đôi". */
+export interface PlaceShowcaseRoom {
+  id: number;
+  name: string;
+  totalRoomCount: number;
+  maxOccupancy: number;
+  areaSqm: number | null;
+  privateBathroom: 'YES' | 'NO' | 'UNVERIFIED' | null;
+  basePrice: number | null;
+  weekendPrice: number | null;
+  status: 'ACTIVE' | 'INACTIVE' | string;
+  viewDescription: string;
+  description: string;
+  beds: string[];
+  amenities: string[];
+  seasonalPrices: PlaceSeasonalPrice[];
+}
+
+/** placeId/placeName null khi chưa có cơ sở làm nguồn (vd hồ sơ NCC chưa được duyệt); stayPolicy null khi không phải Homestay / chưa khai. */
+export interface PlaceShowcase {
+  placeId: number | null;
+  placeName: string | null;
+  images: PlaceShowcaseImage[];
+  amenities: string[];
+  stayPolicy: PlaceStayPolicy | null;
+  /** Loại phòng (chỉ Homestay). */
+  rooms: PlaceShowcaseRoom[];
+}
+
 export interface MonthlyRevenuePoint {
   year: number;
   month: number;
@@ -324,6 +418,8 @@ export interface AdminBookingDto {
 
 export interface BookingSearchParams {
   status?: BookingStatus;
+  /** Nhiều trạng thái cùng lúc (cổng Admin: tab nhóm trạng thái). Được gửi lên thành `status=A,B,C`. */
+  statuses?: BookingStatus[];
   keyword?: string;
   /** Lọc theo khách: tên, SĐT hoặc email */
   guest?: string;
@@ -346,14 +442,6 @@ export type BookingStatusSummary = Record<BookingStatus, number>;
 // ─────────────────────────────────────────────
 // Giám sát Booking (khớp AdminBookingMonitorService)
 // ─────────────────────────────────────────────
-export type BookingAttentionReason = 'PENDING_STALE' | 'PAYMENT_OVERDUE' | 'STAY_UNRESOLVED' | 'FOLLOW_UP';
-
-export interface BookingAttentionItem {
-  booking: AdminBookingDto;
-  reason: BookingAttentionReason;
-  reasonLabel: string;
-}
-
 export type BookingNoteKind = 'VERIFICATION' | 'OUTCOME';
 export type BookingNoteOutcome = 'NO_ISSUE' | 'SUPPORTED' | 'ESCALATED' | 'FOLLOW_UP';
 
@@ -402,7 +490,6 @@ export interface AdminBookingDetailDto {
   services: BookingServiceItemDto[];
   payments: BookingPaymentDto[];
   notes: BookingNoteDto[];
-  attention: BookingAttentionReason[];
 }
 
 export interface AddBookingNoteRequest {
@@ -429,9 +516,11 @@ export interface ReportKpi {
   openBookings: number;
   lostBookings: number;
   bookingValue: number;
-  averageValue: number;
+  /** null = không đủ dữ liệu để tính (chưa có đơn xác nhận nào trong kỳ) — không tự quy về 0 (RPT-BR-02). */
+  averageValue: number | null;
   paidRevenue: number;
-  confirmationRate: number;
+  /** null = không đủ dữ liệu để tính (chưa có đơn nào trong kỳ) — không tự quy về 0 (RPT-BR-02). */
+  confirmationRate: number | null;
   /** null khi đang lọc theo một NCC */
   newProviders: number | null;
   newPlaces: number | null;
@@ -467,6 +556,8 @@ export interface AdminOverviewReport {
   to: string;
   providerId: number | null;
   granularity: 'DAY' | 'MONTH';
+  /** Thời điểm chốt số liệu (= cập nhật gần nhất, vì báo cáo luôn tính lại theo thời gian thực mỗi lần tải). */
+  generatedAt: string;
   kpi: ReportKpi;
   byStatus: { status: BookingStatus; count: number }[];
   series: ReportSeriesPoint[];

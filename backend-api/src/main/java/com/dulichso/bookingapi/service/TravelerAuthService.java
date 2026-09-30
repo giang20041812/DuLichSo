@@ -1,5 +1,6 @@
 package com.dulichso.bookingapi.service;
 
+import com.dulichso.bookingapi.dto.FieldErrorDto;
 import com.dulichso.bookingapi.entity.Traveler;
 import com.dulichso.bookingapi.entity.enums.AccountStatus;
 import com.dulichso.bookingapi.entity.enums.ActorType;
@@ -12,6 +13,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /** Đăng ký / đăng nhập khách du lịch (email + mật khẩu hoặc Google). */
@@ -25,20 +28,25 @@ public class TravelerAuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
     private final AuditLogService auditLogService;
+    private final NotificationRecorder notifications;
 
     public TravelerAuthService(TravelerRepository travelerRepository, PasswordEncoder passwordEncoder, JwtUtils jwtUtils,
-                               AuditLogService auditLogService) {
+                               AuditLogService auditLogService, NotificationRecorder notifications) {
         this.travelerRepository = travelerRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtils = jwtUtils;
         this.auditLogService = auditLogService;
+        this.notifications = notifications;
+    }
+
+    /** Báo cho các Admin biết có khách du lịch mới đăng ký (không làm hỏng đăng ký nếu gửi thông báo lỗi). */
+    private void notifyAdminsNewTraveler(Traveler traveler) {
+        String name = traveler.getFullName() != null && !traveler.getFullName().isBlank() ? traveler.getFullName() : traveler.getEmail();
+        notifications.toAdmins("ADMIN_NEW_TRAVELER", "Traveler", traveler.getId(),
+                "Khách \"" + name + "\" (" + traveler.getEmail() + ") vừa đăng ký tài khoản.", "accounts");
     }
 
     public record TravelerSession(String token, String email, String fullName, String picture, String phone) {}
-
-    public static class DuplicateAccountException extends RuntimeException {
-        public DuplicateAccountException(String message) { super(message); }
-    }
 
     public static class InvalidRegistrationException extends RuntimeException {
         public InvalidRegistrationException(String message) { super(message); }
@@ -73,12 +81,15 @@ public class TravelerAuthService {
         if (confirmPassword != null && !password.equals(confirmPassword)) {
             throw new InvalidRegistrationException("Xác nhận mật khẩu không khớp với mật khẩu đã nhập.");
         }
+        // Kiểm tra đủ mọi trường trước khi báo, để khách thấy cùng lúc tất cả thông tin bị trùng.
+        List<FieldErrorDto> duplicates = new ArrayList<>();
         if (travelerRepository.existsByEmailIgnoreCase(normalizedEmail)) {
-            throw new DuplicateAccountException("Địa chỉ email này đã được sử dụng. Vui lòng đăng nhập hoặc dùng email khác.");
+            duplicates.add(new FieldErrorDto("email", "Email này đã được sử dụng"));
         }
         if (normalizedPhone != null && travelerRepository.existsByPhone(normalizedPhone)) {
-            throw new DuplicateAccountException("Số điện thoại này đã được đăng ký cho một tài khoản khác.");
+            duplicates.add(new FieldErrorDto("phone", "Số điện thoại này đã được đăng ký"));
         }
+        if (!duplicates.isEmpty()) throw new DuplicateFieldsException(duplicates);
 
         Traveler traveler = travelerRepository.save(Traveler.builder()
                 .email(normalizedEmail)
@@ -87,6 +98,7 @@ public class TravelerAuthService {
                 .passwordHash(passwordEncoder.encode(password))
                 .lastLoginAt(LocalDateTime.now())
                 .build());
+        notifyAdminsNewTraveler(traveler);
         return session(traveler);
     }
 
@@ -129,10 +141,13 @@ public class TravelerAuthService {
         Traveler traveler = travelerRepository.findByEmailIgnoreCase(profile.email())
                 .orElseGet(() -> Traveler.builder().email(profile.email().toLowerCase()).build());
         assertActive(traveler);
+        boolean isNew = traveler.getId() == null;
         if (traveler.getFullName() == null) traveler.setFullName(profile.fullName());
         traveler.setPictureUrl(profile.picture());
         traveler.setLastLoginAt(LocalDateTime.now());
-        return session(travelerRepository.save(traveler));
+        Traveler saved = travelerRepository.save(traveler);
+        if (isNew) notifyAdminsNewTraveler(saved);
+        return session(saved);
     }
 
     private void assertActive(Traveler t) {

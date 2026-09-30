@@ -106,7 +106,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 Long accountId = account != null ? account.getId() : null;
                 Long providerId = account != null && account.getProvider() != null ? account.getProvider().getId() : null;
-                UserPrincipal principal = new UserPrincipal(accountId, username, role, providerId);
+                // Cấp quản trị lấy từ DB mỗi request (đổi cấp có hiệu lực ngay); tài khoản QA mẫu không có trong DB → cấp 1.
+                Integer adminLevel = account != null ? account.effectiveAdminLevel() : (role == AccountRole.ADMIN ? 1 : null);
+                UserPrincipal principal = new UserPrincipal(accountId, username, role, providerId, adminLevel);
 
                 UsernamePasswordAuthenticationToken auth =
                         new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());

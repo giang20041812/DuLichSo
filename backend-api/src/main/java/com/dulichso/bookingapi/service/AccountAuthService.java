@@ -129,6 +129,7 @@ public class AccountAuthService {
                 .phone(account.getPhone())
                 .fullName(account.getFullName())
                 .role(account.getRole())
+                .adminLevel(account.effectiveAdminLevel())
                 .status(account.getStatus())
                 .provider(providerDto)
                 .redirectUrl(redirectUrl)

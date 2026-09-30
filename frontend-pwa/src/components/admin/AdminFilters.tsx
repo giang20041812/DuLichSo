@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ArrowUpDown, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, RefreshCw, Search, X } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
+import { AlertTriangle, ArrowUpDown, CheckCircle2, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, RefreshCw, Search, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { StatusTone } from './StatusBadge';
 import OverlayPortal from './OverlayPortal';
@@ -75,13 +75,23 @@ const TAB_TEXT_ACTIVE: Record<StatusTone, string> = {
   brand: 'text-primary',
   neutral: 'text-ink-deep',
 };
+/** Rê chuột / chạm vào tab chưa chọn: nền đậm hơn một chút cùng tông. */
 const TAB_HOVER: Record<StatusTone, string> = {
-  success: 'hover:bg-accent/5 hover:text-primary-700',
-  warning: 'hover:bg-sun/10 hover:text-amber-700',
-  danger: 'hover:bg-danger/5 hover:text-danger',
-  info: 'hover:bg-secondary/5 hover:text-secondary-700',
-  brand: 'hover:bg-primary-50 hover:text-primary',
-  neutral: 'hover:bg-hover hover:text-ink-deep',
+  success: 'hover:bg-accent/10 hover:text-primary-700',
+  warning: 'hover:bg-sun/15 hover:text-amber-700',
+  danger: 'hover:bg-danger/10 hover:text-danger',
+  info: 'hover:bg-secondary/10 hover:text-secondary-700',
+  brand: 'hover:bg-primary-100 hover:text-primary',
+  neutral: 'hover:bg-muted/10 hover:text-ink-deep',
+};
+/** Số đếm của tab chưa chọn khi rê chuột / chạm vào tab: đậm hơn nền nhạt thường ngày. */
+const TAB_COUNT_IDLE_HOVER: Record<StatusTone, string> = {
+  success: 'group-hover:bg-accent/20',
+  warning: 'group-hover:bg-sun/30',
+  danger: 'group-hover:bg-danger/20',
+  info: 'group-hover:bg-secondary/20',
+  brand: 'group-hover:bg-primary-100',
+  neutral: 'group-hover:bg-muted/20',
 };
 const TAB_DOT: Record<StatusTone, string> = {
   success: 'bg-accent',
@@ -106,14 +116,17 @@ export function UnderlineTabs<T extends string>({
   value,
   onChange,
   ariaLabel,
+  trailing,
 }: {
   items: TabItem<T>[];
   value: T | '';
   onChange: (v: T | '') => void;
   ariaLabel: string;
+  /** Phần phụ đặt cuối dải tab (vd: ô chọn "Khác" gom các trạng thái ít dùng). */
+  trailing?: ReactNode;
 }) {
   return (
-    <div role="tablist" aria-label={ariaLabel} className="flex gap-1 overflow-x-auto border-b border-border px-3">
+    <div role="tablist" aria-label={ariaLabel} className="flex items-stretch gap-1 overflow-x-auto border-b border-border px-3">
       {items.map((it) => {
         const active = it.value === value;
         const tone: StatusTone = it.tone ?? 'brand';
@@ -124,16 +137,25 @@ export function UnderlineTabs<T extends string>({
             role="tab"
             aria-selected={active}
             onClick={() => onChange(it.value)}
-            className={`relative flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-t-md px-2.5 py-2.5 text-xs font-semibold transition-colors duration-200 ${
-              active ? `${TAB_TEXT_ACTIVE[tone]} bg-canvas/70` : `text-muted ${TAB_HOVER[tone]}`
+            className={`group relative flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-t-md px-2.5 py-2.5 text-xs font-semibold transition-colors duration-200 ${
+              active ? `${TAB_TEXT_ACTIVE[tone]} bg-canvas/70 hover:bg-canvas` : `text-muted ${TAB_HOVER[tone]}`
             }`}
           >
-            {it.tone && <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${TAB_DOT[tone]} ${!active && it.count === 0 ? 'opacity-40' : ''}`} />}
+            {it.tone && (
+              <span
+                aria-hidden
+                className={`h-1.5 w-1.5 rounded-full transition-opacity duration-200 ${TAB_DOT[tone]} ${!active && it.count === 0 ? 'opacity-40 group-hover:opacity-70' : ''}`}
+              />
+            )}
             {it.label}
             {it.count != null && (
               <span
-                className={`rounded px-1.5 py-px text-[10px] font-bold tabular-nums transition-colors duration-200 ${
-                  active ? TAB_COUNT_ACTIVE[tone] : it.count > 0 ? TAB_COUNT_IDLE[tone] : 'bg-canvas text-muted/70'
+                className={`rounded px-1.5 py-px text-[10px] font-bold tabular-nums transition-all duration-200 ${
+                  active
+                    ? `${TAB_COUNT_ACTIVE[tone]} group-hover:brightness-95`
+                    : it.count > 0
+                    ? `${TAB_COUNT_IDLE[tone]} ${TAB_COUNT_IDLE_HOVER[tone]}`
+                    : 'bg-canvas text-muted/70 group-hover:bg-hover'
                 }`}
               >
                 {it.count}
@@ -147,6 +169,7 @@ export function UnderlineTabs<T extends string>({
           </button>
         );
       })}
+      {trailing && <div className="ml-auto flex shrink-0 items-center pl-2">{trailing}</div>}
     </div>
   );
 }
@@ -545,12 +568,29 @@ export function Pagination({
   );
 }
 
-/** Hộp thoại xác nhận có ô nhập lý do (dùng khi khóa / từ chối / ẩn). */
+/** Loại hộp xác nhận: `danger` = từ chối / khóa / ẩn / xóa (đỏ, icon cảnh báo) · `primary` = duyệt / công khai / mở khóa (xanh, icon tick). */
+export type ReasonDialogTone = 'danger' | 'primary';
+
+const DIALOG_TONE: Record<ReasonDialogTone, { icon: LucideIcon; badge: string; button: string }> = {
+  danger: { icon: AlertTriangle, badge: 'bg-danger/10 text-danger', button: 'bg-danger hover:opacity-90' },
+  primary: { icon: CheckCircle2, badge: 'bg-accent/15 text-primary', button: 'bg-primary hover:bg-primary-600' },
+};
+
+/**
+ * Hộp thoại xác nhận dùng chung cho cả thao tác từ chối (khóa / từ chối / ẩn / xóa) và xác nhận (duyệt / công khai / mở khóa);
+ * hai loại cùng layout, kích thước, vị trí, animation và cách đóng — chỉ khác màu, icon và nội dung theo `tone`.
+ *
+ * `finalConfirm`: khi có, bấm nút xác nhận chưa gửi ngay mà chuyển sang bước "Xác nhận lần cuối" nêu rõ hậu quả
+ * và nhắc lại lý do; chỉ khi bấm xác nhận ở bước đó mới gọi `onConfirm`. "Quay lại" về bước nhập lý do, không ghi nhận gì.
+ * Khi ẩn ô lý do (`hideReason`) thì bước nhập không còn gì để điền nên mở thẳng bước xác nhận; "Quay lại" đóng hộp thoại.
+ */
 export function ReasonDialog({
   title,
   description,
   confirmLabel,
   reasonRequired,
+  reasonRequiredMessage = 'Vui lòng nhập lý do.',
+  finalConfirm,
   hideReason,
   tone = 'danger',
   error,
@@ -561,13 +601,80 @@ export function ReasonDialog({
   description: string;
   confirmLabel: string;
   reasonRequired: boolean;
+  /** Thông báo lỗi tại ô lý do khi bỏ trống (chỉ dùng cùng `finalConfirm`; nơi khác tự kiểm ở onConfirm). */
+  reasonRequiredMessage?: string;
+  /** Nội dung cảnh báo hậu quả ở bước xác nhận lần cuối; bỏ trống = xác nhận một bước như cũ. */
+  finalConfirm?: string;
+  /** Ẩn ô nhập lý do (vd. thao tác duyệt không cần lý do). */
   hideReason?: boolean;
-  tone?: 'danger' | 'primary';
+  tone?: ReasonDialogTone;
   error?: string;
   onCancel: () => void;
   onConfirm: (reason: string) => void;
 }) {
   const [reason, setReason] = useState('');
+  // Không có ô lý do thì không cần bước nhập: vào thẳng bước xác nhận.
+  const skipForm = Boolean(hideReason && finalConfirm);
+  const [step, setStep] = useState<'form' | 'final'>(skipForm ? 'final' : 'form');
+  const meta = DIALOG_TONE[tone];
+  const ToneIcon = meta.icon;
+  const [localError, setLocalError] = useState('');
+
+  const submit = () => {
+    const trimmed = reason.trim();
+    if (!finalConfirm) {
+      onConfirm(trimmed);
+      return;
+    }
+    if (reasonRequired && !trimmed) {
+      setLocalError(reasonRequiredMessage);
+      return;
+    }
+    setLocalError('');
+    setStep('final');
+  };
+
+  const shownError = localError || error;
+
+  if (step === 'final' && finalConfirm) {
+    return (
+      <OverlayPortal>
+        <div className="fixed inset-0 z-[55] flex items-center justify-center bg-ink-deep/60 p-4 backdrop-blur-[2px]">
+          <div role="alertdialog" aria-modal="true" aria-label={title} className="flex w-full max-w-md flex-col gap-3 rounded-lg border border-border bg-white p-5 shadow-xl">
+            <div className="flex items-start gap-3">
+              <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${meta.badge}`}>
+                <ToneIcon className="h-5 w-5" aria-hidden />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{skipForm ? 'Xác nhận' : 'Xác nhận lần cuối'}</p>
+                <h3 className="font-display text-base font-bold text-ink-deep">{title}</h3>
+              </div>
+            </div>
+            <p className="text-xs leading-relaxed text-ink">{finalConfirm}</p>
+            {reason.trim() && (
+              <p className="rounded-md bg-canvas px-3 py-2 text-xs text-muted">
+                Lý do: <span className="text-ink">“{reason.trim()}”</span>
+              </p>
+            )}
+            {error && <p className="text-xs text-danger">{error}</p>}
+            <div className="flex justify-end gap-2 pt-1">
+              <button type="button" autoFocus onClick={() => (skipForm ? onCancel() : setStep('form'))} className="rounded-md px-4 py-2 text-xs font-medium text-muted hover:bg-hover">
+                Quay lại
+              </button>
+              <button
+                type="button"
+                onClick={() => onConfirm(reason.trim())}
+                className={`rounded-md px-4 py-2 text-xs font-semibold text-white ${meta.button}`}
+              >
+                {confirmLabel}
+              </button>
+            </div>
+          </div>
+        </div>
+      </OverlayPortal>
+    );
+  }
+
   return (
     <OverlayPortal>
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-deep/60 p-4 backdrop-blur-[2px]">
@@ -583,22 +690,23 @@ export function ReasonDialog({
               id="reason-dialog-input"
               rows={3}
               value={reason}
-              onChange={(e) => setReason(e.target.value)}
+              onChange={(e) => {
+                setReason(e.target.value);
+                setLocalError('');
+              }}
               className="w-full rounded-md border border-border px-3 py-2 text-xs focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </>
         )}
-        {error && <p className="text-xs text-danger">{error}</p>}
+        {shownError && <p className="text-xs text-danger">{shownError}</p>}
         <div className="flex justify-end gap-2 pt-1">
           <button type="button" onClick={onCancel} className="rounded-md px-4 py-2 text-xs font-medium text-muted hover:bg-hover">
             Hủy
           </button>
           <button
             type="button"
-            onClick={() => onConfirm(reason.trim())}
-            className={`rounded-md px-4 py-2 text-xs font-semibold text-white ${
-              tone === 'danger' ? 'bg-danger hover:opacity-90' : 'bg-primary hover:bg-primary-600'
-            }`}
+            onClick={submit}
+            className={`rounded-md px-4 py-2 text-xs font-semibold text-white ${meta.button}`}
           >
             {confirmLabel}
           </button>

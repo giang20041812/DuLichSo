@@ -15,6 +15,10 @@ import {
   type SelectOption,
 } from './AdminFilters';
 import { StatusBadge, type StatusTone } from './StatusBadge';
+import StatusFilter, { type StatusFilterItem } from './StatusFilter';
+import { STATUS_COLOR } from './statusColor';
+import { useUrlStatus } from '@/hooks/useUrlStatus';
+import { useStatusCounts } from '@/hooks/useStatusCounts';
 import { actionButtonClass } from './statusStyles';
 import OverlayPortal from './OverlayPortal';
 
@@ -25,7 +29,16 @@ interface ReviewsPanelProps {
 const PAGE_SIZE = 15;
 const STATUS_LABEL: Record<AdminReviewStatus, string> = { VISIBLE: 'Đang hiển thị', HIDDEN: 'Đã ẩn', REMOVED: 'Đã gỡ' };
 const STATUS_TONE: Record<AdminReviewStatus, StatusTone> = { VISIBLE: 'success', HIDDEN: 'warning', REMOVED: 'danger' };
-const STATUS_OPTIONS: SelectOption<AdminReviewStatus>[] = (Object.keys(STATUS_LABEL) as AdminReviewStatus[]).map((s) => ({ value: s, label: STATUS_LABEL[s] }));
+/**
+ * Tab xử lý đánh giá. Backend chưa có cơ chế "báo cáo vi phạm" nên "Chờ xử lý" / "Đã xử lý" được suy ra từ
+ * review.moderated_at: chưa có quyết định của Admin = Chờ xử lý, đã có = Đã xử lý (mặc định "Chờ xử lý").
+ */
+type ReviewFilter = 'PENDING' | 'PROCESSED';
+const STATUS_ITEMS: StatusFilterItem<ReviewFilter>[] = [
+  { value: 'PENDING', label: 'Chờ xử lý', tone: STATUS_COLOR.yellow },
+  { value: 'PROCESSED', label: 'Đã xử lý', tone: STATUS_COLOR.gray },
+];
+const STATUS_VALUES = STATUS_ITEMS.map((i) => i.value);
 const RATING_OPTIONS: SelectOption<'1' | '2' | '3' | '4' | '5'>[] = (['1', '2', '3', '4', '5'] as const).map((n) => ({ value: n, label: `${n} sao` }));
 
 const ACTION_META: Record<ReviewModerationAction, { title: string; confirm: string; description: string; reasonRequired: boolean; danger: boolean }> = {
@@ -52,7 +65,7 @@ type Decision = { action: ReviewModerationAction; review: AdminReview };
 /** Kiểm duyệt đánh giá: xem nội dung kèm ngữ cảnh (Homestay, NCC, booking) rồi giữ nguyên, ẩn, gỡ hoặc khôi phục kèm lý do. */
 export default function ReviewsPanel({ notify }: ReviewsPanelProps) {
   const [keyword, setKeyword] = useState('');
-  const [status, setStatus] = useState<AdminReviewStatus | ''>('VISIBLE');
+  const [status, setStatus] = useUrlStatus<ReviewFilter>(STATUS_VALUES, 'PENDING');
   const [rating, setRating] = useState<'1' | '2' | '3' | '4' | '5' | ''>('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
@@ -67,7 +80,18 @@ export default function ReviewsPanel({ notify }: ReviewsPanelProps) {
   const [dialogError, setDialogError] = useState('');
 
   const debouncedKeyword = useDebouncedValue(keyword);
-  const activeCount = [debouncedKeyword, rating, from || to, status === 'VISIBLE' ? '' : status].filter(Boolean).length;
+  const activeCount = [debouncedKeyword, rating, from || to].filter(Boolean).length;
+
+  /** Nút tải lại: đưa màn hình về trạng thái ban đầu (bỏ mọi điều kiện tìm kiếm / lọc / sắp xếp, về tab mặc định, trang 1) rồi tải lại dữ liệu mới nhất. */
+  const reloadFromStart = () => {
+    setKeyword('');
+    setStatus('PENDING');
+    setRating('');
+    setFrom('');
+    setTo('');
+    setPage(0);
+    setReload((n) => n + 1);
+  };
 
   const resetPage = <T,>(setter: (v: T) => void) => (v: T) => {
     setter(v);
@@ -80,7 +104,7 @@ export default function ReviewsPanel({ notify }: ReviewsPanelProps) {
     try {
       setData(
         await adminService.getReviews({
-          status: status || undefined,
+          processed: status ? status === 'PROCESSED' : undefined,
           rating: rating ? Number(rating) : undefined,
           keyword: debouncedKeyword.trim() || undefined,
           from: from || undefined,
@@ -99,6 +123,25 @@ export default function ReviewsPanel({ notify }: ReviewsPanelProps) {
   useEffect(() => {
     void load();
   }, [load, reload]);
+
+  /** Số lượng trên từng tab: áp dụng cùng từ khóa / số sao / ngày, chỉ khác trạng thái xử lý. */
+  const counts = useStatusCounts(
+    STATUS_VALUES,
+    async (s) =>
+      (
+        await adminService.getReviews({
+          processed: s ? s === 'PROCESSED' : undefined,
+          rating: rating ? Number(rating) : undefined,
+          keyword: debouncedKeyword.trim() || undefined,
+          from: from || undefined,
+          to: to || undefined,
+          page: 0,
+          size: 1,
+        })
+      ).totalElements,
+    JSON.stringify([debouncedKeyword.trim(), rating, from, to]),
+    reload,
+  );
 
   const confirm = async (reason: string) => {
     if (!decision) return;
@@ -130,9 +173,10 @@ export default function ReviewsPanel({ notify }: ReviewsPanelProps) {
 
   return (
     <>
+      <StatusFilter ariaLabel="Trạng thái đánh giá" items={STATUS_ITEMS} value={status} counts={counts} onChange={resetPage(setStatus)} />
+
       <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2.5">
         <FilterSearch value={keyword} onChange={resetPage(setKeyword)} placeholder="Tìm theo nội dung, Homestay, tên khách hoặc mã đặt phòng..." />
-        <CompactSelect label="Trạng thái" value={status} options={STATUS_OPTIONS} onChange={resetPage(setStatus)} />
         <CompactSelect label="Số sao" value={rating} options={[{ value: '', label: 'Tất cả' }, ...RATING_OPTIONS]} onChange={resetPage(setRating)} />
         <CompactDateRange
           label="Ngày đánh giá"
@@ -145,7 +189,7 @@ export default function ReviewsPanel({ notify }: ReviewsPanelProps) {
           }}
         />
         <div className="ml-auto flex shrink-0 items-center gap-2">
-          <RefreshButton loading={loading} onClick={() => setReload((n) => n + 1)} />
+          <RefreshButton loading={loading} onClick={reloadFromStart} />
         </div>
       </div>
 
@@ -217,7 +261,6 @@ export default function ReviewsPanel({ notify }: ReviewsPanelProps) {
         activeCount={activeCount}
         onClear={() => {
           setKeyword('');
-          setStatus('VISIBLE');
           setRating('');
           setFrom('');
           setTo('');
@@ -236,6 +279,15 @@ export default function ReviewsPanel({ notify }: ReviewsPanelProps) {
           description={`${ACTION_META[decision.action].description} (Đánh giá của ${decision.review.guestName} về "${decision.review.placeName}")`}
           confirmLabel={ACTION_META[decision.action].confirm}
           reasonRequired={ACTION_META[decision.action].reasonRequired}
+          finalConfirm={
+            decision.action === 'REMOVE'
+              ? `Bạn sắp GỠ đánh giá của ${decision.review.guestName}. Đánh giá bị gỡ khỏi hệ thống công khai và không thể khôi phục; khách sẽ được thông báo kèm lý do.`
+              : decision.action === 'HIDE'
+              ? `Bạn sắp ẨN đánh giá của ${decision.review.guestName}. Đánh giá không còn hiển thị công khai và không tính vào điểm của Homestay cho đến khi được khôi phục.`
+              : decision.action === 'RESTORE'
+              ? `Bạn sắp KHÔI PHỤC đánh giá của ${decision.review.guestName}. Đánh giá hiển thị công khai trở lại và được tính lại vào điểm của Homestay.`
+              : `Bạn sắp GIỮ NGUYÊN đánh giá của ${decision.review.guestName}. Đánh giá tiếp tục hiển thị công khai và được ghi nhận là đã xem xét.`
+          }
           tone={ACTION_META[decision.action].danger ? 'danger' : 'primary'}
           error={dialogError}
           onCancel={() => setDecision(null)}
